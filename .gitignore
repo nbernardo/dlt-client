@@ -5,5 +5,11 @@ backend/src/cc.py
 backend/venv
 backend/destinations/*.py
 backend/destinations
+backend/src/services/__pycache__
+backend/src/services/workspace/__pycache__
+backend/src/services/pipeline/__pycache__
+backend/src/services/workspace/__pycache__
+
 z
 ztore
+

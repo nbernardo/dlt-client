@@ -1,49 +1,13 @@
-import os
-import subprocess
 from flask import Flask, request
+from services.pipeline.DltPipeline import DltPipeline
 
 app = Flask(__name__)
 
 @app.route('/', methods=["POST"])
 def main():
-    
+    """
+    This is pipeline creation request handler
+    """
     data = request.get_json()
-    file_name = data['pipeline']
-    
-    file_path = f'../destinations/{file_name}.py'
-    file_open_flag = 'x+'
-    
-    template = get_template()
-    
-    if os.path.exists(file_path):
-        return 'Pipeline exists already'
-
-    with open(file_path, file_open_flag, encoding='utf-8') as file:
-        for field in data.keys():
-            template = template\
-                .replace(f'%{field}%', f'"{data[field]}"')
-        
-        file.write(template)
-        
-    result = subprocess.run(['python', file_path],
-                            check=True,
-                            capture_output=True,
-                            text=True)
-    
-    print("Return Code:", result.returncode)
-    print("Standard Output:", result.stdout)
-    print("Standard Error:", result.stderr)
-    
+    DltPipeline.create(data)
     return "Pipeline created successfully"
-
-
-def get_template():
-    
-    tplt = ''
-    file_path = 'pipeline_templates'
-    file_name = 'simple.txt'
-    
-    with open(f'{file_path}/{file_name}', 'r', encoding='utf-8') as file:
-        tplt = file.read()
-        
-    return tplt
