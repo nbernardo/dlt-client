@@ -1,0 +1,9 @@
+import dlt
+from dlt.sources.filesystem import filesystem, read_csv
+
+files = filesystem(bucket_url=%backet_url%, file_glob=%file%)
+reader = (files | read_csv()).with_name(%table_name%)
+pipeline = dlt.pipeline(pipeline_name=%pipeline%, dataset_name=%schema%, destination="duckdb")
+
+info = pipeline.run(reader)
+print(info)
