@@ -13,6 +13,10 @@ export const stillRoutesMap = {
             Workspace: {
                 path: "app/components/workspace",
                 url: "/workspace"
+            },
+            ObjectType: {
+                path: "app/components/workspace/object-type",
+                url: "/object-type"
             }
         },
         lazyInitial: {}
