@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
+import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
 
 export class Workspace extends ViewComponent {
 
@@ -14,6 +15,13 @@ export class Workspace extends ViewComponent {
 	 * @ServicePath services/
 	 * @type { PipelineService }
 	 */
+	pplService;
+
+	/**
+	 * @Inject
+	 * @ServicePath services/
+	 * @type { WorkspaceService }
+	 */
 	service;
 
 	/**
@@ -23,20 +31,29 @@ export class Workspace extends ViewComponent {
 	 */
 	controller;
 
+	/** @type { Array<ObjectDataTypes> } */
+	objectTypes = [];
+
+	stOnRender() {
+		this.service.on('load', () => {
+			this.objectTypes = this.service.objectTypes;
+		});
+	}
+
 	async stAfterInit() {
 
-		this.service.on('load', () => {
-			console.log(`Service loaded with: `, this.service);
+		this.pplService.on('load', () => {
+			console.log(`Service loaded with: `, this.pplService);
 			/* this.service.createPipeline().then(res => {
 				console.log(`Pipeline created successfully: `, res);
 			}) */
 		});
 
-		this.parseWorkspace();
+		this.buildWorkspaceView();
 
 	}
 
-	parseWorkspace() {
+	buildWorkspaceView() {
 
 		this.controller.on('load', () => {
 

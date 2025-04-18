@@ -97,15 +97,16 @@ export class WorkSpaceController extends BaseService {
             pos_x = pos_x * (draweditor.precanvas.clientWidth / (draweditor.precanvas.clientWidth * draweditor.zoom)) - (draweditor.precanvas.getBoundingClientRect().x * (draweditor.precanvas.clientWidth / (draweditor.precanvas.clientWidth * draweditor.zoom)));
             pos_y = pos_y * (draweditor.precanvas.clientHeight / (draweditor.precanvas.clientHeight * draweditor.zoom)) - (draweditor.precanvas.getBoundingClientRect().y * (draweditor.precanvas.clientHeight / (draweditor.precanvas.clientHeight * draweditor.zoom)));
 
+            const dest = 1, source = 1;
 
             switch (name) {
-                case 'facebook':
-                    var facebook = `
+                case 'bucket':
+                    var bucket = `
                     <div>
-                        <div class="title-box"><i class="fab fa-facebook"></i> Facebook Message</div>
+                        <div class="title-box"><i class="fab fa-bitbucket"></i><span> Data Source - Bucket</span></div>
                     </div>
                     `;
-                    draweditor.addNode('facebook', 0, 1, pos_x, pos_y, 'facebook', {}, facebook);
+                    draweditor.addNode('bucket', !source, dest, pos_x, pos_y, 'bucket', {}, bucket);
                     break;
                 case 'slack':
                     var slackchat = `
@@ -113,7 +114,7 @@ export class WorkSpaceController extends BaseService {
                         <div class="title-box"><i class="fab fa-slack"></i> Slack chat message</div>
                     </div>
                     `;
-                    draweditor.addNode('slack', 1, 0, pos_x, pos_y, 'slack', {}, slackchat);
+                    draweditor.addNode('slack', source, !dest, pos_x, pos_y, 'slack', {}, slackchat);
                     break;
                 case 'github':
                     var githubtemplate = `
@@ -125,7 +126,7 @@ export class WorkSpaceController extends BaseService {
                         </div>
                     </div>
                     `;
-                    draweditor.addNode('github', 0, 1, pos_x, pos_y, 'github', { "name": '' }, githubtemplate);
+                    draweditor.addNode('github', !source, dest, pos_x, pos_y, 'github', { "name": '' }, githubtemplate);
                     break;
                 case 'telegram':
                     var telegrambot = `
@@ -143,7 +144,7 @@ export class WorkSpaceController extends BaseService {
                         </div>
                     </div>
                     `;
-                    draweditor.addNode('telegram', 1, 0, pos_x, pos_y, 'telegram', { "channel": 'channel_3' }, telegrambot);
+                    draweditor.addNode('telegram', source, !dest, pos_x, pos_y, 'telegram', { "channel": 'channel_3' }, telegrambot);
                     break;
                 case 'aws':
                     var aws = `
@@ -157,7 +158,7 @@ export class WorkSpaceController extends BaseService {
                         </div>
                     </div>
                     `;
-                    draweditor.addNode('aws', 1, 1, pos_x, pos_y, 'aws', { "db": { "dbname": '', "key": '' } }, aws);
+                    draweditor.addNode('aws', source, source, pos_x, pos_y, 'aws', { "db": { "dbname": '', "key": '' } }, aws);
                     break;
                 case 'log':
                     var log = `
@@ -219,11 +220,11 @@ export class WorkSpaceController extends BaseService {
                     var dbclick = `
                     <div>
                         <div class="title-box"><i class="fas fa-mouse"></i> Db Click</div>
-                        <div class="box dbclickbox" ondblclick="showpopup(event)">
+                        <div class="box dbclickbox" ondblclick="drawshowpopup(event)">
                             Db Click here
                             <div class="modal" style="display:none">
                             <div class="modal-content">
-                                <span class="close" onclick="closemodal(event)">&times;</span>
+                                <span class="close" onclick="drawclosemodal(event)">&times;</span>
                                 Change your variable {name} !
                                 <input type="text" df-name>
                             </div>

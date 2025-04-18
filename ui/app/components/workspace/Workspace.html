@@ -1,61 +1,23 @@
 <div>
-	<form onsubmit="return false;">
+	<!-- <form onsubmit="return false;">
 		<div class="input-group">
 			<label for="">Table Name</label>
 			<input type="text">
 		</div>
-	</form>
+	</form> -->
 
 	<div id="drawflowContainer">
 
 		<header>
-			<h2>Drawflow</h2>
-			<div class="github-link"><a href="https://github.com/jerosoler/Drawflow" target="_blank"><i
-						class="fab fa-github fa-3x"></i></a></div>
-			<div class="them-edit-link"><a href="https://jerosoler.github.io/drawflow-theme-generator/"
-					target="_blank">🎨</a></div>
+			<h2>Workspace</h2>
 		</header>
 		<div class="wrapper">
 			<div class="col">
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="facebook">
-					<i class="fab fa-facebook"></i><span> Facebook</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="slack">
-					<i class="fab fa-slack"></i><span> Slack receive message</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="github">
-					<i class="fab fa-github"></i><span> Github Star</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="telegram">
-					<i class="fab fa-telegram"></i><span> Telegram send message</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="aws">
-					<i class="fab fa-aws"></i><span> AWS</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="log">
-					<i class="fas fa-file-signature"></i><span> File Log</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="google">
-					<i class="fab fa-google-drive"></i><span> Google Drive save</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="email">
-					<i class="fas fa-at"></i><span> Email send</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="template">
-					<i class="fas fa-code"></i><span> Template</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="multiple">
-					<i class="fas fa-code-branch"></i><span> Multiple inputs/outputs</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="personalized">
-					<i class="fas fa-fill"></i><span> Personalized</span>
-				</div>
-				<div class="drag-drawflow" draggable="true" ondragstart="drawdrag(event)" data-node="dbclick">
-					<i class="fas fa-mouse"></i><span> DBClick!</span>
-				</div>
-
-
+				<span (forEach)="objectTypes">
+					<st-element component="ObjectType" each="item"></st-element>
+				</span>
 			</div>
+
 			<div class="col-right">
 				<div class="menu">
 					<ul>
