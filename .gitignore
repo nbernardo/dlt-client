@@ -1,0 +1,9 @@
+backend/src/__pycache__
+backend/src/*.duckdb
+backend/src/dd.py
+backend/src/cc.py
+backend/venv
+backend/destinations/*.py
+backend/destinations
+z
+ztore
