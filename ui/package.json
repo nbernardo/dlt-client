@@ -1,0 +1,22 @@
+{
+  "name": "@stilljs/core",
+  "version": "0.0.16",
+  "type": "module",
+  "author": {
+    "name": "Nakassony Bernardo",
+    "email": "sonybernardo_10@hotmail.com"
+  },
+  "keywords": ["Still.js","StillJS","Microfrontend","Vanilla UI JavaScript Framework","Web Frontent Framework","UI Development Framework", "Frontend Engineering"],
+  "scripts": {
+    "dev": "npx live-server ./ --port 8181",
+    "start": "npx live-server ./ --port 8181"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/still-js/core.git"
+  },
+  "homepage": "https://still-js.github.io/stilljs-doc/"
+}
