@@ -802,43 +802,12 @@ export class Components {
         return obj;
     }
 
-
     /** @param {ViewComponent} cmp */
-    defineNewInstanceMethod() {
-
-        const cmp = this.component;
-        const cmpName = this.componentName;
-        Object.assign(cmp, {
-            new: (params) => {
-
-                /**  @type {ViewComponent} */
-                let instance;
-                if (params instanceof Object)
-                    instance = this.getNewParsedComponent(eval(`new ${cmpName}({...${JSON.stringify(params)}})`));
-
-                if (params instanceof Array)
-                    instance = this.getNewParsedComponent(eval(`new ${cmpName}([...${JSON.stringify(params)}])`));
-
-                instance.cmpInternalId = `dynamic-${instance.getUUID()}${cmpName}`;
-                /** TODO: Replace the bellow with the export under componentRegistror */
-                ComponentRegistror.add(
-                    instance.cmpInternalId,
-                    instance
-                );
-
-                if (instance) return instance;
-
-                return eval(`new ${cmpName}('${params}')`);
-            }
-        });
-        return this;
-    }
+    defineNewInstanceMethod() { return this; }
 
     markParsed() {
-
         Object.assign(this.component, { stillParsedState: true });
         return this;
-
     }
 
     /**  @param {ViewComponent} cmp */
@@ -879,13 +848,11 @@ export class Components {
             Components.parsingTracking[cmp.cmpInternalId] = true;
             cmp.setAndGetsParsed = true;
             this.parseGetsAndSets(null, allowProps);
-        } else {
+        } else
             delete Components.parsingTracking[cmp.cmpInternalId];
-        }
         this.markParsed();
 
         return cmp;
-
     }
 
     static unloadLoadedComponent(cntrPlaceholder = null) {
@@ -1385,8 +1352,8 @@ export class Components {
         delete Components.subscriptions[actonName];
 
     static parseAnnottationRE() {
-        const injectOrProxyRE = /(\@Inject|\@Proxy|\@Prop){0,1}[\n \s \*]{0,}/;
-        const servicePathRE = /(\@ServicePath){0,1}[\s\\/'A-Z-a-z0-9]{0,}[\n \s \*]{0,}/;
+        const injectOrProxyRE = /(\@Inject|\@Proxy|\@Prop|\@Controller){0,1}[\n \s \*]{0,}/;
+        const servicePathRE = /(\@Path){0,1}[\s\\/'A-Z-a-z0-9]{0,}[\n \s \*]{0,}/;
         const commentRE = /(\@type){0,1}[\s \@ \{ \} \: \| \< \> \, A-Za-z0-9]{1,}[\* \s]{1,}\//;
         const newLineRE = /[\n]{0,}/;
         const fieldNameRE = /[\s A-Za-z0-9 \$ \# \(]{1,}/;
@@ -1400,13 +1367,14 @@ export class Components {
             propertyName = mt.slice(commentEndPos).replace('\n', '').trim();
         }
 
-        let inject, proxy, prop, propParsing, type, servicePath, svcPath;
+        let inject, proxy, prop, propParsing, type, servicePath, svcPath, controller;
         if (propertyName != '') {
 
-            inject = mt.includes('@Inject'), servicePath = mt.includes('@ServicePath');
+            inject = mt.includes('@Inject'), servicePath = mt.includes('@Path');
             proxy = mt.includes('@Proxy'), prop = mt.includes('@Prop');
+            controller = mt.includes('@Controller');
             svcPath = !servicePath
-                ? '' : mt.split('@ServicePath')[1].split(' ')[1].replace('\n', '');
+                ? '' : mt.split('@Path')[1].split(' ')[1].replace('\n', '');
 
             if (mt.includes("@type")) {
                 type = mt.split('{')[1].split('}')[0].trim();
@@ -1414,9 +1382,9 @@ export class Components {
             }
         }
 
-        propParsing = inject || servicePath || proxy || prop || $stillconst.PROP_TYPE_IGNORE.includes(type);
+        propParsing = controller || inject || servicePath || proxy || prop || $stillconst.PROP_TYPE_IGNORE.includes(type);
 
-        return { type, inject, servicePath, proxy, prop, propParsing, svcPath };
+        return { type, inject, servicePath, proxy, prop, propParsing, svcPath, controller };
 
     }
 
@@ -1446,10 +1414,10 @@ export class Components {
                         try {
                             eval(`${cmp}`).toString().replace(new RegExp(re, 'g'), async (mt) => {
                                 const {
-                                    type, inject, proxy, prop, propParsing, propertyName
+                                    type, inject, proxy, prop, propParsing, propertyName, controller
                                 } = Components.processAnnotation(mt);
                                 Components.registerAnnotation(cmp, propertyName, {
-                                    type, inject, proxy, prop, propParsing
+                                    type, inject, proxy, prop, propParsing, controller
                                 });
                             });
                         } catch (error) { }
@@ -1545,7 +1513,6 @@ export class Components {
     }
 
     injectAnauthorizedMsg(content) { $stillconst.MSG.CUSTOM_PRIVATE_CMP = content; }
-
     processWhiteList(content) { Components.obj().#cmpPermWhiteList = content.map(r => r.name); }
 
     isInWhiteList(cmp) {
@@ -1554,6 +1521,20 @@ export class Components {
         if (!isInBlackList && !isInWhiteList && cmp.isPublic) return true;
         if (isInBlackList) return false;
         return isInWhiteList;
+    }
+
+    /** 
+     * @param { ViewComponent } cmp
+     * @param { Object | any | null } data
+     * */
+    static async new(cmp, data = null) {
+        const { newInstance: instance } = await Components.produceComponent({ cmp: cmp.name });
+        (async () => await instance.stOnRender(data))();
+        instance.cmpInternalId = `dynamic-${instance.getUUID()}${instance.getName()}`;
+        const template = Components.obj().getNewParsedComponent(instance).getBoundTemplate();
+        ComponentRegistror.add(instance.cmpInternalId, instance);
+        setTimeout(async () => await instance.stAfterInit(), 500);
+        return { template, component: instance };
     }
 
 }
