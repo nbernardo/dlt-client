@@ -1,8 +1,8 @@
 
-        /**
-         * Don't change the constante name as it'll impact on the component routing
-         */
-        
+/**
+ * Don't change the constante name as it'll impact on the component routing
+ */
+
 export const stillRoutesMap = {
     viewRoutes: {
         regular: {
@@ -17,6 +17,14 @@ export const stillRoutesMap = {
             ObjectType: {
                 path: "app/components/workspace/object-type",
                 url: "/object-type"
+            },
+            Bucket: {
+                path: "app/components/node-types",
+                url: "/bucket-type"
+            },
+            CleanerType: {
+                path: "app/components/node-types",
+                url: "/cleaner-type"
             }
         },
         lazyInitial: {}

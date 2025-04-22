@@ -25,17 +25,16 @@
 						<li onclick="draweditor.changeModule('Other'); changeModule(event);">Other Module</li>
 					</ul>
 				</div>
-				<div id="drawflow" ondrop="drawdrop(event)" ondragover="drawallowDrop(event)">
+				<div id="drawflow" ondrop="component.drop(event)" ondragover="controller.allowDrop(event)">
 
-					<div class="btn-export" onclick="Swal.fire({ title: 'Export',
-			html: '<pre><code>'+JSON.stringify(draweditor.export(), null,4)+'</code></pre>'
-			})">Export</div>
+					<div class="btn-export" onclick="controller.export()">Export</div>
 					<div class="btn-clear" onclick="draweditor.clearModuleSelected()">Clear</div>
 					<div class="btn-lock">
 						<i id="lock" class="fas fa-lock"
-							onclick="draweditor.editor_mode='fixed'; changeMode('lock');"></i>
+							onclick="draweditor.editor_mode='fixed'; controller.changeMode('lock');"></i>
 						<i id="unlock" class="fas fa-lock-open"
-							onclick="draweditor.editor_mode='edit'; changeMode('unlock');" style="display:none;"></i>
+							onclick="draweditor.editor_mode='edit'; controller.changeMode('unlock');"
+							style="display:none;"></i>
 					</div>
 					<div class="bar-zoom">
 						<i class="fas fa-search-minus" onclick="draweditor.zoom_out()"></i>
