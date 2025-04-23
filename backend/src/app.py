@@ -1,13 +1,15 @@
-from flask import Flask, request
-from services.pipeline.DltPipeline import DltPipeline
+from pathlib import Path
+import sys
+
+from flask import Flask
+from controller.pipeline import pipeline
+from flask_cors import CORS
+
+
+proj_folder = Path(__file__).parent
+sys.path.insert(0, proj_folder/'node_mapper/')
 
 app = Flask(__name__)
+CORS(app)
 
-@app.route('/', methods=["POST"])
-def main():
-    """
-    This is pipeline creation request handler
-    """
-    data = request.get_json()
-    DltPipeline.create(data)
-    return "Pipeline created successfully"
+app.register_blueprint(pipeline)

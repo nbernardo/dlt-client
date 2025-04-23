@@ -1,13 +1,13 @@
 import os
 import subprocess
-
+import duckdb
+import json
 class DltPipeline:
     """
     This is the class to create and handle pipelines
     """
     
-    @staticmethod
-    def create(data):
+    def create(self, data):
         """
         This is the pipeline creation
         """
@@ -40,7 +40,9 @@ class DltPipeline:
         
     @staticmethod
     def get_template():
-    
+        """
+        This is template handling method
+        """
         tplt = ''
         file_path = 'pipeline_templates'
         file_name = 'simple.txt'
@@ -49,3 +51,20 @@ class DltPipeline:
             tplt = file.read()
             
         return tplt
+
+    
+    def save_instance(self, content):
+        """
+            This will save in the DB 
+            the Pipeline created in the diagram (UI)
+        """
+        con = duckdb.connect("file.db")
+        con.sql(
+            "CREATE TABLE IF NOT EXISTS ppline_instances \
+                (\
+                    _content JSON, \
+                    _timestamp TIMESTAMP\
+                )\
+            ")
+        
+        con.sql(f"INSERT INTO ppline_instances (_content) VALUES ('{json.dumps(content)}')")
