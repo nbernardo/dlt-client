@@ -1,8 +1,8 @@
 
-/**
- * Don't change the constante name as it'll impact on the component routing
- */
-
+        /**
+         * Don't change the constante name as it'll impact on the component routing
+         */
+        
 export const stillRoutesMap = {
     viewRoutes: {
         regular: {
@@ -25,6 +25,10 @@ export const stillRoutesMap = {
             CleanerType: {
                 path: "app/components/node-types",
                 url: "/cleaner-type"
+            },
+            DuckDBOutput: {
+                path: "app/components/node-types",
+                url: "/duck-dbo-utput"
             }
         },
         lazyInitial: {}

@@ -5,9 +5,9 @@ export class PipelineService extends BaseService {
 
     table = new ServiceEvent([]);
 
-    async createPipeline() {
+    async createPipeline(content = null) {
 
-        const payload = {
+        const payload = content || {
             "backet_url": "/home/nakassony/dlt-project/z/",
             "file": "encounters*.csv",
             "table_name": "encounters",

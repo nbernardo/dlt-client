@@ -1,4 +1,5 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
+import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 
 export class Bucket extends ViewComponent {
@@ -10,7 +11,10 @@ export class Bucket extends ViewComponent {
 	 * */
 	nodeId;
 
-	basketUrl;
+	label = 'Source Bucket'
+	bucketUrl;
+	provider;
+	filePattern;
 
 	/**
 	 * @Inject
@@ -19,7 +23,7 @@ export class Bucket extends ViewComponent {
 	 */
 	wspaceService;
 
-	/** 
+	/**
 	 * The id will be passed when instantiating Bucket dinamically
 	 * through the Component.new(type, param) where for para nodeId 
 	 * will be passed
@@ -30,8 +34,28 @@ export class Bucket extends ViewComponent {
 
 	stAfterInit() {
 		this.wspaceService.on('load', () => { });
+
+		this.bucketUrl.onChange((newValue) => {
+			const data = WorkSpaceController.getNode(this.nodeId).data;
+			data['bucketUrl'] = newValue;
+		});
+
+		this.filePattern.onChange((newValue) => {
+			const data = WorkSpaceController.getNode(this.nodeId).data;
+			data['filePattern'] = newValue;
+		});
+
+		this.provider.onChange((newValue) => {
+			const data = WorkSpaceController.getNode(this.nodeId).data;
+			data['provider'] = newValue;
+		});
 	}
 
+	getMyData() {
+		const data = WorkSpaceController.getNode(this.nodeId);
+		WorkSpaceController.getNode(this.nodeId).html = '';
+		console.log(data.data);
+	}
 
 
 }

@@ -38,7 +38,7 @@ export class ObjectType extends ViewComponent {
 			<i (renderIf)="self.icon" class="@icon"></i>
 			<span>
 				<span (renderIf)="self.imgIcon">
-					<img src="@imgIcon" style="width: 25px;" />
+					<img src="@imgIcon" style="width: 20px;" />
 				</span> @label
 			</span>
 		</div>

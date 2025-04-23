@@ -2,6 +2,7 @@ import { BaseController } from "../../@still/component/super/service/BaseControl
 import { Components } from "../../@still/setup/components.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { CleanerType } from "../components/node-types/CleanerType.js";
+import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 
 class NodeType {
     tmplt; data;
@@ -11,7 +12,6 @@ export class WorkSpaceController extends BaseController {
 
     editor;
     transform = '';
-    nodeIdTracker;
 
     registerEvents() {
 
@@ -92,9 +92,15 @@ export class WorkSpaceController extends BaseController {
         pos_x = pos_x * (this.editor.precanvas.clientWidth / (this.editor.precanvas.clientWidth * this.editor.zoom)) - (this.editor.precanvas.getBoundingClientRect().x * (this.editor.precanvas.clientWidth / (this.editor.precanvas.clientWidth * this.editor.zoom)));
         pos_y = pos_y * (this.editor.precanvas.clientHeight / (this.editor.precanvas.clientHeight * this.editor.zoom)) - (this.editor.precanvas.getBoundingClientRect().y * (this.editor.precanvas.clientHeight / (this.editor.precanvas.clientHeight * this.editor.zoom)));
 
-        if (inType == 'Bucket') {
-            const { template: tmpl, component } = await Components.new(Bucket, this.getNodeId());
+        if (['Bucket', 'DuckDBOutput'].includes(inType)) {
+            const cmpTypes = {
+                'Bucket': Bucket,
+                'DuckDBOutput': DuckDBOutput
+            }
+            const nodeId = this.getNodeId();
+            const { template: tmpl, component } = await Components.new(cmpTypes[inType], nodeId);
             this.editor.addNode(name, source, dest, pos_x, pos_y, name, {}, tmpl);
+            this.clearHTML(nodeId);
             return;
         }
 
@@ -273,11 +279,19 @@ export class WorkSpaceController extends BaseController {
         return Number(allNodes.slice(-1)[0]) + 1;
     }
 
-    export() {
-        //console.log(`LAST NODE: `, this.getLastNodeId());
+    static getNode(nodeId) {
+        const obj = WorkSpaceController.get();
+        return obj.editor.drawflow.drawflow.Home.data[nodeId];
+    }
 
+    clearHTML(nodeId) {
+        WorkSpaceController.getNode(nodeId).html = '';
+    }
+
+
+    export() {
         const exportResult = this.editor.export();
-        //console.log(JSON.stringify(exportResult, null, 4));
+        console.log(JSON.stringify(exportResult, null, 4));
     }
 
 }

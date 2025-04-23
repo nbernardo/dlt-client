@@ -1,10 +1,11 @@
 <div>
-	<div class="title-box"><i class="fab fa-github "></i> @label</div>
+	<div class="title-box"><i class="fab fa-bitbucket "></i> @label</div>
 	<div class="box">
 		<form onsubmit="return false;">
 			<p>Enter Bucket url:</p>
-			<input type="text" (value)="basketUrl" df-name>
+			<input type="text" (value)="bucketUrl" placeholder="Basket/Folder URL">
+			<p>File pattern:</p>
+			<input type="text" (value)="filePattern" placeholder="Ex: transactions*.csv">
 		</form>
-		<button (click)="showMe()">Call Event</button>
 	</div>
 </div>

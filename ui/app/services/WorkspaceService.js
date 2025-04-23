@@ -19,9 +19,9 @@ export class WorkspaceService extends BaseService {
         { icon: 'fas fa-file-alt', label: 'Input File', typeName: 'slack', source: 0, dest: 1 },
         { icon: 'fas fa-cogs', label: 'Transformation', typeName: 'github', source: 1, dest: 1 },
         {
-            imgIcon: 'app/assets/imgs/File-Database--Streamline-Nova.png',
+            imgIcon: 'app/assets/imgs/duckdb-icon.svg',
             label: 'Out-DBFile (.duckdb)',
-            typeName: 'telegram', source: 1, dest: 1
+            typeName: 'DuckDBOutput', source: 1, dest: 1
         },
         { icon: 'fab fa-aws', label: 'Save in aws', typeName: 'aws' },
         { icon: 'fas fa-file-signature', label: 'File Log', typeName: 'log' },

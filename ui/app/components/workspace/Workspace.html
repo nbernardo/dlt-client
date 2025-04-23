@@ -21,13 +21,17 @@
 			<div class="col-right">
 				<div class="menu">
 					<ul>
-						<li onclick="draweditor.changeModule('Home'); changeModule(event);" class="selected">Home</li>
-						<li onclick="draweditor.changeModule('Other'); changeModule(event);">Other Module</li>
+						<li onclick="controller.changeModule('Home'); controller.changeModule(event);" class="selected">
+							Space 1</li>
+						<li onclick="controller.changeModule('Other'); controller.changeModule(event);">Space 2
+						</li>
 					</ul>
 				</div>
-				<div id="drawflow" ondrop="component.drop(event)" ondragover="controller.allowDrop(event)">
+				<div id="drawflow" ondrop="controller.drop(event)" ondragover="controller.allowDrop(event)">
 
-					<div class="btn-export" onclick="controller.export()">Export</div>
+					<div class="btn-export" onclick="component.savePipeline()">
+						<i class="fa fa-save"></i> Save
+					</div>
 					<div class="btn-clear" onclick="draweditor.clearModuleSelected()">Clear</div>
 					<div class="btn-lock">
 						<i id="lock" class="fas fa-lock"
