@@ -1,75 +1,71 @@
-Package                   Version        
-------------------------- ---------------
-altair                    5.5.0          
-attrs                     25.3.0         
-blinker                   1.9.0          
-cachetools                5.5.2          
-certifi                   2025.1.31      
-charset-normalizer        3.4.1          
-click                     8.1.8          
-dlt                       1.9.0          
-duckdb                    1.2.2          
-flask                     3.1.0          
-fsspec                    2025.3.2       
-gitdb                     4.0.12         
-GitPython                 3.1.44         
-giturlparse               0.12.0         
-greenlet                  3.2.0          
-hexbytes                  1.3.0          
-humanize                  4.12.2         
-idna                      3.10           
-importlib-metadata        8.6.1          
-itsdangerous              2.2.0          
-jinja2                    3.1.6          
-jsonpath-ng               1.7.0          
-jsonschema                4.23.0         
-jsonschema-specifications 2024.10.1      
-makefun                   1.15.6         
-markdown-it-py            3.0.0          
-MarkupSafe                3.0.2          
-mdurl                     0.1.2          
-narwhals                  1.35.0         
-numpy                     2.0.2          
-orjson                    3.10.16        
-packaging                 24.2           
-pandas                    2.2.3          
-pathvalidate              3.2.3          
-pendulum                  3.0.0          
-pillow                    11.2.1         
-pip                       20.0.2         
-pkg-resources             0.0.0          
-pluggy                    1.5.0          
-ply                       3.11           
-protobuf                  5.29.4         
-pyarrow                   19.0.1         
-pydeck                    0.9.1          
-pygments                  2.19.1         
-python-dateutil           2.9.0.post0    
-pytz                      2025.2         
-PyYAML                    6.0.2          
-referencing               0.36.2         
-requests                  2.32.3         
-requirements-parser       0.11.0         
-rich                      14.0.0         
-rich-argparse             1.7.0          
-rpds-py                   0.24.0         
-semver                    3.0.4          
-setuptools                78.1.0         
-simplejson                3.20.1         
-six                       1.17.0         
-smmap                     5.0.2          
-sqlalchemy                2.0.40         
-sqlglot                   26.14.0        
-streamlit                 1.44.1         
-tenacity                  9.1.2          
-time-machine              2.16.0         
-toml                      0.10.2         
-tomlkit                   0.13.2         
-tornado                   6.4.2          
-types-setuptools          78.1.0.20250329
-typing-extensions         4.13.2         
-tzdata                    2025.2         
-urllib3                   2.4.0          
-watchdog                  6.0.0          
-werkzeug                  3.1.3          
-zipp                      3.21.0         
+altair==5.5.0
+attrs==25.3.0
+blinker==1.9.0
+cachetools==5.5.2
+certifi==2025.1.31
+charset-normalizer==3.4.1
+click==8.1.8
+dlt==1.9.0
+duckdb==1.2.2
+flask==3.1.0
+flask-cors==5.0.1
+fsspec==2025.3.2
+gitdb==4.0.12
+GitPython==3.1.44
+giturlparse==0.12.0
+greenlet==3.2.0
+hexbytes==1.3.0
+humanize==4.12.2
+idna==3.10
+importlib-metadata==8.6.1
+itsdangerous==2.2.0
+jinja2==3.1.6
+jsonpath-ng==1.7.0
+jsonschema==4.23.0
+jsonschema-specifications==2024.10.1
+makefun==1.15.6
+markdown-it-py==3.0.0
+MarkupSafe==3.0.2
+mdurl==0.1.2
+narwhals==1.35.0
+numpy==2.0.2
+orjson==3.10.16
+packaging==24.2
+pandas==2.2.3
+pathvalidate==3.2.3
+pendulum==3.0.0
+pillow==11.2.1
+pluggy==1.5.0
+ply==3.11
+protobuf==5.29.4
+pyarrow==19.0.1
+pydeck==0.9.1
+pygments==2.19.1
+python-dateutil==2.9.0.post0
+pytz==2025.2
+PyYAML==6.0.2
+referencing==0.36.2
+requests==2.32.3
+requirements-parser==0.11.0
+rich==14.0.0
+rich-argparse==1.7.0
+rpds-py==0.24.0
+semver==3.0.4
+simplejson==3.20.1
+six==1.17.0
+smmap==5.0.2
+sqlalchemy==2.0.40
+sqlglot==26.14.0
+streamlit==1.44.1
+tenacity==9.1.2
+time-machine==2.16.0
+toml==0.10.2
+tomlkit==0.13.2
+tornado==6.4.2
+types-setuptools==78.1.0.20250329
+typing-extensions==4.13.2
+tzdata==2025.2
+urllib3==2.4.0
+watchdog==6.0.0
+werkzeug==3.1.3
+zipp==3.21.0

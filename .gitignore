@@ -6,9 +6,13 @@ backend/venv
 backend/destinations/*.py
 backend/destinations
 backend/src/services/__pycache__
+backend/src/node_mapper/__pycache__
 backend/src/services/workspace/__pycache__
 backend/src/services/pipeline/__pycache__
 backend/src/services/workspace/__pycache__
+
+ui/app/components/node-types/Scratch.js
+ui/app/mixin/Component.js
 
 z
 ztore
