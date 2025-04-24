@@ -313,10 +313,11 @@ header a {
     height: 100px;
 }
 
-
+/* PERSONALIZED TO BE REMOVED */
 .drawflow-node.personalized {
     background: red;
     height: 200px;
+    width: 200px;
     text-align: center;
     color: white;
 }
@@ -332,6 +333,62 @@ header a {
 .drawflow-node.personalized.selected {
     background: blue;
 }
+
+/* END OF PERSONALIZED TO BE REMOVED */
+
+
+.drawflow-node.Start .edge-label {
+    margin-top: -42px;
+    color: black;
+}
+
+.drawflow-node.Start {
+    border: 1px solid black;
+}
+
+
+.drawflow-node.Start .output {
+    margin-top: 45px;
+    margin-left: -20px;
+}
+
+.drawflow-node.End .input {
+    margin-top: -33px;
+    margin-left: 26px;
+}
+
+.drawflow-node.End {
+    background: black;
+}
+
+.drawflow-node.Start,
+.drawflow-node.End {
+    height: 50px;
+    width: 50px;
+    border-radius: 100%;
+    text-align: center;
+    color: white;
+}
+
+.drawflow-node.Start .input,
+.drawflow-node.End .input {
+    background: white;
+}
+
+.drawflow-node.Start .output,
+.drawflow-node.End .output {
+    background: black;
+}
+
+/* .drawflow-node.Start.selected,
+.drawflow-node.End.selected {
+    background: blue;
+} */
+
+.drawflow-node.End.selected {
+    background: grey;
+}
+
 
 .drawflow .connection .point {
     stroke: var(--border-color);

@@ -12,6 +12,7 @@ export class WorkSpaceController extends BaseController {
 
     editor;
     transform = '';
+    edgeTypeAdded = {};
 
     registerEvents() {
 
@@ -92,6 +93,13 @@ export class WorkSpaceController extends BaseController {
         pos_x = pos_x * (this.editor.precanvas.clientWidth / (this.editor.precanvas.clientWidth * this.editor.zoom)) - (this.editor.precanvas.getBoundingClientRect().x * (this.editor.precanvas.clientWidth / (this.editor.precanvas.clientWidth * this.editor.zoom)));
         pos_y = pos_y * (this.editor.precanvas.clientHeight / (this.editor.precanvas.clientHeight * this.editor.zoom)) - (this.editor.precanvas.getBoundingClientRect().y * (this.editor.precanvas.clientHeight / (this.editor.precanvas.clientHeight * this.editor.zoom)));
 
+        if (['Start', 'End'].includes(inType)) {
+            const tmpl = this.edgeType(inType);
+            if (tmpl != null)
+                this.editor.addNode(name, source, dest, pos_x, pos_y, name, {}, tmpl);
+            return;
+        }
+
         if (['Bucket', 'DuckDBOutput'].includes(inType)) {
             const cmpTypes = {
                 'Bucket': Bucket,
@@ -99,7 +107,8 @@ export class WorkSpaceController extends BaseController {
             }
             const nodeId = this.getNodeId();
             const { template: tmpl, component } = await Components.new(cmpTypes[inType], nodeId);
-            this.editor.addNode(name, source, dest, pos_x, pos_y, name, {}, tmpl);
+            const { inConnectors, outConnectors } = component;
+            this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, {}, tmpl);
             this.clearHTML(nodeId);
             return;
         }
@@ -151,6 +160,19 @@ export class WorkSpaceController extends BaseController {
             </div>
         `;
         return { tmplt, data: {} }
+    }
+
+    /** @returns { NodeType } */
+    edgeType(type) {
+        //Skip if already added
+        if (this.edgeTypeAdded[type]) return null;
+        this.edgeTypeAdded[type] = this.getNodeId();
+        return `
+            <div class="edge-label">
+                ${type}
+            </div>
+            <div></div>
+        `;
     }
 
     /** @returns { NodeType } */
@@ -217,12 +239,17 @@ export class WorkSpaceController extends BaseController {
     handleListeners(editor) {
 
         // Events!
+        const obj = this;
         editor.on('nodeCreated', function (id) {
             console.log("Node created " + id);
         })
 
         editor.on('nodeRemoved', function (id) {
-            console.log("Node removed " + id);
+            if (id == obj.edgeTypeAdded['Start'])
+                delete obj.edgeTypeAdded['Start'];
+
+            if (id == obj.edgeTypeAdded['End'])
+                delete obj.edgeTypeAdded['End'];
         })
 
         editor.on('nodeSelected', function (id) {

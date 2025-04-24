@@ -12,6 +12,11 @@ export class DuckDBOutput extends ViewComponent {
 	tableName;
 	label = 'Duckdb Output';
 
+	/** @Prop */
+	inConnectors = 1;
+	/** @Prop */
+	outConnectors = 0;
+
 	stOnRender(nodeId) {
 		this.nodeId = nodeId;
 	}

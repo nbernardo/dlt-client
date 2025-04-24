@@ -16,6 +16,11 @@ export class Bucket extends ViewComponent {
 	provider;
 	filePattern;
 
+	/** @Prop */
+	inConnectors = 1;
+	/** @Prop */
+	outConnectors = 1;
+
 	/**
 	 * @Inject
 	 * @Path services/
