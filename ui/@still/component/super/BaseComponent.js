@@ -254,9 +254,7 @@ export class BaseComponent extends BehaviorComponent {
         const allowfProp = true;
         const fields = this.getProperties(allowfProp);
         const currentClass = this;
-        const clsName = this.dynLoopObject || this.lone || isReloading
-            ? this.cmpInternalId
-            : currentClass.constructor.name;
+        const clsName = this.cmpInternalId;
 
         if (this.template instanceof Array)
             this.template = this.template.join('');
@@ -337,7 +335,7 @@ export class BaseComponent extends BehaviorComponent {
 
             let subscriptionCls = '';
 
-            const subsCls = `listenChangeOn-${cmpName}-${ds}`;
+            const subsCls = `listenChangeOn-${this.cmpInternalId}-${ds}`;
             const hashValue = `hash_${this.getUUID()}`;
             const hash = `hash="${hashValue}"`;
             const newClassName = `newCls="${subsCls}"`;
@@ -1051,7 +1049,7 @@ export class BaseComponent extends BehaviorComponent {
             ? this.cmpInternalId
             : this.getProperInstanceName();
         const validatorClass = BehaviorComponent.setOnValueInput(mt, this, field, (formRef?.formRef || null));
-        const classList = `${validatorClass} listenChangeOn-${onChangeId}-${field}`;
+        const classList = `${validatorClass} listenChangeOn-${this.cmpInternalId}-${field}`;
 
         const clsPath = this.getClassPath();
 

@@ -423,7 +423,7 @@ export class Components {
     defineSetter = (cmp, field) => {
         if (cmp.myAnnotations()?.get(field)?.inject) return;
         cmp.__defineGetter__(field, () => {
-
+            const cmpId = cmp.cmpInternalId;
             const result = {
                 value: cmp['$still_' + field],
                 onChange: (callback = function () { }) => {
@@ -442,7 +442,6 @@ export class Components {
             }
             return result;
         });
-
     }
 
     /** @param {ViewComponent} cmp */
@@ -562,9 +561,7 @@ export class Components {
     /** @param { ViewComponent } cmp */
     propageteChanges(cmp, field) {
 
-        const cpName = cmp.dynLoopObject || cmp.lone
-            ? cmp.cmpInternalId
-            : cmp.getProperInstanceName();
+        const cpName = cmp.cmpInternalId;
         const cssRef = `.listenChangeOn-${cpName}-${field}`;
         const subscribers = document.querySelectorAll(cssRef);
         const cssRefCombo = `.listenChangeOn-${cpName}-${field}-combobox`;
