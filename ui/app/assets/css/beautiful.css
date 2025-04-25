@@ -347,7 +347,7 @@ header a {
 }
 
 
-.drawflow-node.Start .output {
+/* .drawflow-node.Start .output {
     margin-top: 45px;
     margin-left: -20px;
 }
@@ -355,7 +355,7 @@ header a {
 .drawflow-node.End .input {
     margin-top: -33px;
     margin-left: 26px;
-}
+} */
 
 .drawflow-node.End {
     background: black;
