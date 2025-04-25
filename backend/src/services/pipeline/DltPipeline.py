@@ -47,7 +47,9 @@ class DltPipeline:
         file_open_flag = 'x+'
 
         if os.path.exists(file_path):
-            return 'Pipeline exists already'
+            message = 'Pipeline exists already'
+            print(message)
+            return message
 
         with open(file_path, file_open_flag, encoding='utf-8') as file:
             file.write(data)
