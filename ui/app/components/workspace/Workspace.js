@@ -1,5 +1,5 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
-import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { NodeTypeEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
 
@@ -34,12 +34,13 @@ export class Workspace extends ViewComponent {
 	/** @type { Array<ObjectDataTypes> } */
 	objectTypes = [];
 
+	activeGrid = "pipeline_name";
+
 	stOnRender() {
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
 			this.service.table.onChange(newValue => {
 				console.log(`Workspace was update about changed and new value is: `, newValue);
-
 			});
 		});
 	}
@@ -52,7 +53,6 @@ export class Workspace extends ViewComponent {
 				console.log(`Pipeline created successfully: `, res);
 			}) */
 		});
-
 		this.buildWorkspaceView();
 
 	}
@@ -61,10 +61,7 @@ export class Workspace extends ViewComponent {
 
 		this.controller.on('load', () => {
 
-			console.log(`Creating new controller: `, new WorkSpaceController().versionId);
-
 			this.controller.registerEvents();
-			//const methods = this.controller.events();
 
 			var id = document.getElementById("drawflow");
 			this.editor = new Drawflow(id);
@@ -86,10 +83,21 @@ export class Workspace extends ViewComponent {
 	}
 
 	async savePipeline() {
-		const data = this.editor;
+		let data = this.editor.export();
+		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
+		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
+		data = { ...data, startNode, activeGrid, pplineLbl: this.activeGrid.value }
 		console.log(data);
 		const result = await this.pplService.createPipeline(data);
 	}
 
+	onPplineNameKeyPress(e) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			this.activeGrid = e.target.innerText;
+			e.target.blur();
+			e.target.style.fontWeight = 'bold';
+		}
+	}
 
 }

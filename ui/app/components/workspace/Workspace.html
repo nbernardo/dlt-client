@@ -22,7 +22,10 @@
 				<div class="menu">
 					<ul>
 						<li onclick="controller.changeModule('Home'); controller.changeModule(event);" class="selected">
-							Space 1</li>
+							<div onkeypress="component.onPplineNameKeyPress(event)" contenteditable="true">
+								@activeGrid
+							</div>
+						</li>
 						<li onclick="controller.changeModule('Other'); controller.changeModule(event);">Space 2
 						</li>
 					</ul>

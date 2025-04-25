@@ -8,6 +8,11 @@ class NodeType {
     tmplt; data;
 }
 
+export const NodeTypeEnum = {
+    START: 'Start',
+    END: 'End',
+}
+
 export class WorkSpaceController extends BaseController {
 
     editor;
@@ -145,11 +150,11 @@ export class WorkSpaceController extends BaseController {
     }
 
     changeModule(event) {
-        var all = document.querySelectorAll(".menu ul li");
+        const all = document.querySelectorAll(".menu ul li");
         for (var i = 0; i < all.length; i++) {
             all[i].classList.remove('selected');
         }
-        event.target.classList.add('selected');
+        event.target?.classList?.add('selected');
     }
 
     /** @returns { NodeType } */
@@ -245,11 +250,11 @@ export class WorkSpaceController extends BaseController {
         })
 
         editor.on('nodeRemoved', function (id) {
-            if (id == obj.edgeTypeAdded['Start'])
-                delete obj.edgeTypeAdded['Start'];
+            if (id == obj.edgeTypeAdded[NodeTypeEnum.START])
+                delete obj.edgeTypeAdded[NodeTypeEnum.START];
 
-            if (id == obj.edgeTypeAdded['End'])
-                delete obj.edgeTypeAdded['End'];
+            if (id == obj.edgeTypeAdded[NodeTypeEnum.END])
+                delete obj.edgeTypeAdded[NodeTypeEnum.END];
         })
 
         editor.on('nodeSelected', function (id) {
