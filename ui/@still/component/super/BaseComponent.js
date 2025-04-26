@@ -264,10 +264,10 @@ export class BaseComponent extends BehaviorComponent {
         /** Bind @dynCmpGeneratedId which takes place in special
          * situation that a component is created to be reference
          * as a tag <st-extern> */
-        tamplateWithState = tamplateWithState.replace(
-            `@dynCmpGeneratedId`,
-            currentClass[`dynCmpGeneratedId`]
-        );
+        tamplateWithState = tamplateWithState.replace(`@dynCmpGeneratedId`, currentClass[`dynCmpGeneratedId`]);
+
+        //To bind the internal id to any thing or property
+        tamplateWithState = tamplateWithState.replace(/\@cmpInternalId/g, this.cmpInternalId);
 
         let formsRef = [];
         if (this.isThereAForm()) {
