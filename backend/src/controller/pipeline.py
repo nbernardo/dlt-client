@@ -3,6 +3,7 @@ from services.pipeline.DltPipeline import DltPipeline
 from node_mapper.NodeFactory import NodeFactory
 from node_mapper.RequestContext import RequestContext
 
+escape_component_field = ['context', 'component_id']
 pipeline = Blueprint('pipeline', __name__)
 
 
@@ -57,7 +58,7 @@ def parse_node(connections, node_params, data_place, context):
                 node = NodeFactory.new_node(node_type, init_params, context)
 
                 for field in node.__dict__.keys():
-                    if field not in ['context']:
+                    if field not in escape_component_field:
                         data = node.__dict__[f'{field}']
                         data_place[f'%{field}%'] = f'"{data}"'
 

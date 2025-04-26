@@ -1,7 +1,6 @@
 import duckdb
 from .TemplateNodeType import TemplateNodeType
 from node_mapper.RequestContext import RequestContext
-from flask_socketio import emit
 
 
 class DuckDBOutput(TemplateNodeType):
@@ -13,9 +12,10 @@ class DuckDBOutput(TemplateNodeType):
         """
         Initialize the instance
         """
+        self.context = context
+        self.component_id = data['componentId']
         self.database = data['database']
         self.table_name = data['tableName']
-        self.context = context
 
     def run(self) -> None:
         """
@@ -32,15 +32,18 @@ class DuckDBOutput(TemplateNodeType):
         path = self.context.ppline_files_path
         cnx = duckdb.connect(f'{path}/{self.context.ppline_name}.duckdb')
         try:
-            sid = self.context.socket_sid
             table = self.table_name
             query = f"SELECT * FROM duckdb_tables WHERE table_name = '{table}'"
             result = cnx.sql(query)
             if (result.fetchone() is not None):
-                self.context.add_exception(
-                    'DuckDBOutput', 'Table already exusts')
-                emit('pplineError', 'Table already',
-                     namespace='/pipeline', to=sid)
+                error = 'Table already exusts'
+                error = {'error': error, 'componentId': self.component_id}
+                self.context.add_exception('DuckDBOutput', error)
+                self.context.emit_error(self, error)
+
+            else:
+                success = {'componentId': self.component_id}
+                self.context.emit_success(self, success)
 
         except Exception as err:
             print(f'Error on querying DB {err}')
