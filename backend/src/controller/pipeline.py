@@ -2,7 +2,6 @@ from flask import Blueprint, request
 from services.pipeline.DltPipeline import DltPipeline
 from node_mapper.NodeFactory import NodeFactory
 from node_mapper.RequestContext import RequestContext
-from services.pipeline.DltPipeline import DltPipeline
 
 pipeline = Blueprint('pipeline', __name__)
 
@@ -14,7 +13,7 @@ def create():
     """
     payload = request.get_json()
     pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
-    context = RequestContext(pipeline_name)
+    context = RequestContext(pipeline_name, payload['socketSid'])
 
     grid = payload['drawflow'] if 'drawflow' in payload else ''
     start_id = payload['startNode'] if 'startNode' in payload else ''

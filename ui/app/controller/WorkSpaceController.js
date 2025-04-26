@@ -326,4 +326,16 @@ export class WorkSpaceController extends BaseController {
         console.log(JSON.stringify(exportResult, null, 4));
     }
 
+    socketChannelSetup(io, socketData) {
+
+        const socket = io('http://localhost:5000/pipeline', { transports: ["websocket"] });
+        socket.on('connect', () => { });
+        socket.on('connected', (data) => socketData.sid = data.sid);
+
+        socket.on('pplineError', (data) => {
+            console.warn(`Pipeline error emitted: `, data);
+        });
+
+    }
+
 }

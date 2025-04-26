@@ -1,3 +1,4 @@
+import { io as SocketIO } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { NodeTypeEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
@@ -34,6 +35,9 @@ export class Workspace extends ViewComponent {
 	/** @type { Array<ObjectDataTypes> } */
 	objectTypes = [];
 
+	/** @Prop */
+	socketData = { sid: null };
+
 	activeGrid = "pipeline_name";
 
 	stOnRender() {
@@ -62,6 +66,7 @@ export class Workspace extends ViewComponent {
 		this.controller.on('load', () => {
 
 			this.controller.registerEvents();
+			this.controller.socketChannelSetup(SocketIO, this.socketData);
 
 			var id = document.getElementById("drawflow");
 			this.editor = new Drawflow(id);
@@ -86,7 +91,7 @@ export class Workspace extends ViewComponent {
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
-		data = { ...data, startNode, activeGrid, pplineLbl: this.activeGrid.value }
+		data = { ...data, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
 		console.log(data);
 		const result = await this.pplService.createPipeline(data);
 	}

@@ -1,6 +1,7 @@
 import duckdb
 from .TemplateNodeType import TemplateNodeType
 from node_mapper.RequestContext import RequestContext
+from flask_socketio import emit
 
 
 class DuckDBOutput(TemplateNodeType):
@@ -28,15 +29,18 @@ class DuckDBOutput(TemplateNodeType):
         """
         Check if the table already exists
         """
-        path = RequestContext.ppline_files_path
+        path = self.context.ppline_files_path
         cnx = duckdb.connect(f'{path}/{self.context.ppline_name}.duckdb')
         try:
+            sid = self.context.socket_sid
             table = self.table_name
             query = f"SELECT * FROM duckdb_tables WHERE table_name = '{table}'"
             result = cnx.sql(query)
             if (result.fetchone() is not None):
                 self.context.add_exception(
                     'DuckDBOutput', 'Table already exusts')
+                emit('pplineError', 'Table already',
+                     namespace='/pipeline', to=sid)
 
         except Exception as err:
             print(f'Error on querying DB {err}')
