@@ -293,8 +293,10 @@ header a {
     width: 250px;
 }
 
-.drawflow-node.slack .title-box {
+.drawflow-node .title-box {
     border-radius: 4px;
+    display: flex;
+    justify-content: space-evenly;
 }
 
 .drawflow-node input,
@@ -443,3 +445,58 @@ header a {
         width: 80%;
     }
 }
+
+
+/** Task runnig status */
+
+.drawflow-node .title-box div:nth-child(2) {
+    background-color: rgba(173, 173, 173, 0.575);
+    height: 20px;
+    width: 20px;
+    border-radius: 100%;
+    margin-top: 13px;
+}
+
+.drawflow-node .title-box div.running-status {
+    -webkit-animation: sk-scaleout .5s infinite ease-in-out;
+    animation: sk-scaleout .5s infinite ease-in-out;
+}
+
+.drawflow-node .title-box div.failed-status {
+    background-color: red;
+}
+
+.drawflow-node .title-box div.success-status {
+    background-color: green;
+}
+
+.drawflow-node .title-box div.pre-success-status {
+    background-color: rgba(0, 128, 0, 0.382);
+    border: 1px solid green;
+}
+
+@-webkit-keyframes sk-scaleout {
+    0% {
+        -webkit-transform: scale(0)
+    }
+
+    100% {
+        -webkit-transform: scale(1.0);
+        opacity: 90;
+    }
+}
+
+@keyframes sk-scaleout {
+    0% {
+        -webkit-transform: scale(0);
+        transform: scale(0);
+    }
+
+    100% {
+        -webkit-transform: scale(1.0);
+        transform: scale(1.0);
+        opacity: 0;
+    }
+}
+
+/** End of Task runnig status */

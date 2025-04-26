@@ -32,7 +32,6 @@ export class DuckDBOutput extends ViewComponent {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['tableName'] = newValue;
 		});
-
 	}
 
 }

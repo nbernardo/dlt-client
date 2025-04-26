@@ -113,7 +113,8 @@ export class WorkSpaceController extends BaseController {
             const nodeId = this.getNodeId();
             const { template: tmpl, component } = await Components.new(cmpTypes[inType], nodeId);
             const { inConnectors, outConnectors } = component;
-            this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, {}, tmpl);
+            const initData = { componentId: component.cmpInternalId };
+            this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
             this.clearHTML(nodeId);
             return;
         }
@@ -332,10 +333,61 @@ export class WorkSpaceController extends BaseController {
         socket.on('connect', () => { });
         socket.on('connected', (data) => socketData.sid = data.sid);
 
-        socket.on('pplineError', (data) => {
-            console.warn(`Pipeline error emitted: `, data);
+        socket.on('pplineError', ({ componentId, error }) => {
+            console.warn(`Pipeline error emitted: `, { componentId, error });
+            WorkSpaceController.addFailedStatus(componentId);
         });
 
+        socket.on('pplineStepSuccess', ({ componentId }) => {
+            console.warn(`Operation run successfully: `, { componentId });
+            WorkSpaceController.addPreSuccessStatus(componentId);
+        });
+
+        socket.on('pplineSuccess', ({ componentId }) => {
+            console.warn(`Whole pipeline success ocurred: `, { componentId });
+            WorkSpaceController.addSuccessStatus(componentId);
+        });
+
+    }
+
+    static addRunningStatus(containerHTMLClass) {
+        document
+            .querySelector(`.${containerHTMLClass}`)
+            .querySelector('div[class=title-box]')
+            .querySelector('.statusicon')
+            .className = 'statusicon running-status';
+    }
+
+    static remRunningStatus(containerHTMLClass) {
+        document
+            .querySelector(`.${containerHTMLClass}`)
+            .querySelector('div[class=title-box]')
+            .querySelector('.statusicon')
+            .classList.remove('running-status');
+    }
+
+    static addFailedStatus(containerHTMLClass) {
+        document
+            .querySelector(`.${containerHTMLClass}`)
+            .querySelector('div[class=title-box]')
+            .querySelector('.statusicon')
+            .className = 'statusicon failed-status';
+    }
+
+    static addSuccessStatus(containerHTMLClass) {
+        document
+            .querySelector(`.${containerHTMLClass}`)
+            .querySelector('div[class=title-box]')
+            .querySelector('.statusicon')
+            .className = 'statusicon success-status';
+    }
+
+    static addPreSuccessStatus(containerHTMLClass) {
+        document
+            .querySelector(`.${containerHTMLClass}`)
+            .querySelector('div[class=title-box]')
+            .querySelector('.statusicon')
+            .className = 'statusicon pre-success-status';
     }
 
 }
