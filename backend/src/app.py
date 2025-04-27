@@ -1,49 +1,33 @@
-import os
-import subprocess
+from pathlib import Path
+import sys
+
 from flask import Flask, request
+from controller.pipeline import pipeline
+from flask_cors import CORS
+from flask_socketio import SocketIO, emit, Namespace
+
+
+class PiplineNamespace(Namespace):
+    def on_connect(self): pass
+    def on_disconnect(self, reason): pass
+
+
+proj_folder = Path(__file__).parent
+sys.path.insert(0, proj_folder/'node_mapper/')
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'hash#123098'
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="http://127.0.0.1:8080",
+                    logger=True, engineio_logger=True)
 
-@app.route('/', methods=["POST"])
-def main():
-    
-    data = request.get_json()
-    file_name = data['pipeline']
-    
-    file_path = f'../destinations/{file_name}.py'
-    file_open_flag = 'x+'
-    
-    template = get_template()
-    
-    if os.path.exists(file_path):
-        return 'Pipeline exists already'
-
-    with open(file_path, file_open_flag, encoding='utf-8') as file:
-        for field in data.keys():
-            template = template\
-                .replace(f'%{field}%', f'"{data[field]}"')
-        
-        file.write(template)
-        
-    result = subprocess.run(['python', file_path],
-                            check=True,
-                            capture_output=True,
-                            text=True)
-    
-    print("Return Code:", result.returncode)
-    print("Standard Output:", result.stdout)
-    print("Standard Error:", result.stderr)
-    
-    return "Pipeline created successfully"
+socketio.on_namespace(PiplineNamespace('/pipeline'))
 
 
-def get_template():
-    
-    tplt = ''
-    file_path = 'pipeline_templates'
-    file_name = 'simple.txt'
-    
-    with open(f'{file_path}/{file_name}', 'r', encoding='utf-8') as file:
-        tplt = file.read()
-        
-    return tplt
+@socketio.on('connect', namespace='/pipeline')
+def on_connect():
+    emit('connected', {'sid': request.sid}, to=request.sid)
+
+
+app.register_blueprint(pipeline)
+socketio.run(app)
