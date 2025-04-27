@@ -13,6 +13,22 @@ export const stillRoutesMap = {
             Workspace: {
                 path: "app/components/workspace",
                 url: "/workspace"
+            },
+            ObjectType: {
+                path: "app/components/workspace/object-type",
+                url: "/object-type"
+            },
+            Bucket: {
+                path: "app/components/node-types",
+                url: "/bucket-type"
+            },
+            CleanerType: {
+                path: "app/components/node-types",
+                url: "/cleaner-type"
+            },
+            DuckDBOutput: {
+                path: "app/components/node-types",
+                url: "/duck-dbo-utput"
             }
         },
         lazyInitial: {}

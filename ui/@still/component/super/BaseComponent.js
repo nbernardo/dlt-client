@@ -10,6 +10,7 @@ import { sleepForSec } from "../manager/timer.js";
 import { STForm } from "../type/STForm.js";
 import { BehaviorComponent } from "./BehaviorComponent.js";
 import { ViewComponent } from "./ViewComponent.js";
+import { BaseController } from "./service/BaseController.js";
 import { BaseService } from "./service/BaseService.js";
 
 const stillRoutesMap = await getRoutesFile(DefaultstillRoutesMap);
@@ -60,7 +61,6 @@ class ComponentPart {
 
 export class BaseComponent extends BehaviorComponent {
 
-
     /**
      * @type {SettingType}
      */
@@ -100,6 +100,7 @@ export class BaseComponent extends BehaviorComponent {
     loneCntrId = null;
     setAndGetsParsed = false;
     navigationId = Router.navCounter;
+    $cmpStController;
 
 
     /**
@@ -110,23 +111,14 @@ export class BaseComponent extends BehaviorComponent {
     new(params) { }
 
     async load() { }
-
-    async onRender() {
-        this.stOnRender();
-    }
-
+    async onRender() { this.stOnRender(); }
     async stOnUpdate() { }
-
     async stAfterInit() { }
-
     async stOnUnload() { }
-
     async stOnRender() { }
-
     reRender() { }
 
     static importScripts() { }
-
     static importAssets() { }
 
     props(props = {}) {
@@ -134,25 +126,13 @@ export class BaseComponent extends BehaviorComponent {
         return this;
     }
 
-    setRoutableCmp(flag) {
-        this.routableCmp = true;
-    }
-
-    getRoutableCmp() {
-        return this.routableCmp;
-    }
-
-    getName() {
-        return this.constructor.name;
-    }
-
-    getInstanceName() {
-        return this.constructor.name;
-    }
-
-    getStateSubriber() {
-        return this.#stateChangeSubsribers;
-    }
+    /** @param { BaseController } controller */
+    setController(controller) { this.$cmpStController = controller.name; }
+    setRoutableCmp() { this.routableCmp = true; }
+    getRoutableCmp() { return this.routableCmp; }
+    getName() { return this.constructor.name; }
+    getInstanceName() { return this.constructor.name; }
+    getStateSubriber() { return this.#stateChangeSubsribers; }
 
     getProperties(allowfProp = false) {
 
@@ -169,7 +149,7 @@ export class BaseComponent extends BehaviorComponent {
             'parentVersionId', 'versionId', 'behaviorEvtSubscriptions',
             'wasAnnotParsed', 'stateChangeSubsribers', 'bindStatus',
             'templateUrl', '$parent', 'dynLoopObject', 'lone', 'loneCntrId',
-            'setAndGetsParsed', 'navigationId'
+            'setAndGetsParsed', 'navigationId', '$cmpStController'
         ];
         return fields.filter(
             field => {
@@ -274,9 +254,7 @@ export class BaseComponent extends BehaviorComponent {
         const allowfProp = true;
         const fields = this.getProperties(allowfProp);
         const currentClass = this;
-        const clsName = this.dynLoopObject || this.lone || isReloading
-            ? this.cmpInternalId
-            : currentClass.constructor.name;
+        const clsName = this.cmpInternalId;
 
         if (this.template instanceof Array)
             this.template = this.template.join('');
@@ -286,10 +264,10 @@ export class BaseComponent extends BehaviorComponent {
         /** Bind @dynCmpGeneratedId which takes place in special
          * situation that a component is created to be reference
          * as a tag <st-extern> */
-        tamplateWithState = tamplateWithState.replace(
-            `@dynCmpGeneratedId`,
-            currentClass[`dynCmpGeneratedId`]
-        );
+        tamplateWithState = tamplateWithState.replace(`@dynCmpGeneratedId`, currentClass[`dynCmpGeneratedId`]);
+
+        //To bind the internal id to any thing or property
+        tamplateWithState = tamplateWithState.replace(/\@cmpInternalId/g, this.cmpInternalId);
 
         let formsRef = [];
         if (this.isThereAForm()) {
@@ -357,7 +335,7 @@ export class BaseComponent extends BehaviorComponent {
 
             let subscriptionCls = '';
 
-            const subsCls = `listenChangeOn-${cmpName}-${ds}`;
+            const subsCls = `listenChangeOn-${this.cmpInternalId}-${ds}`;
             const hashValue = `hash_${this.getUUID()}`;
             const hash = `hash="${hashValue}"`;
             const newClassName = `newCls="${subsCls}"`;
@@ -506,12 +484,20 @@ export class BaseComponent extends BehaviorComponent {
                     mtch += `class="${_className} " `;
                 }
             }
-
             mtch = mtch.replace(mathIfChangeEvt, '');
             return mtch;
         });
         return template;
+    }
 
+    getBoundEvt(template) {
+        const type = this.$cmpStController;
+        template = template.replace(/component\.|controller\.|controller\(\'/ig, (mt) => {
+            if (mt.includes("component.")) return `$still.component.ref('${this.cmpInternalId}').`;
+            if (mt.includes("controller('")) return `$still.controller('`
+            return `$still.controller('${type}').`;
+        });
+        return template;
     }
 
     getBoundInputForm(template, formsRef) {
@@ -738,6 +724,8 @@ export class BaseComponent extends BehaviorComponent {
 
         template = this.getBoundOnChange(template);
 
+        template = this.getBoundEvt(template);
+
         console.timeEnd('tamplateBindFor' + this.getName());
 
         this.bindStatus = true;
@@ -757,9 +745,7 @@ export class BaseComponent extends BehaviorComponent {
 
     prepareRender() {
 
-        const fields = this.getProperties();
-        const currentClass = this;
-
+        const [fields, currentClass] = [this.getProperties(), this];
         fields.forEach(field => {
             this.template = this.template.replace(`@${field}`, currentClass[field].value);
         });
@@ -816,22 +802,15 @@ export class BaseComponent extends BehaviorComponent {
         }
 
         try {
-
             document.head.appendChild(script);
             if (module)
                 script.onload(() => window[cls] = cls);
-
         } catch (error) { }
 
     }
 
-    constructor() {
-        super();
-    }
-
-    setUUID(hash) {
-        this.cmpInternalId = hash;
-    }
+    constructor() { super(); }
+    setUUID(hash) { this.cmpInternalId = hash; }
 
     getUUID() {
         if (!this.cmpInternalId)
@@ -862,8 +841,7 @@ export class BaseComponent extends BehaviorComponent {
         ComponentRegistror.previousLoaded(this);
 
     stRunOnFirstLoad(cb = () => { }) {
-        if (this.wasItLoadedBefor() && this.$stillLoadCounter)
-            return false;
+        if (this.wasItLoadedBefor() && this.$stillLoadCounter) return false;
         cb();
     }
 
@@ -894,10 +872,8 @@ export class BaseComponent extends BehaviorComponent {
                             registror[content.component] = { instance, subImported: true };
                     }
                     await sleepForSec(multiplier * retryCounter);
-
                 }
             }
-
         }, 500);
 
     }
@@ -1073,7 +1049,7 @@ export class BaseComponent extends BehaviorComponent {
             ? this.cmpInternalId
             : this.getProperInstanceName();
         const validatorClass = BehaviorComponent.setOnValueInput(mt, this, field, (formRef?.formRef || null));
-        const classList = `${validatorClass} listenChangeOn-${onChangeId}-${field}`;
+        const classList = `${validatorClass} listenChangeOn-${this.cmpInternalId}-${field}`;
 
         const clsPath = this.getClassPath();
 
@@ -1100,8 +1076,8 @@ export class BaseComponent extends BehaviorComponent {
 
     }
 
-    ignoreProp = [];
-    services = [];
+    //ignoreProp = [];
+    //services = [];
     #parseAnnotations() {
 
         const cmp = this;
@@ -1114,7 +1090,7 @@ export class BaseComponent extends BehaviorComponent {
                 if (annotation?.propParsing) {
                     if (annotation?.inject) {
                         let service = StillAppSetup.get()?.services?.get(annotation?.type);
-                        cmp.#handleServiceInjection(cmp, propertyName, annotation?.type, service);
+                        cmp.#handleServiceInjection(cmp, propertyName, annotation?.type, service, controller);
                     }
                     cmp.#annotations.set(propertyName, annotation);
                 }
@@ -1133,7 +1109,7 @@ export class BaseComponent extends BehaviorComponent {
                     const commentEndPos = mt.indexOf('*/') + 2;
                     const propertyName = mt.slice(commentEndPos).replace('\n', '').trim();
 
-                    let inject, proxy, prop, propParsing, type, svcPath;
+                    let inject, proxy, prop, propParsing, type, svcPath, controller;
                     if (propertyName != '') {
 
                         const result = Components.processAnnotation(mt, propertyName);
@@ -1142,13 +1118,15 @@ export class BaseComponent extends BehaviorComponent {
                         proxy = result.proxy;
                         type = result.type;
                         propParsing = result.propParsing;
+                        controller = result.controller;
                         svcPath = result.svcPath.replace(/\t/g, '').replace(/\n/g, '').replace(/\s/g, '').trim();
-
                         svcPath = svcPath?.endsWith('/') ? svcPath.slice(0, -1) : svcPath;
 
-                        if (inject) {
+                        if (inject || controller) {
+                            // Service it covering both Services and Controllers Injection
+                            if (controller) cmp.$cmpStController = type; //If controller set the Class name
                             let service = StillAppSetup.get()?.services?.get(type);
-                            cmp.#handleServiceInjection(cmp, propertyName, type, service, svcPath);
+                            cmp.#handleServiceInjection(cmp, propertyName, type, service, svcPath, controller);
                         }
                     }
                     cmp.#annotations.set(propertyName, { type, inject, proxy, prop, propParsing, svcPath });
@@ -1162,7 +1140,7 @@ export class BaseComponent extends BehaviorComponent {
 
     }
 
-    #handleServiceInjection(cmp, propertyName, type, service, svcPath) {
+    #handleServiceInjection(cmp, propertyName, type, service, svcPath, controller = false) {
 
         /** This is because first time service is instantiated it is assigned assynchronously
          * By the time the assignment is taking place it might happen that the template parsing
@@ -1219,9 +1197,13 @@ export class BaseComponent extends BehaviorComponent {
 
             (async () => {
                 const cls = await import(servicePath);
-                /** @type { BaseService } */
-                const service = new cls[type](this);
-                service.parseServiceEvents();
+                /** @type { BaseService | BaseController } */ const service = new cls[type](this);
+                if (!(service instanceof BaseService || service instanceof BaseController))
+                    throw new Error($stillconst.MSG.INVALID_INJECTION.replace('{type}', type).replace('{cmp}', cmp.constructor.name));
+
+                if (service instanceof BaseService) service.parseServiceEvents();
+                else console.log(`It's about controller with ${service.versionId}`);
+
                 StillAppSetup.get()?.services?.set(type, service);
                 handleServiceAssignement(service);
                 Components.emitAction(type);
@@ -1231,7 +1213,7 @@ export class BaseComponent extends BehaviorComponent {
             Components.subscribeAction(
                 type,
                 () => {
-                    const service = this.#getServicePath(type, svcPath);
+                    const service = this.#getServicePath(type, svcPath, type);
                     handleServiceAssignement(service);
                 }
             );

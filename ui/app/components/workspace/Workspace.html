@@ -1,8 +1,57 @@
 <div>
-	<form onsubmit="return false;">
+	<!-- <form onsubmit="return false;">
 		<div class="input-group">
 			<label for="">Table Name</label>
 			<input type="text">
 		</div>
-	</form>
+	</form> -->
+
+	<div id="drawflowContainer">
+
+		<header>
+			<h2>Workspace</h2>
+		</header>
+		<div class="wrapper">
+			<div class="col">
+				<span (forEach)="objectTypes">
+					<st-element component="ObjectType" each="item"></st-element>
+				</span>
+			</div>
+
+			<div class="col-right">
+				<div class="menu">
+					<ul>
+						<li onclick="controller.changeModule('Home'); controller.changeModule(event);" class="selected">
+							<div onkeypress="component.onPplineNameKeyPress(event)" contenteditable="true">
+								@activeGrid
+							</div>
+						</li>
+						<li onclick="controller.changeModule('Other'); controller.changeModule(event);">Space 2
+						</li>
+					</ul>
+				</div>
+				<div id="drawflow" ondrop="controller.drop(event)" ondragover="controller.allowDrop(event)">
+
+					<div class="btn-export" onclick="component.savePipeline()">
+						<i class="fa fa-save"></i> Save
+					</div>
+					<div class="btn-clear" onclick="draweditor.clearModuleSelected()">Clear</div>
+					<div class="btn-lock">
+						<i id="lock" class="fas fa-lock"
+							onclick="draweditor.editor_mode='fixed'; controller.changeMode('lock');"></i>
+						<i id="unlock" class="fas fa-lock-open"
+							onclick="draweditor.editor_mode='edit'; controller.changeMode('unlock');"
+							style="display:none;"></i>
+					</div>
+					<div class="bar-zoom">
+						<i class="fas fa-search-minus" onclick="draweditor.zoom_out()"></i>
+						<i class="fas fa-search" onclick="draweditor.zoom_reset()"></i>
+						<i class="fas fa-search-plus" onclick="draweditor.zoom_in()"></i>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
 </div>
