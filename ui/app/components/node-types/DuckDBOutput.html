@@ -7,9 +7,9 @@
 		<div class="statusicon"></div>
 	</div>
 	<div class="box">
-		<form onsubmit="return false;">
+		<form (formRef)="formRef" onsubmit="return false;">
 			<p>Database:</p>
-			<input type="text" (value)="database" placeholder="Enter the DB name">
+			<input type="text" (required)="true" (value)="database" placeholder="Enter the DB name">
 			<p>Table name:</p>
 			<input type="text" (value)="tableName" placeholder="Enter table name">
 		</form>

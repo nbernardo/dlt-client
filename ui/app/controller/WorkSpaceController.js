@@ -18,6 +18,7 @@ export class WorkSpaceController extends BaseController {
     editor;
     transform = '';
     edgeTypeAdded = {};
+    formReferences = [];
 
     registerEvents() {
 
@@ -114,6 +115,8 @@ export class WorkSpaceController extends BaseController {
             const { template: tmpl, component } = await Components.new(cmpTypes[inType], nodeId);
             const { inConnectors, outConnectors } = component;
             const initData = { componentId: component.cmpInternalId };
+            this.formReferences.push(component.cmpInternalId);
+            this.edgeTypeAdded[nodeId] = new Set();
             this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
             this.clearHTML(nodeId);
             return;
@@ -181,6 +184,10 @@ export class WorkSpaceController extends BaseController {
         `;
     }
 
+    checkStartNode() {
+        return this.edgeTypeAdded[NodeTypeEnum.START];
+    }
+
     /** @returns { NodeType } */
     githubType({ name, label, icon, img }) {
         const tmplt = `
@@ -242,6 +249,11 @@ export class WorkSpaceController extends BaseController {
         }
     }
 
+    isStartOrEndNode(id) {
+        return this.edgeTypeAdded[NodeTypeEnum.START] == id
+            || this.edgeTypeAdded[NodeTypeEnum.END] == id;
+    }
+
     handleListeners(editor) {
 
         // Events!
@@ -252,10 +264,15 @@ export class WorkSpaceController extends BaseController {
 
         editor.on('nodeRemoved', function (id) {
             if (id == obj.edgeTypeAdded[NodeTypeEnum.START])
-                delete obj.edgeTypeAdded[NodeTypeEnum.START];
+                return delete obj.edgeTypeAdded[NodeTypeEnum.START];
 
             if (id == obj.edgeTypeAdded[NodeTypeEnum.END])
-                delete obj.edgeTypeAdded[NodeTypeEnum.END];
+                return delete obj.edgeTypeAdded[NodeTypeEnum.END];
+
+            delete obj.edgeTypeAdded[id];
+
+            console.log(obj.edgeTypeAdded);
+
         })
 
         editor.on('nodeSelected', function (id) {
@@ -271,13 +288,25 @@ export class WorkSpaceController extends BaseController {
         })
 
         editor.on('connectionCreated', function (connection) {
-            console.log('Connection created');
-            console.log(connection);
+            const { output_id, input_id } = connection;
+
+            if (output_id != obj.edgeTypeAdded[NodeTypeEnum.START])
+                obj.edgeTypeAdded[output_id].add(input_id);
+
+            if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
+                obj.edgeTypeAdded[input_id].add(output_id);
+            console.log(obj.edgeTypeAdded);
         })
 
         editor.on('connectionRemoved', function (connection) {
-            console.log('Connection removed');
-            console.log(connection);
+            const { output_id, input_id } = connection;
+            if (output_id != obj.edgeTypeAdded[NodeTypeEnum.START])
+                obj.edgeTypeAdded[output_id].delete(input_id);
+
+            if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
+                obj.edgeTypeAdded[input_id].delete(output_id);
+
+            console.log(obj.edgeTypeAdded);
         })
 
         editor.on('mouseMove', function (position) {

@@ -1,5 +1,7 @@
 import { io as SocketIO } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
+import { Components } from "../../../@still/setup/components.js";
+import { AppTemplate } from "../../../app-template.js";
 import { NodeTypeEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
@@ -88,6 +90,16 @@ export class Workspace extends ViewComponent {
 	}
 
 	async savePipeline() {
+
+		const anyInvalidForm = this.controller.formReferences.some((r) => {
+			const form = Components.ref(r).formRef;
+			return form?.validate() === false;
+		});
+
+		const isValidSubmission = this.handleSubmissionError(anyInvalidForm);
+		if (!isValidSubmission) return;
+
+		return;
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
@@ -103,6 +115,31 @@ export class Workspace extends ViewComponent {
 			e.target.blur();
 			e.target.style.fontWeight = 'bold';
 		}
+	}
+
+	handleSubmissionError(anyInvalidForm) {
+
+		const errors = [];
+		if (anyInvalidForm) {
+			const elm = document.createElement('li');
+			elm.innerText = `Please fill all the steps accordingly`;
+			errors.push(elm);
+		}
+
+		const initNode = this.controller.checkStartNode();
+		if (!initNode) {
+			const elm = document.createElement('li');
+			elm.innerText = `Please add start node`;
+			errors.push(elm);
+		}
+
+		const outputError = document.createElement('ul');
+		for (const error of errors) outputError.appendChild(error);
+
+		AppTemplate.toast.error(outputError.innerHTML);
+
+		if (!anyInvalidForm || !initNode) return false;
+		return true;
 	}
 
 }
