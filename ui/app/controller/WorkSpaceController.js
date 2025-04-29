@@ -20,6 +20,7 @@ export class WorkSpaceController extends BaseController {
     edgeTypeAdded = {};
     formReferences = [];
     validationErrors = [];
+    idCounter = 0;
 
     registerEvents() {
 
@@ -271,9 +272,6 @@ export class WorkSpaceController extends BaseController {
                 return delete obj.edgeTypeAdded[NodeTypeEnum.END];
 
             delete obj.edgeTypeAdded[id];
-
-            console.log(obj.edgeTypeAdded);
-
         })
 
         editor.on('nodeSelected', function (id) {
@@ -328,9 +326,10 @@ export class WorkSpaceController extends BaseController {
     }
 
     getNodeId() {
-        const allNodes = Object.keys(this.editor.drawflow.drawflow.Home.data);
-        if (allNodes.length == 0) return 1;
-        return Number(allNodes.slice(-1)[0]) + 1;
+        //const allNodes = Object.keys(this.editor.drawflow.drawflow.Home.data);
+        //if (allNodes.length == 0) return 1;
+        //return Number(allNodes.slice(-1)[0]) + 1;
+        return ++this.idCounter;
     }
 
     static getNode(nodeId) {
