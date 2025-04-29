@@ -120,7 +120,6 @@ export class WorkSpaceController extends BaseController {
             this.edgeTypeAdded[nodeId] = new Set();
             this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
             this.clearHTML(nodeId);
-            //setTimeout(() => console.log(this.getInputsByNodeId(component.cmpInternalId)), 200);
             return;
         }
 
