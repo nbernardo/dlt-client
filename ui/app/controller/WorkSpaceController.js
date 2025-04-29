@@ -19,6 +19,7 @@ export class WorkSpaceController extends BaseController {
     transform = '';
     edgeTypeAdded = {};
     formReferences = [];
+    validationErrors = [];
 
     registerEvents() {
 
@@ -119,6 +120,7 @@ export class WorkSpaceController extends BaseController {
             this.edgeTypeAdded[nodeId] = new Set();
             this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
             this.clearHTML(nodeId);
+            //setTimeout(() => console.log(this.getInputsByNodeId(component.cmpInternalId)), 200);
             return;
         }
 
@@ -287,16 +289,7 @@ export class WorkSpaceController extends BaseController {
             console.log("Module Changed " + name);
         })
 
-        editor.on('connectionCreated', function (connection) {
-            const { output_id, input_id } = connection;
-
-            if (output_id != obj.edgeTypeAdded[NodeTypeEnum.START])
-                obj.edgeTypeAdded[output_id].add(input_id);
-
-            if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
-                obj.edgeTypeAdded[input_id].add(output_id);
-            console.log(obj.edgeTypeAdded);
-        })
+        editor.on('connectionCreated', connections => obj.onConnectionCreate(connections, obj));
 
         editor.on('connectionRemoved', function (connection) {
             const { output_id, input_id } = connection;
@@ -343,7 +336,7 @@ export class WorkSpaceController extends BaseController {
 
     static getNode(nodeId) {
         const obj = WorkSpaceController.get();
-        return obj.editor.drawflow.drawflow.Home.data[nodeId];
+        return obj.editor.drawflow.drawflow.Home.data[nodeId] || {};
     }
 
     clearHTML(nodeId) {
@@ -419,4 +412,42 @@ export class WorkSpaceController extends BaseController {
             .className = 'statusicon pre-success-status';
     }
 
+    addWorkspaceError(error) {
+        const elm = document.createElement('li');
+        elm.innerText = error;
+        this.validationErrors.push(elm);
+    }
+
+    isValidationError = () => this.validationErrors.length;
+    clearValidationError = () => this.validationErrors = [];
+
+    /** @returns { Array<HTMLElement> } */
+    getInputsByNodeId(componentId) {
+        return document
+            .querySelector(`.${componentId}`)
+            .parentNode.parentNode
+            .querySelector('.inputs')
+            .children
+    }
+
+    onConnectionCreate(connection, obj) {
+        const { output_id, input_id } = connection;
+
+        const { data } = WorkSpaceController.getNode(input_id);
+        if (data?.componentId) {
+            const inputs = obj.getInputsByNodeId(data?.componentId);
+            [...inputs].forEach(el => {
+                el.style.background = 'white';
+                el.classList.remove('blink');
+            });
+        }
+
+        if (output_id != obj.edgeTypeAdded[NodeTypeEnum.START])
+            obj.edgeTypeAdded[output_id].add(input_id);
+
+        if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
+            obj.edgeTypeAdded[input_id].add(output_id);
+        console.log(obj.edgeTypeAdded);
+
+    }
 }

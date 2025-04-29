@@ -175,7 +175,7 @@ export class Template {
         closeIcon.addEventListener("click", () => {
             toast.classList.remove("still-toast-active");
             setTimeout(() => progress.classList.remove("still-toast-active"), 300);
-            icons.getElementsByTagName('i').forEach(r => r.style.display = 'none');
+            [...icons].forEach(r => r.style.display = 'none');
 
             clearTimeout(timer1);
             clearTimeout(timer2);

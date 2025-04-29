@@ -16,22 +16,19 @@ export class Workspace extends ViewComponent {
 	/**
 	 * @Inject
 	 * @Path services/
-	 * @type { PipelineService }
-	 */
+	 * @type { PipelineService } */
 	pplService;
 
 	/**
 	 * @Inject
 	 * @Path services/
-	 * @type { WorkspaceService }
-	 */
+	 * @type { WorkspaceService } */
 	service;
 
 	/**
 	 * @Controller
 	 * @Path controller/
-	 * @type { WorkSpaceController }
-	 */
+	 * @type { WorkSpaceController } */
 	controller;
 
 	/** @type { Array<ObjectDataTypes> } */
@@ -91,11 +88,12 @@ export class Workspace extends ViewComponent {
 
 	async savePipeline() {
 
-		const anyInvalidForm = this.controller.formReferences.some((r) => {
+		const validationResults = this.controller.formReferences.map((r) => {
 			const form = Components.ref(r).formRef;
-			return form?.validate() === false;
+			return form?.validate();
 		});
 
+		const anyInvalidForm = validationResults.indexOf(false) >= 0;
 		const isValidSubmission = this.handleSubmissionError(anyInvalidForm);
 		if (!isValidSubmission) return;
 
@@ -119,26 +117,41 @@ export class Workspace extends ViewComponent {
 
 	handleSubmissionError(anyInvalidForm) {
 
-		const errors = [];
-		if (anyInvalidForm) {
-			const elm = document.createElement('li');
-			elm.innerText = `Please fill all the steps accordingly`;
-			errors.push(elm);
-		}
+		this.controller.clearValidationError();
+		if (anyInvalidForm)
+			this.controller.addWorkspaceError(`Please fill all the steps accordingly`);
 
 		const initNode = this.controller.checkStartNode();
-		if (!initNode) {
-			const elm = document.createElement('li');
-			elm.innerText = `Please add start node`;
-			errors.push(elm);
-		}
+		if (!initNode)
+			this.controller.addWorkspaceError(`Please add start node`);
+
+		let unlinkNodeErrorCounter = 0;
+		Object.entries(this.controller.edgeTypeAdded).forEach(([id, relations]) => {
+
+			if (this.controller.edgeTypeAdded[NodeTypeEnum.START] != id
+				|| this.controller.edgeTypeAdded[NodeTypeEnum.END] != id
+			) {
+				if (relations.size == 0) {
+					unlinkNodeErrorCounter++;
+					const { data } = WorkSpaceController.getNode(id);
+					if (data?.componentId) {
+						const ipts = this.controller.getInputsByNodeId(data?.componentId);
+						[...ipts].forEach(elm => elm.className = `${elm.className} blink`);
+					}
+				}
+			}
+		})
+
+		if (unlinkNodeErrorCounter > 0)
+			this.controller.addWorkspaceError(`Please link all nodes accordingly`);
 
 		const outputError = document.createElement('ul');
+		const errors = this.controller.validationErrors;
 		for (const error of errors) outputError.appendChild(error);
 
-		AppTemplate.toast.error(outputError.innerHTML);
+		if (errors.length) AppTemplate.toast.error(outputError.innerHTML);
 
-		if (!anyInvalidForm || !initNode) return false;
+		if (!anyInvalidForm || !initNode || unlinkNodeErrorCounter > 0) return false;
 		return true;
 	}
 
