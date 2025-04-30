@@ -67,8 +67,6 @@ export class Bucket extends ViewComponent {
 
 	validate() {
 		const res = this.formRef.validate();
-		console.log(`RESULT OF VAL IS: `, res);
-
 	}
 
 

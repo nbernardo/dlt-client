@@ -1,5 +1,6 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { Components } from "../../@still/setup/components.js";
+import { AppTemplate } from "../../app-template.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { CleanerType } from "../components/node-types/CleanerType.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
@@ -13,6 +14,13 @@ export const NodeTypeEnum = {
     END: 'End',
 }
 
+export const PPLineStatEnum = {
+    Start: 'Start',
+    Progress: 'Progress',
+    Finished: 'Finished',
+    Failed: 'Failed',
+}
+
 export class WorkSpaceController extends BaseController {
 
     editor;
@@ -21,6 +29,11 @@ export class WorkSpaceController extends BaseController {
     formReferences = [];
     validationErrors = [];
     idCounter = 0;
+    cmpIdToNodeIdMap = {};
+    /** @type { {[string]: Set }  } */
+    pplineSteps = {};
+    /** @type { PPLineStatEnum } */
+    pplineStatus;
 
     registerEvents() {
 
@@ -121,6 +134,7 @@ export class WorkSpaceController extends BaseController {
             this.edgeTypeAdded[nodeId] = new Set();
             this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
             this.clearHTML(nodeId);
+            this.cmpIdToNodeIdMap[component.cmpInternalId] = nodeId;
             return;
         }
 
@@ -295,8 +309,6 @@ export class WorkSpaceController extends BaseController {
 
             if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
                 obj.edgeTypeAdded[input_id].delete(output_id);
-
-            console.log(obj.edgeTypeAdded);
         })
 
         editor.on('mouseMove', function (position) {
@@ -353,19 +365,33 @@ export class WorkSpaceController extends BaseController {
         socket.on('connect', () => { });
         socket.on('connected', (data) => socketData.sid = data.sid);
 
-        socket.on('pplineError', ({ componentId, error }) => {
-            console.warn(`Pipeline error emitted: `, { componentId, error });
+        socket.on('pplineError', ({ componentId, sid, error }) => {
             WorkSpaceController.addFailedStatus(componentId);
+            AppTemplate.toast.error(error.message);
         });
 
-        socket.on('pplineStepSuccess', ({ componentId }) => {
-            console.warn(`Operation run successfully: `, { componentId });
-            WorkSpaceController.addPreSuccessStatus(componentId);
+        socket.on('pplineStepStart', ({ componentId, sid }) => {
+            WorkSpaceController.addRunningStatus(componentId);
         });
 
-        socket.on('pplineSuccess', ({ componentId }) => {
-            console.warn(`Whole pipeline success ocurred: `, { componentId });
-            WorkSpaceController.addSuccessStatus(componentId);
+        socket.on('pplineStepSuccess', ({ componentId, sid }) => {
+
+            if (!this.pplineSteps[sid]) this.pplineSteps[sid] = new Set();
+            this.pplineSteps[sid].add(componentId);
+
+            const nodeId = this.cmpIdToNodeIdMap[componentId];
+            const node = WorkSpaceController.getNode(nodeId);
+            if (Object.keys(node.outputs).length > 0)
+                WorkSpaceController.addPreSuccessStatus(componentId);
+
+        });
+
+        socket.on('pplineSuccess', ({ sid }) => {
+
+            const tasks = this.pplineSteps[sid];
+            this.pplineStatus = PPLineStatEnum.Finished;
+            [...tasks].forEach(WorkSpaceController.addSuccessStatus);
+
         });
 
     }
@@ -445,7 +471,5 @@ export class WorkSpaceController extends BaseController {
 
         if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
             obj.edgeTypeAdded[input_id].add(output_id);
-        console.log(obj.edgeTypeAdded);
-
     }
 }
