@@ -8,11 +8,11 @@
 	</div>
 	<div class="box">
 		<div>@bucketUrl</div>
-		<form onsubmit="return false;">
+		<form (formRef)="formRef" onsubmit="return false;">
 			<p>Enter Bucket url:</p>
-			<input type="text" (value)="bucketUrl" placeholder="Basket/Folder URL">
+			<input type="text" (required)="true" (value)="bucketUrl" placeholder="Basket/Folder URL">
 			<p>File pattern:</p>
-			<input type="text" (value)="filePattern" placeholder="Ex: transactions*.csv">
+			<input type="text" (required)="true" (value)="filePattern" placeholder="Ex: transactions*.csv">
 		</form>
 	</div>
 </div>

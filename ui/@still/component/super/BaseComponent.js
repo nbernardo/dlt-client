@@ -435,7 +435,7 @@ export class BaseComponent extends BehaviorComponent {
                 else inpt.classList.remove('still-validation-failed-style');
 
                 if (fieldPath && field)
-                    BehaviorComponent.currentFormsValidators[fieldPath][field]['isValid'] = isValid;
+                    BehaviorComponent.currentFormsValidators[this.cmpInternalId][field]['isValid'] = isValid;
 
                 setTimeout(() => {
                     const param = paramVal.indexOf('$event') == 0 ? event : paramVal;
@@ -1062,9 +1062,9 @@ export class BaseComponent extends BehaviorComponent {
             }`;
 
         if (mt.indexOf(`class="`) >= 0)
-            mt = mt.replace(`class="`, `${dataFields} class="${classList}${comboSuffix} stillInputField-${field} `);
+            mt = mt.replace(`class="`, `${dataFields} class="${classList}${comboSuffix} ${this.cmpInternalId}-${field} `);
         else
-            subscriptionCls = `${dataFields} class="${classList}${comboSuffix} stillInputField-${field}" `;
+            subscriptionCls = `${dataFields} class="${classList}${comboSuffix} ${this.cmpInternalId}-${field}" `;
 
         let replacer = `${subscriptionCls} `;
         if (!(isThereComboBox))

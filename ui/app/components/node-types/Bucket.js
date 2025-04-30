@@ -21,6 +21,9 @@ export class Bucket extends ViewComponent {
 	/** @Prop */
 	outConnectors = 1;
 
+	/** @Prop */
+	formRef;
+
 	/**
 	 * @Inject
 	 * @Path services/
@@ -60,6 +63,12 @@ export class Bucket extends ViewComponent {
 		const data = WorkSpaceController.getNode(this.nodeId);
 		WorkSpaceController.getNode(this.nodeId).html = '';
 		console.log(data.data);
+	}
+
+	validate() {
+		const res = this.formRef.validate();
+		console.log(`RESULT OF VAL IS: `, res);
+
 	}
 
 

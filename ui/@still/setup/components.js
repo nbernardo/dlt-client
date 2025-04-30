@@ -435,8 +435,8 @@ export class Components {
             };
 
             const validator = BehaviorComponent.currentFormsValidators;
-            if (validator[cmp.constructor.name]) {
-                if (field in validator[cmp.constructor.name]) {
+            if (validator[cmp.cmpInternalId]) {
+                if (field in (validator[cmp?.constructor?.name] || [])) {
                     result['isValid'] = validator[cmp.constructor.name][field]['isValid'];
                 }
             }
@@ -476,7 +476,8 @@ export class Components {
 
                 if (inspectField?.sTForm) {
                     cmp[field].validate = function () {
-                        return BehaviorComponent.validateForm(`${cmp.constructor.name}-${field}`);
+                        const formRef = field;
+                        return BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`);
                     }
                     return;
                 }
@@ -541,7 +542,7 @@ export class Components {
                 });
                 const firstPropagateTimer = setInterval(() => {
                     //Work in the garbage collector for this Components.firstPropagation flag
-                    if ('value' in cmp[field] && !Components.firstPropagation[`${cmp.cmpInternalId}-${field}`]) {
+                    if ('value' in cmp[field] && !Components?.firstPropagation[`${cmp.cmpInternalId}-${field}`]) {
                         clearInterval(firstPropagateTimer);
                         if (!this.notAssignedValue.includes(cmp['$still_' + field])) {
                             this.propageteChanges(cmp, field);
@@ -1528,7 +1529,12 @@ export class Components {
         const { newInstance: instance } = await Components.produceComponent({ cmp: cmp.name });
         (async () => await instance.stOnRender(data))();
         instance.cmpInternalId = `dynamic-${instance.getUUID()}${instance.getName()}`;
-        const template = Components.obj().getNewParsedComponent(instance).getBoundTemplate();
+        const template = instance.getBoundTemplate();
+        setTimeout(() => instance.parseOnChange(), 500);
+        setTimeout(() => {
+            instance.setAndGetsParsed = true;
+            (new Components).parseGetsAndSets(instance)
+        }, 10);
         ComponentRegistror.add(instance.cmpInternalId, instance);
         setTimeout(async () => await instance.stAfterInit(), 500);
         return { template, component: instance };

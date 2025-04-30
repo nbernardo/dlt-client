@@ -500,3 +500,33 @@ header a {
 }
 
 /** End of Task runnig status */
+
+/** Input connector validation */
+
+.drawflow .drawflow-node .input.blink {
+    background-color: red !important;
+    -webkit-animation: unlinked-input-scaleout .5s infinite ease-in-out;
+    animation: unlinked-input-scaleout 1s infinite ease-in-out;
+}
+
+@-webkit-keyframes unlinked-input-scaleout {
+    0% {
+        opacity: 10%;
+    }
+
+    100% {
+        opacity: 100%;
+    }
+}
+
+@keyframes unlinked-input-scaleout {
+    0% {
+        opacity: 10%;
+    }
+
+    100% {
+        opacity: 100%;
+    }
+}
+
+/** End of Input connector validation */
