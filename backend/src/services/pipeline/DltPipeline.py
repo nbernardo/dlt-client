@@ -2,6 +2,12 @@ import os
 import subprocess
 import duckdb
 import json
+from node_mapper.RequestContext import RequestContext
+from pathlib import Path
+
+root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
+destinations_dir = f'{root_dir}/destinations'
+template_dir = f'{root_dir}/src/pipeline_templates'
 
 
 class DltPipeline:
@@ -15,7 +21,7 @@ class DltPipeline:
         """
         file_name = data['pipeline']
 
-        file_path = f'../destinations/{file_name}.py'
+        file_path = f'{destinations_dir}/{file_name}.py'
         file_open_flag = 'x+'
 
         template = DltPipeline.get_template()
@@ -39,11 +45,11 @@ class DltPipeline:
         print("Standard Output:", result.stdout)
         print("Standard Error:", result.stderr)
 
-    def create_v1(self, file_name, data):
+    def create_v1(self, file_name, data, context: RequestContext):
         """
         This is the pipeline creation
         """
-        file_path = f'../destinations/{file_name}.py'
+        file_path = f'{destinations_dir}/{file_name}.py'
         file_open_flag = 'x+'
 
         if os.path.exists(file_path):
@@ -59,6 +65,9 @@ class DltPipeline:
                                 capture_output=True,
                                 text=True)
 
+        if result.returncode == 0:
+            context.emit_ppsuccess()
+
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout)
         print("Standard Error:", result.stderr)
@@ -69,10 +78,9 @@ class DltPipeline:
         This is template handling method
         """
         tplt = ''
-        file_path = 'pipeline_templates'
-        file_name = 'simple.txt'
+        file_name = f'{template_dir}/simple.txt'
 
-        with open(f'{file_path}/{file_name}', 'r', encoding='utf-8') as file:
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
             tplt = file.read()
 
         return tplt

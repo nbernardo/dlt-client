@@ -17,6 +17,11 @@ export class DuckDBOutput extends ViewComponent {
 	/** @Prop */
 	outConnectors = 0;
 
+	//Bellow property is mapped to the
+	//form To allow validation check
+	/** @Prop */
+	formRef;
+
 	stOnRender(nodeId) {
 		this.nodeId = nodeId;
 	}

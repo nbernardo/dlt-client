@@ -1,5 +1,6 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { Components } from "../../@still/setup/components.js";
+import { AppTemplate } from "../../app-template.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { CleanerType } from "../components/node-types/CleanerType.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
@@ -13,11 +14,26 @@ export const NodeTypeEnum = {
     END: 'End',
 }
 
+export const PPLineStatEnum = {
+    Start: 'Start',
+    Progress: 'Progress',
+    Finished: 'Finished',
+    Failed: 'Failed',
+}
+
 export class WorkSpaceController extends BaseController {
 
     editor;
     transform = '';
     edgeTypeAdded = {};
+    formReferences = [];
+    validationErrors = [];
+    idCounter = 0;
+    cmpIdToNodeIdMap = {};
+    /** @type { {[string]: Set }  } */
+    pplineSteps = {};
+    /** @type { PPLineStatEnum } */
+    pplineStatus;
 
     registerEvents() {
 
@@ -114,8 +130,11 @@ export class WorkSpaceController extends BaseController {
             const { template: tmpl, component } = await Components.new(cmpTypes[inType], nodeId);
             const { inConnectors, outConnectors } = component;
             const initData = { componentId: component.cmpInternalId };
+            this.formReferences.push(component.cmpInternalId);
+            this.edgeTypeAdded[nodeId] = new Set();
             this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
             this.clearHTML(nodeId);
+            this.cmpIdToNodeIdMap[component.cmpInternalId] = nodeId;
             return;
         }
 
@@ -181,6 +200,10 @@ export class WorkSpaceController extends BaseController {
         `;
     }
 
+    checkStartNode() {
+        return this.edgeTypeAdded[NodeTypeEnum.START];
+    }
+
     /** @returns { NodeType } */
     githubType({ name, label, icon, img }) {
         const tmplt = `
@@ -242,6 +265,11 @@ export class WorkSpaceController extends BaseController {
         }
     }
 
+    isStartOrEndNode(id) {
+        return this.edgeTypeAdded[NodeTypeEnum.START] == id
+            || this.edgeTypeAdded[NodeTypeEnum.END] == id;
+    }
+
     handleListeners(editor) {
 
         // Events!
@@ -252,10 +280,12 @@ export class WorkSpaceController extends BaseController {
 
         editor.on('nodeRemoved', function (id) {
             if (id == obj.edgeTypeAdded[NodeTypeEnum.START])
-                delete obj.edgeTypeAdded[NodeTypeEnum.START];
+                return delete obj.edgeTypeAdded[NodeTypeEnum.START];
 
             if (id == obj.edgeTypeAdded[NodeTypeEnum.END])
-                delete obj.edgeTypeAdded[NodeTypeEnum.END];
+                return delete obj.edgeTypeAdded[NodeTypeEnum.END];
+
+            delete obj.edgeTypeAdded[id];
         })
 
         editor.on('nodeSelected', function (id) {
@@ -270,14 +300,15 @@ export class WorkSpaceController extends BaseController {
             console.log("Module Changed " + name);
         })
 
-        editor.on('connectionCreated', function (connection) {
-            console.log('Connection created');
-            console.log(connection);
-        })
+        editor.on('connectionCreated', connections => obj.onConnectionCreate(connections, obj));
 
         editor.on('connectionRemoved', function (connection) {
-            console.log('Connection removed');
-            console.log(connection);
+            const { output_id, input_id } = connection;
+            if (output_id != obj.edgeTypeAdded[NodeTypeEnum.START])
+                obj.edgeTypeAdded[output_id].delete(input_id);
+
+            if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
+                obj.edgeTypeAdded[input_id].delete(output_id);
         })
 
         editor.on('mouseMove', function (position) {
@@ -307,14 +338,15 @@ export class WorkSpaceController extends BaseController {
     }
 
     getNodeId() {
-        const allNodes = Object.keys(this.editor.drawflow.drawflow.Home.data);
-        if (allNodes.length == 0) return 1;
-        return Number(allNodes.slice(-1)[0]) + 1;
+        //const allNodes = Object.keys(this.editor.drawflow.drawflow.Home.data);
+        //if (allNodes.length == 0) return 1;
+        //return Number(allNodes.slice(-1)[0]) + 1;
+        return ++this.idCounter;
     }
 
     static getNode(nodeId) {
         const obj = WorkSpaceController.get();
-        return obj.editor.drawflow.drawflow.Home.data[nodeId];
+        return obj.editor.drawflow.drawflow.Home.data[nodeId] || {};
     }
 
     clearHTML(nodeId) {
@@ -333,19 +365,33 @@ export class WorkSpaceController extends BaseController {
         socket.on('connect', () => { });
         socket.on('connected', (data) => socketData.sid = data.sid);
 
-        socket.on('pplineError', ({ componentId, error }) => {
-            console.warn(`Pipeline error emitted: `, { componentId, error });
+        socket.on('pplineError', ({ componentId, sid, error }) => {
             WorkSpaceController.addFailedStatus(componentId);
+            AppTemplate.toast.error(error.message);
         });
 
-        socket.on('pplineStepSuccess', ({ componentId }) => {
-            console.warn(`Operation run successfully: `, { componentId });
-            WorkSpaceController.addPreSuccessStatus(componentId);
+        socket.on('pplineStepStart', ({ componentId, sid }) => {
+            WorkSpaceController.addRunningStatus(componentId);
         });
 
-        socket.on('pplineSuccess', ({ componentId }) => {
-            console.warn(`Whole pipeline success ocurred: `, { componentId });
-            WorkSpaceController.addSuccessStatus(componentId);
+        socket.on('pplineStepSuccess', ({ componentId, sid }) => {
+
+            if (!this.pplineSteps[sid]) this.pplineSteps[sid] = new Set();
+            this.pplineSteps[sid].add(componentId);
+
+            const nodeId = this.cmpIdToNodeIdMap[componentId];
+            const node = WorkSpaceController.getNode(nodeId);
+            if (Object.keys(node.outputs).length > 0)
+                WorkSpaceController.addPreSuccessStatus(componentId);
+
+        });
+
+        socket.on('pplineSuccess', ({ sid }) => {
+
+            const tasks = this.pplineSteps[sid];
+            this.pplineStatus = PPLineStatEnum.Finished;
+            [...tasks].forEach(WorkSpaceController.addSuccessStatus);
+
         });
 
     }
@@ -390,4 +436,40 @@ export class WorkSpaceController extends BaseController {
             .className = 'statusicon pre-success-status';
     }
 
+    addWorkspaceError(error) {
+        const elm = document.createElement('li');
+        elm.innerText = error;
+        this.validationErrors.push(elm);
+    }
+
+    isValidationError = () => this.validationErrors.length;
+    clearValidationError = () => this.validationErrors = [];
+
+    /** @returns { Array<HTMLElement> } */
+    getInputsByNodeId(componentId) {
+        return document
+            .querySelector(`.${componentId}`)
+            .parentNode.parentNode
+            .querySelector('.inputs')
+            .children
+    }
+
+    onConnectionCreate(connection, obj) {
+        const { output_id, input_id } = connection;
+
+        const { data } = WorkSpaceController.getNode(input_id);
+        if (data?.componentId) {
+            const inputs = obj.getInputsByNodeId(data?.componentId);
+            [...inputs].forEach(el => {
+                el.style.background = 'white';
+                el.classList.remove('blink');
+            });
+        }
+
+        if (output_id != obj.edgeTypeAdded[NodeTypeEnum.START])
+            obj.edgeTypeAdded[output_id].add(input_id);
+
+        if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
+            obj.edgeTypeAdded[input_id].add(output_id);
+    }
 }

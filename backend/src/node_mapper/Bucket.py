@@ -14,6 +14,9 @@ class Bucket(TemplateNodeType):
         """
         self.context = context
         self.component_id = data['componentId']
+
+        self.context.emit_start(self, '')
+
         self.bucket_url = data['bucketUrl']
         self.file_pattern = data['filePattern']
 
@@ -22,16 +25,17 @@ class Bucket(TemplateNodeType):
         Run the initial steps
         """
         super().run()
-        self.check_bucket_url()
         print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
+        return self.check_bucket_url()
 
     def check_bucket_url(self):
         path_exists = os.path.exists(self.bucket_url)
         if not path_exists:
             error = 'Specified bucket url does not exists'
-            error = {'componentId': self.component_id, 'error': error}
+            error = {'componentId': self.component_id, 'message': error}
             self.context.add_exception('Bucket', error)
             self.context.emit_error(self, error)
+            return self.context.FAILED
         else:
             success = {'componentId': self.component_id}
             self.context.emit_success(self, success)

@@ -35,7 +35,7 @@ def create():
         return 'Error on creating the pipeline'
 
     pipeline_instance = DltPipeline()
-    pipeline_instance.create_v1(pipeline_name, template)
+    pipeline_instance.create_v1(pipeline_name, template, context)
 
     return 'From blueprint'
 
@@ -62,6 +62,8 @@ def parse_node(connections, node_params, data_place, context):
                         data = node.__dict__[f'{field}']
                         data_place[f'%{field}%'] = f'"{data}"'
 
-                node.run()
+                if node.run() is RequestContext.FAILED:
+                    break
+
                 if (len(inner_cnx) > 0):
                     parse_node(inner_cnx, node_params, data_place, context)

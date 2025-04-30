@@ -458,6 +458,7 @@ header a {
 }
 
 .drawflow-node .title-box div.running-status {
+    background-color: green;
     -webkit-animation: sk-scaleout .5s infinite ease-in-out;
     animation: sk-scaleout .5s infinite ease-in-out;
 }
@@ -471,25 +472,25 @@ header a {
 }
 
 .drawflow-node .title-box div.pre-success-status {
-    background-color: rgba(0, 128, 0, 0.382);
+    background-color: rgba(0, 128, 0, 0.266);
     border: 1px solid green;
 }
 
 @-webkit-keyframes sk-scaleout {
     0% {
-        -webkit-transform: scale(0)
+        -webkit-transform: scale(.5)
     }
 
     100% {
         -webkit-transform: scale(1.0);
-        opacity: 90;
+        opacity: 50;
     }
 }
 
 @keyframes sk-scaleout {
     0% {
-        -webkit-transform: scale(0);
-        transform: scale(0);
+        -webkit-transform: scale(.5);
+        transform: scale(.5);
     }
 
     100% {
@@ -500,3 +501,33 @@ header a {
 }
 
 /** End of Task runnig status */
+
+/** Input connector validation */
+
+.drawflow .drawflow-node .input.blink {
+    background-color: red !important;
+    -webkit-animation: unlinked-input-scaleout .5s infinite ease-in-out;
+    animation: unlinked-input-scaleout 1s infinite ease-in-out;
+}
+
+@-webkit-keyframes unlinked-input-scaleout {
+    0% {
+        opacity: 10%;
+    }
+
+    100% {
+        opacity: 100%;
+    }
+}
+
+@keyframes unlinked-input-scaleout {
+    0% {
+        opacity: 10%;
+    }
+
+    100% {
+        opacity: 100%;
+    }
+}
+
+/** End of Input connector validation */
