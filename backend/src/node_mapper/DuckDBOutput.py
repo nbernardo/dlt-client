@@ -14,6 +14,9 @@ class DuckDBOutput(TemplateNodeType):
         """
         self.context = context
         self.component_id = data['componentId']
+
+        self.context.emit_start(self, '')
+
         self.database = data['database']
         self.table_name = data['tableName']
 
@@ -33,11 +36,12 @@ class DuckDBOutput(TemplateNodeType):
         cnx = duckdb.connect(f'{path}/{self.context.ppline_name}.duckdb')
         try:
             table = self.table_name
+            dbname = self.database
             query = f"SELECT * FROM duckdb_tables WHERE table_name = '{table}'"
             result = cnx.sql(query)
             if (result.fetchone() is not None):
-                error = 'Table already exusts'
-                error = {'error': error, 'componentId': self.component_id}
+                error = f'Table with name {table} already exists for {dbname}'
+                error = {'message': error, 'componentId': self.component_id}
                 self.context.add_exception('DuckDBOutput', error)
                 self.context.emit_error(self, error)
 

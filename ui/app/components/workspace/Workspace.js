@@ -2,7 +2,7 @@ import { io as SocketIO } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { Components } from "../../../@still/setup/components.js";
 import { AppTemplate } from "../../../app-template.js";
-import { NodeTypeEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { NodeTypeEnum, PPLineStatEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
 
@@ -88,6 +88,7 @@ export class Workspace extends ViewComponent {
 
 	async savePipeline() {
 
+		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const validationResults = this.controller.formReferences.map((r) => {
 			const form = Components.ref(r).formRef;
 			return form?.validate();
@@ -97,7 +98,6 @@ export class Workspace extends ViewComponent {
 		const isValidSubmission = this.handleSubmissionError(anyInvalidForm);
 		if (!isValidSubmission) return;
 
-		return;
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
@@ -151,7 +151,7 @@ export class Workspace extends ViewComponent {
 
 		if (errors.length) AppTemplate.toast.error(outputError.innerHTML);
 
-		if (!anyInvalidForm || !initNode || unlinkNodeErrorCounter > 0) return false;
+		if (!!anyInvalidForm || !initNode || unlinkNodeErrorCounter > 0) return false;
 		return true;
 	}
 
