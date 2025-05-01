@@ -361,7 +361,7 @@ export class WorkSpaceController extends BaseController {
 
     socketChannelSetup(io, socketData) {
 
-        const socket = io('http://localhost:5000/pipeline', { transports: ["websocket"] });
+        const socket = io('ws://127.0.0.1:5000/pipeline', { transports: ["websocket"] });
         socket.on('connect', () => { });
         socket.on('connected', (data) => socketData.sid = data.sid);
 
