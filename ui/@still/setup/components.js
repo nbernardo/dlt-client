@@ -1582,7 +1582,7 @@ export class Components {
     }
 
     static runAfterInit(cmp) {
-        (async () => await cmp.stAfterInit());
+        (async () => await cmp.stAfterInit())();
         if ('stillDevidersCmp' in cmp)
             Components.obj().setAdjustblePannel(cmp['stillDevidersCmp']);
     }
