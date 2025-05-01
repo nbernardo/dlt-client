@@ -1539,18 +1539,13 @@ export class Components {
         return { template, component: instance };
     }
 
-    parseDevider(template, cmp) {
-        const deviderTemplate = `
-        <div class="separator" id="$idPlaceholder">
-            <div class="handle"></div>
-        </div>
-        `;
-
+    parseDevider(template, cmp, c1 = 'class="separator"', c2 = 'class="handle"') {
+        const deviderTemplate = `<div ${c1} id="$StId"><div ${c2}></div></div>`;
         template = template.replace(/\<st-devider[\s]{0,}[\/\>]{2}/, (mt) => {
             const deviderId = `devid-${UUIDUtil.newId()}`;
             if (!cmp['stillDevidersCmp']) cmp['stillDevidersCmp'] = [];
             cmp['stillDevidersCmp'].push(deviderId);
-            return deviderTemplate.replace('$idPlaceholder', `${deviderId}`)
+            return deviderTemplate.replace('$StId', `${deviderId}`)
         });
 
         return template;
@@ -1571,7 +1566,8 @@ export class Components {
 
             document.addEventListener('mousemove', (e) => {
                 if (!isResizing) return;
-                const [deltaX, newLeftPanelWidth] = [e.clientX - startX, leftPanelWidth + deltaX];
+                const deltaX = e.clientX - startX;
+                const newLeftPanelWidth = leftPanelWidth + deltaX;
                 if (newLeftPanelWidth > 50 && window.innerWidth - newLeftPanelWidth > 50)
                     [_left.style.width, _right.style.flexGrow] = [`${newLeftPanelWidth}px`, 1];
             });
@@ -1587,8 +1583,6 @@ export class Components {
 
     static runAfterInit(cmp) {
         (async () => await cmp.stAfterInit());
-        console.log(`LOOK FOR `, cmp['stillDevidersCmp']);
-
         if ('stillDevidersCmp' in cmp)
             Components.obj().setAdjustblePannel(cmp['stillDevidersCmp']);
     }
