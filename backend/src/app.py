@@ -6,7 +6,6 @@ from controller.pipeline import pipeline
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, Namespace
 
-
 class PiplineNamespace(Namespace):
     def on_connect(self): pass
     def on_disconnect(self, reason): pass
@@ -18,7 +17,7 @@ sys.path.insert(0, proj_folder/'node_mapper/')
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hash#123098'
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="http://127.0.0.1:8080",
+socketio = SocketIO(app, cors_allowed_origins=["http://127.0.0.1:8080", "http://localhost:8080"],
                     logger=True, engineio_logger=True)
 
 socketio.on_namespace(PiplineNamespace('/pipeline'))

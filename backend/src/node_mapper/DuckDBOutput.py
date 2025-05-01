@@ -1,7 +1,7 @@
 import duckdb
 from .TemplateNodeType import TemplateNodeType
 from node_mapper.RequestContext import RequestContext
-
+import os
 
 class DuckDBOutput(TemplateNodeType):
     """
@@ -33,19 +33,23 @@ class DuckDBOutput(TemplateNodeType):
         Check if the table already exists
         """
         path = self.context.ppline_files_path
-        cnx = duckdb.connect(f'{path}/{self.context.ppline_name}.duckdb')
-        try:
-            table = self.table_name
-            dbname = self.database
-            query = f"SELECT * FROM duckdb_tables WHERE table_name = '{table}'"
-            result = cnx.sql(query)
-            if (result.fetchone() is not None):
-                error = f'Table with name {table} already exists for {dbname}'
-                error = {'message': error, 'componentId': self.component_id}
-                self.context.add_exception('DuckDBOutput', error)
-                self.context.emit_error(self, error)
+        cnx, error = None, None
 
-            else:
+        if os.path.exists(f'{path}/{self.context.ppline_name}.duckdb'):
+            cnx = duckdb.connect(f'{path}/{self.context.ppline_name}.duckdb')
+        try:
+            if cnx:
+                table = self.table_name
+                dbname = self.database
+                query = f"SELECT * FROM duckdb_tables WHERE table_name = '{table}'"
+                result = cnx.sql(query)
+                if (result.fetchone() is not None):
+                    error = f'Table with name {table} already exists for {dbname}'
+                    error = {'message': error, 'componentId': self.component_id}
+                    self.context.add_exception('DuckDBOutput', error)
+                    self.context.emit_error(self, error)
+            
+            if error is not None:
                 success = {'componentId': self.component_id}
                 self.context.emit_success(self, success)
 
