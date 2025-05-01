@@ -1,3 +1,63 @@
+<style>
+	body {
+		margin: 0;
+		height: 100vh;
+		overflow: hidden;
+		/* Prevent scrollbars */
+		display: flex;
+	}
+
+	.panel {
+		flex-grow: 1;
+		overflow: auto;
+		background-color: #f0f0f0;
+		border-right: 1px solid #ccc;
+		position: relative;
+		/* For handle positioning */
+	}
+
+	.panel:last-child {
+		border-right: none;
+	}
+
+	.separator {
+		width: 5px;
+		background-color: #ccc;
+		cursor: ew-resize;
+		/* East-West resize cursor */
+		flex-shrink: 0;
+		/* Prevent shrinking */
+		position: relative;
+		/* For handle positioning */
+	}
+
+	.handle {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 15px;
+		height: 15px;
+		background-color: #151111;
+		border-radius: 50%;
+		opacity: .5;
+		/* Initially hidden */
+		transition: opacity 0.2s ease-in-out;
+		pointer-events: none;
+		/* Don't interfere with dragging */
+	}
+
+	.separator:hover .handle {
+		opacity: 0.9;
+	}
+
+	.separator.resizing .handle {
+		opacity: 1;
+		background-color: #666;
+		/* Indicate active resizing */
+	}
+</style>
+
 <div>
 	<!-- <form onsubmit="return false;" (formRef)="formRef">
 		<div class="input-group">
@@ -13,13 +73,15 @@
 			<h2>Workspace</h2>
 		</header>
 		<div class="wrapper">
-			<div class="col">
+			<div class="col" id="still-adj-left-panel">
 				<span (forEach)="objectTypes">
 					<st-element component="ObjectType" each="item"></st-element>
 				</span>
 			</div>
 
-			<div class="col-right">
+			<st-devider />
+
+			<div class="col-right" id="still-adj-right-panel">
 				<div class="menu">
 					<ul>
 						<li onclick="controller.changeModule('Home'); controller.changeModule(event);" class="selected">

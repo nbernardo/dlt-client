@@ -83,6 +83,8 @@ export class Workspace extends ViewComponent {
 				elements[i].addEventListener('touchstart', this.drop, false);
 			}
 			this.controller.handleListeners(this.editor);
+
+			this.controller.setAdjustblePannel();
 		});
 	}
 

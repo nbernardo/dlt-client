@@ -472,4 +472,5 @@ export class WorkSpaceController extends BaseController {
         if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
             obj.edgeTypeAdded[input_id].add(output_id);
     }
+
 }
