@@ -57,7 +57,12 @@ export class Workspace extends ViewComponent {
 			}) */
 		});
 		this.buildWorkspaceView();
-
+		CodeMirror.fromTextArea(document.getElementById('codeEditorPlace'), {
+			lineNumbers: true,
+			mode: 'python',
+			theme: 'monokai',
+			language: 'python'
+		})
 	}
 
 	buildWorkspaceView() {

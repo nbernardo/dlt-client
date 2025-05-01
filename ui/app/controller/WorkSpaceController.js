@@ -371,29 +371,22 @@ export class WorkSpaceController extends BaseController {
         });
 
         socket.on('pplineStepStart', ({ componentId, sid }) => {
+            if (!this.pplineSteps[sid]) this.pplineSteps[sid] = new Set();
+            this.pplineSteps[sid].add(componentId);
             WorkSpaceController.addRunningStatus(componentId);
         });
 
         socket.on('pplineStepSuccess', ({ componentId, sid }) => {
-
-            if (!this.pplineSteps[sid]) this.pplineSteps[sid] = new Set();
-            this.pplineSteps[sid].add(componentId);
-
             const nodeId = this.cmpIdToNodeIdMap[componentId];
             const node = WorkSpaceController.getNode(nodeId);
             if (Object.keys(node.outputs).length > 0)
                 WorkSpaceController.addPreSuccessStatus(componentId);
-
         });
 
         socket.on('pplineSuccess', ({ sid }) => {
-
             const tasks = this.pplineSteps[sid];
-            console.log(`TASKS FOUND ARE: `, tasks);
-
             this.pplineStatus = PPLineStatEnum.Finished;
             [...tasks].forEach(WorkSpaceController.addSuccessStatus);
-
         });
 
     }
