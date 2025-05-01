@@ -149,7 +149,7 @@ export class BaseComponent extends BehaviorComponent {
             'parentVersionId', 'versionId', 'behaviorEvtSubscriptions',
             'wasAnnotParsed', 'stateChangeSubsribers', 'bindStatus',
             'templateUrl', '$parent', 'dynLoopObject', 'lone', 'loneCntrId',
-            'setAndGetsParsed', 'navigationId', '$cmpStController'
+            'setAndGetsParsed', 'navigationId', '$cmpStController', 'stillDevidersCmp'
         ];
         return fields.filter(
             field => {
@@ -707,24 +707,20 @@ export class BaseComponent extends BehaviorComponent {
 
         if (!this.cmpInternalId) this.cmpInternalId = this.getUUID();
         this.#parseAnnotations();
-
         /** Bind the component state and return it (template)
          * NOTE: Needs to be always the first to be called */
         let template = this.getBoundState(isReloading);
         template = this.getBoundRender(template);
-
         /** Parse still tags */
         template = this.parseStSideComponent(template),
             /** Bind the props to the template and return */
             template = this.getBoundProps(template);
         /** Bind the click to the template and return */
         template = this.getBoundClick(template, containerId);
-
         template = this.getBoundLoop(template);
-
         template = this.getBoundOnChange(template);
-
         template = this.getBoundEvt(template);
+        template = Components.obj().parseDevider(template, this);
 
         console.timeEnd('tamplateBindFor' + this.getName());
 

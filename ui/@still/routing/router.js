@@ -381,7 +381,7 @@ export class Router {
                  * Runs stAfterInit special method in case it exists
                  */
                 if (!Components.checkStInit(cmp.constructor.name))
-                    setTimeout(async () => await cmp.stAfterInit(), 200);
+                    setTimeout(() => Components.runAfterInit(cmp), 200);
 
                 /**
                  * Load component parts or sub-components inside the main loaded component

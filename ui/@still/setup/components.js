@@ -324,7 +324,7 @@ export class Components {
                 }
                 setTimeout(() => Components.handleInPlacePartsInit($still.context.currentView, 'fixed-part'));
                 setTimeout(async () => {
-                    await $still.context.currentView.stAfterInit();
+                    Components.runAfterInit($still.context.currentView);
                     if (!Router.clickEvetCntrId) AppTemplate.injectToastContent();
                 });
 
@@ -334,8 +334,7 @@ export class Components {
             if (document.getElementById(this.stillAppConst))
                 this.renderOnViewFor(this.stillAppConst, $still.context.currentView);
             else new Components().renderPublicComponent($still.context.currentView);
-
-            setTimeout(async () => await $still.context.currentView.stAfterInit());
+            Components.runAfterInit($still.context.currentView)
         });
     }
 
@@ -366,7 +365,7 @@ export class Components {
             setTimeout(() =>
                 Components.handleInPartsImpl(cmp, cmp.cmpInternalId, cmpParts)
             );
-            setTimeout(async () => await cmp.stAfterInit(), 120);
+            setTimeout(() => Components.runAfterInit(cmp), 120);
             Components.handleMarkedToRemoveParts();
             Components.removeOldParts();
         } else document.body.innerHTML = (authErrorMessage());
@@ -939,7 +938,7 @@ export class Components {
             );
         }
 
-        await newInstance.stAfterInit();
+        Components.runAfterInit(newInstance)
         setTimeout(async () => newInstance.parseOnChange(), 200);
         if (!newInstance.setAndGetsParsed) {
             newInstance.setAndGetsParsed = true;
@@ -1157,7 +1156,7 @@ export class Components {
                     /** Runs the load method which is supposed to implement what should be run
                      * for the component to be displayed accordingly in the User interface */
                     await cmp.load();
-                    setTimeout(async () => await cmp.stAfterInit(), 120);
+                    setTimeout(() => Components.runAfterInit(cmp), 120);
                     if ((idx + 1) == cmpParts.length && cmpInternalId != 'fixed-part')
                         setTimeout(() => Components.emitAction('runImport'), 120);
 
@@ -1305,7 +1304,7 @@ export class Components {
     static emitAfterIni(cpmName) {
         (async () => {
             const registror = $still.context.componentRegistror.componentList;
-            await registror[cpmName].instance.stAfterInit();
+            Components.runAfterInit(registror[cpmName].instance);
         })
         delete Components.afterIniSubscriptions[cpmName];
     }
@@ -1536,9 +1535,62 @@ export class Components {
             (new Components).parseGetsAndSets(instance)
         }, 10);
         ComponentRegistror.add(instance.cmpInternalId, instance);
-        setTimeout(async () => await instance.stAfterInit(), 500);
+        setTimeout(() => Components.runAfterInit(instance), 500);
         return { template, component: instance };
     }
 
+    parseDevider(template, cmp) {
+        const deviderTemplate = `
+        <div class="separator" id="$idPlaceholder">
+            <div class="handle"></div>
+        </div>
+        `;
+
+        template = template.replace(/\<st-devider[\s]{0,}[\/\>]{2}/, (mt) => {
+            const deviderId = `devid-${UUIDUtil.newId()}`;
+            if (!cmp['stillDevidersCmp']) cmp['stillDevidersCmp'] = [];
+            cmp['stillDevidersCmp'].push(deviderId);
+            return deviderTemplate.replace('$idPlaceholder', `${deviderId}`)
+        });
+
+        return template;
+    }
+
+    setAdjustblePannel(cmpDivedersList) {
+        cmpDivedersList.forEach(dividerId => {
+
+            const separator = document.getElementById(dividerId);
+            const { previousElementSibling: _left, nextElementSibling: _right } = separator;
+            let [isResizing, startX, leftPanelWidth] = [false, undefined, undefined];
+
+            separator.addEventListener('mousedown', (e) => {
+                [isResizing, startX, leftPanelWidth] = [true, e.clientX, _left.offsetWidth];
+                document.body.style.cursor = 'ew-resize';
+                separator.classList.add('resizing'); // Add class to style handle during resize
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const [deltaX, newLeftPanelWidth] = [e.clientX - startX, leftPanelWidth + deltaX];
+                if (newLeftPanelWidth > 50 && window.innerWidth - newLeftPanelWidth > 50)
+                    [_left.style.width, _right.style.flexGrow] = [`${newLeftPanelWidth}px`, 1];
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    [isResizing, document.body.style.cursor] = [false, 'default'];
+                    separator.classList.remove('resizing'); // Remove class after resize
+                }
+            });
+        })
+    }
+
+    static runAfterInit(cmp) {
+        (async () => await cmp.stAfterInit());
+        console.log(`LOOK FOR `, cmp['stillDevidersCmp']);
+
+        if ('stillDevidersCmp' in cmp)
+            Components.obj().setAdjustblePannel(cmp['stillDevidersCmp']);
+    }
 }
 window.$still = $still;
