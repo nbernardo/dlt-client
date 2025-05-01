@@ -389,6 +389,8 @@ export class WorkSpaceController extends BaseController {
         socket.on('pplineSuccess', ({ sid }) => {
 
             const tasks = this.pplineSteps[sid];
+            console.log(`TASKS FOUND ARE: `, tasks);
+
             this.pplineStatus = PPLineStatEnum.Finished;
             [...tasks].forEach(WorkSpaceController.addSuccessStatus);
 
