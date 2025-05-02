@@ -19,7 +19,7 @@
 					<label for="tab1">Data</label>
 					
 					<input type="radio" name="tabset" id="tab2" aria-controls="draw-diagram-tab" checked>
-					<label for="tab2">Diagram</label>			
+					<label for="tab2" onclick="component.runPythonCode()">Diagram</label>			
 					<div class="tab-panels">
 						<section id="data-panel" class="tab-panel">
 							<h2>Data from Duck db will be shown here</h2>
@@ -71,14 +71,15 @@
 
 	</div>
 
-	<div
-		style="height: 30%;
-		position: absolute;
-		border-top: 2px solid red;
-		bottom: 0;
-		width: 100%;
-		background: white;"
-	>
-		<textarea name="" id="codeEditorPlace"></textarea>
-	</div>
+	<st-element component="AdjustableContainer">
+		<div
+			style="height: 30%;
+			position: absolute;
+			bottom: 0;
+			width: 100%;
+			background: white;"
+		>
+			<st-element proxy="cmProxy" runCode="" component="@codemirror/CodeMiror"></st-element>
+		</div>
+	</st-element>
 </div>

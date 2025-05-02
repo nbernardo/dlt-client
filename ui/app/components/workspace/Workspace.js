@@ -5,6 +5,7 @@ import { AppTemplate } from "../../../app-template.js";
 import { NodeTypeEnum, PPLineStatEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
+import { CodeMiror } from "../../../@still/vendors/codemirror/CodeMiror.js";
 
 export class Workspace extends ViewComponent {
 
@@ -39,6 +40,11 @@ export class Workspace extends ViewComponent {
 
 	activeGrid = "pipeline_name";
 
+	/** 
+	 * @Proxy 
+	 * @type { CodeMiror }*/
+	cmProxy;
+
 	stOnRender() {
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
@@ -57,12 +63,12 @@ export class Workspace extends ViewComponent {
 			}) */
 		});
 		this.buildWorkspaceView();
-		CodeMirror.fromTextArea(document.getElementById('codeEditorPlace'), {
-			lineNumbers: true,
-			mode: 'python',
-			theme: 'monokai',
-			language: 'python'
-		})
+		// CodeMirror.fromTextArea(document.getElementById('codeEditorPlace'), {
+		// 	lineNumbers: true,
+		// 	mode: 'python',
+		// 	theme: 'monokai',
+		// 	language: 'python'
+		// })
 	}
 
 	buildWorkspaceView() {
@@ -158,6 +164,10 @@ export class Workspace extends ViewComponent {
 
 		if (!!anyInvalidForm || !initNode || unlinkNodeErrorCounter > 0) return false;
 		return true;
+	}
+
+	runPythonCode(){
+		const code = this.cmProxy.codeEditor.getValue();
 	}
 
 }
