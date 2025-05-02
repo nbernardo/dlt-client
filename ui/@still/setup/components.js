@@ -1539,21 +1539,22 @@ export class Components {
         return { template, component: instance };
     }
 
-    parseDevider(template, cmp, c1 = 'class="separator"', c2 = 'class="handle"') {
-        const deviderTemplate = `<div ${c1} id="$StId"><div ${c2}></div></div>`;
-        template = template.replace(/\<st-devider[\s]{0,}[\/\>]{2}/, (mt) => {
-            const deviderId = `devid-${UUIDUtil.newId()}`;
+    parseDevider(template, cmp, c1 = 'class="separator"', c2 = 'class="handle"', c3 = 'class="divider"', c4 = 'class="handlehor"') {
+        template = template.replace(/\<st-divider[\s]{0,}type\=\"([horizontal|vertical]{0,})\"[\s]{0,}[\/\>]{2}/g, (_, type) => {
+            let deviderTemplate = `<div ${c1} id="$StId"><div ${c2}></div></div>`;
+            if(type == 'vertical') deviderTemplate = `<div ${c3} id="$StId"><div ${c4}></div>
+        </div>`;
+            const dividerId = `devid-${UUIDUtil.newId()}`;
             if (!cmp['stillDevidersCmp']) cmp['stillDevidersCmp'] = [];
-            cmp['stillDevidersCmp'].push(deviderId);
-            return deviderTemplate.replace('$StId', `${deviderId}`)
+            cmp['stillDevidersCmp'].push({dividerId, type});
+            return deviderTemplate.replace('$StId', `${dividerId}`)
         });
-
         return template;
     }
-
-    setAdjustblePannel(cmpDivedersList) {
-        cmpDivedersList.forEach(dividerId => {
-
+    /** This is a complement to the parseDiveder  */
+    setVertDivider(cmpDivedersList) {
+        cmpDivedersList.forEach(({dividerId, type}) => {
+            if(type != 'horizontal') return;
             const separator = document.getElementById(dividerId);
             const { previousElementSibling: _left, nextElementSibling: _right } = separator;
             let [isResizing, startX, leftPanelWidth] = [false, undefined, undefined];
@@ -1581,10 +1582,67 @@ export class Components {
         })
     }
 
+	setHrzntlDevider(cmpDivedersList){
+        cmpDivedersList.forEach(({dividerId, type}) => {
+            if(type != 'vertical') return;
+            const hdivider = document.getElementById(dividerId);
+            const {previousElementSibling: _top, nextElementSibling: _bottom, parentElement: cntr} = hdivider;
+            cntr.classList.add('container-divider-parent');
+            _top.className = _top.className + ' panel top';
+            _bottom.classNam = _bottom.className + ' panel bottom';
+            let isDragging = false;
+        
+            hdivider.addEventListener("mousedown", function () {
+              isDragging = true;
+              document.body.style.cursor = 'ns-resize';
+            });
+        
+            document.addEventListener("mousemove", (e) => {
+              if (!isDragging) return;
+        
+              const {offsetTop: containerOffsetTop, offsetHeight: containerHeight} = cntr;
+              const pointerRelativeY = e.clientY - containerOffsetTop;
+        
+              const topHeight = pointerRelativeY;
+              const bottomHeight = containerHeight - topHeight - hdivider.offsetHeight;
+        
+              [_top.style.flex, _bottom.style.flex] = ['none', 'none'];
+              [_top.style.height, _bottom.style.height] = [topHeight + "px", bottomHeight + "px"];
+            });
+        
+            document.addEventListener("mouseup", () => {
+              isDragging = false;
+              document.body.style.cursor = 'default';
+            });
+        })
+	}
+
+    parseAdjustable(template, cmp){
+        const tmpl = `
+        <div class="still-resizable-cntr" id="{{$stId}}">
+            <div class="resize-top"></div><div class="resize-left"></div>
+            <div style="margin-top: 10px; margin-left: 10px;">{{$stContPlaceholder}}</div>
+        </div>    
+        `;
+        const openAdjustable = /<st-element[\s]{0,}component="AdjustableContainer"[\s]{0,}>/;
+        const closeAdjustable = /<\/st-element[\s]{0,}>/;
+        const re = openAdjustable.source + /([\s\S]*)/.source + closeAdjustable.source
+        return template.replace(new RegExp(re,'g'), 
+            (_, mt2) => {
+                const adjtbleId = `adjust-${UUIDUtil.newId()}`;
+                if (!cmp['stillAdjastableCmp']) cmp['stillAdjastableCmp'] = [];
+                cmp['stillAdjastableCmp'].push(adjtbleId);    
+                return tmpl.replace('{{$stContPlaceholder}}',mt2).replace('{{$stId}}', adjtbleId);
+            }
+        )       
+    }
+
     static runAfterInit(cmp) {
         (async () => await cmp.stAfterInit())();
-        if ('stillDevidersCmp' in cmp)
-            Components.obj().setAdjustblePannel(cmp['stillDevidersCmp']);
+        if ('stillDevidersCmp' in cmp){
+            Components.obj().setVertDivider(cmp['stillDevidersCmp']);
+            Components.obj().setHrzntlDevider(cmp['stillDevidersCmp']);
+        }
     }
 }
 window.$still = $still;

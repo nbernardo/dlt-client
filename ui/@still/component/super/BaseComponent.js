@@ -149,7 +149,8 @@ export class BaseComponent extends BehaviorComponent {
             'parentVersionId', 'versionId', 'behaviorEvtSubscriptions',
             'wasAnnotParsed', 'stateChangeSubsribers', 'bindStatus',
             'templateUrl', '$parent', 'dynLoopObject', 'lone', 'loneCntrId',
-            'setAndGetsParsed', 'navigationId', '$cmpStController', 'stillDevidersCmp'
+            'setAndGetsParsed', 'navigationId', '$cmpStController', 'stillDevidersCmp',
+            'stillAdjastableCmp'
         ];
         return fields.filter(
             field => {
@@ -710,6 +711,7 @@ export class BaseComponent extends BehaviorComponent {
         /** Bind the component state and return it (template)
          * NOTE: Needs to be always the first to be called */
         let template = this.getBoundState(isReloading);
+        template = Components.obj().parseAdjustable(template, this);
         template = this.getBoundRender(template);
         /** Parse still tags */
         template = this.parseStSideComponent(template),
