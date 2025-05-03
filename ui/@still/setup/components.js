@@ -1540,22 +1540,31 @@ export class Components {
     }
 
     parseDevider(template, cmp, c1 = 'class="separator"', c2 = 'class="handle"', c3 = 'class="divider"', c4 = 'class="handlehor"') {
-        template = template.replace(/\<st-divider[\s]{0,}type\=\"([horizontal|vertical]{0,})\"[\s]{0,}[\/\>]{2}/g, (_, type) => {
+        const reStStart = /\<st-divider[\s\t]{0,}/, reStClose = /[\/\>]{2}/;
+        const reAnyProp = /[\=\"A-Za-z\s\t\n\.\(\)]{0,}[\s]{0,}/;
+        const RE = new RegExp(reStStart.source + reAnyProp.source + reStClose.source,'g');
+        template = template.replace(RE, (_) => {
             let deviderTemplate = `<div ${c1} id="$StId"><div ${c2}></div></div>`;
-            if(type == 'vertical') deviderTemplate = `<div ${c3} id="$StId"><div ${c4}></div>
-        </div>`;
+            const props = {};
+            _.split(' ').slice(1).map((r) => {
+                let [prop, value] = r.split('=');
+                props[prop] = value.split('"')[1];
+            });
+            
+            if(props?.type == 'vertical') deviderTemplate = `<div ${c3} id="$StId"><div ${c4}></div></div>`;
             const dividerId = `devid-${UUIDUtil.newId()}`;
             if (!cmp['stillDevidersCmp']) cmp['stillDevidersCmp'] = [];
-            cmp['stillDevidersCmp'].push({dividerId, type});
+            cmp['stillDevidersCmp'].push({dividerId, ...props});
             return deviderTemplate.replace('$StId', `${dividerId}`)
         });
         return template;
     }
     /** This is a complement to the parseDiveder  */
-    setVertDivider(cmpDivedersList) {
-        cmpDivedersList.forEach(({dividerId, type}) => {
+    setVertDivider(c) {
+        c['stillDevidersCmp'].forEach(({dividerId, type, '(onResize)': onResize}) => {
             if(type != 'horizontal') return;
             const separator = document.getElementById(dividerId);
+            const method = Components.obj().resizeEvtGenerator(c, onResize);
             const { previousElementSibling: _left, nextElementSibling: _right } = separator;
             let [isResizing, startX, leftPanelWidth] = [false, undefined, undefined];
 
@@ -1571,6 +1580,7 @@ export class Components {
                 const newLeftPanelWidth = leftPanelWidth + deltaX;
                 if (newLeftPanelWidth > 50 && window.innerWidth - newLeftPanelWidth > 50)
                     [_left.style.width, _right.style.flexGrow] = [`${newLeftPanelWidth}px`, 1];
+                if(method) (async () => await method({ leftWidth: newLeftPanelWidth }))();
             });
 
             document.addEventListener('mouseup', () => {
@@ -1582,10 +1592,21 @@ export class Components {
         })
     }
 
-	setHrzntlDevider(cmpDivedersList){
-        cmpDivedersList.forEach(({dividerId, type}) => {
+    resizeEvtGenerator(c, onResize){
+        if(!onResize) return () => {};
+        return async (val) => {
+            const mtd = onResize.split('(')[0];
+            if(!c[mtd]) throw new ReferenceError(`Method ${mtd}() does not exists in ${c.getName()}.js`)
+            await c[mtd](val)
+        };
+
+    }
+
+	setHrzntlDevider(c){
+        c['stillDevidersCmp'].forEach(({dividerId, type, '(onResize)': onResize}) => {
             if(type != 'vertical') return;
             const hdivider = document.getElementById(dividerId);
+            const method = Components.obj().resizeEvtGenerator(c, onResize);
             const {previousElementSibling: _top, nextElementSibling: _bottom, parentElement: cntr} = hdivider;
             cntr.classList.add('container-divider-parent');
             _top.className = _top.className + ' panel top';
@@ -1599,15 +1620,15 @@ export class Components {
         
             document.addEventListener("mousemove", (e) => {
               if (!isDragging) return;
-        
+              
               const {offsetTop: containerOffsetTop, offsetHeight: containerHeight} = cntr;
               const pointerRelativeY = e.clientY - containerOffsetTop;
-        
               const topHeight = pointerRelativeY;
               const bottomHeight = containerHeight - topHeight - hdivider.offsetHeight;
         
               [_top.style.flex, _bottom.style.flex] = ['none', 'none'];
               [_top.style.height, _bottom.style.height] = [topHeight + "px", bottomHeight + "px"];
+              (async () => await method({ topHeight, bottomHeight }))();
             });
         
             document.addEventListener("mouseup", () => {
@@ -1634,14 +1655,14 @@ export class Components {
                 cmp['stillAdjastableCmp'].push(adjtbleId);    
                 return tmpl.replace('{{$stContPlaceholder}}',mt2).replace('{{$stId}}', adjtbleId);
             }
-        )       
+        );
     }
 
     static runAfterInit(cmp) {
         (async () => await cmp.stAfterInit())();
         if ('stillDevidersCmp' in cmp){
-            Components.obj().setVertDivider(cmp['stillDevidersCmp']);
-            Components.obj().setHrzntlDevider(cmp['stillDevidersCmp']);
+            Components.obj().setVertDivider(cmp);
+            Components.obj().setHrzntlDevider(cmp);
         }
     }
 }
