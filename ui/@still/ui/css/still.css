@@ -406,3 +406,53 @@ body {
     background-color: #666;
 }
 /** STILL DIVIDER STYLESHEETS */
+
+
+/** STILL VERTICAL RESIZER COMPONENT STYLESHEET */
+
+    .container-divider-parent {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .container-divider-parent .panel {
+      padding: 10px;
+      overflow: auto;
+    }
+
+    .container-divider-parent .divider {
+      height: 10px;
+      background-color: #b3b0b0;
+      cursor: ns-resize;
+      position: relative;
+      z-index: 1;
+      display: flex;
+    }
+
+    .container-divider-parent .panel.top {
+      background-color: #d0f0fd;
+    }
+
+    .container-divider-parent .panel.bottom {
+      background-color: #fef3c7;
+      height: 200px;
+    }
+
+    .handlehor {
+        width: 15px;
+        height: 15px;
+        position: relative;
+        background-color: #151111;
+        border-top-right-radius: 50%;
+        border-top-left-radius: 50%;
+        opacity: .5;
+        transition: opacity 0.2s ease-in-out;
+        pointer-events: none;
+        margin-top: -4px;
+        justify-content: center;
+        left: calc(50%);
+    }
+
+/** END STILL RESIZER COMPONENT STYLESHEET */

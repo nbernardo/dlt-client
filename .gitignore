@@ -15,6 +15,7 @@ backend/src/controller/__pycache__
 
 ui/app/components/node-types/Scratch.js
 ui/app/mixin/Component.js
+ui/app/scratch
 
 z
 ztore
