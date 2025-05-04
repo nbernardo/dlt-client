@@ -451,8 +451,10 @@ body {
         transition: opacity 0.2s ease-in-out;
         pointer-events: none;
         margin-top: -4px;
+        align-items: center; /** Y-axis align **/
         justify-content: center;
-        left: calc(50%);
+        display: flex;
+        left: calc(50% - 150px);
     }
 
 /** END STILL RESIZER COMPONENT STYLESHEET */
