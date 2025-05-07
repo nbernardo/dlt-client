@@ -100,9 +100,7 @@ export class Components {
     renderOnViewFor(placeHolder, cmp = null) {
 
         const isLoneCmp = Router.clickEvetCntrId;
-
-        if (this.template instanceof Array)
-            this.template = this.template.join('');
+        if (this.template instanceof Array) this.template = this.template.join('');
 
         let cntr = document.getElementById(placeHolder);
         if (isLoneCmp && isLoneCmp != 'null') cntr = document.getElementById(isLoneCmp);
@@ -441,20 +439,6 @@ export class Components {
             }
             return result;
         });
-    }
-
-    /** @param {ViewComponent} cmp */
-    parseClassObserver() {
-
-        const cmp = this.component;
-        Object.assign(cmp, {
-            subcribers: [],
-            onChange: (callback = () => { }) => {
-                cmp[`$still${field}Subscribers`].push(callback);
-            }
-        });
-
-        return this;
     }
 
     parseOnChange = () => this;
@@ -1504,7 +1488,7 @@ export class Components {
                     props[p?.replace(/\n/,'')?.replace('(onResize)','ev1')?.replace('(onLblClick)','ev2')] = v.split('"')[0];
             });
             if(props?.type == 'vertical') tmpl = t2;
-            if(props?.label) tmpl = tmpl.replace('{{}}', props.label);
+            tmpl = tmpl.replace('{{}}', props?.label || '');
             const dividerId = `devid-${UUIDUtil.newId()}`;
             if (!cp['stillDevidersCmp']) cp['stillDevidersCmp'] = [];
             cp['stillDevidersCmp'].push({dividerId, ...props});
@@ -1557,10 +1541,11 @@ export class Components {
 
 	setHrzntlDevider(c){
         c['stillDevidersCmp'].forEach((p) => {
-            const {dividerId, type, ev1: onRsiz, ev2: onLblClk, minHeight: miH, maxHeight: maH  } = p;
+            const {dividerId, type, ev1: onRsiz, ev2: onLblClk, minHeight: miH, maxHeight: maH, startHeight  } = p;
             if(type != 'vertical') return;
             const d = document.getElementById(dividerId);
             d.querySelector('.label').onclick = async () => await Components.obj().newResizeEvt(c, onLblClk)();
+            if(startHeight) d.style.marginTop = startHeight + 'px';
             const method = Components.obj().newResizeEvt(c, onRsiz);
             const {previousElementSibling: _top, nextElementSibling: _bottom, parentElement: cntr} = d;
             cntr.classList.add('container-divider-parent');
