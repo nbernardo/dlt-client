@@ -6,6 +6,7 @@ import { NodeTypeEnum, PPLineStatEnum, WorkSpaceController } from "../../control
 import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
 import { CodeMiror } from "../../../@still/vendors/codemirror/CodeMiror.js";
+import { Terminal } from "./terminal/Terminal.js";
 
 export class Workspace extends ViewComponent {
 
@@ -45,6 +46,13 @@ export class Workspace extends ViewComponent {
 	 * @type { CodeMiror }*/
 	cmProxy;
 
+	/** 
+	 * @Proxy 
+	 * @type { Terminal }*/
+	terminalProxy;
+
+
+
 	stOnRender() {
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
@@ -63,12 +71,8 @@ export class Workspace extends ViewComponent {
 			}) */
 		});
 		this.buildWorkspaceView();
-		// CodeMirror.fromTextArea(document.getElementById('codeEditorPlace'), {
-		// 	lineNumbers: true,
-		// 	mode: 'python',
-		// 	theme: 'monokai',
-		// 	language: 'python'
-		// })
+		//this.cmProxy.codeEditor.setSize(null, 100);
+
 	}
 
 	buildWorkspaceView() {
@@ -166,8 +170,20 @@ export class Workspace extends ViewComponent {
 		return true;
 	}
 
-	runPythonCode(){
+	onSplitterMove(params){
+		const editorHeight = ((params.bottomHeight) * 50) / 100;
+		this.cmProxy.setHeight(editorHeight);
+		this.terminalProxy.resizeHeight(editorHeight);
+	}
+
+	showHideEditor(){
+		let size = this.cmProxy.getHeight() >= 66 && this.cmProxy.getHeight() < 100 ? 400 : 66;
+		this.cmProxy.setHeight(size);
+	}
+
+	runCode(){
 		const code = this.cmProxy.codeEditor.getValue();
+		this.terminalProxy.writeTerminal(code);
 	}
 
 }

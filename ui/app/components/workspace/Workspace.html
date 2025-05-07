@@ -1,12 +1,4 @@
 <div>
-	<!-- <form onsubmit="return false;" (formRef)="formRef">
-		<div class="input-group">
-			<label for="">Table Name</label>
-			<input type="text" (value)="name" (required)="true">
-		</div>
-		<button onclick="component.valid()">Valid here</button>
-	</form> -->
-
 	<div id="drawflowContainer">
 
 		<header>
@@ -16,7 +8,7 @@
 			<div class="col" id="still-adj-left-panel">
 				<div class="tabset">
 					<input type="radio" name="tabset" id="tab1" aria-controls="data-panel">
-					<label for="tab1">Data</label>
+					<label for="tab1" onclick="component.showHideEditor()">Data</label>
 					
 					<input type="radio" name="tabset" id="tab2" aria-controls="draw-diagram-tab" checked>
 					<label for="tab2" onclick="component.runPythonCode()">Diagram</label>			
@@ -33,7 +25,7 @@
 				</div>
 			</div>
 
-			<st-devider />
+			<st-divider type="horizontal" (onResize)="verticalChecking()"/>
 
 			<div class="col-right" id="still-adj-right-panel">
 				<div class="menu">
@@ -66,20 +58,40 @@
 						<i class="fas fa-search-plus" onclick="draweditor.zoom_in()"></i>
 					</div>
 				</div>
+				<st-divider 
+					type="vertical" 
+					label="&nbsp;&lt;&#47;&gt; Code eitor" 
+					(onResize)="onSplitterMove(params)"
+					minHeight="65"
+					maxHeight="500"
+				/>
+				<div style="display: contents;">
+					<st-element 
+						proxy="cmProxy" 
+						editorHeight="160"
+						startHeight="0"
+						component="@codemirror/CodeMiror">
+					</st-element>
+				</div>
+				<st-element 
+					proxy="terminalProxy"
+					(onRun)="runCode()"
+					component="Terminal"></st-element>
 			</div>
 		</div>
-
 	</div>
-
-	<st-element component="AdjustableContainer">
-		<div
-			style="height: 30%;
-			position: absolute;
-			bottom: 0;
-			width: 100%;
-			background: white;"
-		>
-			<st-element proxy="cmProxy" runCode="" component="@codemirror/CodeMiror"></st-element>
-		</div>
-	</st-element>
 </div>
+
+<style>
+	.wrapper .divider {
+		height: 25px;
+		padding-top: 2px;
+		padding-bottom: 2px;
+		font-size: 14px;
+		color: rgb(86, 84, 84);
+	}
+
+	.wrapper .divider .label {
+		cursor: pointer;
+	}
+</style>

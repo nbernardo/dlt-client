@@ -29,6 +29,10 @@ export const stillRoutesMap = {
             DuckDBOutput: {
                 path: "app/components/node-types",
                 url: "/duck-dbo-utput"
+            },
+            Terminal: {
+                path: "app/components/workspace/terminal",
+                url: "/terminal"
             }
         },
         lazyInitial: {}
