@@ -1,0 +1,53 @@
+import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
+import { STForm } from "../../../@still/component/type/STForm.js";
+import { FormHelper } from "../../../@still/helper/form.js";
+
+export class SqlDBComponent extends ViewComponent {
+
+	isPublic = true;
+
+	label = 'SQL DB Source';
+
+	/** @Prop */
+	inConnectors = 1;
+	/** @Prop */
+	outConnectors = 1;
+
+	/** @Prop */
+	nodeId;
+
+	/** @Prop */
+	dbInputCounter = 1;
+
+	/** @Prop @type { STForm } */	
+	formRef;
+	database;
+	tableName;
+
+	/** @Prop @type { STForm } */
+	anotherForm;
+	databaseC;
+	tableNameC;
+
+
+	stOnRender(nodeId){
+		this.nodeId = nodeId;
+	}
+
+	addField(){
+		this.dbInputCounter = this.dbInputCounter + 1;
+		const tableId = this.dbInputCounter;
+		const fieldName = 'tableName' + tableId;
+		const placeholder = 'Enter table '+tableId+' name';
+
+		FormHelper.newField(this, this.formRef, fieldName)
+			.getInput({ required: true, placeholder, validator: 'number' })
+			//Add will add in the form which reference was specified (2nd param of newField)
+			.add((inpt) => `<p>Table name ${tableId}:</p>${inpt}`)
+	}
+
+	validate(){
+		this.formRef.validate();		
+	}
+
+}
