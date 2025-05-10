@@ -257,33 +257,32 @@ export class BaseComponent extends BehaviorComponent {
         const currentClass = this;
         const clsName = this.cmpInternalId;
 
-        if (this.template instanceof Array)
-            this.template = this.template.join('');
+        if (this.template instanceof Array) this.template = this.template.join('');
 
-        let tamplateWithState = this.template;
+        let tamplateWithState = this.template, formsRef = [];
+        tamplateWithState = tamplateWithState.replace(/<!--[\s\S]*?-->/g, ''); //Remove comments
 
-        /** Bind @dynCmpGeneratedId which takes place in special
-         * situation that a component is created to be reference
-         * as a tag <st-extern> */
+        /** Bind @dynCmpGeneratedId which takes place in special situation that 
+         * a component is created to be reference as a tag <st-extern> */
         tamplateWithState = tamplateWithState.replace(`@dynCmpGeneratedId`, currentClass[`dynCmpGeneratedId`]);
 
         //To bind the internal id to any thing or property
         tamplateWithState = tamplateWithState.replace(/\@cmpInternalId/g, this.cmpInternalId);
 
-        let formsRef = [];
         if (this.isThereAForm()) {
             formsRef = this.#getFormReference(tamplateWithState);
-            if (formsRef?.length)
-                formsRef.forEach(r => currentClass[r.formRef] = new STForm());
+            if (formsRef?.length){
+                for(const r of formsRef) {
+                    currentClass[r.formRef] = new STForm(r.formRef, `fId_${r.formRef}`);
+                    tamplateWithState = tamplateWithState.replace(`(formRef)="${r.formRef}"`,`id="fId_${r.formRef}"`);
+                }
+            }
         }
 
-        /** Inject/Bind the component state/properties to the
-         * referenced place */
+        /** Inject/Bind the component state/properties to the referenced place */
         fields.forEach(field => {
 
-            const fieldRE = new RegExp(`@${field}`);
-            const finalRE = /\^/.source + fieldRE.source + /\$/;
-
+            const fieldRE = new RegExp(`@${field}`), finalRE = /\^/.source + fieldRE.source + /\$/;
             tamplateWithState = tamplateWithState.replaceAll(
                 `@${field}`,
                 (mt, pos) => {
@@ -292,15 +291,13 @@ export class BaseComponent extends BehaviorComponent {
                     const nextChar = tamplateWithState.slice(pos, pos + field.length + 41);
 
                     /** Check if the match isn't only coencidence 
-                     * (e.g. number and number1 are similir in the begining) 
-                     * */
+                     * (e.g. number and number1 are similir in the begining) */
                     if (!nextChar.replace(`@${field}`, '')[0]?.match(/[A-Za-z0-9]/)) {
 
                         let data = currentClass[field];
-                        if (data instanceof Object) {
+                        if (data instanceof Object) 
                             if ('value' in data) data = currentClass[field]?.value
-                        }
-
+                        
                         if (this.#annotations.has(field)) return data
 
                         //this.#stateChangeSubsribers.push(`subrcibe-${clsName}-${field}`);
@@ -507,17 +504,13 @@ export class BaseComponent extends BehaviorComponent {
 
             const extremRe = /[\n \r \< \$ \( \) \- \s A-Za-z0-9 \{ \} \[ \] \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
             const matchValueBind = /\(value\)\=\"\w*\"\s?/.source;
-            const matchForEachRE = '(forEach)=\"';
-            const matchValue = '(value)="';
-            const matchChange = '(change)="';
-
+            const matchForEachRE = '(forEach)=\"', matchValue = '(value)="', matchChange = '(change)="';
             const valueBindRE = new RegExp(extremRe + matchValueBind + extremRe, "gi");
 
             template = template.replace(valueBindRE, (mt, matchPos) => {
 
                 const isThereComboBox = mt.indexOf('<select') >= 0;
-                const value = mt.indexOf(matchValue);
-                const changeEvt = mt.indexOf(matchChange);
+                const value = mt.indexOf(matchValue), changeEvt = mt.indexOf(matchChange);
 
                 const onChangeId = this.dynLoopObject
                     ? this.cmpInternalId
