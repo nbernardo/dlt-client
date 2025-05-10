@@ -33,6 +33,10 @@ export const stillRoutesMap = {
             Terminal: {
                 path: "app/components/workspace/terminal",
                 url: "/terminal"
+            },
+            SqlDBComponent: {
+                path: "app/components/node-types",
+                url: "/sql-db"
             }
         },
         lazyInitial: {}

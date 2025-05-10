@@ -12,7 +12,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
         StillHTTPClient.setBaseUrl('http://localhost:5000');
 
         this.addPrefetch({
-            component: '@codemirror/CodeMirorComponent',
+            component: '@codemirror/CodeMiror',
             assets: [
                 "v5.65.19/lib/codemirror.js",
                 "v5.65.19/mode/python/python.js",
