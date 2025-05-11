@@ -1,6 +1,6 @@
 import duckdb
 from .TemplateNodeType import TemplateNodeType
-from node_mapper.RequestContext import RequestContext
+from controller.RequestContext import RequestContext
 import os
 
 class DuckDBOutput(TemplateNodeType):

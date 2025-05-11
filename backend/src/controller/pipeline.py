@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from services.pipeline.DltPipeline import DltPipeline
 from node_mapper.NodeFactory import NodeFactory
-from node_mapper.RequestContext import RequestContext
+from .RequestContext import RequestContext
 
 escape_component_field = ['context', 'component_id']
 pipeline = Blueprint('pipeline', __name__)

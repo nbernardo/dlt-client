@@ -2,7 +2,7 @@ import os
 import subprocess
 import duckdb
 import json
-from node_mapper.RequestContext import RequestContext
+from controller.RequestContext import RequestContext
 from pathlib import Path
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
