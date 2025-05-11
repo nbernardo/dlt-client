@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/STForm.js";
 import { FormHelper } from "../../../@still/helper/form.js";
+import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 
 export class SqlDBComponent extends ViewComponent {
 
@@ -12,26 +13,28 @@ export class SqlDBComponent extends ViewComponent {
 	inConnectors = 1;
 	/** @Prop */
 	outConnectors = 1;
-
 	/** @Prop */
 	nodeId;
-
 	/** @Prop */
 	dbInputCounter = 1;
-
 	/** @Prop @type { STForm } */	
 	formRef;
 	database;
 	tableName;
-
 	/** @Prop @type { STForm } */
 	anotherForm;
 	databaseC;
 	tableNameC;
 
-
 	stOnRender(nodeId){
 		this.nodeId = nodeId;
+	}
+
+	stAfterInit(){
+		this.database.onChange(newValue => {
+			const data = WorkSpaceController.getNode(this.nodeId).data;
+			data['database'] = newValue;
+		});
 	}
 
 	addField(){
@@ -40,14 +43,23 @@ export class SqlDBComponent extends ViewComponent {
 		const fieldName = 'tableName' + tableId;
 		const placeholder = 'Enter table '+tableId+' name';
 
-		FormHelper.newField(this, this.formRef, fieldName)
-			.getInput({ required: true, placeholder, validator: 'number' })
+		FormHelper
+			.newField(this, this.formRef, fieldName)
+			.getInput({ required: true, placeholder, validator: 'alhpanumeric' })
 			//Add will add in the form which reference was specified (2nd param of newField)
-			.add((inpt) => `<p>Table name ${tableId}:</p>${inpt}`)
+			.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);	
 	}
 
-	validate(){
-		this.formRef.validate();		
+	getTables(){
+		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 
+		const data = WorkSpaceController.getNode(this.nodeId).data;
+		const dynFields = this.getDynamicFields();
+		const tables = { tableName: this.tableName.value, ...dynFields };
+		data['tables'] = tables;
+	}
+
+	showTable(){
+		console.log(this.getTables());
 	}
 
 }

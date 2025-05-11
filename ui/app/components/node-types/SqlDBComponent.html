@@ -10,11 +10,10 @@
 		<form (formRef)="formRef" onsubmit="return false;">
 			<p>Database:</p>
 			<input type="text" (required)="true" (value)="database" placeholder="Enter the DB name">
-			<p>Table name 1:</p>
-			<input type="text" (value)="tableName" placeholder="Enter table name">
+			<p>Tables list:</p>
+			<input type="text" (value)="tableName" placeholder="Enter table 1 name">
 		</form>
-		<button onclick="component.addField()">Add field</button>
-		<button onclick="component.validate()">Validate</button>
+		<button onclick="component.addField()" class="add-table-buttons">Add Table field</button>
 		<!--
 			<form (formRef)="anotherForm" onsubmit="return false;">
 				<p>Another Database:</p>
@@ -27,3 +26,8 @@
 		-->
 	</div>
 </div>
+<style>
+	.add-table-buttons {
+		margin-top: 5px;;
+	}
+</style>

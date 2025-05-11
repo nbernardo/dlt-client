@@ -44,18 +44,18 @@
 					<div class="btn-export" onclick="component.savePipeline()">
 						<i class="fa fa-save"></i> Save
 					</div>
-					<div class="btn-clear" onclick="draweditor.clearModuleSelected()">Clear</div>
+					<div class="btn-clear" onclick="component.editor.clearModuleSelected()">Clear</div>
 					<div class="btn-lock">
 						<i id="lock" class="fas fa-lock"
-							onclick="draweditor.editor_mode='fixed'; controller.changeMode('lock');"></i>
+							onclick="component.editor.editor_mode='fixed'; controller.changeMode('lock');"></i>
 						<i id="unlock" class="fas fa-lock-open"
-							onclick="draweditor.editor_mode='edit'; controller.changeMode('unlock');"
+							onclick="component.editor.editor_mode='edit'; controller.changeMode('unlock');"
 							style="display:none;"></i>
 					</div>
 					<div class="bar-zoom">
-						<i class="fas fa-search-minus" onclick="draweditor.zoom_out()"></i>
-						<i class="fas fa-search" onclick="draweditor.zoom_reset()"></i>
-						<i class="fas fa-search-plus" onclick="draweditor.zoom_in()"></i>
+						<i class="fas fa-search-minus" onclick="component.editor.zoom_out()"></i>
+						<i class="fas fa-search" onclick="component.editor.zoom_reset()"></i>
+						<i class="fas fa-search-plus" onclick="component.editor.zoom_in()"></i>
 					</div>
 				</div>
 				<st-divider 
