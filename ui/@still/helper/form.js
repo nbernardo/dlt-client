@@ -15,7 +15,7 @@ class InParams {
 export const FormHelper = {
     newField(cmp, formRef, fieldName, value = null){
         //Components is available globally from import { Components } from "../setup/components";        
-        Components.ref(cmp.cmpInternalId)[fieldName] = value
+        Components.ref(cmp.cmpInternalId).setDynamicField(fieldName, value);
         Components.obj().parseGetsAndSets(cmp, false,fieldName);
         return {
             /** @param { InParams } params  */

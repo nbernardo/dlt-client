@@ -101,14 +101,7 @@ export class BaseComponent extends BehaviorComponent {
     setAndGetsParsed = false;
     navigationId = Router.navCounter;
     $cmpStController;
-
-
-    /**
-     * signature method only
-     * @param {object|any} 
-     * @returns { ViewComponent | BaseComponent } 
-     */
-    new(params) { }
+    #dynFields = [];
 
     async load() { }
     async onRender() { this.stOnRender(); }
@@ -117,7 +110,19 @@ export class BaseComponent extends BehaviorComponent {
     async stOnUnload() { }
     async stOnRender() { }
     reRender() { }
-
+    getState = (fName) => this[fName].value;
+    setDynamicField = (fName, value) => {
+        this[fName] = value;
+        this.#dynFields.push(fName);
+    }
+    getDynamicFieldNames = () => this.#dynFields;
+    /** @returns { {[fieldName]: value} } */
+    getDynamicFields = () => {
+        return this.getDynamicFieldNames().reduce((accum, tbl) => {
+			accum[tbl] = this.getState(tbl);
+			return accum;
+		}, {});
+    };
     static importScripts() { }
     static importAssets() { }
 
@@ -162,21 +167,10 @@ export class BaseComponent extends BehaviorComponent {
                     || fieldInspect?.onlyPropSignature)
                     return true;
 
-                /**
-                 * Check the liklyhood
-                 * of the field ot be a proxy
-                 */
+                //Check the liklyhood of the field ot be a proxy
                 if (fieldInspect instanceof Object && !(fieldInspect instanceof Array)) {
-                    /**
-                     * Ignore current field
-                     * in case it's a Proxy
-                     */
-                    if (
-                        (fieldInspect.name == 'Proxy' && 'revocable' in fieldInspect)
-                        /* || fieldInspect.name == 'Prop'
-                        || fieldInspect?.onlyPropSignature */
-                    )
-                        return false;
+                    //Ignore current field  in case it's a Proxy
+                    if (fieldInspect.name == 'Proxy' && 'revocable' in fieldInspect) return false;
                 }
 
                 if (!allowfProp) {
@@ -229,16 +223,13 @@ export class BaseComponent extends BehaviorComponent {
             ) {
                 /** If component was generated dynamically in a loop */
                 path = `$still.context.componentRegistror.getComponent('${this.cmpInternalId}')`;
-
             } else {
-
                 if (this.getRoutableCmp())
                     path = `$still.context.componentRegistror.getComponent('${this.getName()}')`;
                 else
                     path = `$still.component.get('${this.getInstanceName()}')`;
             }
         }
-
         return path;
     }
 
@@ -252,10 +243,8 @@ export class BaseComponent extends BehaviorComponent {
 
     getBoundState(isReloading = false) {
 
-        const allowfProp = true;
+        const allowfProp = true, currentClass = this, clsName = this.cmpInternalId;
         const fields = this.getProperties(allowfProp);
-        const currentClass = this;
-        const clsName = this.cmpInternalId;
 
         if (this.template instanceof Array) this.template = this.template.join('');
 
@@ -404,11 +393,9 @@ export class BaseComponent extends BehaviorComponent {
                     Router.serviceId = containerId;
                     return mt.replace('(click)="', 'onclick="' + cmd + '.').replace('$event', 'event');
                 }
-
                 return mt.replace('(click)="', `onclick="${cmd}.`);
             }
         );
-
         return template;
     }
 
@@ -426,8 +413,7 @@ export class BaseComponent extends BehaviorComponent {
                 const fieldPath = `${cls}${formref ? `-${formref}` : ''}`;
 
                 let isValid = true;
-                if (value == '')
-                    isValid = false;
+                if (value == '') isValid = false;
 
                 if (!isValid) inpt.classList.add('still-validation-failed-style');
                 else inpt.classList.remove('still-validation-failed-style');
@@ -606,21 +592,17 @@ export class BaseComponent extends BehaviorComponent {
                 else hide = '';
 
                 if (mt.indexOf('class="') > 0) {
-                    /**
-                     * .replace('class="', `class="${hide} `) 
+                    /** .replace('class="', `class="${hide} `) 
                      *      Add the framework hide classso that component gets hidden
                      * 
-                     * .replace(matchInstance, '');
-                     *      Remove the (renderIf) dorectove so it does not shows-up on the final HTML code
-                     */
+                     *  .replace(matchInstance, '');
+                     *      Remove the (renderIf) dorectove so it does not shows-up on the final HTML code */
                     result = mt
                         .replace('class="', `class="${hide} ${listenerFlag} `)
                         .replace(matchInstance, '');
                 } else {
-                    /**
-                     * .replace(matchInstance, `class="${hide}"`) 
-                     *      Replace the (renderIf)="anything" directive and value with hide classe
-                     */
+                    /**  .replace(matchInstance, `class="${hide}"`) 
+                     *      Replace the (renderIf)="anything" directive and value with hide classe */
                     result = mt.replace(matchInstance, `class="${hide} ${listenerFlag}"`);
                 }
             }
