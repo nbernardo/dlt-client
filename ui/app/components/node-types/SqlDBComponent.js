@@ -8,6 +8,12 @@ export class SqlDBComponent extends ViewComponent {
 	isPublic = true;
 
 	label = 'SQL DB Source';
+	databaseEngines = [
+		{ name: 'MySQL', dialect: 'mysql' },
+		{ name: 'Postgress', dialect: 'postgres' },
+		{ name: 'Oracle', dialect: 'oracle' },
+		{ name: 'SQL Server', dialect: 'mssql' }
+	]
 
 	/** @Prop */
 	inConnectors = 1;
@@ -21,6 +27,8 @@ export class SqlDBComponent extends ViewComponent {
 	formRef;
 	database;
 	tableName;
+	selectedDbEngine;
+
 	/** @Prop @type { STForm } */
 	anotherForm;
 	databaseC;
@@ -34,6 +42,11 @@ export class SqlDBComponent extends ViewComponent {
 		this.database.onChange(newValue => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['database'] = newValue;
+		});
+
+		this.selectedDbEngine.onChange(value => {
+			const data = WorkSpaceController.getNode(this.nodeId).data;
+			data['dbengine'] = value;
 		});
 	}
 
@@ -61,5 +74,4 @@ export class SqlDBComponent extends ViewComponent {
 	showTable(){
 		console.log(this.getTables());
 	}
-
 }

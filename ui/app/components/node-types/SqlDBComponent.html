@@ -8,8 +8,14 @@
 	</div>
 	<div class="box">
 		<form (formRef)="formRef" onsubmit="return false;">
+			<select (required)="true" 
+					(forEach)="databaseEngines" 
+					(value)="selectedDbEngine"
+					placeholder="Database Engine">
+				<option each="item" value="{item.dialect}">{item.name}</option>
+			</select>
 			<p>Database:</p>
-			<input type="text" (required)="true" (value)="database" placeholder="Enter the DB name">
+			<input type="text" (required)="true" (value)="database">
 			<p>Tables list:</p>
 			<input type="text" (value)="tableName" placeholder="Enter table 1 name">
 		</form>

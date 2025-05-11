@@ -7,6 +7,7 @@ import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
 import { CodeMiror } from "../../../@still/vendors/codemirror/CodeMiror.js";
 import { Terminal } from "./terminal/Terminal.js";
+import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
 
 export class Workspace extends ViewComponent {
 
@@ -103,7 +104,9 @@ export class Workspace extends ViewComponent {
 
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const validationResults = this.controller.formReferences.map((r) => {
-			const form = Components.ref(r).formRef;
+			const component = Components.ref(r);
+			if(component.getName() === SqlDBComponent.name) component.getTables();
+			const form = component.formRef;
 			return form?.validate();
 		});
 
