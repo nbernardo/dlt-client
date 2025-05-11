@@ -1,7 +1,8 @@
 import duckdb
 from .TemplateNodeType import TemplateNodeType
-from node_mapper.RequestContext import RequestContext
+from controller.RequestContext import RequestContext
 import os
+import uuid
 
 class DuckDBOutput(TemplateNodeType):
     """
@@ -12,20 +13,27 @@ class DuckDBOutput(TemplateNodeType):
         """
         Initialize the instance
         """
+        self.template = None
+
+        # When instance is created only to get the template 
+        # Nothing more takes place except for the template itself
+        if data is None: return None
+
         self.context = context
         self.component_id = data['componentId']
 
         self.context.emit_start(self, '')
-
-        self.database = data['database']
-        self.table_name = data['tableName']
+        # database is mapped in /pipeline_templates/simple.txt
+        self.duckdb_dest = data['database']
+        # table_name is mapped in /pipeline_templates/simple.txt
+        self.duck_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
 
     def run(self) -> None:
         """
         Run the initial steps
         """
         super().run()
-        print(f'Inited DuckDB with : {self.database} and {self.table_name}')
+        print(f'Inited DuckDB with : {self.duckdb_dest} and {self.duck_dest_table}')
         self.check_table()
 
     def check_table(self) -> None:
@@ -45,13 +53,10 @@ class DuckDBOutput(TemplateNodeType):
                 result = cnx.sql(query)
                 if (result.fetchone() is not None):
                     error = f'Table with name {table} already exists for {dbname}'
-                    error = {'message': error, 'componentId': self.component_id}
-                    self.context.add_exception('DuckDBOutput', error)
-                    self.context.emit_error(self, error)
+                    self.notify_failure_to_ui('DuckDBOutput', error)
             
             if error is not None:
-                success = {'componentId': self.component_id}
-                self.context.emit_success(self, success)
+                self.notify_completion_to_ui()
 
         except Exception as err:
             print(f'Error on querying DB {err}')

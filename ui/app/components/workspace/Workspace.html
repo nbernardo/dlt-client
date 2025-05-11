@@ -1,12 +1,4 @@
 <div>
-	<!-- <form onsubmit="return false;" (formRef)="formRef">
-		<div class="input-group">
-			<label for="">Table Name</label>
-			<input type="text" (value)="name" (required)="true">
-		</div>
-		<button onclick="component.valid()">Valid here</button>
-	</form> -->
-
 	<div id="drawflowContainer">
 
 		<header>
@@ -14,12 +6,26 @@
 		</header>
 		<div class="wrapper">
 			<div class="col" id="still-adj-left-panel">
-				<span (forEach)="objectTypes">
-					<st-element component="ObjectType" each="item"></st-element>
-				</span>
+				<div class="tabset">
+					<input type="radio" name="tabset" id="tab1" aria-controls="data-panel">
+					<label for="tab1" onclick="component.showHideEditor()">Data</label>
+					
+					<input type="radio" name="tabset" id="tab2" aria-controls="draw-diagram-tab" checked>
+					<label for="tab2" onclick="component.runPythonCode()">Diagram</label>			
+					<div class="tab-panels">
+						<section id="data-panel" class="tab-panel">
+							<h2>Data from Duck db will be shown here</h2>
+						</section>
+						<section id="draw-diagram-tab" class="tab-panel">
+							<span (forEach)="objectTypes">
+								<st-element component="ObjectType" each="item"></st-element>
+							</span>
+						</section>
+					</div>
+				</div>
 			</div>
 
-			<st-devider />
+			<st-divider type="horizontal" (onResize)="verticalChecking()"/>
 
 			<div class="col-right" id="still-adj-right-panel">
 				<div class="menu">
@@ -38,23 +44,54 @@
 					<div class="btn-export" onclick="component.savePipeline()">
 						<i class="fa fa-save"></i> Save
 					</div>
-					<div class="btn-clear" onclick="draweditor.clearModuleSelected()">Clear</div>
+					<div class="btn-clear" onclick="component.editor.clearModuleSelected()">Clear</div>
 					<div class="btn-lock">
 						<i id="lock" class="fas fa-lock"
-							onclick="draweditor.editor_mode='fixed'; controller.changeMode('lock');"></i>
+							onclick="component.editor.editor_mode='fixed'; controller.changeMode('lock');"></i>
 						<i id="unlock" class="fas fa-lock-open"
-							onclick="draweditor.editor_mode='edit'; controller.changeMode('unlock');"
+							onclick="component.editor.editor_mode='edit'; controller.changeMode('unlock');"
 							style="display:none;"></i>
 					</div>
 					<div class="bar-zoom">
-						<i class="fas fa-search-minus" onclick="draweditor.zoom_out()"></i>
-						<i class="fas fa-search" onclick="draweditor.zoom_reset()"></i>
-						<i class="fas fa-search-plus" onclick="draweditor.zoom_in()"></i>
+						<i class="fas fa-search-minus" onclick="component.editor.zoom_out()"></i>
+						<i class="fas fa-search" onclick="component.editor.zoom_reset()"></i>
+						<i class="fas fa-search-plus" onclick="component.editor.zoom_in()"></i>
 					</div>
 				</div>
+				<st-divider 
+					type="vertical" 
+					label="&nbsp;&lt;&#47;&gt; Code eitor" 
+					(onResize)="onSplitterMove(params)"
+					minHeight="65"
+					maxHeight="500"
+				/>
+				<div style="display: contents;">
+					<st-element 
+						proxy="cmProxy" 
+						editorHeight="160"
+						startHeight="0"
+						component="@codemirror/CodeMiror">
+					</st-element>
+				</div>
+				<st-element 
+					proxy="terminalProxy"
+					(onRun)="runCode()"
+					component="Terminal"></st-element>
 			</div>
 		</div>
-
 	</div>
-
 </div>
+
+<style>
+	.wrapper .divider {
+		height: 25px;
+		padding-top: 2px;
+		padding-bottom: 2px;
+		font-size: 14px;
+		color: rgb(86, 84, 84);
+	}
+
+	.wrapper .divider .label {
+		cursor: pointer;
+	}
+</style>

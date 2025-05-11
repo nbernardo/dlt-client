@@ -1,5 +1,7 @@
 from pathlib import Path
 import sys
+import os
+from utils.env_util import set_env
 
 from flask import Flask, request
 from controller.pipeline import pipeline
@@ -10,9 +12,9 @@ class PiplineNamespace(Namespace):
     def on_connect(self): pass
     def on_disconnect(self, reason): pass
 
-
 proj_folder = Path(__file__).parent
 sys.path.insert(0, proj_folder/'node_mapper/')
+set_env(proj_folder)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hash#123098'

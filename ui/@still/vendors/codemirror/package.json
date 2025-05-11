@@ -1,0 +1,16 @@
+{
+  "name": "@stilljs/codemirror",
+  "version": "0.0.1",
+  "description": "",
+  "main": "CodeMiror.js",
+  "author": {
+    "name": "Nakassony Bernardo",
+    "email": "sonybernardo_10@hotmail.com"
+  },
+  "keywords": [
+    "Codemirror",
+    "Code Editor",
+    "Web code editor"
+  ],
+  "license": "MIT"
+}

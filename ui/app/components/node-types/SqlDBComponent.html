@@ -1,0 +1,39 @@
+<div class="@cmpInternalId">
+	<div class="title-box">
+		<div>
+			<img src="app/assets/imgs/sql-server-2.png" width="20">
+			@label
+		</div>
+		<div class="statusicon"></div>
+	</div>
+	<div class="box">
+		<form (formRef)="formRef" onsubmit="return false;">
+			<select (required)="true" 
+					(forEach)="databaseEngines" 
+					(value)="selectedDbEngine"
+					placeholder="Database Engine">
+				<option each="item" value="{item.dialect}">{item.name}</option>
+			</select>
+			<p>Database:</p>
+			<input type="text" (required)="true" (value)="database">
+			<p>Tables list:</p>
+			<input type="text" (value)="tableName" placeholder="Enter table 1 name">
+		</form>
+		<button onclick="component.addField()" class="add-table-buttons">Add Table field</button>
+		<!--
+			<form (formRef)="anotherForm" onsubmit="return false;">
+				<p>Another Database:</p>
+				<input type="text" (required)="true" (value)="database1" placeholder="Enter the DB name">
+				<p>Another Table name 1:</p>
+				<input type="text" (value)="tableName1" placeholder="Enter table name">
+			</form>
+			<button onclick="component.validate()">Validate1</button>
+			<button onclick="component.validate1()">Validat2</button>
+		-->
+	</div>
+</div>
+<style>
+	.add-table-buttons {
+		margin-top: 5px;;
+	}
+</style>

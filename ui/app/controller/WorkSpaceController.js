@@ -120,43 +120,17 @@ export class WorkSpaceController extends BaseController {
                 this.editor.addNode(name, source, dest, pos_x, pos_y, name, {}, tmpl);
             return;
         }
+        
+        const nodeId = this.getNodeId();
+        const { template: tmpl, component } = await Components.new(inType, nodeId);
+        const { inConnectors, outConnectors } = component;
+        const initData = { componentId: component.cmpInternalId };
+        this.formReferences.push(component.cmpInternalId);
+        this.edgeTypeAdded[nodeId] = new Set();
+        this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
+        this.clearHTML(nodeId);
+        this.cmpIdToNodeIdMap[component.cmpInternalId] = nodeId;
 
-        if (['Bucket', 'DuckDBOutput'].includes(inType)) {
-            const cmpTypes = {
-                'Bucket': Bucket,
-                'DuckDBOutput': DuckDBOutput
-            }
-            const nodeId = this.getNodeId();
-            const { template: tmpl, component } = await Components.new(cmpTypes[inType], nodeId);
-            const { inConnectors, outConnectors } = component;
-            const initData = { componentId: component.cmpInternalId };
-            this.formReferences.push(component.cmpInternalId);
-            this.edgeTypeAdded[nodeId] = new Set();
-            this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
-            this.clearHTML(nodeId);
-            this.cmpIdToNodeIdMap[component.cmpInternalId] = nodeId;
-            return;
-        }
-
-
-        if (!['Bucket', 'personalized', 'dbclick'].includes(name)) {
-            const type = this[`${name}Type`]({ name, label, icon, img })
-            this.editor.addNode(name, source, dest, pos_x, pos_y, name, type.data, type.tmplt);
-        }
-
-        if (name == 'personalized') {
-            var personalized = `
-                <div>
-                Personalized
-                </div>
-                `;
-            this.editor.addNode('personalized', 1, 1, pos_x, pos_y, 'personalized', {}, personalized);
-        }
-
-        if (name == 'dbclick') {
-            const { template: tmpl } = await Components.new(CleanerType)
-            this.editor.addNode('dbclick', 1, 1, pos_x, pos_y, 'dbclick', { name: '' }, tmpl);
-        }
     }
 
     changeMode(option) {
@@ -177,15 +151,6 @@ export class WorkSpaceController extends BaseController {
         event.target?.classList?.add('selected');
     }
 
-    /** @returns { NodeType } */
-    genericType({ name, label, icon, img }) {
-        const tmplt = `
-            <div>
-                <div class="title-box"><i class="${icon}"></i><span> ${label}</span></div>
-            </div>
-        `;
-        return { tmplt, data: {} }
-    }
 
     /** @returns { NodeType } */
     edgeType(type) {
@@ -202,59 +167,6 @@ export class WorkSpaceController extends BaseController {
 
     checkStartNode() {
         return this.edgeTypeAdded[NodeTypeEnum.START];
-    }
-
-    /** @returns { NodeType } */
-    githubType({ name, label, icon, img }) {
-        const tmplt = `
-            <div>
-                <div class="title-box"><i class="fab fa-github "></i> Github Stars</div>
-                <div class="box">
-                <p>Enter repository url</p>
-                <input type="text" df-name>
-                </div>
-            </div>
-        `;
-        return { tmplt, data: { "name": '' } }
-    }
-
-    /** @returns { NodeType } */
-    telegramType({ name, label, icon, img }) {
-        const tmplt = `
-        <div>
-            <div class="title-box"><img src="${img}" style="width: 25px;"> ${label}</div>
-            <div class="box">
-            <p>Send to telegram</p>
-            <p>select channel</p>
-            <select df-channel>
-                <option value="channel_1">Channel 1</option>
-                <option value="channel_2">Channel 2</option>
-                <option value="channel_3">Channel 3</option>
-                <option value="channel_4">Channel 4</option>
-            </select>
-            </div>
-        </div>
-        `;
-        return { tmplt, data: { "channel": 'channel_3' } }
-    }
-
-
-    /** @returns { NodeType } */
-    awsType({ name, label, icon, img }) {
-        const tmplt = `
-        <div>
-            <div class="title-box"><i class="${icon}"></i> Aws Save </div>
-            <div class="box">
-            <p>${label}</p>
-            <input type="text" df-db-dbname placeholder="DB name"><br><br>
-            <input type="text" df-db-key placeholder="DB key">
-            <p>Output Log</p>
-            </div>
-        </div>
-        `;
-        return {
-            tmplt, data: { "db": { "dbname": '', "key": '' } }
-        }
     }
 
     events() {
@@ -371,27 +283,22 @@ export class WorkSpaceController extends BaseController {
         });
 
         socket.on('pplineStepStart', ({ componentId, sid }) => {
+            if (!this.pplineSteps[sid]) this.pplineSteps[sid] = new Set();
+            this.pplineSteps[sid].add(componentId);
             WorkSpaceController.addRunningStatus(componentId);
         });
 
         socket.on('pplineStepSuccess', ({ componentId, sid }) => {
-
-            if (!this.pplineSteps[sid]) this.pplineSteps[sid] = new Set();
-            this.pplineSteps[sid].add(componentId);
-
             const nodeId = this.cmpIdToNodeIdMap[componentId];
             const node = WorkSpaceController.getNode(nodeId);
             if (Object.keys(node.outputs).length > 0)
                 WorkSpaceController.addPreSuccessStatus(componentId);
-
         });
 
         socket.on('pplineSuccess', ({ sid }) => {
-
             const tasks = this.pplineSteps[sid];
             this.pplineStatus = PPLineStatEnum.Finished;
             [...tasks].forEach(WorkSpaceController.addSuccessStatus);
-
         });
 
     }

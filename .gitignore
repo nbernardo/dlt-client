@@ -4,18 +4,24 @@ backend/src/*.duckdb
 backend/src/dd.py
 backend/src/cc.py
 backend/venv
+backend/src/scratch
 backend/destinations/*.py
 backend/destinations
 backend/src/services/__pycache__
+backend/src/utils/__pycache__
 backend/src/node_mapper/__pycache__
 backend/src/services/workspace/__pycache__
 backend/src/services/pipeline/__pycache__
 backend/src/services/workspace/__pycache__
 backend/src/controller/__pycache__
+backend/src/connectors/db/__pycache__
+backend/src/connectors/__pycache__
 
 ui/app/components/node-types/Scratch.js
 ui/app/mixin/Component.js
+ui/app/scratch
 
+dbs
 z
 ztore
 

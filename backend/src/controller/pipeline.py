@@ -1,9 +1,10 @@
 from flask import Blueprint, request
 from services.pipeline.DltPipeline import DltPipeline
 from node_mapper.NodeFactory import NodeFactory
-from node_mapper.RequestContext import RequestContext
+from .RequestContext import RequestContext
+from node_mapper.TemplateNodeType import TemplateNodeType
 
-escape_component_field = ['context', 'component_id']
+escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
 
 
@@ -22,25 +23,34 @@ def create():
 
     start_node = node_params.get(f'{start_id}')
     connections = start_node.get('outputs').get('output_1').values()
-    template = DltPipeline.get_template()
-    data_place = {}
-    parse_node(connections, node_params, data_place, context)
+    first_connection_id = list(connections)[0][0]['node']
+    fst_connection = node_params.get(first_connection_id)
+    template = NodeFactory.new_node(fst_connection.get('name',None)).template
+    data_place, node_list = {}, []
+    all_nodes: list[TemplateNodeType] = None
 
-    template = template.replace('%pipeline_name%', f'"{pipeline_name}"')
+    all_nodes = parse_node(connections, node_params, data_place, context, node_list)
+
+    template = template.replace('%pipeline_name%', f'"{pipeline_name}"')        
+
     for data in data_place.items():
-        template = template.replace(data[0], data[1])
+        value = data[1] if check_type(data[1]) else str(data[1])
+        template = template.replace(data[0], value)
 
     if len(context.exceptions) > 0:
         print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
         return 'Error on creating the pipeline'
 
     pipeline_instance = DltPipeline()
-    pipeline_instance.create_v1(pipeline_name, template, context)
+    result = pipeline_instance.create_v1(pipeline_name, template, context)
+    if result['status'] is False:
+        for node in all_nodes:
+            node.notify_failure_to_ui('Pipeline',result['message'],False)
 
-    return 'From blueprint'
+    return result['message']
 
 
-def parse_node(connections, node_params, data_place, context):
+def parse_node(connections, node_params, data_place, context, node_list: list):
     """
     This extract data from everysingle node
     """
@@ -56,14 +66,25 @@ def parse_node(connections, node_params, data_place, context):
                 inner_cnx = node.get('outputs', {}).get(
                     'output_1', {}).values()
                 node = NodeFactory.new_node(node_type, init_params, context)
+                node_list.append(node)
 
                 for field in node.__dict__.keys():
                     if field not in escape_component_field:
                         data = node.__dict__[f'{field}']
-                        data_place[f'%{field}%'] = f'"{data}"'
+                        data_place[f'%{field}%'] = f'"{data}"' if type(data) == str else data
 
                 if node.run() is RequestContext.FAILED:
                     break
 
                 if (len(inner_cnx) > 0):
-                    parse_node(inner_cnx, node_params, data_place, context)
+                    parse_node(inner_cnx, node_params, data_place, context, node_list)
+
+    return node_list
+
+
+def check_type(val):
+    tp = type(val)
+    return tp == int\
+            or tp == float\
+            or tp == str\
+            or tp == bool
