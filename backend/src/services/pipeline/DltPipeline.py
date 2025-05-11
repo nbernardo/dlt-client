@@ -2,8 +2,9 @@ import os
 import subprocess
 import duckdb
 import json
-from node_mapper.RequestContext import RequestContext
+from controller.RequestContext import RequestContext
 from pathlib import Path
+from typing import Dict
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
 destinations_dir = f'{root_dir}/destinations'
@@ -45,7 +46,7 @@ class DltPipeline:
         print("Standard Output:", result.stdout)
         print("Standard Error:", result.stderr)
 
-    def create_v1(self, file_name, data, context: RequestContext):
+    def create_v1(self, file_name, data, context: RequestContext) -> Dict[str,str]:
         """
         This is the pipeline creation
         """
@@ -55,11 +56,13 @@ class DltPipeline:
         if os.path.exists(file_path):
             message = 'Pipeline exists already'
             print(message)
-            return message
+            return { 'status': False, 'message': message }
 
+        # Create python file with pipeline code
         with open(file_path, file_open_flag, encoding='utf-8') as file:
             file.write(data)
 
+        # Run pipeline generater above by passing the python file
         result = subprocess.run(['python', file_path],
                                 check=True,
                                 capture_output=True,
@@ -72,6 +75,11 @@ class DltPipeline:
         print("Standard Output:", result.stdout)
         print("Standard Error:", result.stderr)
 
+        return {
+            'status': True,
+            'message': 'Pipeline run terminated successfully'
+        }
+
     @staticmethod
     def get_template():
         """
@@ -79,6 +87,19 @@ class DltPipeline:
         """
         tplt = ''
         file_name = f'{template_dir}/simple.txt'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
+        return tplt
+    
+    @staticmethod
+    def get_sql_db_template():
+        """
+        This is template handling method
+        """
+        tplt = ''
+        file_name = f'{template_dir}/sql_db.txt'
 
         with open(f'{file_name}', 'r', encoding='utf-8') as file:
             tplt = file.read()

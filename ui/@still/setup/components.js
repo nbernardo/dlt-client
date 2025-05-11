@@ -100,9 +100,7 @@ export class Components {
     renderOnViewFor(placeHolder, cmp = null) {
 
         const isLoneCmp = Router.clickEvetCntrId;
-
-        if (this.template instanceof Array)
-            this.template = this.template.join('');
+        if (this.template instanceof Array) this.template = this.template.join('');
 
         let cntr = document.getElementById(placeHolder);
         if (isLoneCmp && isLoneCmp != 'null') cntr = document.getElementById(isLoneCmp);
@@ -324,7 +322,7 @@ export class Components {
                 }
                 setTimeout(() => Components.handleInPlacePartsInit($still.context.currentView, 'fixed-part'));
                 setTimeout(async () => {
-                    await $still.context.currentView.stAfterInit();
+                    Components.runAfterInit($still.context.currentView);
                     if (!Router.clickEvetCntrId) AppTemplate.injectToastContent();
                 });
 
@@ -334,8 +332,7 @@ export class Components {
             if (document.getElementById(this.stillAppConst))
                 this.renderOnViewFor(this.stillAppConst, $still.context.currentView);
             else new Components().renderPublicComponent($still.context.currentView);
-
-            setTimeout(async () => await $still.context.currentView.stAfterInit());
+            Components.runAfterInit($still.context.currentView)
         });
     }
 
@@ -366,7 +363,7 @@ export class Components {
             setTimeout(() =>
                 Components.handleInPartsImpl(cmp, cmp.cmpInternalId, cmpParts)
             );
-            setTimeout(async () => await cmp.stAfterInit(), 120);
+            setTimeout(() => Components.runAfterInit(cmp), 120);
             Components.handleMarkedToRemoveParts();
             Components.removeOldParts();
         } else document.body.innerHTML = (authErrorMessage());
@@ -444,31 +441,18 @@ export class Components {
         });
     }
 
-    /** @param {ViewComponent} cmp */
-    parseClassObserver() {
-
-        const cmp = this.component;
-        Object.assign(cmp, {
-            subcribers: [],
-            onChange: (callback = () => { }) => {
-                cmp[`$still${field}Subscribers`].push(callback);
-            }
-        });
-
-        return this;
-    }
-
     parseOnChange = () => this;
 
     /** @param {ViewComponent} instance */
-    parseGetsAndSets(instance = null, allowfProp = false, loneContainer = null) {
-        /** @type { ViewComponent } */
-        const cmp = instance || this.component;
-        const cmpName = this.componentName;
-
+    parseGetsAndSets(instance = null, allowfProp = false, field = null) {
+        const cmp = instance || this.component, o = this;
         cmp.setAndGetsParsed = true;
-        cmp.getProperties(allowfProp).forEach(field => {
 
+        if(field) return parseField(field, cmp);
+
+        cmp.getProperties(allowfProp).forEach(field => parseField(field, cmp));
+
+        function parseField(field, cmp){
             const inspectField = cmp[field];
             if (inspectField?.onlyPropSignature || inspectField?.name == 'Prop'
                 || cmp.myAnnotations()?.get(field)?.prop
@@ -506,7 +490,6 @@ export class Components {
                             if (val) elm.classList.remove($stillconst.PART_HIDE_CSS);
                             else elm.classList.add($stillconst.PART_HIDE_CSS);
                         }
-
                         cmp.__defineGetter__(field, () => val);
                     });
                 }
@@ -517,12 +500,12 @@ export class Components {
 
                 Object.assign(cmp, { ['$still_' + field]: value });
                 Object.assign(cmp, { [`$still${field}Subscribers`]: [] });
-                this.defineSetter(cmp, field);
+                o.defineSetter(cmp, field);
 
                 cmp.__defineSetter__(field, (newValue) => {
                     cmp.__defineGetter__(field, () => newValue);
                     cmp['$still_' + field] = newValue;
-                    this.defineSetter(cmp, field);
+                    o.defineSetter(cmp, field);
                     setTimeout(async () => await cmp.stOnUpdate());
 
                     if (cmp[`$still${field}Subscribers`].length > 0) {
@@ -536,7 +519,7 @@ export class Components {
 
                     if (cmp[field]?.defined || cmp.dynLoopObject) {
                         Components.firstPropagation[`${cmp.cmpInternalId}-${field}`] = true;
-                        this.propageteChanges(cmp, field);
+                        o.propageteChanges(cmp, field);
                     }
 
                 });
@@ -544,16 +527,13 @@ export class Components {
                     //Work in the garbage collector for this Components.firstPropagation flag
                     if ('value' in cmp[field] && !Components?.firstPropagation[`${cmp.cmpInternalId}-${field}`]) {
                         clearInterval(firstPropagateTimer);
-                        if (!this.notAssignedValue.includes(cmp['$still_' + field])) {
-                            this.propageteChanges(cmp, field);
-                        }
+                        if (!o.notAssignedValue.includes(cmp['$still_' + field])) o.propageteChanges(cmp, field);
                         cmp[field].firstPropag = true;
                     }
                 }, 200);
-
             }
+        }
 
-        });
         return this;
     }
 
@@ -855,17 +835,13 @@ export class Components {
 
     static unloadLoadedComponent(cntrPlaceholder = null) {
         return new Promise((resolve) => {
-
-            if (cntrPlaceholder) {
-                cntrPlaceholder.innerHTML = '';
-            }
-
+            if (cntrPlaceholder) cntrPlaceholder.innerHTML = '';
+            
             const { ANY_COMPONT_LOADED } = $stillconst;
             /**  @type { Array<HTMLElement|ViewComponent> } */
             const cmps = document.querySelectorAll(`.${ANY_COMPONT_LOADED}`);
             for (const cmp of cmps) cmp.style.display = 'none';
             resolve([]);
-
         })
     }
 
@@ -939,7 +915,7 @@ export class Components {
             );
         }
 
-        await newInstance.stAfterInit();
+        Components.runAfterInit(newInstance)
         setTimeout(async () => newInstance.parseOnChange(), 200);
         if (!newInstance.setAndGetsParsed) {
             newInstance.setAndGetsParsed = true;
@@ -979,9 +955,6 @@ export class Components {
         const parent = appContainer.parentElement;
         parent.removeChild(appContainer);
     }
-
-    /** @param {ViewComponent} cmp */
-    renderCmpParts(cmp) { }
 
     /** @param { ViewComponent } parentCmp */
     static handleInPlaceParts(parentCmp, cmpInternalId = null) {
@@ -1023,11 +996,9 @@ export class Components {
         if (placeHolderRef) {
             return document.getElementsByClassName(`still-placeholder${placeHolderRef}`);
         }
-
         return cmpInternalId == 'fixed-part'
             ? document.getElementById(`stillUiPlaceholder`).getElementsByTagName('still-placeholder')
             : document.getElementsByClassName(`still-placeholder${parentCmp?.getUUID()}`)
-
     }
 
     /**
@@ -1157,7 +1128,7 @@ export class Components {
                     /** Runs the load method which is supposed to implement what should be run
                      * for the component to be displayed accordingly in the User interface */
                     await cmp.load();
-                    setTimeout(async () => await cmp.stAfterInit(), 120);
+                    setTimeout(() => Components.runAfterInit(cmp), 120);
                     if ((idx + 1) == cmpParts.length && cmpInternalId != 'fixed-part')
                         setTimeout(() => Components.emitAction('runImport'), 120);
 
@@ -1212,7 +1183,6 @@ export class Components {
         (async () => {
 
             const registror = $still.context.componentRegistror.componentList;
-
             await registror[Router.preView?.cmpInternalId]?.instance?.stOnUnload();
             await registror[Router.preView?.constructor?.name]?.instance?.stOnUnload();
 
@@ -1221,9 +1191,7 @@ export class Components {
             const versionId = Components.removeVersionId;
 
             setTimeout(() => {
-
                 if (versionId) {
-
                     document
                         .querySelectorAll(`.loop-container-${Router.preView.cmpInternalId}`)
                         .forEach(elm => elm.innerHTML = '');
@@ -1250,45 +1218,15 @@ export class Components {
                         }
                     })
             })
-
         })()
-
     }
 
     static parseProxy(proxy, cmp, parentCmp, annotations) {
         if (proxy) {
-            const subscribers = parentCmp[proxy].subscribers;
+            const sbscbrs = parentCmp[proxy].subscribers;
             parentCmp[proxy] = cmp;
-
-            if (subscribers && subscribers.length)
-                subscribers.forEach(async cb => await cb());
+            if (sbscbrs && sbscbrs.length) sbscbrs.forEach(async cb => await cb());
         }
-    }
-
-
-    async loadFromPath(path, className) {
-
-        return new Promise((resolve) => {
-
-            const script = $stillLoadScript(path, className);
-
-            if (!script) {
-                resolve([]);
-                return;
-            }
-
-            const timer = setInterval(() => {
-
-                let scriptLoad = document.getElementById(script.id);
-                if (scriptLoad) {
-                    clearInterval(timer);
-                    resolve(scriptLoad);
-                }
-
-            }, 200);
-
-        });
-
     }
 
     /** @type { { Object<[key]: ViewComponent> } } */
@@ -1305,7 +1243,7 @@ export class Components {
     static emitAfterIni(cpmName) {
         (async () => {
             const registror = $still.context.componentRegistror.componentList;
-            await registror[cpmName].instance.stAfterInit();
+            Components.runAfterInit(registror[cpmName].instance);
         })
         delete Components.afterIniSubscriptions[cpmName];
     }
@@ -1381,16 +1319,13 @@ export class Components {
         }
 
         propParsing = controller || inject || servicePath || proxy || prop || $stillconst.PROP_TYPE_IGNORE.includes(type);
-
         return { type, inject, servicePath, proxy, prop, propParsing, svcPath, controller };
 
     }
 
     static processedAnnotations = {};
     static registerAnnotation(cmp, prop, annotations) {
-        if (!(cmp in Components.processedAnnotations)) {
-            Components.processedAnnotations[cmp] = {};
-        }
+        if (!(cmp in Components.processedAnnotations)) Components.processedAnnotations[cmp] = {};
         Components.processedAnnotations[cmp][prop] = annotations;
     }
 
@@ -1467,11 +1402,7 @@ export class Components {
                 { type: 'module' }
             );
 
-            worker.postMessage({
-                components: this['getPrefetchList'](),
-                vendorPath: Components.vendorPath
-            });
-
+            worker.postMessage({components: this['getPrefetchList'](), vendorPath: Components.vendorPath});
             worker.onmessage = function (r) {
                 const { path, module, cls } = r.data;
                 if (!Components.importedMap.has(path)) {
@@ -1522,11 +1453,13 @@ export class Components {
     }
 
     /** 
-     * @param { ViewComponent } cmp
+     * @param { ViewComponent | String } cmp
      * @param { Object | any | null } data
      * */
     static async new(cmp, data = null) {
-        const { newInstance: instance } = await Components.produceComponent({ cmp: cmp.name });
+        let cmpName = cmp;        
+        if(cmp?.__proto__?.name == 'ViewComponent') cmpName = cmp.name;
+        const { newInstance: instance } = await Components.produceComponent({ cmp: cmpName });
         (async () => await instance.stOnRender(data))();
         instance.cmpInternalId = `dynamic-${instance.getUUID()}${instance.getName()}`;
         const template = instance.getBoundTemplate();
@@ -1536,9 +1469,138 @@ export class Components {
             (new Components).parseGetsAndSets(instance)
         }, 10);
         ComponentRegistror.add(instance.cmpInternalId, instance);
-        setTimeout(async () => await instance.stAfterInit(), 500);
+        setTimeout(() => Components.runAfterInit(instance), 500);
         return { template, component: instance };
     }
 
+    parseDevider(t, cp, id = 'id="$StId"', a = 'class="separator"', b = 'class="handle"', c = 'class="divider"', d = 'class="handlehor"') {
+        const reStStart = /\<st-divider[\s\t]{0,}/, reStClose = /[\/\>]{2}/;
+        const reAnyProp = /[\=\"A-Za-z0-9\s\t\r\n\.\(\)\&\;\#]{0,}[\s]{0,}/;
+        const RE = new RegExp(reStStart.source + reAnyProp.source + reStClose.source,'g');
+        const t2 = `<div ${c} ${id} {h} {w}><l-l class='label'>{{}}</l-l><div ${d}></div></div>`;
+        const t1 = `<div ${a} ${id} {h} {w}><l-l class='label'>{{}}</l-l><div ${b}></div></div>`;
+        t = t.replace(RE, (_) => {
+            let tmpl = t1, props = {}, m = _.replace(/\t/g,'').replace(/\n/,' ').replace(/\s{2,}/,' ');
+            m.split(/"\s/i).map((r) => {
+                let [p, v] = r.startsWith('<') ? r.split(' ')[1].split('="') : r.split('="');
+                if(!p.endsWith('>'))
+                    props[p?.replace(/\n/,'')?.replace('(onResize)','ev1')?.replace('(onLblClick)','ev2')] = v.split('"')[0];
+            });
+            if(props?.type == 'vertical') tmpl = t2;
+            tmpl = tmpl.replace('{{}}', props?.label || '');
+            const dividerId = `devid-${UUIDUtil.newId()}`;
+            if (!cp['stillDevidersCmp']) cp['stillDevidersCmp'] = [];
+            cp['stillDevidersCmp'].push({dividerId, ...props});
+            return tmpl.replace('$StId', `${dividerId}`)
+        });
+        return t;
+    }
+    /** This is a complement to the parseDiveder  */
+    setVertDivider(c) {
+        c['stillDevidersCmp'].forEach((p) => {
+            const {dividerId, type, ev1: onResize, ev2: onLblClick } = p;
+            if(type != 'horizontal') return;
+            const separator = document.getElementById(dividerId);
+            const method = Components.obj().newResizeEvt(c, onResize);
+            const { previousElementSibling: _left, nextElementSibling: _right } = separator;
+            let [isResizing, startX, leftPanelWidth] = [false, undefined, undefined];
+
+            separator.addEventListener('mousedown', (e) => {
+                [isResizing, startX, leftPanelWidth] = [true, e.clientX, _left.offsetWidth];
+                document.body.style.cursor = 'ew-resize';
+                separator.classList.add('resizing'); // Add class to style handle during resize
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const deltaX = e.clientX - startX;
+                const newLeftPanelWidth = leftPanelWidth + deltaX;
+                if (newLeftPanelWidth > 50 && window.innerWidth - newLeftPanelWidth > 50)
+                    [_left.style.width, _right.style.flexGrow] = [`${newLeftPanelWidth}px`, 1];
+                if(method) (async () => await method({ leftWidth: newLeftPanelWidth }))();
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    [isResizing, document.body.style.cursor] = [false, 'default'];
+                    separator.classList.remove('resizing'); // Remove class after resize
+                }
+            });
+        })
+    }
+
+    newResizeEvt(c, evtType){
+        if(!evtType) return () => {};
+        return async (val) => {
+            const mtd = evtType.split('(')[0];
+            if(!c[mtd]) throw new ReferenceError(`Method ${mtd}() does not exists in ${c.getName()}.js`)
+            await c[mtd](val)
+        };
+    }
+
+	setHrzntlDevider(c){
+        c['stillDevidersCmp'].forEach((p) => {
+            const {dividerId, type, ev1: onRsiz, ev2: onLblClk, minHeight: miH, maxHeight: maH, startHeight  } = p;
+            if(type != 'vertical') return;
+            const d = document.getElementById(dividerId);
+            d.querySelector('.label').onclick = async () => await Components.obj().newResizeEvt(c, onLblClk)();
+            if(startHeight) d.style.marginTop = startHeight + 'px';
+            const method = Components.obj().newResizeEvt(c, onRsiz);
+            const {previousElementSibling: _top, nextElementSibling: _bottom, parentElement: cntr} = d;
+            cntr.classList.add('container-divider-parent');
+            _top.className = _top.className + ' panel top';
+            _bottom.classNam = _bottom.className + ' panel bottom';
+            let isDragging = false;
+        
+            d.addEventListener("mousedown", function () {
+              isDragging = true, document.body.style.cursor = 'ns-resize';
+            });
+        
+            document.addEventListener("mousemove", (e) => {
+              if (!isDragging) return;
+              
+              const {offsetTop: containerOffsetTop, offsetHeight: containerHeight} = cntr;
+              const pointerRelativeY = e.clientY - containerOffsetTop;
+              const topHeight = pointerRelativeY;
+              const bottomHeight = containerHeight - topHeight - d.offsetHeight;
+            
+              if(miH && (bottomHeight < miH) || maH && (bottomHeight > maH)) return;
+
+              [_top.style.flex, _bottom.style.flex] = ['none', 'none'];
+              [_top.style.height, _bottom.style.height] = [topHeight + "px", bottomHeight + "px"];
+              (async () => await method({ topHeight, bottomHeight }))();
+            });
+        
+            document.addEventListener("mouseup", () => {
+              isDragging = false, document.body.style.cursor = 'default';
+            });
+        })
+	}
+
+    parseAdjustable(template, cmp){
+        const tmpl = `
+        <div class="still-resizable-cntr" id="{{$stId}}">
+            <div class="resize-top"></div><div class="resize-left"></div>
+            <div style="margin-top: 10px; margin-left: 10px;">{{$stContPlaceholder}}</div>
+        </div>`;
+        const openAdjustable = /<st-element[\s]{0,}component="AdjustableContainer"[\s]{0,}>/;
+        const closeAdjustable = /<\/st-element[\s]{0,}>/;
+        const re = openAdjustable.source + /([\s\S]*)/.source + closeAdjustable.source
+        return template.replace(new RegExp(re,'g'), (_, mt2) => {
+                const adjtbleId = `adjust-${UUIDUtil.newId()}`;
+                if (!cmp['stillAdjastableCmp']) cmp['stillAdjastableCmp'] = [];
+                cmp['stillAdjastableCmp'].push(adjtbleId);    
+                return tmpl.replace('{{$stContPlaceholder}}',mt2).replace('{{$stId}}', adjtbleId);
+            }
+        );
+    }
+
+    static runAfterInit(cmp) {
+        (async () => await cmp.stAfterInit())();
+        if ('stillDevidersCmp' in cmp){
+            Components.obj().setVertDivider(cmp);
+            Components.obj().setHrzntlDevider(cmp);
+        }
+    }
 }
 window.$still = $still;

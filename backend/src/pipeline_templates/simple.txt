@@ -4,11 +4,11 @@ from dlt.sources.filesystem import filesystem, read_csv
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
 files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
 
-# Bellow mapping: table_name = DuckDBOutput.table_name
-reader = (files | read_csv()).with_name(%table_name%)
+# Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
+reader = (files | read_csv()).with_name(%duck_dest_table%)
 
-# Bellow mapping: schema = DuckDBOutput.database
-pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%database%, destination="duckdb")
+# Bellow mapping: schema = DuckDBOutput.duckdb_dest
+pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%, destination="duckdb")
 
 info = pipeline.run(reader)
 print(info)
