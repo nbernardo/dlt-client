@@ -16,28 +16,22 @@ class SqlDBComponent(TemplateNodeType):
         self.tables = data['tables']
         self.database = data['database']
         self.component_id = data['componentId']
+        self.dbengine = data['dbengine']
+        self.table_list = list(self.tables.values())
 
         self.context.emit_start(self, '')
-
-
 
     def run(self) -> None:
         """
         Run the initial steps
         """
         super().run()
-        print(f'Inited Source SqlDb with : {self.database} and {self.tables}')
-        print(f'ITS LIST: {self.tables.values()}')
-        self.check_table(list(self.tables.values()))
-        #self.check_table()
+        print(f'Inited Source SqlDb with : \
+              {self.database} and {self.tables}\
+              and DBEngine is {self.dbengine}')
+        self.check_db_and_tables(self.table_list)
 
-    def check_db():
-        """
-        Check if the DB exists
-        """
-
-
-    def check_table(self, tables: list[str]) -> None:
+    def check_db_and_tables(self, tables: list[str]) -> None:
         """
         Check if the table already exists
         """
@@ -57,4 +51,6 @@ class SqlDBComponent(TemplateNodeType):
         except Exception as err:
             error = {'message': f'{err}', 'componentId': self.component_id}
             self.context.emit_error(self, error)
+    
+
 
