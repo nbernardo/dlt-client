@@ -1,6 +1,7 @@
 from .TemplateNodeType import TemplateNodeType
 from controller.RequestContext import RequestContext
 import os
+from services.pipeline.DltPipeline import DltPipeline
 
 
 class Bucket(TemplateNodeType):
@@ -12,12 +13,19 @@ class Bucket(TemplateNodeType):
         """
         Initialize the instance
         """
+        self.template = DltPipeline.get_template()
+        
+        # When instance is created only to get the template 
+        # Nothing more takes place except for the template itself
+        if data is None: return None
+
         self.context = context
         self.component_id = data['componentId']
 
         self.context.emit_start(self, '')
-
+        # bucket_url is mapped in /pipeline_templates/simple.txt
         self.bucket_url = data['bucketUrl']
+        # file_pattern is mapped in /pipeline_templates/simple.txt
         self.file_pattern = data['filePattern']
 
     def run(self):
@@ -32,10 +40,7 @@ class Bucket(TemplateNodeType):
         path_exists = os.path.exists(self.bucket_url)
         if not path_exists:
             error = 'Specified bucket url does not exists'
-            error = {'componentId': self.component_id, 'message': error}
-            self.context.add_exception('Bucket', error)
-            self.context.emit_error(self, error)
-            return self.context.FAILED
+            return self.notify_failure_to_ui('Bucket',error)
         else:
-            success = {'componentId': self.component_id}
-            self.context.emit_success(self, success)
+            # Notify the UI that this step completed successfully
+            self.notify_completion_to_ui()
