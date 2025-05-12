@@ -1,5 +1,5 @@
-import { StillAppSetup } from "../../../app-setup.js";
-import { stillRoutesMap as DefaultstillRoutesMap } from "../../../route.map.js";
+import { StillAppSetup } from "../../../config/app-setup.js";
+import { stillRoutesMap as DefaultstillRoutesMap } from "../../../config/route.map.js";
 import { Router as DefaultRouter } from "../../routing/router.js";
 import { Components } from "../../setup/components.js";
 import { $stillconst, ST_RE as RE } from "../../setup/constants.js";
