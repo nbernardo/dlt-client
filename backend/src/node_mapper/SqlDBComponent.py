@@ -1,7 +1,7 @@
 from .TemplateNodeType import TemplateNodeType
 from controller.RequestContext import RequestContext
 from connectors.db.mysql import get_mysql_connection
-
+from services.pipeline.DltPipeline import DltPipeline
 
 class SqlDBComponent(TemplateNodeType):
     """
@@ -12,14 +12,23 @@ class SqlDBComponent(TemplateNodeType):
         """
         Initialize the instance
         """
-        self.context = context
-        self.tables = data['tables']
-        self.database = data['database']
-        self.component_id = data['componentId']
-        self.dbengine = data['dbengine']
-        self.table_list = list(self.tables.values())
+        self.template = DltPipeline.get_sql_db_template()
 
+        # When instance is created only to get the template 
+        # Nothing more takes place except for the template itself
+        if data is None: return None
+
+        self.context = context
+        self.component_id = data['componentId']
         self.context.emit_start(self, '')
+
+        # source_tables fields is mapped in /pipeline_templates/sql_db.txt
+        self.source_tables = list(data['tables'].values())
+        # source_database fields is mapped in /pipeline_templates/sql_db.txt
+        self.source_database = data['database']
+        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
+        self.source_dbengine = data['dbengine']
+
 
     def run(self) -> None:
         """
@@ -27,9 +36,10 @@ class SqlDBComponent(TemplateNodeType):
         """
         super().run()
         print(f'Inited Source SqlDb with : \
-              {self.database} and {self.tables}\
-              and DBEngine is {self.dbengine}')
-        self.check_db_and_tables(self.table_list)
+              {self.source_database} and {self.source_tables}\
+              and DBEngine is {self.source_dbengine}')
+        self.check_db_and_tables(self.source_tables)
+
 
     def check_db_and_tables(self, tables: list[str]) -> None:
         """
@@ -44,13 +54,14 @@ class SqlDBComponent(TemplateNodeType):
                 final_query += query_template.replace('@tblName', tbl)
 
             #If specified DB does not exists it'll throw an exception
-            db_connection = get_mysql_connection(self.database)
+            db_connection = get_mysql_connection(self.source_database)
             #If any of tables in the query does not exists it'll throw an exception
             db_connection.cursor().execute(final_query)
 
+            # Notify the UI that this step completed successfully
+            self.notify_completion_to_ui()
+
         except Exception as err:
-            error = {'message': f'{err}', 'componentId': self.component_id}
-            self.context.emit_error(self, error)
-    
+            self.notify_failure_to_ui('SqlDBComponent', err)    
 
 

@@ -1,0 +1,41 @@
+import dlt
+from dlt.sources.credentials import ConnectionStringCredentials
+from dlt.sources.sql_database import sql_database
+
+from os import getenv as env
+
+mysql_srv = env('MYSQLDBSRV')
+mysql_usr = env('MYSQLDBUSR')
+mysql_pwd = env('MYSQLDBPWD')
+mysql_prt = env('MYSQLDBPRT')
+
+# Bellow mapping: schema = SqlDBComponent.source_database
+database_to_connect = %source_database%
+
+dialects = {
+    "mysql": f"mysql+pymysql://{mysql_usr}:\
+            {mysql_pwd}@{mysql_srv}:\
+            {mysql_prt}/{database_to_connect}" 
+}
+
+# Bellow mapping: schema = SqlDBComponent.source_dbengine
+credentials = ConnectionStringCredentials(dialects[%source_dbengine%])
+
+def load_select_tables_from_db():
+    dest_folder = '/Users/nakassonybernardo/projects/dlt-client/backend/dbs'
+    ppline_name = %pipeline_name%
+    dest_db = dlt.destinations.duckdb(f'{dest_folder}/{ppline_name}.duckdb')
+    pipeline = dlt.pipeline(
+        pipeline_name=ppline_name,
+        destination=dest_db,
+        # Bellow mapping: schema = DuckDBOutput.duckdb_dest
+        dataset_name=%duckdb_dest%
+    )
+
+    # Bellow mapping: schema = SqlDBComponent.source_tables
+    source = sql_database(table_names=%source_tables%, credentials=credentials)
+
+    info = pipeline.run(source)
+    print(info)
+
+load_select_tables_from_db()
