@@ -27,18 +27,18 @@ export class CodeMiror extends ViewComponent {
     `;
 
     stAfterInit(){
-        
-        this.codeEditor = CodeMirror.fromTextArea(
-            document.getElementById(this.dynCmpGeneratedId), {
-			lineNumbers: true,
-			mode: 'python',
-			theme: 'monokai',
-			language: 'python'
-		});
-        
-        document.getElementById(this.containerId).style.height = this.startHeight + 'px';
-        this.codeEditor.setSize(null, Number(this.editorHeight))
-        this.emit('load');
+    
+                this.codeEditor = CodeMirror.fromTextArea(
+                    document.getElementById(this.dynCmpGeneratedId), {
+                    lineNumbers: true,
+                    mode: 'python',
+                    theme: 'monokai',
+                    language: 'python'
+                });
+                
+                document.getElementById(this.containerId).style.height = this.startHeight + 'px';
+                this.codeEditor.setSize(null, Number(this.editorHeight))
+                this.emit('load');
     }
 
     async load() {}

@@ -1,6 +1,6 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { Components } from "../../@still/setup/components.js";
-import { AppTemplate } from "../../app-template.js";
+import { AppTemplate } from "../../config/app-template.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { CleanerType } from "../components/node-types/CleanerType.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
