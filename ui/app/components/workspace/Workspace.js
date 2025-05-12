@@ -1,7 +1,7 @@
 import { io as SocketIO } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { Components } from "../../../@still/setup/components.js";
-import { AppTemplate } from "../../../app-template.js";
+import { AppTemplate } from "../../../config/app-template.js";
 import { NodeTypeEnum, PPLineStatEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
@@ -103,7 +103,8 @@ export class Workspace extends ViewComponent {
 	async savePipeline() {
 
 		this.controller.pplineStatus = PPLineStatEnum.Start;
-		const validationResults = this.controller.formReferences.map((r) => {
+		const formReferences = [...this.controller.formReferences.values()];
+		const validationResults = formReferences.map((r) => {
 			const component = Components.ref(r);
 			if(component.getName() === SqlDBComponent.name) component.getTables();
 			const form = component.formRef;

@@ -1,6 +1,6 @@
-import { StillAppSetup } from "../app-setup.js";
-import { AppTemplate } from "../app-template.js";
-import { stillRoutesMap } from "../route.map.js";
+import { StillAppSetup } from "../config/app-setup.js";
+import { AppTemplate } from "../config/app-template.js";
+import { stillRoutesMap } from "../config/route.map.js";
 import { ComponentNotFoundException } from "./component/manager/registror.js";
 import { BehaviorComponent } from "./component/super/BehaviorComponent.js";
 import { Router } from "./routing/router.js";
@@ -37,7 +37,7 @@ import { UUIDUtil } from "./util/UUIDUtil.js";
             /** 
              * Detect when a path was entered in the URL after 
              * hash (#) and route it to the respective component
-             * */
+             **/
             Router.listenUrlChange();
 
         });

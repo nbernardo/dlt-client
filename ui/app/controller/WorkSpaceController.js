@@ -1,6 +1,6 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { Components } from "../../@still/setup/components.js";
-import { AppTemplate } from "../../app-template.js";
+import { AppTemplate } from "../../config/app-template.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { CleanerType } from "../components/node-types/CleanerType.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
@@ -26,7 +26,7 @@ export class WorkSpaceController extends BaseController {
     editor;
     transform = '';
     edgeTypeAdded = {};
-    formReferences = [];
+    formReferences = new Map();
     validationErrors = [];
     idCounter = 0;
     cmpIdToNodeIdMap = {};
@@ -125,7 +125,7 @@ export class WorkSpaceController extends BaseController {
         const { template: tmpl, component } = await Components.new(inType, nodeId);
         const { inConnectors, outConnectors } = component;
         const initData = { componentId: component.cmpInternalId };
-        this.formReferences.push(component.cmpInternalId);
+        this.formReferences.set(nodeId, component.cmpInternalId);
         this.edgeTypeAdded[nodeId] = new Set();
         this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
         this.clearHTML(nodeId);
@@ -197,6 +197,9 @@ export class WorkSpaceController extends BaseController {
             if (id == obj.edgeTypeAdded[NodeTypeEnum.END])
                 return delete obj.edgeTypeAdded[NodeTypeEnum.END];
 
+            //Remove the form so it does not gets considered 
+            //when validating the pipeline submittions/save
+            obj.formReferences.delete(Number(id));
             delete obj.edgeTypeAdded[id];
         })
 
