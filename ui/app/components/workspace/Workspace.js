@@ -103,7 +103,8 @@ export class Workspace extends ViewComponent {
 	async savePipeline() {
 
 		this.controller.pplineStatus = PPLineStatEnum.Start;
-		const validationResults = this.controller.formReferences.map((r) => {
+		const formReferences = [...this.controller.formReferences.values()];
+		const validationResults = formReferences.map((r) => {
 			const component = Components.ref(r);
 			if(component.getName() === SqlDBComponent.name) component.getTables();
 			const form = component.formRef;
