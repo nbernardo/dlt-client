@@ -1,3 +1,4 @@
+import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
@@ -29,11 +30,19 @@ export class WorkspaceService extends BaseService {
             label: 'Out-DBFile (.duckdb)',
             typeName: DuckDBOutput.name
         },
-        // { icon: 'fab fa-aws', label: 'Save in aws', typeName: 'aws' },
-        // { icon: 'fas fa-file-signature', label: 'File Log', typeName: 'log' },
-        // { icon: 'fas fa-fill', label: 'Personalized', typeName: 'personalized' },
-        // { icon: 'fas fa-mouse', label: 'DBClick!', typeName: 'dbclick' },
-
     ]
+
+    async runCode(code){
+
+        const url = '/workcpace/code/run';
+        const result = await $still.HTTPClient.post(url, JSON.stringify(code), {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        return result;
+
+    }
 
 }
