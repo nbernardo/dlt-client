@@ -1,8 +1,15 @@
 import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
 from dlt.sources.sql_database import sql_database
-
 from os import getenv as env
+from pathlib import Path
+import sys
+
+#Adding root folder to allow import  from src
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline','')
+sys.path.insert(0, src_path)
+
+from src.services.workspace.Workspace import Workspace
 
 mysql_srv = env('MYSQLDBSRV')
 mysql_usr = env('MYSQLDBUSR')
@@ -22,7 +29,7 @@ dialects = {
 credentials = ConnectionStringCredentials(dialects[%source_dbengine%])
 
 def load_select_tables_from_db():
-    dest_folder = '/Users/nakassonybernardo/projects/dlt-client/backend/dbs'
+    dest_folder = Workspace.get_duckdb_path_on_ppline()
     ppline_name = %pipeline_name%
     dest_db = dlt.destinations.duckdb(f'{dest_folder}/{ppline_name}.duckdb')
     pipeline = dlt.pipeline(

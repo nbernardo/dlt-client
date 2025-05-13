@@ -42,12 +42,25 @@ def create():
         return 'Error on creating the pipeline'
 
     pipeline_instance = DltPipeline()
-    result = pipeline_instance.create_v1(pipeline_name, template, context)
-    if result['status'] is False:
-        for node in all_nodes:
-            node.notify_failure_to_ui('Pipeline',result['message'],False)
 
-    return result['message']
+    try:
+        result = pipeline_instance.create_v1(pipeline_name, template, context)
+        success = True
+        if result['status'] is False: 
+            success, message = False, result['message'] 
+
+    except Exception as err:
+        result = { 'message': err.stderr }
+        success, message = False, result['message']
+
+    finally:
+
+        if success is False:
+            pipeline_instance.revert_ppline()
+            for node in all_nodes:
+                node.notify_failure_to_ui('Pipeline', message,False)
+
+        return result['message']
 
 
 def parse_node(connections, node_params, data_place, context, node_list: list):

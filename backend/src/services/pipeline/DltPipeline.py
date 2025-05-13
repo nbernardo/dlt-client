@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
-destinations_dir = f'{root_dir}/destinations'
+destinations_dir = f'{root_dir}/destinations/pipeline'
 template_dir = f'{root_dir}/src/pipeline_templates'
 
 
@@ -15,6 +15,9 @@ class DltPipeline:
     """
     This is the class to create and handle pipelines
     """
+    def __init__(self):
+        self.curr_file = None
+
 
     def create(self, data):
         """
@@ -46,12 +49,14 @@ class DltPipeline:
         print("Standard Output:", result.stdout)
         print("Standard Error:", result.stderr)
 
+
     def create_v1(self, file_name, data, context: RequestContext) -> Dict[str,str]:
         """
         This is the pipeline creation
         """
         file_path = f'{destinations_dir}/{file_name}.py'
         file_open_flag = 'x+'
+        self.curr_file = file_path
 
         if os.path.exists(file_path):
             message = 'Pipeline exists already'
@@ -125,3 +130,7 @@ class DltPipeline:
             f"INSERT INTO ppline_name, ppline_instances (_content) \
             VALUES \
             ('{ppline_name}','{json.dumps(content)}')")
+        
+
+    def revert_ppline(self):
+        os.remove(self.curr_file)

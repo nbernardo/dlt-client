@@ -183,9 +183,11 @@ export class Workspace extends ViewComponent {
 		this.cmProxy.setHeight(size);
 	}
 
-	runCode(){
+	async runCode(){
 		const code = this.cmProxy.codeEditor.getValue();
-		this.terminalProxy.writeTerminal(code);
+		let result = await this.service.runCode(code);
+		result = await result.json();
+		this.terminalProxy.writeTerminal(result.output);
 	}
 
 }

@@ -1,12 +1,14 @@
 from pathlib import Path
 import sys
-import os
 from utils.env_util import set_env
 
 from flask import Flask, request
-from controller.pipeline import pipeline
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, Namespace
+
+from controller.pipeline import pipeline
+from controller.workspace import workspace
+
 
 class PiplineNamespace(Namespace):
     def on_connect(self): pass
@@ -31,4 +33,5 @@ def on_connect():
 
 
 app.register_blueprint(pipeline)
+app.register_blueprint(workspace)
 socketio.run(app)
