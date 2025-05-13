@@ -20,7 +20,7 @@ class Workspace:
             
         except subprocess.CalledProcessError as err:
             final_result = err.stderr
-        print('DIDA FROM SERVICE')
+
         return final_result
         
 
@@ -32,6 +32,12 @@ class Workspace:
 
     @staticmethod
     def get_duckdb_path_on_ppline():
-        root_dir = str(Path(__file__).parent)
+        root_dir = str(Path(__file__).parent).replace('src/services/workspace','destinations')
         return f'{root_dir}/duckdb'
+
+
+    @staticmethod
+    def get_ppline_path():
+        root_dir = str(Path(__file__).parent).replace('src/services/workspace','destinations')
+        return f'{root_dir}/pipeline'
 
