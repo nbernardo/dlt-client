@@ -5,8 +5,6 @@ backend/src/dd.py
 backend/src/cc.py
 backend/venv
 backend/src/scratch
-backend/destinations/*.py
-backend/destinations
 backend/src/services/__pycache__
 backend/src/utils/__pycache__
 backend/src/node_mapper/__pycache__
