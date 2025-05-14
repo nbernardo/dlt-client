@@ -21,6 +21,11 @@ export class StillAppSetup extends StillAppMixin(Components) {
                 "v5.65.19/theme/monokai.css"
             ]
         });
+
+        this.addPrefetch({
+            component: '@still-treeview/StillTreeView',
+            assets: ["tree-view.css"]
+        });
         this.runPrefetch();
 
     }

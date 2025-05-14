@@ -45,4 +45,14 @@ export class WorkspaceService extends BaseService {
 
     }
 
+    async getDuckDbs(){
+        const url = '/workcpace/duckdb/list';
+        const result = await $still.HTTPClient.post(url, null, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        return result;
+    }
+
 }

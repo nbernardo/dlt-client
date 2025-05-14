@@ -9,6 +9,7 @@ import { CodeMiror } from "../../../@still/vendors/codemirror/CodeMiror.js";
 import { Terminal } from "./terminal/Terminal.js";
 import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
 import { EditorLanguageType } from "../../types/editor.js";
+import { StillTreeView } from "../../../@still/vendors/still-treeview/StillTreeView.js";
 
 export class Workspace extends ViewComponent {
 
@@ -16,6 +17,9 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */
 	editor;
+
+	/** @Proxy @type { StillTreeView } */
+	dbTreeviewProxy;
 
 	/**
 	 * @Inject
@@ -200,9 +204,72 @@ export class Workspace extends ViewComponent {
 		this.terminalProxy.resizeHeight(editorHeight);
 	}
 
-	showHideEditor(){
-		let size = this.cmProxy.getHeight() >= 66 && this.cmProxy.getHeight() < 100 ? 400 : 66;
-		this.cmProxy.setHeight(size);
+	async showHideDatabase(){
+
+		let response = await this.service.getDuckDbs();
+		response = await response.json();
+		const treeData = {};
+
+		for(const [dbase, tables] of Object.entries(response)){
+			
+			const data = Object.values(tables);
+			treeData[dbase] = { childs: [], nodeLabel: data[0].dbname };
+			for(const tableData of data){
+				treeData[dbase].childs.push({ 
+					table: tableData.table, dbSize: tableData.db_size, colCount: tableData.col_count 
+				});
+			}
+			console.log(`DATAS ARE: `, data);
+			
+		}
+
+		const mockData = {
+			dd: {
+				"nodeLabel": "newdb",
+				"childs": [
+					{
+						"table": "employees",
+						"dbSize": 23,
+						"colCount": 10,
+					},
+					{
+						"table": "products",
+						"dbSize": 110,
+						"colCount": 11,
+						"childs": [
+							{
+								"nodeLabel": "Sub Label",
+								"table": "subtabl1",
+								"dbSize": 23,
+								"colCount": 10,
+								"childs": [
+									{
+										"table": "infirst table",
+										"dbSize": 23,
+										"colCount": 10
+									},
+									{
+										"table": "infirst another",
+										"dbSize": 110,
+										"colCount": 11
+									}
+								]
+							},
+							{
+								"table": "secsubtbl",
+								"dbSize": 110,
+								"colCount": 11
+							}
+						]
+					}
+				],
+			}
+		}
+		console.log(`TREE IS: `, mockData);
+
+
+		this.dbTreeviewProxy.dataSource = mockData;
+
 	}
 
 	async runCode(){
