@@ -322,7 +322,7 @@ export class BaseComponent extends BehaviorComponent {
 
             let subscriptionCls = '';
 
-            const subsCls = `listenChangeOn-${this.cmpInternalId}-${ds}`;
+            const subsCls = `listenChangeOn-${this.cmpInternalId.replace('/','').replace('@','')}-${ds}`;
             const hashValue = `hash_${this.getUUID()}`;
             const hash = `hash="${hashValue}"`;
             const newClassName = `newCls="${subsCls}"`;
@@ -1022,7 +1022,8 @@ export class BaseComponent extends BehaviorComponent {
             ? this.cmpInternalId
             : this.getProperInstanceName();
         const validatorClass = BehaviorComponent.setOnValueInput(mt, this, field, (formRef?.formRef || null));
-        const classList = `${validatorClass} listenChangeOn-${this.cmpInternalId}-${field}`;
+        const cmpId = this.cmpInternalId.replace('/','').replace('@','');
+        const classList = `${validatorClass} listenChangeOn-${cmpId}-${field}`;
 
         const clsPath = this.getClassPath();
 

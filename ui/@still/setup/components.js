@@ -541,8 +541,7 @@ export class Components {
 
     /** @param { ViewComponent } cmp */
     propageteChanges(cmp, field) {
-
-        const cpName = cmp.cmpInternalId;
+        const cpName = cmp.cmpInternalId.replace('/','').replace('@','');
         const cssRef = `.listenChangeOn-${cpName}-${field}`;
         const subscribers = document.querySelectorAll(cssRef);
         const cssRefCombo = `.listenChangeOn-${cpName}-${field}-combobox`;
