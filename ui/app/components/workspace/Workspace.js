@@ -52,7 +52,10 @@ export class Workspace extends ViewComponent {
 	 * @type { Terminal }*/
 	terminalProxy;
 
-
+	/** @Prop */
+	selectedLangClass = 'editor-lang-mode-selected';
+	/** @Prop */
+	noSelectedLangClass = 'editor-lang-mode';
 
 	stOnRender() {
 		this.service.on('load', () => {
@@ -190,4 +193,17 @@ export class Workspace extends ViewComponent {
 		this.terminalProxy.writeTerminal(result.output);
 	}
 
+	selecteLang(lang){
+		const langs = document.querySelectorAll('.editor-lang');
+		this.cmProxy.changeLanguage(lang);
+		langs.forEach(elm => {
+			if(elm.classList.contains(lang)){
+				elm.classList.remove(this.noSelectedLangClass);
+				elm.classList.add(this.selectedLangClass);
+			}else{
+				elm.classList.add(this.noSelectedLangClass);
+				elm.classList.remove(this.selectedLangClass);
+			}
+		})
+	}
 }
