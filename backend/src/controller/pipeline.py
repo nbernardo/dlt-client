@@ -38,6 +38,8 @@ def create():
         template = template.replace(data[0], value)
 
     if len(context.exceptions) > 0:
+        message = list(context.exceptions[0].values())[0]['message']
+        revert_and_notify_failure(None, all_nodes, message)
         print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
         return 'Error on creating the pipeline'
 
@@ -56,9 +58,7 @@ def create():
     finally:
 
         if success is False:
-            pipeline_instance.revert_ppline()
-            for node in all_nodes:
-                node.notify_failure_to_ui('Pipeline', message,False)
+            revert_and_notify_failure(pipeline_instance, all_nodes, message)
 
         return result['message']
 
@@ -101,3 +101,13 @@ def check_type(val):
             or tp == float\
             or tp == str\
             or tp == bool
+
+
+def revert_and_notify_failure(
+        pipeline_instance: DltPipeline = None, 
+        all_nodes: list[TemplateNodeType] = None, 
+        message = None):
+    if(pipeline_instance is not None):
+        pipeline_instance.revert_ppline()
+    for node in all_nodes:
+        node.notify_failure_to_ui('Pipeline', message,False)
