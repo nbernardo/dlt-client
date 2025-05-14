@@ -3,6 +3,7 @@ backend/src/__pycache__
 backend/src/*.duckdb
 backend/src/dd.py
 backend/src/cc.py
+backend/src/.env.bkp
 backend/venv
 backend/src/scratch
 backend/src/services/__pycache__
