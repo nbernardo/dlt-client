@@ -18,3 +18,9 @@ def run_code():
         output = Workspace.run_sql_code(code)
 
     return { 'output': output, 'lang': payload['code'] }
+
+
+@workspace.route('/workcpace/duckdb/list', methods=['POST'])
+def list_duck_dbs():
+    dbs = Workspace.list_duck_dbs()
+    return dbs
