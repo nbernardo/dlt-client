@@ -8,6 +8,7 @@ import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceServi
 import { CodeMiror } from "../../../@still/vendors/codemirror/CodeMiror.js";
 import { Terminal } from "./terminal/Terminal.js";
 import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
+import { EditorLanguageType } from "../../types/editor.js";
 
 export class Workspace extends ViewComponent {
 
@@ -52,10 +53,28 @@ export class Workspace extends ViewComponent {
 	 * @type { Terminal }*/
 	terminalProxy;
 
+	/** 
+	 * @Prop 
+	 * @type { EditorLanguageType }
+	 * */
+	editorActiveLang = EditorLanguageType.PYTHON;
+
 	/** @Prop */
 	selectedLangClass = 'editor-lang-mode-selected';
 	/** @Prop */
 	noSelectedLangClass = 'editor-lang-mode';
+	/** @Prop @type { HTMLElement } */
+	drawFlowContainer;
+	
+	/**
+	 * This is also the width added
+	 * in the CSS concerning to the left side 
+	 * @Prop 
+	 * */
+	startLeftWidth = 300;
+	/** @Prop */
+	pxToVw = 0.100;
+
 
 	stOnRender() {
 		this.service.on('load', () => {
@@ -67,7 +86,7 @@ export class Workspace extends ViewComponent {
 	}
 
 	async stAfterInit() {
-
+		this.drawFlowContainer = document.getElementById('drawflow');
 		this.pplService.on('load', () => {
 			console.log(`Service loaded with: `, this.pplService);
 			/* this.service.createPipeline().then(res => {
@@ -188,7 +207,8 @@ export class Workspace extends ViewComponent {
 
 	async runCode(){
 		const code = this.cmProxy.codeEditor.getValue();
-		let result = await this.service.runCode(code);
+		const payload = { code, lang: this.editorActiveLang };
+		let result = await this.service.runCode(payload);
 		result = await result.json();
 		this.terminalProxy.writeTerminal(result.output);
 	}
@@ -196,6 +216,7 @@ export class Workspace extends ViewComponent {
 	selecteLang(lang){
 		const langs = document.querySelectorAll('.editor-lang');
 		this.cmProxy.changeLanguage(lang);
+		this.editorActiveLang = lang;
 		langs.forEach(elm => {
 			if(elm.classList.contains(lang)){
 				elm.classList.remove(this.noSelectedLangClass);
@@ -205,5 +226,12 @@ export class Workspace extends ViewComponent {
 				elm.classList.remove(this.selectedLangClass);
 			}
 		})
+	}
+
+	verticalChecking({ leftWidth }){
+		// if(this.startLeftWidth > leftWidth){
+		// 	const newWidth = 100 + ((this.startLeftWidth - leftWidth) * this.pxToVw);			
+		// 	this.drawFlowContainer.style.width = `calc(${newWidth}vw - 301px)`;
+		// }		
 	}
 }
