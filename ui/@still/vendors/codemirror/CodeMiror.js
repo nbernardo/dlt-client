@@ -17,6 +17,9 @@ export class CodeMiror extends ViewComponent {
     /** @Prop */
     containerId = `_${UUIDUtil.newId()}`;
     
+    /** @Prop */
+    availableLangs;
+
     template = `
         <div id="@containerId">
             <textarea id="@dynCmpGeneratedId"></textarea>
@@ -27,18 +30,26 @@ export class CodeMiror extends ViewComponent {
     `;
 
     stAfterInit(){
-    
+        
+        this.setAvailableLanguages();
+
+        // This is to make sure that code editor instantiates 
+        // only when the Library was loaded and is ready to be used
+        const editorTimer = setInterval(() => {
+            if(window.CodeMirror){
+                clearInterval(editorTimer);
                 this.codeEditor = CodeMirror.fromTextArea(
                     document.getElementById(this.dynCmpGeneratedId), {
                     lineNumbers: true,
                     mode: 'python',
                     theme: 'monokai',
-                    language: 'python'
                 });
-                
+                        
                 document.getElementById(this.containerId).style.height = this.startHeight + 'px';
                 this.codeEditor.setSize(null, Number(this.editorHeight))
                 this.emit('load');
+            }
+        },500);
     }
 
     async load() {}
@@ -53,8 +64,16 @@ export class CodeMiror extends ViewComponent {
         return this.editorHeight;
     }
 
+    changeLanguage(lang){
+        this.codeEditor.setOption('mode',this.availableLangs[lang]);
+    }
 
-
-    runCode(){}
+    setAvailableLanguages(){
+        this.availableLangs = {
+            'python-lang': 'python',
+            //Bellow is only ANSI SQL
+            'sql-lang': 'text/x-sql' 
+        };
+    }
 
 }

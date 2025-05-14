@@ -16,6 +16,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
             assets: [
                 "v5.65.19/lib/codemirror.js",
                 "v5.65.19/mode/python/python.js",
+                "v5.65.19/mode/sql/sql.js",
                 "v5.65.19/lib/codemirror.css",
                 "v5.65.19/theme/monokai.css"
             ]

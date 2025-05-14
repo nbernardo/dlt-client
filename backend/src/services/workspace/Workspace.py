@@ -2,11 +2,17 @@ import subprocess
 from pathlib import Path
 import uuid
 import os
+import duckdb
 
 class Workspace:
     
+    editorLanguages = {
+        'PYTHON': 'python-lang',
+        'SQL': 'sql-lang',
+    }
+
     @staticmethod
-    def run_code(payload):
+    def run_python_code(payload):
         # create a fiile to hold the submitted code to be ran
         file_path = f'{Workspace.get_code_path()}/code_{uuid.uuid4()}.py'
         with open(file_path, 'x+') as _file:
@@ -30,6 +36,17 @@ class Workspace:
             Workspace.remove_code_file(file_path)
 
         return final_result
+        
+
+    @staticmethod
+    def run_sql_code(query_string):
+
+        try:
+            con = duckdb.connect("/Users/nakassonybernardo/projects/dlt-client/backend/destinations/duckdb/pipeline_name.duckdb")
+            con.execute(query_string)
+            return con.fetchall()
+        except Exception as err:
+            return str(err)
         
 
     @staticmethod
