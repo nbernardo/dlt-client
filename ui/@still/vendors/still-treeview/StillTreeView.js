@@ -9,20 +9,25 @@ export class StillTreeView extends ViewComponent {
 
 	dataSource;
 
-	template = `<div id="@dynCmpGeneratedId"></div>`;
+	template = `<ul class="still-tree-view" id="@dynCmpGeneratedId">
+					<tree-placeholder>
+				</ul>`;
 
 	/** @Prop @type { {} } */
 	#treeElements;
 	/** @Prop */
 	#treeData = null;
 	/** @Prop */
-	#wasTreeLoaded = false;
+	#wasTreeLoaded = false;	
+	/** @Prop */
+	#topElementTemplate = null;
+	
+	showBullets = true;
 
 	stAfterInit(){
 
 		this.#treeElements = {};
 		const self = this;
-		const treeWrapper = `<ul class="still-tree-view">{{}}</ul>`;
 		let treeStructure = '';
 		
 		this.dataSource.onChange(treeMapping => {
@@ -33,9 +38,15 @@ export class StillTreeView extends ViewComponent {
 				treeStructure += `<li>${topNode}</li>`;
 			}
 			
-			document
-				.getElementById(this.dynCmpGeneratedId)
-				.innerHTML = treeWrapper.replace('{{}}',treeStructure)
+			const container = document
+				.getElementById(this.dynCmpGeneratedId);
+			
+			if(!this.showBullets.value){				
+				container.style.setProperty('--child-circle','none');
+				container.style.setProperty('--parent-circle','none');
+			}
+
+			container.innerHTML = container.innerHTML.replace('<tree-placeholder>',treeStructure)
 		});
 
 	}
@@ -50,8 +61,13 @@ export class StillTreeView extends ViewComponent {
 		details.setAttribute('open','')
 		const summary = document.createElement('summary');
 		const childsContainer = document.createElement('ul');
-		
-		if(nodeLabel) summary.innerHTML = nodeLabel;
+		let topContent = nodeLabel;
+
+		if(this.#topElementTemplate)
+			topContent = this.#topElementTemplate.replace('@replace',topContent);
+		topContent = this.parseEvents(topContent);
+
+		if(nodeLabel) summary.innerHTML = topContent;
 		details.appendChild(summary);
 		details.appendChild(childsContainer);
 		
@@ -109,6 +125,15 @@ export class StillTreeView extends ViewComponent {
 	newElement({ content, parentLbl, childs }){
 		if(!childs) childs = [];
 		return { content, parentLbl, childs };
+	}
+
+	removeBullets(){
+		this.defaultBullets = false;
+		return this;
+	}
+
+	setTopElementTemplate(htmlString){
+		this.#topElementTemplate = htmlString;
 	}
 	
 }

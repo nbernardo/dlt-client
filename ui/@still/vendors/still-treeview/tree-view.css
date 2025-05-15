@@ -1,6 +1,8 @@
 .still-tree-view {
     --spacing: 1.5rem;
     --radius: 10px;
+    --child-circle: #ddd;
+    --parent-circle: #696 url('app/assets/imgs/python_lang.png') 0 0;
   }
   
   .still-tree-view li {
@@ -64,12 +66,12 @@
     width: calc(2 * var(--radius));
     height: calc(2 * var(--radius));
     border-radius: 50%;
-    background: #ddd;
+    background: var(--child-circle);
   }
   
   .still-tree-view summary::before {
     z-index: 1;
-    background: #696 url('expand-collapse.svg') 0 0;
+    background: var(--parent-circle);
   }
   
   .still-tree-view details[open] > summary::before {
