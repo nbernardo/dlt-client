@@ -1,7 +1,7 @@
 import { ViewComponent } from "../../component/super/ViewComponent.js";
 
 
-export class TreeNodeType { content; parentLbl; childs = []; }
+export class TreeNodeType { content; parentLbl; childs = []; parentData; }
 
 export class StillTreeView extends ViewComponent {
 
@@ -51,7 +51,7 @@ export class StillTreeView extends ViewComponent {
 
 	}
 
-	/** @param { { childs: [], nodeLabel } } param */
+	/** @param { { childs: [], nodeLabel, parentData } } param */
 	parseNode(param = {}, returnValue = false){
 		
 		const self = this;
@@ -63,8 +63,11 @@ export class StillTreeView extends ViewComponent {
 		const childsContainer = document.createElement('ul');
 		let topContent = nodeLabel;
 
-		if(this.#topElementTemplate)
-			topContent = this.#topElementTemplate.replace('@replace',topContent);
+		if(this.#topElementTemplate){
+			topContent = this.#topElementTemplate
+				.replace('@replace',topContent)
+				.replace('@data', param.parentData);
+		}
 		topContent = this.parseEvents(topContent);
 
 		if(nodeLabel) summary.innerHTML = topContent;
@@ -105,8 +108,11 @@ export class StillTreeView extends ViewComponent {
 
 	/** @param { TreeNodeType } node */
 	addElement(node){
-		if(!(node.parentLbl in this.#treeElements)) 
-			this.#treeElements[node.parentLbl] = { childs: [], nodeLabel: node.parentLbl };
+		if(!(node.parentLbl in this.#treeElements)){
+			this.#treeElements[node.parentLbl] = { 
+				childs: [], nodeLabel: node.parentLbl, parentData: node.parentData 
+			};
+		}
 
 		// In case any event (e.g. onclick) is being
 		// passe parse will take care of it

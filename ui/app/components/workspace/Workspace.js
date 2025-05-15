@@ -10,6 +10,7 @@ import { Terminal } from "./terminal/Terminal.js";
 import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
 import { EditorLanguageType } from "../../types/editor.js";
 import { StillTreeView } from "../../../@still/vendors/still-treeview/StillTreeView.js";
+import { connectIcon, dbIcon, tableIcon } from "./icons/database.js";
 
 export class Workspace extends ViewComponent {
 
@@ -69,6 +70,8 @@ export class Workspace extends ViewComponent {
 	noSelectedLangClass = 'editor-lang-mode';
 	/** @Prop @type { HTMLElement } */
 	drawFlowContainer;
+	/** @Prop @type { Set } */
+	connectedDbs = new Set();
 	
 	/**
 	 * This is also the width added
@@ -78,6 +81,9 @@ export class Workspace extends ViewComponent {
 	startLeftWidth = 300;
 	/** @Prop */
 	pxToVw = 0.100;
+
+	/** @Prop */
+	showDbTreeViewBullets = false;
 
 
 	stOnRender() {
@@ -208,21 +214,33 @@ export class Workspace extends ViewComponent {
 
 		let response = await this.service.getDuckDbs();
 		response = await response.json();
-		const treeData = {};
 
 		for(const [_, tables] of Object.entries(response)){
-			
 			const data = Object.values(tables);
 			for(const tableData of data){
 
 				this.dbTreeviewProxy.addElement({ 
-					content: `<a onclick="self.callMe()">${tableData.table}</a>`,
-					parentLbl: data[0].dbname
+					content: `
+						<div class="table-in-treeview">
+							<span>${tableIcon} ${tableData.table}</span>
+						</div>
+					`,
+					parentLbl: data[0].dbname,
+					parentData: data[0].dbname
 				});
-
 			}
-			
 		}
+
+		// @replace is the parent element itself
+		// @data gets replaced by the parentData
+		this.dbTreeviewProxy.setTopElementTemplate(`
+			<div class="table-in-treeview">
+				<span> ${dbIcon} @replace </span>
+				<span>
+					<a onclick="self.connectToDatabase($event, '@data')">${connectIcon}</a>
+				<span>
+			</div>
+		`);
 		this.dbTreeviewProxy.loadTree();
 	}
 
@@ -249,14 +267,19 @@ export class Workspace extends ViewComponent {
 		})
 	}
 
-	callMe(){
-		alert('Parent method')
+	connectToDatabase(event, dbName){
+
+		event.preventDefault();
+		const element = event.target;
+
+		if(element.classList.contains('database-connected')){
+			element.style.color = 'grey';
+			element.classList.remove('database-connected');
+		}else{
+			element.classList.add('database-connected');
+			element.style.color = 'green';
+		}
+
 	}
 
-	verticalChecking({ leftWidth }){
-		// if(this.startLeftWidth > leftWidth){
-		// 	const newWidth = 100 + ((this.startLeftWidth - leftWidth) * this.pxToVw);			
-		// 	this.drawFlowContainer.style.width = `calc(${newWidth}vw - 301px)`;
-		// }		
-	}
 }

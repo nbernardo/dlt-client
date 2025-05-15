@@ -14,7 +14,11 @@
 					<label for="tab2" onclick="component.runPythonCode()">Diagram</label>			
 					<div class="tab-panels">
 						<section id="data-panel" class="tab-panel">
-							<st-element component="@still-treeview/StillTreeView" proxy="dbTreeviewProxy"></st-element>
+							<st-element 
+								showBullets="self.showDbTreeViewBullets"
+								component="@still-treeview/StillTreeView" 
+								proxy="dbTreeviewProxy">
+							</st-element>
 						</section>
 						<section id="draw-diagram-tab" class="tab-panel">
 							<span (forEach)="objectTypes">
@@ -25,7 +29,7 @@
 				</div>
 			</div>
 
-			<st-divider type="horizontal" (onResize)="verticalChecking()"/>
+			<st-divider type="horizontal"/>
 
 			<div class="col-right" id="still-adj-right-panel">
 				<div class="menu">
@@ -148,6 +152,11 @@
 
 	.editor-lang-mode-selected img{
 		opacity: 1 !important;
+	}
+
+	.table-in-treeview{
+		display: flex;
+		justify-content:space-between;
 	}
 
 </style>
