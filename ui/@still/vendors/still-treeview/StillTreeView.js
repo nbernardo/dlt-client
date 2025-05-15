@@ -1,7 +1,7 @@
 import { ViewComponent } from "../../component/super/ViewComponent.js";
 
 
-export class TreeNodeType { label = ''; nodes = []; }
+export class TreeNodeType { content; parentLbl; childs = []; }
 
 export class StillTreeView extends ViewComponent {
 
@@ -9,10 +9,20 @@ export class StillTreeView extends ViewComponent {
 
 	dataSource;
 
+	template = `<div id="@dynCmpGeneratedId"></div>`;
+
+	/** @Prop @type { {} } */
+	#treeElements;
+	/** @Prop */
+	#treeData = null;
+	/** @Prop */
+	#wasTreeLoaded = false;
+
 	stAfterInit(){
 
+		this.#treeElements = {};
 		const self = this;
-		const treeWrapper = `<ul class="tree">{{}}</ul>`;
+		const treeWrapper = `<ul class="still-tree-view">{{}}</ul>`;
 		let treeStructure = '';
 		
 		this.dataSource.onChange(treeMapping => {
@@ -41,24 +51,19 @@ export class StillTreeView extends ViewComponent {
 		const summary = document.createElement('summary');
 		const childsContainer = document.createElement('ul');
 		
-		if(nodeLabel) summary.innerText = nodeLabel;
+		if(nodeLabel) summary.innerHTML = nodeLabel;
 		details.appendChild(summary);
 		details.appendChild(childsContainer);
-
-		const fields = Object.keys(childs[0]);
-		console.log(`FIELDS ARE: `, fields);
 		
 		for(const currNode of childs){
-
 			const childElm = document.createElement('li');
-			const nodeText = document.createTextNode(currNode.table);
-			childElm.appendChild(nodeText);
+			const content = document.createElement('span');
+			content.innerHTML = currNode;
+			childElm.appendChild(content);
 			childsContainer.appendChild(childElm);
 
-			if(currNode?.childs?.length){
+			if(currNode?.childs?.length)
 				childElm.appendChild(self.parseNode(currNode, true));
-			}
-
 		}
 
 		//Return any intrmediate child node
@@ -69,14 +74,41 @@ export class StillTreeView extends ViewComponent {
 
 	}
 
-	generateTreeNode(lbl, childs){}
+	addData(data){
+		this.#treeData = data;
+		return this;
+	}
 
-	template = `<div id="@dynCmpGeneratedId"><>`;
-
-	static importAssets(){
-		return {
-			styles: ['tree-view.css']
+	loadTree(){
+		if(!this.#wasTreeLoaded){
+			if(this.#treeData) this.dataSource = this.#treeData;
+			else this.dataSource = this.#treeElements;
+			this.#wasTreeLoaded = true;
 		}
+	}
+
+	/** @param { TreeNodeType } node */
+	addElement(node){
+		if(!(node.parentLbl in this.#treeElements)) 
+			this.#treeElements[node.parentLbl] = { childs: [], nodeLabel: node.parentLbl };
+
+		// In case any event (e.g. onclick) is being
+		// passe parse will take care of it
+		const parsedContent = this.parseEvents(node.content);
+		this.#treeElements[node.parentLbl].childs.push(parsedContent)
+		return this;
+	}
+
+	clearTreeData(){
+		this.#treeElements = {};
+	}
+
+	/**
+	 * @param { TreeNodeType } param 
+	 */
+	newElement({ content, parentLbl, childs }){
+		if(!childs) childs = [];
+		return { content, parentLbl, childs };
 	}
 	
 }

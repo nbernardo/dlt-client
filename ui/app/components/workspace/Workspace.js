@@ -210,66 +210,20 @@ export class Workspace extends ViewComponent {
 		response = await response.json();
 		const treeData = {};
 
-		for(const [dbase, tables] of Object.entries(response)){
+		for(const [_, tables] of Object.entries(response)){
 			
 			const data = Object.values(tables);
-			treeData[dbase] = { childs: [], nodeLabel: data[0].dbname };
 			for(const tableData of data){
-				treeData[dbase].childs.push({ 
-					table: tableData.table, dbSize: tableData.db_size, colCount: tableData.col_count 
+
+				this.dbTreeviewProxy.addElement({ 
+					content: `<a onclick="self.callMe()">${tableData.table}</a>`,
+					parentLbl: data[0].dbname
 				});
+
 			}
-			console.log(`DATAS ARE: `, data);
 			
 		}
-
-		const mockData = {
-			dd: {
-				"nodeLabel": "newdb",
-				"childs": [
-					{
-						"table": "employees",
-						"dbSize": 23,
-						"colCount": 10,
-					},
-					{
-						"table": "products",
-						"dbSize": 110,
-						"colCount": 11,
-						"childs": [
-							{
-								"nodeLabel": "Sub Label",
-								"table": "subtabl1",
-								"dbSize": 23,
-								"colCount": 10,
-								"childs": [
-									{
-										"table": "infirst table",
-										"dbSize": 23,
-										"colCount": 10
-									},
-									{
-										"table": "infirst another",
-										"dbSize": 110,
-										"colCount": 11
-									}
-								]
-							},
-							{
-								"table": "secsubtbl",
-								"dbSize": 110,
-								"colCount": 11
-							}
-						]
-					}
-				],
-			}
-		}
-		console.log(`TREE IS: `, mockData);
-
-
-		this.dbTreeviewProxy.dataSource = mockData;
-
+		this.dbTreeviewProxy.loadTree();
 	}
 
 	async runCode(){
@@ -293,6 +247,10 @@ export class Workspace extends ViewComponent {
 				elm.classList.remove(this.selectedLangClass);
 			}
 		})
+	}
+
+	callMe(){
+		alert('Parent method')
 	}
 
 	verticalChecking({ leftWidth }){
