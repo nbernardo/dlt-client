@@ -90,7 +90,7 @@ export class BaseComponent extends BehaviorComponent {
     baseUrl = window.location.href;
     #stateChangeSubsribers = [];
     bindStatus;
-    $parent;
+    /** @type { ViewComponent } */$parent;
     routesMap = {
         ...stillRoutesMap.viewRoutes.lazyInitial,
         ...stillRoutesMap.viewRoutes.regular
@@ -102,6 +102,7 @@ export class BaseComponent extends BehaviorComponent {
     navigationId = Router.navCounter;
     $cmpStController;
     #dynFields = [];
+    
 
     async load() { }
     async onRender() { this.stOnRender(); }
@@ -125,6 +126,11 @@ export class BaseComponent extends BehaviorComponent {
     };
     static importScripts() { }
     static importAssets() { }
+    parseEvents = (content) => {
+        return content
+            .replace(/parent.|self./,`$still.component.ref('${this.$parent.cmpInternalId}').`)
+            .replace(/inner./,`$still.component.ref('${this.cmpInternalId}').`)
+    };
 
     props(props = {}) {
         this.cmpProps = props;
