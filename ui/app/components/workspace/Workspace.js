@@ -215,7 +215,7 @@ export class Workspace extends ViewComponent {
 		let response = await this.service.getDuckDbs();
 		response = await response.json();
 
-		for(const [_, tables] of Object.entries(response)){
+		for(const [dbfile, tables] of Object.entries(response)){
 			const data = Object.values(tables);
 			for(const tableData of data){
 
@@ -226,7 +226,7 @@ export class Workspace extends ViewComponent {
 						</div>
 					`,
 					parentLbl: data[0].dbname,
-					parentData: data[0].dbname
+					parentData: dbfile
 				});
 			}
 		}
@@ -246,7 +246,12 @@ export class Workspace extends ViewComponent {
 
 	async runCode(){
 		const code = this.cmProxy.codeEditor.getValue();
-		const payload = { code, lang: this.editorActiveLang };
+		const database = [...this.connectedDbs][0]
+		const payload = { 
+			code, lang: this.editorActiveLang, 
+			session: this.socketData.sid, database
+		};
+
 		let result = await this.service.runCode(payload);
 		result = await result.json();
 		this.terminalProxy.writeTerminal(result.output);
@@ -267,18 +272,34 @@ export class Workspace extends ViewComponent {
 		})
 	}
 
-	connectToDatabase(event, dbName){
+	async connectToDatabase(event, dbName){
 
 		event.preventDefault();
 		const element = event.target;
+		const database = dbName;
+		const session = this.socketData.sid;
+		const payload = { session, database };
+		let result;
+		
+		if(this.connectedDbs.has(dbName)){
+			result = await (
+				await this.service.handleDuckdbConnect(payload, WorkspaceService.DISCONECT_DB)
+			).json();
 
-		if(element.classList.contains('database-connected')){
-			element.style.color = 'grey';
-			element.classList.remove('database-connected');
-		}else{
-			element.classList.add('database-connected');
-			element.style.color = 'green';
+			if(result.status){
+				this.connectedDbs.delete(dbName);
+				element.style.color = 'grey';
+			}
+
+		} else{
+			result = await (await this.service.handleDuckdbConnect(payload)).json();
+			if(result.status){
+				this.connectedDbs.add(dbName);
+				element.style.color = 'green';
+			}
 		}
+
+		if(!result.status) AppTemplate.toast.error(result.message);
 
 	}
 
