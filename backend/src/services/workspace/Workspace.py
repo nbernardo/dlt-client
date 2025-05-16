@@ -5,12 +5,61 @@ import os
 import duckdb
 from utils.duckdb_util import DuckdbUtil
 
+
 class Workspace:
     
     editorLanguages = {
         'PYTHON': 'python-lang',
         'SQL': 'sql-lang',
     }
+
+    duckdb_open_connections = {}
+
+    @staticmethod
+    def connect_to_duckdb(database, session):
+
+        try:
+            if session not in Workspace.duckdb_open_connections:
+                Workspace.duckdb_open_connections[session] = {}
+
+            folder = Workspace.get_duckdb_path_on_ppline()
+            db_cnx = duckdb.connect(f'{folder}/{database}')
+            Workspace.duckdb_open_connections[session][database] = db_cnx
+
+        except Exception as e:
+            return {
+                'status': False,
+                'message': f'Error on connecting to database {database}'                
+            }
+        
+        return {
+            'status': True,
+            'message': f'Connection created successfully to {database}'
+        }
+
+
+    @staticmethod
+    def disconnect_duckdb(database, session):
+
+        try:
+            if session in Workspace.duckdb_open_connections:
+                if database in Workspace.duckdb_open_connections[session]:
+                    del Workspace.duckdb_open_connections[session][database]
+                    
+                if len(Workspace.duckdb_open_connections[session]) == 0:
+                    del Workspace.duckdb_open_connections[session]
+
+        except Exception as e:
+            return {
+                'status': False,
+                'message': f'Error on disconnecting from database {database}'                
+            }
+        
+        return {
+            'status': True,
+            'message': f'Disconnected successfully from {database}'
+        }
+
 
     @staticmethod
     def run_python_code(payload):
@@ -40,10 +89,10 @@ class Workspace:
         
 
     @staticmethod
-    def run_sql_code(query_string):
+    def run_sql_code(session, database, query_string):
 
         try:
-            con = duckdb.connect("/Users/nakassonybernardo/projects/dlt-client/backend/destinations/duckdb/pipeline_name.duckdb")
+            con = Workspace.duckdb_open_connections[session][database]
             con.execute(query_string)
             return con.fetchall()
         except Exception as err:
@@ -53,7 +102,7 @@ class Workspace:
     @staticmethod
     def list_duck_dbs():
 
-        skip_tables = ['_dlt_loads','_dlt_pipeline_state','_dlt_pipeline_state']
+        skip_tables = ['_dlt_loads','_dlt_pipeline_state','_dlt_pipeline_state','_dlt_version']
 
         folder = Workspace.get_duckdb_path_on_ppline()
         file_list = os.listdir(folder)
