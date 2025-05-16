@@ -21,3 +21,9 @@ export const connectIcon = `
         '>
     </i>
 `;
+
+export const tableToTerminaIcon = `
+    <img 
+        src="app/assets/imgs/terminal-cli-fill.svg" 
+        class="tbl-to-terminal">
+`;

@@ -68,6 +68,8 @@
 					(onResize)="onSplitterMove(params)"
 					minHeight="65"
 					maxHeight="900"
+					proxy="codeEditorSplitter"
+					(onLblClick)="showHideEditor()"
 				/>
 				<div style="display: contents;">
 					<div class="terminal-mode-list">
@@ -157,6 +159,15 @@
 	.table-in-treeview{
 		display: flex;
 		justify-content:space-between;
+	}
+
+	.tbl-to-terminal {
+		padding-right: 7px; width: 20px; opacity: .8;
+		cursor: pointer;
+	}
+
+	.term-icn-container {
+		width: 15px; left: -6px; cursor: pointer;
 	}
 
 </style>
