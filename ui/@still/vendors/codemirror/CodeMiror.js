@@ -76,4 +76,8 @@ export class CodeMiror extends ViewComponent {
         };
     }
 
+    setCode(value){
+        this.codeEditor.setValue(value);
+    }
+
 }
