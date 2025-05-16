@@ -1476,8 +1476,8 @@ export class Components {
         const reStStart = /\<st-divider[\s\t]{0,}/, reStClose = /[\/\>]{2}/;
         const reAnyProp = /[\=\"A-Za-z0-9\s\t\r\n\.\(\)\&\;\#]{0,}[\s]{0,}/;
         const RE = new RegExp(reStStart.source + reAnyProp.source + reStClose.source,'g');
-        const t2 = `<div ${c} ${id} {h} {w}><l-l class='label'>{{}}</l-l><div ${d}></div></div>`;
-        const t1 = `<div ${a} ${id} {h} {w}><l-l class='label'>{{}}</l-l><div ${b}></div></div>`;
+        const t2 = `<div ${c} ${id}><l-l class='label'>{{}}</l-l><div ${d}></div></div>`;
+        const t1 = `<div ${a} ${id}><l-l class='label'>{{}}</l-l><div ${b}></div></div>`;
         t = t.replace(RE, (_) => {
             let tmpl = t1, props = {}, m = _.replace(/\t/g,'').replace(/\n/,' ').replace(/\s{2,}/,' ');
             m.split(/"\s/i).map((r) => {
@@ -1489,7 +1489,7 @@ export class Components {
             tmpl = tmpl.replace('{{}}', props?.label || '');
             const dividerId = `devid-${UUIDUtil.newId()}`;
             if (!cp['stillDevidersCmp']) cp['stillDevidersCmp'] = [];
-            cp['stillDevidersCmp'].push({dividerId, ...props});
+            cp['stillDevidersCmp'].push({dividerId, ...props, parent: cp});
             return tmpl.replace('$StId', `${dividerId}`)
         });
         return t;
@@ -1500,6 +1500,7 @@ export class Components {
             const {dividerId, type, ev1: onResize, ev2: onLblClick } = p;
             if(type != 'horizontal') return;
             const separator = document.getElementById(dividerId);
+            p.parent[p.proxy] = separator;
             const method = Components.obj().newResizeEvt(c, onResize);
             const { previousElementSibling: _left, nextElementSibling: _right } = separator;
             let [isResizing, startX, leftPanelWidth] = [false, undefined, undefined];
@@ -1539,40 +1540,49 @@ export class Components {
 
 	setHrzntlDevider(c){
         c['stillDevidersCmp'].forEach((p) => {
-            const {dividerId, type, ev1: onRsiz, ev2: onLblClk, minHeight: miH, maxHeight: maH, startHeight  } = p;
+            const {dividerId, type, ev1: onRsiz, ev2: onLblClk, minHeight, maxHeight } = p;
+            
             if(type != 'vertical') return;
             const d = document.getElementById(dividerId);
             d.querySelector('.label').onclick = async () => await Components.obj().newResizeEvt(c, onLblClk)();
-            if(startHeight) d.style.marginTop = startHeight + 'px';
+            if(p.startHeight) d.style.marginTop = p.startHeight + 'px';
             const method = Components.obj().newResizeEvt(c, onRsiz);
             const {previousElementSibling: _top, nextElementSibling: _bottom, parentElement: cntr} = d;
             cntr.classList.add('container-divider-parent');
             _top.className = _top.className + ' panel top';
             _bottom.classNam = _bottom.className + ' panel bottom';
-            let isDragging = false;
+            let isDragging = false, maH = Number(maxHeight), miH = Number(minHeight);  
+            p.parent[p?.proxy] = { 
+                element: d, 
+                setHeight: (number) => onDividerMove(null, ((maH+30) - number)),
+                setMaxHeight: () => onDividerMove(null, d.parentElement.clientHeight - Number(maH)),
+            };
         
             d.addEventListener("mousedown", function () {
               isDragging = true, document.body.style.cursor = 'ns-resize';
             });
         
             document.addEventListener("mousemove", (e) => {
-              if (!isDragging) return;
-              
-              const {offsetTop: containerOffsetTop, offsetHeight: containerHeight} = cntr;
-              const pointerRelativeY = e.clientY - containerOffsetTop;
-              const topHeight = pointerRelativeY;
-              const bottomHeight = containerHeight - topHeight - d.offsetHeight;
-            
-              if(miH && (bottomHeight < miH) || maH && (bottomHeight > maH)) return;
-
-              [_top.style.flex, _bottom.style.flex] = ['none', 'none'];
-              [_top.style.height, _bottom.style.height] = [topHeight + "px", bottomHeight + "px"];
-              (async () => await method({ topHeight, bottomHeight }))();
+              if (!isDragging) return; onDividerMove(e);
             });
         
             document.addEventListener("mouseup", () => {
               isDragging = false, document.body.style.cursor = 'default';
             });
+
+            function onDividerMove(e, height = null){ 
+                
+                const {offsetTop: containerOffsetTop, offsetHeight: containerHeight} = cntr;
+                let topHeight = height;
+                if(!height) topHeight = e.clientY - containerOffsetTop;
+                const bottomHeight = containerHeight - topHeight - d.offsetHeight;
+              
+                if((miH && (bottomHeight < miH) && !height) || maH && (bottomHeight > maH)) return;
+  
+                [_top.style.flex, _bottom.style.flex] = ['none', 'none'];
+                [_top.style.height, _bottom.style.height] = [topHeight + "px", bottomHeight + "px"];
+                (async () => await method({ topHeight, bottomHeight }))();
+            }
         })
 	}
 
