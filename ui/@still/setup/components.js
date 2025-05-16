@@ -1554,7 +1554,7 @@ export class Components {
             let isDragging = false, maH = Number(maxHeight), miH = Number(minHeight);  
             p.parent[p?.proxy] = { 
                 element: d, 
-                setHeight: (number) => onDividerMove(null, ((maH+30) - number)),
+                setHeight: (number) => onDividerMove(null, (d.parentElement.clientHeight - number)),
                 setMaxHeight: () => onDividerMove(null, d.parentElement.clientHeight - Number(maH)),
             };
         
