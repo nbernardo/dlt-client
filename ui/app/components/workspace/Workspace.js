@@ -221,7 +221,7 @@ export class Workspace extends ViewComponent {
 		for(const [dbfile, tables] of Object.entries(response)){
 			const data = Object.values(tables);
 
-			const pipeline = this.dbTreeviewProxy.addElement(
+			const pipeline = this.dbTreeviewProxy.addNode(
 				{
 					content: `
 					<div class="ppline-treeview">
@@ -232,7 +232,7 @@ export class Workspace extends ViewComponent {
 					id: dbfile
 			});
 
-			const dbSchema = this.dbTreeviewProxy.addElement({
+			const dbSchema = this.dbTreeviewProxy.addNode({
 				content: `
 					<div class="table-in-treeview">
 						<span> ${dbIcon} <b>${data[0].dbname}</b></span>
@@ -246,7 +246,7 @@ export class Workspace extends ViewComponent {
 				const tableData = data[idx];
 				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
 
-				const table = this.dbTreeviewProxy.addElement({ 
+				const table = this.dbTreeviewProxy.addNode({ 
 					content: `
 						<div class="table-in-treeview">
 							<span>${tableIcon} ${tableData.table}</span>
@@ -265,9 +265,7 @@ export class Workspace extends ViewComponent {
 			pipeline.addChild(dbSchema);
 		}
 
-		console.log(`DATA IS: `, this.dbTreeviewProxy.getTreeData());
-		
-		this.dbTreeviewProxy.loadTree();
+		this.dbTreeviewProxy.renderTree();
 	}
 
 	async runCode(){
