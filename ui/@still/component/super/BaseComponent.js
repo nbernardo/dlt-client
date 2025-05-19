@@ -128,9 +128,9 @@ export class BaseComponent extends BehaviorComponent {
     static importAssets() { }
     parseEvents = (content) => {
         return content
-            .replace(/parent.|self./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
-            .replace(/inner./g,`$still.component.ref('${this.cmpInternalId}').`)
-            .replace(/\$event/g,`event`)
+            ?.replace(/parent.|self./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
+            ?.replace(/inner./g,`$still.component.ref('${this.cmpInternalId}').`)
+            ?.replace(/\$event/g,`event`)
     };
 
     props(props = {}) {

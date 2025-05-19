@@ -27,3 +27,9 @@ export const tableToTerminaIcon = `
         src="app/assets/imgs/terminal-cli-fill.svg" 
         class="tbl-to-terminal">
 `;
+
+export const pipelineIcon = `
+    <img 
+        src="app/assets/imgs/pipeline.png" 
+        class="tbl-to-terminal">
+`;

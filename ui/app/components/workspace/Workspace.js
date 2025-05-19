@@ -10,7 +10,7 @@ import { Terminal } from "./terminal/Terminal.js";
 import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
 import { EditorLanguageType } from "../../types/editor.js";
 import { StillTreeView } from "../../../@still/vendors/still-treeview/StillTreeView.js";
-import { connectIcon, dbIcon, tableIcon, tableToTerminaIcon } from "./icons/database.js";
+import { connectIcon, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon } from "./icons/database.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
 
 export class Workspace extends ViewComponent {
@@ -220,11 +220,33 @@ export class Workspace extends ViewComponent {
 
 		for(const [dbfile, tables] of Object.entries(response)){
 			const data = Object.values(tables);
-			for(const tableData of data){
 
-				const tableToQuery = `${data[0].dbname}.${tableData.table}`;
+			const pipeline = this.dbTreeviewProxy.addElement(
+				{
+					content: `
+					<div class="ppline-treeview">
+						<span> ${pipelineIcon} ${dbfile} </span>
+						<span style="display: none;">${connectIcon}<span>
+					</div>`,
+					isTopLevel: true,
+					id: dbfile
+			});
 
-				this.dbTreeviewProxy.addElement({ 
+			const dbSchema = this.dbTreeviewProxy.addElement({
+				content: `
+					<div class="table-in-treeview">
+						<span> ${dbIcon} <b>${data[0].dbname}</b></span>
+						<span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span>
+					</div>
+				`,
+			});
+
+			for(const idx in data){
+
+				const tableData = data[idx];
+				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
+
+				const table = this.dbTreeviewProxy.addElement({ 
 					content: `
 						<div class="table-in-treeview">
 							<span>${tableIcon} ${tableData.table}</span>
@@ -235,24 +257,16 @@ export class Workspace extends ViewComponent {
 							>
 								${tableToTerminaIcon}
 							</span>
-						</div>
-					`,
-					parentLbl: data[0].dbname,
-					parentData: dbfile
+						</div>`,
 				});
+
+				dbSchema.addChild(table);
 			}
+			pipeline.addChild(dbSchema);
 		}
 
-		// @replace is the parent element itself
-		// @data gets replaced by the parentData
-		this.dbTreeviewProxy.setTopElementTemplate(`
-			<div class="table-in-treeview">
-				<span> ${dbIcon} @replace </span>
-				<span>
-					<a onclick="self.connectToDatabase($event, '@data')">${connectIcon}</a>
-				<span>
-			</div>
-		`);
+		console.log(`DATA IS: `, this.dbTreeviewProxy.getTreeData());
+		
 		this.dbTreeviewProxy.loadTree();
 	}
 
@@ -331,6 +345,11 @@ export class Workspace extends ViewComponent {
 			this.codeEditorSplitter.setMaxHeight();
 			this.isEditorOpened = true;
 		}
+
+		console.log(`TREE DATA IS: `);
+		console.log(this.dbTreeviewProxy.getTreeData());
+		
+
 	}
 
 }
