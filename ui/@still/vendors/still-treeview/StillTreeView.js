@@ -3,15 +3,13 @@ import { ViewComponent } from "../../component/super/ViewComponent.js";
 
 export class TreeNodeType { 
 	//This are the properties
-	content; childs = []; isTopLevel; id;
+	content; childs = []; isTopLevel;
 
 	addChild = (child) => this.childs.push(child);
 
-	constructor({ content, childs, isTopLevel, id }){ 
+	constructor({ content, isTopLevel }){ 
 		this.content = content;
-		this.childs = childs;
 		this.isTopLevel = isTopLevel;
-		this.id = id;
 	}
 }
 
@@ -26,13 +24,15 @@ export class StillTreeView extends ViewComponent {
 				</ul>`;
 
 	/** @Prop @type { {} } */
-	#treeElements;
+	#treeNodes;
 	/** @Prop */
 	#treeData = null;
 	/** @Prop */
 	#wasTreeLoaded = false;	
 	/** @Prop */
 	#lastParent = null;
+	/** @Prop */
+	#nodeCounter = 0;
 
 	
 	showBullets = true;
@@ -40,9 +40,10 @@ export class StillTreeView extends ViewComponent {
 
 	stAfterInit(){
 
-		this.#treeElements = {};
+		this.#treeNodes = {};
 		const self = this;
 		let treeStructure = '';
+		this.#nodeCounter = 0;
 		
 		this.dataSource.onChange(treeMapping => {
 
@@ -98,8 +99,7 @@ export class StillTreeView extends ViewComponent {
 
 		//Return any intrmediate child node
 		if(returnValue) return details;
-		
-		
+
 		//Return the top most node
 		return details.outerHTML;
 
@@ -110,47 +110,37 @@ export class StillTreeView extends ViewComponent {
 		return this;
 	}
 
-	loadTree(){
+	renderTree(){
 		if(!this.#wasTreeLoaded){
 			if(this.#treeData) this.dataSource = this.#treeData;
-			else this.dataSource = this.#treeElements;
+			else this.dataSource = this.#treeNodes;
 			this.#wasTreeLoaded = true;
 		}
 	}
 
 	/** @param { TreeNodeType } node */
-	addElement(node){
+	addNode(node){
 		node = new TreeNodeType(node);
 		if(node.isTopLevel){
-			if(!(node.id in this.#treeElements)){
-				this.#treeElements[node.id] = node;
-				this.#lastParent = this.#treeElements[node.id];
+			if(!(++this.#nodeCounter in this.#treeNodes)){
+				this.#treeNodes[this.#nodeCounter] = node;
+				this.#lastParent = this.#treeNodes[this.#nodeCounter];
 			}
 		}
 
-		node.childs = [];
-		node.content = this.parseEvents(node.content);
-		return node;
+		return this.parseEvents(node);
 	}
 
 	/** 
 	 * @param { TreeNodeType } parent 
 	 * @param { TreeNodeType } child 
 	 * */
-	addChildsToElement(parent, child){
+	addChildsToNode(parent, child){
 		parent.childs.push(child);
 	}
 
 	clearTreeData(){
-		this.#treeElements = {};
-	}
-
-	/**
-	 * @param { TreeNodeType } param 
-	 */
-	newElement({ content, parentLbl, childs }){
-		if(!childs) childs = [];
-		return { content, parentLbl, childs };
+		this.#treeNodes = {};
 	}
 
 	removeBullets(){
@@ -160,7 +150,7 @@ export class StillTreeView extends ViewComponent {
 
 	getTreeData(){
 		if(this.#treeData) return this.#treeData;
-		return this.#treeElements;	
+		return this.#treeNodes;	
 	}
 
 	/** @returns { TreeNodeType } */
