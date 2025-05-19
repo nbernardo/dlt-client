@@ -1,7 +1,19 @@
 import { ViewComponent } from "../../component/super/ViewComponent.js";
 
 
-export class TreeNodeType { content; parentLbl; childs = []; parentData; }
+export class TreeNodeType { 
+	//This are the properties
+	content; childs = []; isTopLevel; id;
+
+	addChild = (child) => this.childs.push(child);
+
+	constructor({ content, childs, isTopLevel, id }){ 
+		this.content = content;
+		this.childs = childs;
+		this.isTopLevel = isTopLevel;
+		this.id = id;
+	}
+}
 
 export class StillTreeView extends ViewComponent {
 
@@ -20,9 +32,11 @@ export class StillTreeView extends ViewComponent {
 	/** @Prop */
 	#wasTreeLoaded = false;	
 	/** @Prop */
-	#topElementTemplate = null;
+	#lastParent = null;
+
 	
 	showBullets = true;
+	showSummary = true;
 
 	stAfterInit(){
 
@@ -51,42 +65,40 @@ export class StillTreeView extends ViewComponent {
 
 	}
 
-	/** @param { { childs: [], nodeLabel, parentData } } param */
+	/** @param { TreeNodeType } param */
 	parseNode(param = {}, returnValue = false){
 		
 		const self = this;
 
-		const { childs, nodeLabel } = param;
+		const { childs, content } = param;
 		const details = document.createElement('details');
 		details.setAttribute('open','')
 		const summary = document.createElement('summary');
 		const childsContainer = document.createElement('ul');
-		let topContent = nodeLabel;
+		let topContent = content;
 
-		if(this.#topElementTemplate){
-			topContent = this.#topElementTemplate
-				.replace('@replace',topContent)
-				.replace('@data', param.parentData);
-		}
-		topContent = this.parseEvents(topContent);
-
-		if(nodeLabel) summary.innerHTML = topContent;
+		summary.innerHTML = topContent;
 		details.appendChild(summary);
 		details.appendChild(childsContainer);
 		
 		for(const currNode of childs){
 			const childElm = document.createElement('li');
+			
 			const content = document.createElement('span');
-			content.innerHTML = currNode;
+			content.innerHTML = currNode.content;
 			childElm.appendChild(content);
+			
 			childsContainer.appendChild(childElm);
 
-			if(currNode?.childs?.length)
+			if(currNode?.childs?.length){
 				childElm.appendChild(self.parseNode(currNode, true));
+				childElm.removeChild(childElm.childNodes[0])				
+			}
 		}
 
 		//Return any intrmediate child node
 		if(returnValue) return details;
+		
 		
 		//Return the top most node
 		return details.outerHTML;
@@ -108,17 +120,25 @@ export class StillTreeView extends ViewComponent {
 
 	/** @param { TreeNodeType } node */
 	addElement(node){
-		if(!(node.parentLbl in this.#treeElements)){
-			this.#treeElements[node.parentLbl] = { 
-				childs: [], nodeLabel: node.parentLbl, parentData: node.parentData 
-			};
+		node = new TreeNodeType(node);
+		if(node.isTopLevel){
+			if(!(node.id in this.#treeElements)){
+				this.#treeElements[node.id] = node;
+				this.#lastParent = this.#treeElements[node.id];
+			}
 		}
 
-		// In case any event (e.g. onclick) is being
-		// passe parse will take care of it
-		const parsedContent = this.parseEvents(node.content);
-		this.#treeElements[node.parentLbl].childs.push(parsedContent)
-		return this;
+		node.childs = [];
+		node.content = this.parseEvents(node.content);
+		return node;
+	}
+
+	/** 
+	 * @param { TreeNodeType } parent 
+	 * @param { TreeNodeType } child 
+	 * */
+	addChildsToElement(parent, child){
+		parent.childs.push(child);
 	}
 
 	clearTreeData(){
@@ -138,8 +158,14 @@ export class StillTreeView extends ViewComponent {
 		return this;
 	}
 
-	setTopElementTemplate(htmlString){
-		this.#topElementTemplate = htmlString;
+	getTreeData(){
+		if(this.#treeData) return this.#treeData;
+		return this.#treeElements;	
+	}
+
+	/** @returns { TreeNodeType } */
+	getLastProcessSubtree(){
+		return this.#lastParent;
 	}
 	
 }
