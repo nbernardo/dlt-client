@@ -77,3 +77,7 @@
   .still-tree-view details[open] > summary::before {
     background-position: calc(-2 * var(--radius)) 0;
   }
+
+  .still-tree-view + ul + li {
+    background-color: red;
+  }
