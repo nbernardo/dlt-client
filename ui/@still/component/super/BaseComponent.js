@@ -126,11 +126,11 @@ export class BaseComponent extends BehaviorComponent {
     };
     static importScripts() { }
     static importAssets() { }
-    parseEvents = (content) => {
-        return content
+    parseEvents = (obj) => {
+        obj?.content
             ?.replace(/parent.|self./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
-            ?.replace(/inner./g,`$still.component.ref('${this.cmpInternalId}').`)
-            ?.replace(/\$event/g,`event`)
+            ?.replace(/inner./g,`$still.component.ref('${this.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+        return obj;
     };
 
     props(props = {}) {
