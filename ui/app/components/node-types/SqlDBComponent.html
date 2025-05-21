@@ -17,7 +17,9 @@
 			<p>Database:</p>
 			<input type="text" (required)="true" (value)="database">
 			<p>Tables list:</p>
-			<input type="text" (value)="tableName" placeholder="Enter table 1 name">
+			<input type="text" 
+					(required)="true" 
+					(value)="tableName" placeholder="Enter table 1 name">
 		</form>
 		<button onclick="component.addField()" class="add-table-buttons">Add Table field</button>
 		<!--

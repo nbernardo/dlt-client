@@ -1,5 +1,14 @@
-from flask_socketio import emit
+from flask_socketio import SocketIO, emit, Namespace
 
+
+class PiplineNamespace(Namespace):
+    def on_connect(self): pass
+    def on_disconnect(self, reason): pass
+
+socketio = SocketIO(cors_allowed_origins=["http://127.0.0.1:8080", "http://localhost:8080"],
+                    logger=True, engineio_logger=True, async_mode='eventlet')
+
+socketio.on_namespace(PiplineNamespace('/pipeline'))
 
 class RequestContext:
 
@@ -34,6 +43,8 @@ class RequestContext:
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
+        socketio.sleep(0)
+
 
     def emit_success(self, obj: object, data):
         """
@@ -47,6 +58,8 @@ class RequestContext:
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
+        socketio.sleep(0)
+
 
     def emit_start(self, obj: object, data):
         """
@@ -60,6 +73,8 @@ class RequestContext:
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
+        socketio.sleep(0)
+        
 
     def emit_ppsuccess(self, data=True, socked_sid=None):
         """
@@ -72,3 +87,4 @@ class RequestContext:
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
+        socketio.sleep(0)

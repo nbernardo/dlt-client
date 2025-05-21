@@ -32,7 +32,7 @@ export const FormHelper = {
                  `onkeyup="$still.component.ref('${cmp.cmpInternalId}').onValueInput(event,'${fieldName}',this, '${formRef.name}')"`
                  : '';
                 const vlidtor = `${validator ? `(validator)=${validator}`: ''}`;
-                const cmpId = this.cmpInternalId.replace('/','').replace('@','');
+                const cmpId = this.cmpInternalId?.replace('/','').replace('@','');
                 const input = `
                     <input ${datafields}
                         class="${validatorClass} listenChangeOn-${cmpId}-${fieldName} ${cmp.cmpInternalId}-${fieldName} ${className || ''}"
