@@ -574,7 +574,7 @@ header a {
         font-weight: 600;
         }
 
-        .tabset > label::after {
+        /* .tabset > label::after {
         content: "";
         position: absolute;
         left: 15px;
@@ -582,7 +582,7 @@ header a {
         width: 22px;
         height: 4px;
         background: #8d8d8d;
-        }
+        } */
 
         input:focus-visible + label {
         outline: 2px solid rgba(0,102,204,1);
@@ -595,11 +595,11 @@ header a {
         color: #06c;
         }
 
-        .tabset > label:hover::after,
+        /* .tabset > label:hover::after,
         .tabset > input:focus + label::after,
         .tabset > input:checked + label::after {
         background: #06c;
-        }
+        } */
 
         .tabset > input:checked + label {
         border-color: #ccc;

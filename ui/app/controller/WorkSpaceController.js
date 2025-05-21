@@ -380,4 +380,8 @@ export class WorkSpaceController extends BaseController {
             obj.edgeTypeAdded[input_id].add(output_id);
     }
 
+    copyToClipboard(content){
+        navigator.clipboard.writeText(content);
+    }
+
 }
