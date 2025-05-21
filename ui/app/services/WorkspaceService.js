@@ -16,6 +16,8 @@ export class ObjectDataTypes {
 export class WorkspaceService extends BaseService {
 
     table = new ServiceEvent([]);
+    static DISCONECT_DB = 'DISCONECT';
+    static CONNECT_DB = 'CONNECT';
 
     /** @type { Array<ObjectDataTypes> } */
     objectTypes = [
@@ -43,6 +45,30 @@ export class WorkspaceService extends BaseService {
 
         return result;
 
+    }
+
+    async getDuckDbs(){
+        const url = '/workcpace/duckdb/list';
+        const result = await $still.HTTPClient.post(url, null, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        return result;
+    }
+
+    async handleDuckdbConnect(payload, action = WorkspaceService.CONNECT_DB){
+
+        let url = '/workcpace/duckdb/connect';
+        if(action == WorkspaceService.DISCONECT_DB)
+            url = '/workcpace/duckdb/disconnect';
+
+        const result = await $still.HTTPClient.post(url, JSON.stringify(payload), {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        return result;
     }
 
 }

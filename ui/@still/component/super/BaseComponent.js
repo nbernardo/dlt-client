@@ -90,7 +90,7 @@ export class BaseComponent extends BehaviorComponent {
     baseUrl = window.location.href;
     #stateChangeSubsribers = [];
     bindStatus;
-    $parent;
+    /** @type { ViewComponent } */$parent;
     routesMap = {
         ...stillRoutesMap.viewRoutes.lazyInitial,
         ...stillRoutesMap.viewRoutes.regular
@@ -102,6 +102,7 @@ export class BaseComponent extends BehaviorComponent {
     navigationId = Router.navCounter;
     $cmpStController;
     #dynFields = [];
+    
 
     async load() { }
     async onRender() { this.stOnRender(); }
@@ -125,6 +126,12 @@ export class BaseComponent extends BehaviorComponent {
     };
     static importScripts() { }
     static importAssets() { }
+    parseEvents = (obj) => {
+        obj.content = obj?.content
+            ?.replace(/parent.|self./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
+            ?.replace(/inner./g,`$still.component.ref('${this.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+        return obj;
+    };
 
     props(props = {}) {
         this.cmpProps = props;
@@ -322,7 +329,7 @@ export class BaseComponent extends BehaviorComponent {
 
             let subscriptionCls = '';
 
-            const subsCls = `listenChangeOn-${this.cmpInternalId}-${ds}`;
+            const subsCls = `listenChangeOn-${this.cmpInternalId.replace('/','').replace('@','')}-${ds}`;
             const hashValue = `hash_${this.getUUID()}`;
             const hash = `hash="${hashValue}"`;
             const newClassName = `newCls="${subsCls}"`;
@@ -1022,7 +1029,8 @@ export class BaseComponent extends BehaviorComponent {
             ? this.cmpInternalId
             : this.getProperInstanceName();
         const validatorClass = BehaviorComponent.setOnValueInput(mt, this, field, (formRef?.formRef || null));
-        const classList = `${validatorClass} listenChangeOn-${this.cmpInternalId}-${field}`;
+        const cmpId = this.cmpInternalId.replace('/','').replace('@','');
+        const classList = `${validatorClass} listenChangeOn-${cmpId}-${field}`;
 
         const clsPath = this.getClassPath();
 
