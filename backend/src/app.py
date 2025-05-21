@@ -34,4 +34,4 @@ def on_connect():
 
 app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
-socketio.run(app)
+socketio.run(app, host="0.0.0.0", port=5000)
