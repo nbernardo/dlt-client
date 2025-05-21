@@ -10,7 +10,7 @@ import { Terminal } from "./terminal/Terminal.js";
 import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
 import { EditorLanguageType } from "../../types/editor.js";
 import { StillTreeView } from "../../../@still/vendors/still-treeview/StillTreeView.js";
-import { connectIcon, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon } from "./icons/database.js";
+import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "./icons/database.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
 
 export class Workspace extends ViewComponent {
@@ -223,48 +223,24 @@ export class Workspace extends ViewComponent {
 
 			const pipeline = this.dbTreeviewProxy.addNode(
 				{
-					content: `
-					<div class="ppline-treeview">
-						<span> ${pipelineIcon} ${dbfile} </span>
-						<span style="display: none;">${connectIcon}<span>
-					</div>`,
+					content: this.pipelineTreeViewTemplate(dbfile),
 					isTopLevel: true,
-					id: dbfile
 			});
 
 			const dbSchema = this.dbTreeviewProxy.addNode({
-				content: `
-					<div class="table-in-treeview">
-						<span> ${dbIcon} <b>${data[0].dbname}</b></span>
-						<span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span>
-					</div>
-				`,
+				content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
 			});
 
 			for(const idx in data){
-
 				const tableData = data[idx];
 				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
-
 				const table = this.dbTreeviewProxy.addNode({ 
-					content: `
-						<div class="table-in-treeview">
-							<span>${tableIcon} ${tableData.table}</span>
-							<span 
-								onclick="self.genInitialDBQuery('${tableToQuery}')"
-								tooltip-x="-130" tooltip="Query ${tableData.table} table" 
-								class="term-icn-container"
-							>
-								${tableToTerminaIcon}
-							</span>
-						</div>`,
+					content: this.databaseTreeViewTemplate(tableData, tableToQuery),
 				});
-
 				dbSchema.addChild(table);
 			}
 			pipeline.addChild(dbSchema);
 		}
-
 		this.dbTreeviewProxy.renderTree();
 	}
 
@@ -343,11 +319,49 @@ export class Workspace extends ViewComponent {
 			this.codeEditorSplitter.setMaxHeight();
 			this.isEditorOpened = true;
 		}
+	}
 
-		console.log(`TREE DATA IS: `);
-		console.log(this.dbTreeviewProxy.getTreeData());
-		
+	viewPipelineDiagram(event, data){
+		event.preventDefault();
+		console.log(data);
+	}
 
+	databaseTreeViewTemplate(tableData, tableToQuery){
+		return `<div class="table-in-treeview">
+					<span>${tableIcon} ${tableData.table}</span>
+					<span class="tables-icn-container">
+						<span tooltip-x="-140" tooltip="Copy table path to clipboard"
+							  onclick="self.copyToClipboard('${tableToQuery}')"
+						>
+							${copyClipboardIcin}
+						</span>
+						<span 
+							onclick="self.genInitialDBQuery('${tableToQuery}')"
+							tooltip-x="-130" tooltip="Query ${tableData.table} table"
+						>
+							${tableToTerminaIcon}
+						</span>
+					</span>
+				</div>`;
+	}
+
+	pipelineTreeViewTemplate(dbfile){
+		return `<div class="ppline-treeview">
+					<span class="ppline-treeview-label"> ${pipelineIcon} ${dbfile} </span>
+					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
+						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
+				</div>`;
+	}
+
+	dbSchemaTreeViewTemplate(dbname, dbfile){
+		return `<div class="table-in-treeview">
+					<span> ${dbIcon} <b>${dbname}</b></span>
+					<span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span>
+				</div>`;
+	}
+
+	copyToClipboard(content){
+		this.controller.copyToClipboard(content);
 	}
 
 }
