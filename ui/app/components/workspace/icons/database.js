@@ -33,3 +33,18 @@ export const pipelineIcon = `
         src="app/assets/imgs/pipeline.png" 
         class="tbl-to-terminal">
 `;
+
+export const viewpplineIcon = `
+    <i class='fas fa-eye' 
+        style='margin-left: -23px; 
+               position:absolute; 
+               color: grey;
+               z-index: 1000'>
+    </i>
+`;
+
+export const copyClipboardIcin = `
+    <i class="far fa-clone" 
+        style="width: 13px;">
+    </i>
+`

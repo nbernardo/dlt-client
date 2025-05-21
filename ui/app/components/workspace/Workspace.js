@@ -218,9 +218,9 @@ export class Workspace extends ViewComponent {
 		let response = await this.service.getDuckDbs();
 		response = await response.json();
 
-		for(const [dbfile, tables] of Object.entries(response)){
+		for(const [_file, tables] of Object.entries(response)){
 			const data = Object.values(tables);
-
+			const dbfile = _file.replace('.duckdb','');
 			const pipeline = this.dbTreeviewProxy.addNode(
 				{
 					content: this.pipelineTreeViewTemplate(dbfile),
@@ -235,7 +235,7 @@ export class Workspace extends ViewComponent {
 				const tableData = data[idx];
 				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
 				const table = this.dbTreeviewProxy.addNode({ 
-					content: this.databaseTreeViewTemplate(tableData, tableToQuery),
+					content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
 				});
 				dbSchema.addChild(table);
 			}
@@ -303,9 +303,9 @@ export class Workspace extends ViewComponent {
 
 	}
 
-	genInitialDBQuery(table){
+	genInitialDBQuery(table, dbfile){
 		this.selecteLang('sql-lang');
-		this.cmProxy.setCode('SELECT * FROM '+table);
+		this.cmProxy.setCode(`use ${dbfile};\n\nSELECT * FROM ${table};`);
 		this.codeEditorSplitter.setMaxHeight();
 		this.isEditorOpened = true;
 	}
@@ -326,7 +326,7 @@ export class Workspace extends ViewComponent {
 		console.log(data);
 	}
 
-	databaseTreeViewTemplate(tableData, tableToQuery){
+	databaseTreeViewTemplate(tableData, tableToQuery, dbfile){
 		return `<div class="table-in-treeview">
 					<span>${tableIcon} ${tableData.table}</span>
 					<span class="tables-icn-container">
@@ -336,7 +336,7 @@ export class Workspace extends ViewComponent {
 							${copyClipboardIcin}
 						</span>
 						<span 
-							onclick="self.genInitialDBQuery('${tableToQuery}')"
+							onclick="self.genInitialDBQuery('${tableToQuery}','${dbfile}')"
 							tooltip-x="-130" tooltip="Query ${tableData.table} table"
 						>
 							${tableToTerminaIcon}
@@ -356,7 +356,7 @@ export class Workspace extends ViewComponent {
 	dbSchemaTreeViewTemplate(dbname, dbfile){
 		return `<div class="table-in-treeview">
 					<span> ${dbIcon} <b>${dbname}</b></span>
-					<span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span>
+					<!-- <span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span> -->
 				</div>`;
 	}
 

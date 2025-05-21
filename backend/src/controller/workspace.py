@@ -15,10 +15,8 @@ def run_code():
         output = Workspace.run_python_code(code)
 
     if payload['lang'] == Workspace.editorLanguages['SQL']:
-        session = payload['session']
-        database = payload['database']
-        output = Workspace.run_sql_code(session, database, code)
-
+        output = Workspace.execute_sql_query(code)
+    
     return { 'output': output, 'lang': payload['code'] }
 
 
