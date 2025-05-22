@@ -4,6 +4,10 @@ services:
   backend:
     build: ./backend
     container_name: backend
+    volumes:
+      - ./backend:/app
+      - ./backend/destinations:/app/destinations
+      #- ./backend/destinations/pipeline:/app/destinations/pipeline
     ports:
       - "5000:5000"
     networks:
@@ -13,7 +17,7 @@ services:
     image: nginx:alpine
     container_name: nginx
     volumes:
-      - ./ui:/usr/share/nginx/html        # Serve static frontend
+      - ./ui:/usr/share/nginx/html
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
     ports:
       - "8080:8080"
