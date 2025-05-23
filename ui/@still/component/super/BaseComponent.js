@@ -145,10 +145,11 @@ export class BaseComponent extends BehaviorComponent {
     getName() { return this.constructor.name; }
     getInstanceName() { return this.constructor.name; }
     getStateSubriber() { return this.#stateChangeSubsribers; }
+    runParseAnnot() { return this.#parseAnnotations(); }
 
     getProperties(allowfProp = false) {
 
-        if (!this.wasAnnotParsed) this.#parseAnnotations();
+        this.#parseAnnotations();
 
         const fields = Object.getOwnPropertyNames(this);
         const excludingFields = [
@@ -295,6 +296,9 @@ export class BaseComponent extends BehaviorComponent {
                             if ('value' in data) data = currentClass[field]?.value
                         
                         if (this.#annotations.has(field)) return data
+                        if(tamplateWithState.substr(pos - 2,2).startsWith('="') && tamplateWithState.substr(pos + field.length + 1,1) == '"'){
+                            return data;
+                        }
 
                         //this.#stateChangeSubsribers.push(`subrcibe-${clsName}-${field}`);
                         return `<state class="state-change-${clsName}-${field}">${data}</state>`;
@@ -549,7 +553,7 @@ export class BaseComponent extends BehaviorComponent {
      */
     getBoundRender(template) {
 
-        const extremRe = /[\n \r \< \$ \( \) \- \s A-Za-z \= \" \.]{0,}/.source;
+        const extremRe = /[\n \r \t \< \$ \( \) \- \s A-Za-z0-9 \@ \= \" \.]{0,}/.source;
         const matchRenderIfRE = /\(renderIf\)\="[A-Za-z0-9 \. \( \)]{0,}\"/;
         const matchShowIfRE = /\(showIf\)\="[A-Za-z0-9 \. \( \)]{0,}\"/;
         const reSIf = new RegExp(extremRe + matchShowIfRE.source + extremRe, 'gi');
@@ -1060,7 +1064,7 @@ export class BaseComponent extends BehaviorComponent {
     //ignoreProp = [];
     //services = [];
     #parseAnnotations() {
-
+        if(this.wasAnnotParsed) return;
         const cmp = this;
         const cmpName = this.constructor.name;
 
@@ -1114,10 +1118,10 @@ export class BaseComponent extends BehaviorComponent {
 
                 }
             });
-
         }
 
         this.wasAnnotParsed = true;
+        return this.#annotations;
 
     }
 
