@@ -241,6 +241,7 @@ export class Workspace extends ViewComponent {
 			}
 			pipeline.addChild(dbSchema);
 		}
+		this.dbTreeviewProxy.showLoader = false;
 		this.dbTreeviewProxy.renderTree();
 	}
 
@@ -362,6 +363,10 @@ export class Workspace extends ViewComponent {
 
 	copyToClipboard(content){
 		this.controller.copyToClipboard(content);
+	}
+
+	async refreshTree(){
+		await this.showHideDatabase();
 	}
 
 }
