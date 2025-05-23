@@ -481,6 +481,11 @@ export class Components {
                     cmp.__defineGetter__(field, () => getValue);
 
                     cmp.__defineSetter__(field, (val) => {
+                        // This is to address the initial assignment for child component having (showIf) since ths instantiation is automatically by handleInPartsImpl
+                        if('v' in val) {
+                            val = val.v;
+                            delete cmp.st_flag_ini_val[field];
+                        }
                         /** This is addressing the edge case where the (renderIf) is parsed after this setter is defined */
                         if (field in cmp.st_flag_ini_val && !(val?.parsed)) {
                             val = !cmp.st_flag_ini_val[field];
@@ -1089,9 +1094,11 @@ export class Components {
                             }
                             
                             let prefix = String(value).toLowerCase();
-
+                            
                             if(prop in instance && !value?.startsWith('parent.') && !value?.startsWith('self.')){
-                                instance[prop] = 'false' == value ? false : value;
+                                //Because this assignement will trigger getters for flag, passing an object 
+                                //with v field will allow identify that this is framework initial instance assignement
+                                instance[prop] = ['false',false].includes(value) ? { v: false } : ['true',true].includes(value) ? { v: true } : value;
                                 continue;
                             }
 
