@@ -698,6 +698,7 @@ export class BaseComponent extends BehaviorComponent {
          * NOTE: Needs to be always the first to be called */
         let template = this.getBoundState(isReloading);
         template = Components.obj().parseAdjustable(template, this);
+        template = Components.obj().parseLocalLoader(template, this);
         template = this.getBoundRender(template);
         /** Parse still tags */
         template = this.parseStSideComponent(template),

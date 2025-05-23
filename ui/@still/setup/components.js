@@ -482,9 +482,10 @@ export class Components {
 
                     cmp.__defineSetter__(field, (val) => {
                         // This is to address the initial assignment for child component having (showIf) since ths instantiation is automatically by handleInPartsImpl
-                        if('v' in val) {
-                            val = val.v;
-                            delete cmp.st_flag_ini_val[field];
+                        if(typeof val === 'object'){
+                            if('v' in val) {
+                                val = val.v; delete cmp.st_flag_ini_val[field];
+                            }
                         }
                         /** This is addressing the edge case where the (renderIf) is parsed after this setter is defined */
                         if (field in cmp.st_flag_ini_val && !(val?.parsed)) {
@@ -1614,6 +1615,15 @@ export class Components {
                 return tmpl.replace('{{$stContPlaceholder}}',mt2).replace('{{$stId}}', adjtbleId);
             }
         );
+    }
+
+    parseLocalLoader(template){
+        return template.replace(/<st-loader[\s\(\)a-z0-9\.\=\"]{0,}>/i, (mt) => {
+            let complement = mt.split(' ');
+            if(complement.length > 1) complement = complement[1].slice(0,-1);
+            else complement = '';
+            return `<div class="still-cmp-loader" ${complement}></div>`;
+        });
     }
 
     static runAfterInit(cmp) {
