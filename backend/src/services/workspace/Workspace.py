@@ -3,7 +3,7 @@ from pathlib import Path
 import uuid
 import os
 import duckdb
-from utils.duckdb_util import DuckdbUtil
+#from utils.duckdb_util import DuckdbUtil
 import re
 from tabulate import tabulate
 
@@ -163,7 +163,7 @@ class Workspace:
                 if _file not in result:
                     result[_file] = {}
 
-                tables = DuckdbUtil.get_tables(f'{folder}/{_file}').fetchall()
+                tables = Workspace.get_tables(f'{folder}/{_file}').fetchall()
                 for t in tables:
 
                     if t[2] not in skip_tables:
@@ -184,6 +184,18 @@ class Workspace:
                         }
 
         return result
+    
+    @staticmethod
+    def get_tables(database = None, where = None):
+        cnx = duckdb.connect(f'{database}', read_only=True)
+        cursor = cnx.cursor()
+        where_clause = f'WHERE {where}' if where is not None else ''
+        query = f"SELECT \
+                    database_name, schema_name, table_name, \
+                    estimated_size, column_count FROM \
+                    duckdb_tables {where_clause}"
+        print(f'THE QUERY WILL BE: {query}')
+        return cursor.execute(query)
         
 
     @staticmethod
