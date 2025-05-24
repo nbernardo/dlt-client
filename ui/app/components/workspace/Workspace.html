@@ -15,8 +15,12 @@
 					<div class="tab-panels">
 						<section id="data-panel" class="tab-panel">
 							<st-element 
-								showBullets="self.showDbTreeViewBullets"
-								component="@still-treeview/StillTreeView" 
+								showBullets="false"
+								component="@still-treeview/StillTreeView"
+								tooltipXPos="10"
+								(onRefreshClick)="refreshTree()"
+								showRefresh="false"
+								tooltipText="Update tree data"
 								proxy="dbTreeviewProxy">
 							</st-element>
 						</section>

@@ -447,6 +447,7 @@ export class Components {
     parseGetsAndSets(instance = null, allowfProp = false, field = null) {
         const cmp = instance || this.component, o = this;
         cmp.setAndGetsParsed = true;
+        const annot = cmp.runParseAnnot();
 
         if(field) return parseField(field, cmp);
 
@@ -455,7 +456,7 @@ export class Components {
         function parseField(field, cmp){
             const inspectField = cmp[field];
             if (inspectField?.onlyPropSignature || inspectField?.name == 'Prop'
-                || cmp.myAnnotations()?.get(field)?.prop
+                || cmp.myAnnotations()?.get(field)?.prop || annot?.get(field)?.prop
             ) {
 
                 if (inspectField?.sTForm) {
@@ -467,7 +468,7 @@ export class Components {
                 }
 
                 let listenerFlag = inspectField?.listenerFlag, inVal = inspectField?.inVal;
-                cmp[field] = cmp[field]?.value;
+                cmp[field] = cmp[field]?.value || cmp[field];
                 if (typeof inspectField == 'boolean') {
                     listenerFlag = `_stFlag${field}_${cmp.constructor.name}_change`;
                     cmp[field] = { inVal: inspectField }, inVal = inspectField;
@@ -476,9 +477,16 @@ export class Components {
                 if (listenerFlag) {
                     if (!('st_flag_ini_val' in cmp)) cmp['st_flag_ini_val'] = {};
                     cmp.st_flag_ini_val[field] = inVal;
-                    cmp.__defineGetter__(field, () => inspectField.inVal);
+                    const getValue = annot?.size ? inVal : inspectField.inVal;
+                    cmp.__defineGetter__(field, () => getValue);
 
                     cmp.__defineSetter__(field, (val) => {
+                        // This is to address the initial assignment for child component having (showIf) since ths instantiation is automatically by handleInPartsImpl
+                        if(typeof val === 'object'){
+                            if('v' in val) {
+                                val = val.v; delete cmp.st_flag_ini_val[field];
+                            }
+                        }
                         /** This is addressing the edge case where the (renderIf) is parsed after this setter is defined */
                         if (field in cmp.st_flag_ini_val && !(val?.parsed)) {
                             val = !cmp.st_flag_ini_val[field];
@@ -1032,7 +1040,7 @@ export class Components {
 
             const { proxy, component, props, annotations, ref } = cmpParts[idx];
             if (component == undefined) continue;
-
+            
             (async () => {
 
                 /** TODO: Dynamic import of assets of a vendor component  */
@@ -1082,13 +1090,18 @@ export class Components {
                         if (prop != 'proxy' && prop != 'component') {
                             if (prop.charAt(0) == '(' && prop.at(-1) == ")") {
                                 const method = prop.replace('(', '').replace(')', '');
-                                cmp[method] = function (...param) {
-                                    return parentCmp[value.split('(')[0]](...param);
-                                }
+                                cmp[method] = (...param) => parentCmp[value.split('(')[0]](...param);
                                 continue;
                             }
-
+                            
                             let prefix = String(value).toLowerCase();
+                            
+                            if(prop in instance && !value?.startsWith('parent.') && !value?.startsWith('self.')){
+                                //Because this assignement will trigger getters for flag, passing an object 
+                                //with v field will allow identify that this is framework initial instance assignement
+                                instance[prop] = ['false',false].includes(value) ? { v: false } : ['true',true].includes(value) ? { v: true } : value;
+                                continue;
+                            }
 
                             if (prefix.startsWith('parent.')) prefix = 'parent.';
                             else if (prefix.startsWith('self.')) prefix = 'self.';
@@ -1602,6 +1615,15 @@ export class Components {
                 return tmpl.replace('{{$stContPlaceholder}}',mt2).replace('{{$stId}}', adjtbleId);
             }
         );
+    }
+
+    parseLocalLoader(template){
+        return template.replace(/<st-loader[\s\(\)a-z0-9\.\=\"]{0,}>/i, (mt) => {
+            let complement = mt.split(' ');
+            if(complement.length > 1) complement = complement[1].slice(0,-1);
+            else complement = '';
+            return `<div class="still-cmp-loader" ${complement}></div>`;
+        });
     }
 
     static runAfterInit(cmp) {
