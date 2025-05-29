@@ -7,7 +7,7 @@ import { UUIDUtil } from "../../util/UUIDUtil.js";
 import { getBasePath, getRouter, getRoutesFile } from "../../util/route.js";
 import { $still, ComponentNotFoundException, ComponentRegistror } from "../manager/registror.js";
 import { sleepForSec } from "../manager/timer.js";
-import { STForm } from "../type/STForm.js";
+import { STForm } from "../type/ComponentType.js";
 import { BehaviorComponent } from "./BehaviorComponent.js";
 import { ViewComponent } from "./ViewComponent.js";
 import { BaseController } from "./service/BaseController.js";
@@ -128,8 +128,8 @@ export class BaseComponent extends BehaviorComponent {
     static importAssets() { }
     parseEvents = (obj) => {
         obj.content = obj?.content
-            ?.replace(/parent.|self./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
-            ?.replace(/inner./g,`$still.component.ref('${this.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+            ?.replace(/parent\.|self\./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
+            ?.replace(/inner\./g,`$still.component.ref('${this.cmpInternalId}').`)?.replace(/\$event/g,`event`)
         return obj;
     };
 
@@ -242,10 +242,8 @@ export class BaseComponent extends BehaviorComponent {
     }
 
     isThereAForm() {
-        if (!this.$stillIsThereForm) {
-            const form = $stillconst.CMP_FORM_PREFIX
-            this.$stillIsThereForm = this.template.indexOf(form) >= 0;
-        }
+        if (!this.$stillIsThereForm) 
+            this.$stillIsThereForm = this.template.indexOf($stillconst.CMP_FORM_PREFIX) >= 0;
         return this.$stillIsThereForm;
     }
 
@@ -324,7 +322,6 @@ export class BaseComponent extends BehaviorComponent {
         const forEach = '(forEach)="';
 
         const re = new RegExp(extremRe + matchForEach + extremRe, 'gi');
-        let cmd = this.getClassPath();
 
         template = template.replace(re, (mt) => {
             let ds = '';
@@ -437,16 +434,14 @@ export class BaseComponent extends BehaviorComponent {
                     const instance = eval(this.getClassPath());
 
                     if (field != undefined) {
-                        if (!(field in instance)) {
+                        if (!(field in instance)) 
                             throw new Error(`Field with name ${field} is not define in ${this.getName()}`);
-                        }
                         instance[field] = value;
                     }
 
                     if (evt != 'Components.void') {
-                        if (!(evt in instance)) {
+                        if (!(evt in instance)) 
                             throw new Error(`Method with name ${evt}() is not define in ${this.getName()}`);
-                        }
                         instance[evt](param);
                     }
 
@@ -489,7 +484,7 @@ export class BaseComponent extends BehaviorComponent {
         const type = this.$cmpStController;
         template = template.replace(/component\.|controller\.|controller\(\'/ig, (mt) => {
             if (mt.includes("component.")) return `$still.component.ref('${this.cmpInternalId}').`;
-            if (mt.includes("controller('")) return `$still.controller('`
+            if (mt.includes("controller('")) return `$still.controller('`;
             return `$still.controller('${type}').`;
         });
         return template;
@@ -718,27 +713,10 @@ export class BaseComponent extends BehaviorComponent {
         return template;
     }
 
-    render() {
-        this.incrementLoadCounter();
-        document.write(this.getBoundTemplate());
-    }
 
     getTemplate(count = true) {
         this.incrementLoadCounter();
         return this.getBoundTemplate();
-    }
-
-    prepareRender() {
-
-        const [fields, currentClass] = [this.getProperties(), this];
-        fields.forEach(field => {
-            this.template = this.template.replace(`@${field}`, currentClass[field].value);
-        });
-
-        Object.entries(this.cmpProps).forEach(([key, value]) => {
-            this.template = this.template.replace(`{{${key}}}`, value);
-        });
-
     }
 
     /**
@@ -751,19 +729,6 @@ export class BaseComponent extends BehaviorComponent {
         if (settings.scripts) settings.scripts.forEach(BaseComponent.importScript);
         $still.context.componentRegistror.export({ ...settings, instance: this });
     }
-
-    setPath(path) {
-        this.settings.path = path;
-        return this;
-    }
-
-    setComponentName(name) {
-        this.settings.componentName = name;
-        return this;
-    }
-
-    register = () =>
-        $still.context.componentRegistror.export(settings);
 
     static importScript(scriptPath, module = false, cls = null) {
 
@@ -863,7 +828,7 @@ export class BaseComponent extends BehaviorComponent {
 
     }
 
-    stWhenReady(cb = () => { }) {
+    stWhenReady(cb = () => { }, waitForSec = .5) {
         const timer = setTimeout(async () => {
 
             try {
@@ -872,7 +837,7 @@ export class BaseComponent extends BehaviorComponent {
             } catch (error) {
                 console.log(`Error on when ready: `, error);
             }
-        }, 1000);
+        }, 1000 * waitForSec);
     }
 
     parseStSideComponent(template, cmpInternalId = null, cmpUUID = null) {
@@ -900,7 +865,7 @@ export class BaseComponent extends BehaviorComponent {
 
             const { component, ref, proxy: p, each, ...tagProps } = propMap;
             const foundProps = Object.values(tagProps);
-            const isThereProp = foundProps.some(r => !r.startsWith('item.'))
+            const isThereProp = foundProps.some(r => !r?.startsWith('item.'))
                 || foundProps.length == 0;
 
             if (!(this.cmpInternalId in Components.componentPartsMap))
@@ -1091,7 +1056,7 @@ export class BaseComponent extends BehaviorComponent {
 
                 /** If statement is in place to not parse skip method 
                  * parsing when it finds a comment annotation */
-                if (!mt.includes('(')) {
+                if (!mt.includes('(') && mt.indexOf('State<') < 0) {
                     const commentEndPos = mt.indexOf('*/') + 2;
                     const propertyName = mt.slice(commentEndPos).replace('\n', '').trim();
 

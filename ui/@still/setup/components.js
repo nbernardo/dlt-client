@@ -83,7 +83,7 @@ export class Components {
     static subscriptions = {};
     static stAppInitStatus = true;
     static baseUrl = Router.baseUrl;
-    static vendorPath = `${Router.baseUrl}@still/vendors`;
+    static vendorPath = `${Components.obj().parseBaseUrl(Router.baseUrl)}@still/vendors`;
     static parsingTracking = {};
     static prevLoadingTracking = new Set();
 
@@ -171,7 +171,8 @@ export class Components {
             const clsPath = cmp.split('/');
             clsName = clsPath.at(-1);
             clsPath.pop();
-            folderPah = `${Components.baseUrl}@still/vendors/${clsPath.join('/').slice(1)}`;
+            const parsedUrl = Components.obj().parseBaseUrl(Components.baseUrl);
+            folderPah = `${parsedUrl}@still/vendors/${clsPath.join('/').slice(1)}`;
             cmpPath = `${folderPah}/${clsName}`;
         } else {
             let cmpRoute = Router.routeMap[clsName]?.path;
@@ -252,16 +253,6 @@ export class Components {
                 \n${styles}`;
 
     }
-
-    /* static async fetchTemplate(tmplFileUrl, filePath) {
-        const result = await fetch(tmplFileUrl);
-        if (result.status == 404) {
-            StillError.handleInvalidTmplUrl('TypeError', parentCmp, filePath);
-            return
-        }
-        return result;
-
-    } */
 
     async loadComponent() {
         loadComponentFromPath(
@@ -372,25 +363,6 @@ export class Components {
     static registerPublicCmp = (cmp) =>
         window['Public_' + cmp.constructor.name] = cmp;
 
-    getInitialPrivateTemplate(cmpName) {
-
-        $still.context.currentView = eval(`new ${cmpName}()`);
-        let template = this.getCurrentCmpTemplate($still.context.currentView);
-        template = currentView.template.replace(
-            this.stillCmpConst,
-            `<div id="${this.stillAppConst}" class="${$stillconst.TOP_LEVEL_CMP}">${template}</div>`
-        );
-        return template;
-    }
-
-    /** @param {ViewComponent} cmp */
-    getCurrentCmpTemplate(cmp, regularId = false) {
-        const init = cmp;
-        init.setUUID(regularId ? cmp.getUUID() : this.getTopLevelCmpId());
-        const loadCmpClass = $stillconst.ANY_COMPONT_LOADED;
-        return (init.template)
-            .replace('class="', `class="${init.getUUID()} ${loadCmpClass} `);
-    }
 
     /**  @param {ViewComponent} cmp */
     getHomeCmpTemplate(cmp) {
@@ -576,7 +548,6 @@ export class Components {
                 });
             });
         }
-
     }
 
     /**
@@ -636,7 +607,8 @@ export class Components {
                 elm.parentNode.insertAdjacentElement('beforeend', container);
 
             else {
-
+                const loopCntr = elm.querySelector(`.loop-container-${cmp.cmpInternalId}`);
+                if(loopCntr) elm.removeChild(loopCntr);
                 const finalCtnr = document.createElement('output');
                 finalCtnr.innerHTML = container.innerHTML;
                 finalCtnr.className = `loop-container-${cmp.cmpInternalId}`;
@@ -757,7 +729,7 @@ export class Components {
         for (const [f, v] of fields) {
             parsingTemplate = parsingTemplate.replaceAll(`{item.${f}}`, v);
         }
-        return parsingTemplate;
+        return parsingTemplate.replaceAll('($event','(event');
     }
 
     /** 
@@ -769,18 +741,14 @@ export class Components {
         if (noFieldsMap) {
             for (const [f, v] of Object.entries(rec)) {
                 if (f in obj) {
-                    if (typeof v == 'string')
-                        obj[f] = v?.replace('item.', '')?.trim();
-                    else
-                        obj[f] = v;
+                    if (typeof v == 'string') obj[f] = v?.replace('item.', '')?.trim();
+                    else obj[f] = v;
                 }
             }
         } else {
             for (const [f, v] of fields) {
-                if (typeof v == 'string')
-                    obj[f] = rec[v?.replace('item.', '')?.trim()];
-                else
-                    obj[f] = rec[v];
+                if (typeof v == 'string') obj[f] = rec[v?.replace('item.', '')?.trim()];
+                else obj[f] = rec[v];
             }
         }
 
@@ -1077,7 +1045,6 @@ export class Components {
 
                 if (cmpInternalId != 'fixed-part') {
                     Components.parseProxy(proxy, cmp, parentCmp, annotations);
-                    cmp.setParentComponent(parentCmp);
                     cmp['name'] = cmpName;
                     StillAppSetup.register(cmp);
 
@@ -1169,7 +1136,7 @@ export class Components {
             return false;
 
         if ((!AppTemplate.get().isAuthN()
-            && !cmp.isPublic)
+            && !cmp?.isPublic)
             || !Components.obj().isInWhiteList(cmp))
             return false;
         return true;
@@ -1375,7 +1342,7 @@ export class Components {
 
     }
 
-    static knownClassed = [
+    static knownClasses = [
         ComponentNotFoundException.name, BaseComponent.name,
         Components.name, 'StillAppSetup'
     ];
@@ -1389,7 +1356,7 @@ export class Components {
             || cmp.prototype instanceof ViewComponent
             || cmp.__proto__ instanceof BaseComponent
             || cmp.__proto__ instanceof ViewComponent
-            || Components.knownClassed.includes(cmp?.name)
+            || Components.knownClasses.includes(cmp?.name)
         ) window[cmp.name] = cmp;
 
         else if (typeof cmp == 'function') window[cmp.name] = cmp;
@@ -1410,7 +1377,7 @@ export class Components {
 
             Components.setupImportWorkerState = true;
             const worker = new Worker(
-                `${Router.baseUrl}@still/component/manager/import_worker.js`,
+                `${Components.obj().parseBaseUrl(Router.baseUrl)}@still/component/manager/import_worker.js`,
                 { type: 'module' }
             );
 
@@ -1430,16 +1397,22 @@ export class Components {
 
     static loadInterceptWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register(`${Router.baseUrl}@still/component/manager/intercept_worker.js`, { type: 'module' })
+            const baseUrl = Components.obj().parseBaseUrl(Router.baseUrl);
+            navigator.serviceWorker.register(`${baseUrl}@still/component/manager/intercept_worker.js`, { type: 'module' })
                 .then(() => console.log('Service Worker Registered'))
                 .catch(err => console.log('SW Registration Failed:', err));
         }
     }
 
+    parseBaseUrl(Url){
+        let baseUrl = Url.split('//');
+        if(baseUrl.length > 2) return baseUrl.slice(0,2).join('//') + '/';
+        return Router.baseUrl;
+    }
+
     static loadCssAssets() {
-        const css1 = '@still/css/still-fundamental.css';
         const css2 = '@still/ui/css/still.css';
-        [css1, css2].forEach(path => {
+        [css2].forEach(path => {
             const cssTag = document.createElement('link');
             cssTag.href = `${Router.baseUrl}${path}`;
             document.head.insertAdjacentElement('beforeend', cssTag);
@@ -1457,9 +1430,9 @@ export class Components {
     processWhiteList(content) { Components.obj().#cmpPermWhiteList = content.map(r => r.name); }
 
     isInWhiteList(cmp) {
-        const isInBlackList = StillAppSetup.get().getBlackList().includes(cmp.getName());
-        const isInWhiteList = StillAppSetup.get().getWhiteList().includes(cmp.getName());
-        if (!isInBlackList && !isInWhiteList && cmp.isPublic) return true;
+        const isInBlackList = StillAppSetup.get().getBlackList().includes(cmp?.getName());
+        const isInWhiteList = StillAppSetup.get().getWhiteList().includes(cmp?.getName());
+        if (!isInBlackList && !isInWhiteList && cmp?.isPublic) return true;
         if (isInBlackList) return false;
         return isInWhiteList;
     }
