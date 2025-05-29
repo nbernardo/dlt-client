@@ -215,6 +215,7 @@ export class Workspace extends ViewComponent {
 
 	async showHideDatabase(){
 
+		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getDuckDbs();
 		response = await response.json();
 
@@ -241,7 +242,7 @@ export class Workspace extends ViewComponent {
 			}
 			pipeline.addChild(dbSchema);
 		}
-		this.dbTreeviewProxy.showLoader = false;
+		
 		this.dbTreeviewProxy.renderTree();
 	}
 
