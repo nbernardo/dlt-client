@@ -23,7 +23,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
         });
 
         this.addPrefetch({
-            component: '@still-treeview/StillTreeView',
+            component: '@treeview/StillTreeView',
             assets: ["tree-view.css"]
         });
         this.runPrefetch();
