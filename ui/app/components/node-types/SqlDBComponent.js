@@ -1,5 +1,5 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
-import { STForm } from "../../../@still/component/type/STForm.js";
+import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { FormHelper } from "../../../@still/helper/form.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 
