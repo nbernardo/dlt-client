@@ -6,7 +6,15 @@
     "name": "Nakassony Bernardo",
     "email": "sonybernardo_10@hotmail.com"
   },
-  "keywords": ["Still.js","StillJS","Microfrontend","Vanilla UI JavaScript Framework","Web Frontent Framework","UI Development Framework", "Frontend Engineering"],
+  "keywords": [
+    "Still.js",
+    "StillJS",
+    "Microfrontend",
+    "Vanilla UI JavaScript Framework",
+    "Web Frontent Framework",
+    "UI Development Framework",
+    "Frontend Engineering"
+  ],
   "scripts": {
     "dev": "npx live-server ./ --port 8181",
     "start": "npx live-server ./ --port 8181"
@@ -18,5 +26,8 @@
     "type": "git",
     "url": "https://github.com/still-js/core.git"
   },
-  "homepage": "https://still-js.github.io/stilljs-doc/"
+  "homepage": "https://still-js.github.io/stilljs-doc/",
+  "dependencies": {
+    "@stilljs/treeview": "^1.0.0"
+  }
 }
