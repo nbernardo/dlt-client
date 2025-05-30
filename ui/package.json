@@ -28,6 +28,6 @@
   },
   "homepage": "https://still-js.github.io/stilljs-doc/",
   "dependencies": {
-    "@stilljs/treeview": "^1.0.0"
+    "@stilljs/treeview": "^1.0.2"
   }
 }
