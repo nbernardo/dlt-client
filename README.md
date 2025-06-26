@@ -3,13 +3,15 @@ DLT Client is a MVP Data Engineering project which aims to provide a capabilitie
 
 In terms of stack the front end is build in <a href="https://stilljs.dev/">Still.js</a> framework and the Backend is built in <a href="https://dlthub.com/">dlt-hub (Python)</a>. This is a single repository comprising both the backend and the UI.
 
+In terms of Database, for validation purpose this MVP is using MySQL for sourceing Data, but it covers any other well know Database in accordance with dlt-hub.
+
 <br>
 
 ##### Table of Contents  
-- [Set up and Running with Docker](#docker-setup)  
-    - [Prerequisites (Docker compose)](#prerequisites)  
-    - [Running the project (Docker compose)](#running-the-project)  
-    - [Project Structure Overview (Docker compose)](#project-structure-overview)  
+- [Set up and Running with Docker](#docker-setup)
+    - [Prerequisites (Docker compose)](#prerequisites)
+    - [Running the project (Docker compose)](#running-the-project)
+    - [Project Structure Overview (Docker compose)](#project-structure-overview)
 - [Setup without docker](#emphasis)
 [Architecture](#headers)
 [Design System](#headers)
