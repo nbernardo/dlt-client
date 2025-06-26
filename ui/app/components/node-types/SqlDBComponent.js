@@ -58,7 +58,7 @@ export class SqlDBComponent extends ViewComponent {
 
 		FormHelper
 			.newField(this, this.formRef, fieldName)
-			.getInput({ required: true, placeholder, validator: 'alhpanumeric' })
+			.getInput({ required: true, placeholder, validator: 'alphanumeric' })
 			//Add will add in the form which reference was specified (2nd param of newField)
 			.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);	
 	}

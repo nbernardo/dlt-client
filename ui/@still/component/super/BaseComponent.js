@@ -1,5 +1,6 @@
 import { StillAppSetup } from "../../../config/app-setup.js";
 import { stillRoutesMap as DefaultstillRoutesMap } from "../../../config/route.map.js";
+import { genInputsClasses } from "../../helper/form.js";
 import { Router as DefaultRouter } from "../../routing/router.js";
 import { Components } from "../../setup/components.js";
 import { $stillconst, ST_RE as RE } from "../../setup/constants.js";
@@ -137,8 +138,8 @@ export class BaseComponent extends BehaviorComponent {
             '$stillIsThereForm', '$stillpfx', 'subImported', 'onChangeEventsList', 'isPublic', 
             '$stillExternComponentParts', 'dynCmpGeneratedId', 'stillElement', 'proxyName','nstngCount',
             'parentVersionId', 'versionId', 'behaviorEvtSubscriptions', 'wasAnnotParsed', 'stateChangeSubsribers', 
-            'bindStatus', 'templateUrl', '$parent', 'dynLoopObject', 'lone', 'loneCntrId',
-            'setAndGetsParsed', 'navigationId', '$cmpStController', 'stillDevidersCmp',
+            'bindStatus', 'templateUrl', '$parent', 'dynLoopObject', 'lone', 'loneCntrId', 'stComboStat',
+            'setAndGetsParsed', 'navigationId', '$cmpStController', 'stillDevidersCmp', 'stOptListFieldMap',
             'stillAdjastableCmp', '_const','lang','afterInitEventToParse','baseUrl','isStFixed'
         ];
         return fields.filter(
@@ -293,48 +294,45 @@ export class BaseComponent extends BehaviorComponent {
         const cmpName = this.dynLoopObject || this.lone
             ? this.cmpInternalId
             : this.getProperInstanceName()
-        const extremRe = /[\n \r \< \$ \( \) \. \- \s A-Za-z \= \"]{0,}/.source;
-        const matchForEach = /(\(forEach\))\=\"(\w*){0,}\"/.source;
-        const forEach = '(forEach)="';
 
-        const re = new RegExp(extremRe + matchForEach + extremRe, 'gi');
+        const extremRe = /[\n \r \<\> \$ \( \) \. \;\: \-\_ \s A-Za-z0-9 \= \"]{0,}/.source;
+        const matchForEach = /<[a-zA-Z0-9\s\n\t\r\"\=\-\_\(\)\.\$ \;\:]{0,}(\(forEach\))\=\"(\w*){0,}\"/.source;
 
-        template = template.replace(re, (mt) => {
-            let ds = '';
-            const loopPos = mt.indexOf(forEach);
-            if (loopPos >= 0) ds = mt.substr(loopPos).split('"')[1].trim();
+        const re = new RegExp(matchForEach + extremRe, 'gi');
+
+        template = template.replace(re, (mt, drctv, ds) => {
 
             let subscriptionCls = '';
+            const endPos = mt.indexOf('>') + 1;
+            const stLstGp = mt.slice(endPos).startsWith('<st-lstgp>');
+            // This is to hide the template of the foreach wrapper, and it'll be shown when parsing each element of the list
+            if(stLstGp) mt = mt.replace('<st-lstgp>','<st-lstgp style="display:none;">')
 
             const subsCls = `listenChangeOn-${this.cmpInternalId.replace('/','').replace('@','')}-${ds}`;
             const hashValue = `hash_${this.getUUID()}`;
-            const hash = `hash="${hashValue}"`;
-            const newClassName = `newCls="${subsCls}"`;
+            const hash = `hash="${hashValue}"`, newClassName = `newCls="${subsCls}"`;
             const finalAttrs = `${newClassName} ${hash} class="${subsCls}`;
 
-            if (mt.indexOf(`class="`) >= 0)
+            if (mt.slice(0,endPos).indexOf(`class="`) >= 0)
                 mt = mt.replace(`class="`, `${finalAttrs} `);
-            else
-                subscriptionCls = `${finalAttrs}" `;
+            else subscriptionCls = `${finalAttrs}" `;
 
-            mt = mt.replace(`(forEach)="${ds}"`, subscriptionCls);
+            mt = mt.replace(`${drctv}="${ds}"`, subscriptionCls);
 
             return `<output class="${hashValue}"></output>${mt}`;
 
-        }).replaceAll('each="item"', 'style="display:none;"');
+        })
+        // This is to hide the template of the foreach wrapper, and it'll be shown when parsing each element of the list
+        .replaceAll('each="item"', 'style="display:none;"');
 
         return template;
     }
 
     getBoundProps(template) {
-        /**
-         * Inject/Bind the component props/params to the
-         * referenced place
-         */
+        /** Inject/Bind the component props/params to the referenced place */
         Object.entries(this.cmpProps).forEach(([key, value]) => {
             template = template.replace(`{{${key}}}`, value);
         });
-
         return template;
     }
 
@@ -392,9 +390,18 @@ export class BaseComponent extends BehaviorComponent {
             const paramVal = evtComposition[1].replace(')', '');
             const uiElm = elm._className;
             document.querySelector(`.${uiElm}`).onchange = async (event) => {
-                const inpt = event.target;
+                const inpt = event.target, oldValues = [];;
                 const { value, dataset: { formref, field, cls } } = inpt;
                 const fieldPath = `${cls}${formref ? `-${formref}` : ''}`;
+                const { multpl } = (this['stOptListFieldMap'].get(field) || {});
+
+                if(multpl){
+                    event.target.querySelectorAll('option').forEach(r => {
+                        if(r.selected && r.value != '') oldValues.push(r.value);
+                    });
+                    this[field] = oldValues;
+                    this['stClk' + field] = true;
+                }
 
                 let isValid = true;
                 if (value == '') isValid = false;
@@ -412,7 +419,7 @@ export class BaseComponent extends BehaviorComponent {
                     if (field != undefined) {
                         if (!(field in instance)) 
                             throw new Error(`Field with name ${field} is not define in ${this.getName()}`);
-                        instance[field] = value;
+                        if(!multpl) instance[field] = value;
                     }
 
                     if (evt != 'Components.void') {
@@ -468,15 +475,26 @@ export class BaseComponent extends BehaviorComponent {
         //Bind (value) on the input form
         if (this.isThereAForm()) {
 
-            const extremRe = /[\n \r \< \$ \( \) \- \s A-Za-z0-9 \{ \} \[ \] \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
-            const matchValueBind = /\(value\)\=\"\w*\"\s?/.source;
-            const matchForEachRE = '(forEach)=\"', matchValue = '(value)="', matchChange = '(change)="';
-            const valueBindRE = new RegExp(extremRe + matchValueBind + extremRe, "gi");
-
+            const extremRe = /[ \r \< \$ \( \) \- \s A-Za-z0-9 \/\:\;\* \{ \} \[ \] \. \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
+            const matchValueBind = /\(value\)\=\"[\w.{}]*\"\s?/.source, matchClose = /[\s]{0,}>/.source;
+            const matchForEachRE = '(forEach)=\"', mtchValue = '(value)="', matchChange = '(change)="';
+            const valueBindRE = new RegExp(extremRe + matchValueBind + extremRe + matchClose , "gi");
+            
             template = template.replace(valueBindRE, (mt, matchPos) => {
 
-                const isThereComboBox = mt.indexOf('<select') >= 0;
-                const value = mt.indexOf(matchValue), changeEvt = mt.indexOf(matchChange);
+                let isThereComboBox = mt.indexOf('<select') >= 0, optLstField, optValue;
+                const chkBox = mt.indexOf('type="checkbox"') > 0, rdoBtn = mt.indexOf('type="radio"') > 0
+                const isOptList = chkBox || rdoBtn;
+                const value = mt.indexOf(mtchValue), changeEvt = mt.indexOf(matchChange);
+
+                if((isOptList || isThereComboBox) && !this['stOptListFieldMap']) this['stOptListFieldMap'] = new Map();
+
+                if(isOptList) {
+                    const {
+                        mt: newMt, optLstField: field, actualValue
+                    } = this.#parseRadioOrChkBox(mt, mtchValue, value, chkBox, rdoBtn);
+                    mt = newMt, optLstField = field, optValue = actualValue;
+                }
 
                 const onChangeId = this.dynLoopObject
                     ? this.cmpInternalId
@@ -485,33 +503,53 @@ export class BaseComponent extends BehaviorComponent {
                     const _className = ` onChange_${onChangeId}`.trim();
                     this.onChangeEventsList.push({ evt: '`(change)="Components.void()"`', _className });
 
-                    if (mt.indexOf('class="') >= 0) {
-                        mt = mt
-                            .replace(`class="`, `class="${_className} `);
-                    } else
-                        mt += `class="${_className} " `;
+                    if (mt.indexOf('class="') >= 0)  mt = mt.replace(`class="`, `class="${_className} `);
+                    else mt = mt.replace('>',`class="${_className} ">`);
                 }
 
-                const matchForEach = mt.indexOf(matchForEachRE);
-                let forEachValue = '';
-                if (matchForEach >= 0)
-                    forEachValue = mt.substr(matchForEach, mt.indexOf('"'));
+                const mtForEach = mt.indexOf(matchForEachRE);
+                let forEachValue = mtForEach >= 0 ? mt.substr(mtForEach, mt.indexOf('"')) : '';
 
                 if (mt.length > 0) {
 
                     const checkPos = value + 9;
-                    const field = mt.slice(checkPos, mt.indexOf('"', checkPos));
+                    const field = optLstField || mt.slice(checkPos, mt.indexOf('"', checkPos));
                     const formRef = formsRef?.find(r => matchPos > r.pos) || '';
 
                     const { replacer, mt: updatedMt } = this.#getFormInputReplacer(
-                        mt, field, isThereComboBox, forEachValue, formRef
+                        mt, { field, isOptList, isThereComboBox, optValue }, forEachValue, formRef
                     );
-                    mt = updatedMt.replace(`(value)="${field}"`, replacer);
+                    const rplcing = isOptList ? `name="${field}"` : `(value)="${field}"`;
+                    mt = updatedMt.replace(rplcing, replacer);
                 }
                 return mt;
             });
         }
         return template;
+    }
+
+    #parseRadioOrChkBox(mt, mtchValue, value, chkBox = false, rdoBtn = false, actualValue = null,){
+        let lbfrDrectv = '(labelBefore)', laftDrectv = '(labelAfter)', fDrectv = '(field)', field = null;
+        if(mt.indexOf(fDrectv) > 0) {
+            field = mt.split(fDrectv)[1]?.split('"')[1];
+            mt = mt.replace(`${fDrectv}="${field}"`,`name="${field}"`);
+        }
+        if(value > 0) {
+            actualValue = mt.split('(value)')[1].split('"')[1]
+            if(actualValue.startsWith('{item.')) this[field] = '';
+            mt = mt?.replace(mtchValue, 'value="');
+        }
+
+        if(mt.indexOf(lbfrDrectv) > 0) {
+            const lbl = `${mt.split(lbfrDrectv)[1].split('"')[1]}`;
+            mt = `<st-lstgp><label>${lbl}</label> ${mt.replace(`${lbfrDrectv}="${lbl}"`,'')}</st-lstgp>`;
+        }
+        else if(mt.indexOf(laftDrectv) > 0) {
+            const lbl = `${mt.split(laftDrectv)[1].split('"')[1]}`;
+            mt = `<st-lstgp>${mt.replace(`${laftDrectv}="${lbl}"`,'')} <label>${lbl}</label></st-lstgp>`;
+        }
+        if(field) this['stOptListFieldMap'].set(field, { radio: rdoBtn, chkBox });
+        return {mt, optLstField: field, actualValue};
     }
 
     /**
@@ -916,40 +954,43 @@ export class BaseComponent extends BehaviorComponent {
 
     }
 
-    #getFormInputReplacer(mt, field, isThereComboBox, forEachValue, formRef) {
-
-        let val = '', subscriptionCls = '';
+    #getFormInputReplacer(mt, fieldConfg, forEachValue, formRef) {
+        const { field, isOptList, isThereComboBox, optValue } = fieldConfg;
+        let val = '', subscrtionCls = '', evt = '', comboSfix = '';
         if (!(this[field] instanceof Object) && !!(this[field])) val = this[field];
         else if (this[field] instanceof Object) {
             if ('value' in this[field]) val = this[field].value;
         }
 
-        const onChangeId = this.dynLoopObject || this.lone
-            ? this.cmpInternalId
-            : this.getProperInstanceName();
+        if(isThereComboBox){
+            comboSfix = '-combobox';
+            if(mt.indexOf(' multiple ') > 0) this['stOptListFieldMap'].set(field, { multpl: true });
+        }
+
         const validatorClass = BehaviorComponent.setOnValueInput(mt, this, field, (formRef?.formRef || null));
         const cmpId = this.cmpInternalId.replace('/','').replace('@','');
-        const classList = `${validatorClass} listenChangeOn-${cmpId}-${field}`;
+        const clsList = `${genInputsClasses(validatorClass, cmpId, field, optValue, isOptList, isThereComboBox)}`;
+        const clsPath = `$still.c.ref('${this.cmpInternalId}')`, clsName = this.constructor.name;
 
-        const clsPath = this.getClassPath();
-
-        const clsName = this.constructor.name;
-        const comboSuffix = isThereComboBox ? '-combobox' : '';
-        const dataFields = `${isThereComboBox
+        const /*dataField*/ dtFields = `${isThereComboBox
             ? `data-formRef="${formRef?.formRef || ''}" data-field="${field}" data-cls="${clsName}"`
             : ''
             }`;
 
         if (mt.indexOf(`class="`) >= 0)
-            mt = mt.replace(`class="`, `${dataFields} class="${classList}${comboSuffix} ${this.cmpInternalId}-${field} `);
+            mt = mt.replace(`class="`, `${dtFields} class="${clsList}${comboSfix} ${this.cmpInternalId}-${field} `);
         else
-            subscriptionCls = `${dataFields} class="${classList}${comboSuffix} ${this.cmpInternalId}-${field}" `;
+            subscrtionCls = `${dtFields} class="${clsList}${comboSfix} ${this.cmpInternalId}-${field}" `;
 
-        let replacer = `${subscriptionCls} `;
+        let replacer = `${subscrtionCls} `, complmnt = isOptList ? `name="${field}"` : `value="${val}"`;
+        if(isOptList){
+            if(mt.toLowerCase().indexOf('onclick="') > 0) mt = mt.replace('onclick="', '');
+            else evt = `onclick="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
+        }else
+            evt = `onkeyup="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
+
         if (!(isThereComboBox))
-            replacer = `${forEachValue} 
-                        value="${val}" ${subscriptionCls} 
-                        onkeyup="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
+            replacer = `${forEachValue} ${complmnt} ${subscrtionCls} ${evt}`;
 
         return { mt, replacer };
 
