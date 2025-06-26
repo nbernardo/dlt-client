@@ -9,7 +9,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
     constructor() {
         super();
         this.setHomeComponent(Workspace);
-        StillHTTPClient.setBaseUrl('http://localhost:5000');
+        StillHTTPClient.setBaseUrl('http://localhost:8000');
 
         this.addPrefetch({
             component: '@codemirror/CodeMiror',
@@ -23,7 +23,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
         });
 
         this.addPrefetch({
-            component: '@still-treeview/StillTreeView',
+            component: '@treeview/StillTreeView',
             assets: ["tree-view.css"]
         });
         this.runPrefetch();

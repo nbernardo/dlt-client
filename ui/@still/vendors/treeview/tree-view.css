@@ -2,7 +2,7 @@
     --spacing: 1.5rem;
     --radius: 10px;
     --child-circle: #ddd;
-    --parent-circle: #696 url('app/assets/imgs/python_lang.png') 0 0;
+    --parent-circle: #696 0 0;
   }
   
   .still-tree-view li {

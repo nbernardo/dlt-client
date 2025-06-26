@@ -1,5 +1,5 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
-import { STForm } from "../../../@still/component/type/STForm.js";
+import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { FormHelper } from "../../../@still/helper/form.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 
@@ -58,7 +58,7 @@ export class SqlDBComponent extends ViewComponent {
 
 		FormHelper
 			.newField(this, this.formRef, fieldName)
-			.getInput({ required: true, placeholder, validator: 'alhpanumeric' })
+			.getInput({ required: true, placeholder, validator: 'alphanumeric' })
 			//Add will add in the form which reference was specified (2nd param of newField)
 			.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);	
 	}
