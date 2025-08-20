@@ -4,10 +4,12 @@ import { $still, ComponentNotFoundException, ComponentRegistror } from "../compo
 import { BaseComponent } from "../component/super/BaseComponent.js";
 import { BehaviorComponent } from "../component/super/BehaviorComponent.js";
 import { ViewComponent as DefaultViewComponent } from "../component/super/ViewComponent.js";
+import { TemplateBinding, TemplateReactiveResponde } from "../helper/template.js";
 import { Router as DefaultRouter } from "../routing/router.js";
 import { UUIDUtil } from "../util/UUIDUtil.js";
-import { getRouter, getRoutesFile, getViewComponent } from "../util/route.js";
-import { $stillconst, authErrorMessage } from "./constants.js";
+import { checkPropBind, WorkerHelper } from "../util/componentUtil.js";
+import { getRouter, getRoutesFile, getViewComponent, parseNpmToCdn } from "../util/route.js";
+import { $stillconst, authErrorMessage, ST_RE, WORKER_EVT } from "./constants.js";
 import { StillError } from "./error.js";
 
 const stillRoutesMap = await getRoutesFile(DefaultstillRoutesMap);
@@ -70,6 +72,7 @@ export class Components {
     static vendorPath = `${Components.obj().parseBaseUrl(Router.baseUrl)}@still/vendors`;
     static parsingTracking = {};
     static prevLoadingTracking = new Set();
+    static prevLoadLoopContainer = new Set();
 
     /** @type { Array<String> } */
     #cmpPermWhiteList = [];
@@ -106,40 +109,47 @@ export class Components {
     static async produceComponent(params = ProduceComponentType) {
         if (!params.cmp) return;
         const { cmp, parentCmp, registerCls, urlRequest: url } = params;
-
+        const npmRoute = parseNpmToCdn(cmp);
         let clsName = cmp, isVendorCmp = (cmp || []).at(0) == '@', cmpPath,
             template, folderPah, exception, baseUrl;
 
         /** the bellow line clears previous component from memory
          * @type { ViewComponent } */
-        let newInstance;
+        let newInstance, prefix = '';
 
-        if (isVendorCmp) {
-            const clsPath = cmp.split('/');
-            clsName = clsPath.at(-1);
-            clsPath.pop();
-            const parsedUrl = Components.obj().parseBaseUrl(Components.baseUrl);
-            folderPah = `${parsedUrl}@still/vendors/${clsPath.join('/').slice(1)}`;
-            cmpPath = `${folderPah}/${clsName}`;
-        } else {
-            let cmpRoute = Router.routeMap[clsName]?.path;
-            if (!cmpRoute) {
-                StillError.handleStComponentNotFound('TypeError', parentCmp, clsName);
-                return;
+        if(npmRoute === null){
+    
+            if (isVendorCmp) {
+                const clsPath = cmp.split('/'), parsedUrl = Components.obj().parseBaseUrl(Components.baseUrl);
+                clsName = clsPath.at(-1);
+                clsPath.pop();
+                folderPah = `${parsedUrl}@still/vendors/${clsPath.join('/').slice(1)}`;
+                cmpPath = `${folderPah}/${clsName}`;
+            } else {
+                let cmpRoute = Router.routeMap[clsName]?.path;
+                if (!cmpRoute) 
+                    return StillError.handleStComponentNotFound('TypeError', parentCmp, clsName);
+                if (cmpRoute.at(-1) == '/') cmpRoute = cmpRoute.slice(0, -1);
+                if(window.STILL_HOME_PREXIF) prefix = STILL_HOME_PREXIF;
+                if(window.STILL_HOME_LOCAL) prefix = STILL_HOME_LOCAL;
+                baseUrl = Router.getCleanUrl(url, clsName)+prefix;
+                folderPah = `${baseUrl}${cmpRoute}`;
+                cmpPath = `${folderPah}/${clsName}`;
             }
-
-            if (cmpRoute.at(-1) == '/') cmpRoute = cmpRoute.slice(0, -1);
-            baseUrl = Router.getCleanUrl(url, clsName);
-            folderPah = `${baseUrl}${cmpRoute}`;
-            cmpPath = `${folderPah}/${clsName}`;
+        }else{
+            const remoteCmp = await (await fetch(npmRoute.cdn+'.js')).text();
+            eval(`${remoteCmp.replace(/import[\s\S]*?\;/g,'').replace(/export[\s]*?class/g,'class')}; window.${npmRoute.cmp} = new ${npmRoute.cmp}()`);
+            newInstance = eval(`${npmRoute.cmp}`);
+            newInstance.$parent = parentCmp;
+            return { newInstance, template: newInstance.template, _class: !registerCls && !url ? null : cmpCls[clsName] };
         }
 
-        try {
-
+        try {            
+            
             const cmpCls = await import(`${cmpPath}.js`);
             const parent = parentCmp ? { parent: parentCmp } : '';
 
-            newInstance = new cmpCls[clsName](parent);
+            newInstance = new cmpCls[clsName](parent);            
             Components.prevLoadingTracking.add(clsName);
             newInstance.lone = !!params.loneCntrId || params.lone;
             newInstance.loneCntrId = params.loneCntrId || Router.clickEvetCntrId;
@@ -160,6 +170,9 @@ export class Components {
 
                 if (template) newInstance.template = template;
             }
+
+            const tmplt = cmpCls[clsName].toString();
+            WorkerHelper.parseDelaySetup(tmplt, newInstance, false, clsName);
 
             return {
                 newInstance, template: newInstance.template,
@@ -218,8 +231,13 @@ export class Components {
             Object.freeze(StillAppSetup.config.props);
             $still.context.currentView = await StillAppSetup.instance.init();
             await Components.processInitProperties();
-            document.addEventListener('keydown', (event) => $still.pressedKeys.add(event.key));
-            document.addEventListener('keyup', (event) => $still.pressedKeys.delete(event.key));
+
+            /** In case the template is defined outside the component (.js) file */
+            if($still.context.currentView.template === undefined){
+                $still.context.currentView = await (
+                    await Components.produceComponent({ cmp: $still.context.currentView.constructor.name })
+                ).newInstance;
+            }
             
             /**  @type { ViewComponent } */
             const currentView = $still.context.currentView;
@@ -230,11 +248,9 @@ export class Components {
                     await Components.produceComponent({ cmp: this.entryComponentName })
                 ).newInstance;
 
-                if (
-                    (!AppTemplate.get().isAuthN()
-                        && !$still.context.currentView.isPublic)
-                    || !Components.obj().isInWhiteList($still.context.currentView)
-                )
+                const isNotAuthorizedUsr = !AppTemplate.get().isAuthN() && !$still.context.currentView.isPublic;
+                const isPrivateCmp = !Components.obj().isInWhiteList($still.context.currentView);
+                if (isNotAuthorizedUsr || isPrivateCmp)
                     return document.write(authErrorMessage());
 
                 setTimeout(() => $still.context.currentView.parseOnChange(), 500);
@@ -246,9 +262,7 @@ export class Components {
                 const { TOP_LEVEL_CMP, ST_HOME_CMP } = $stillconst;
                 this.template = currentView.template.replace(
                     this.stillCmpConst,
-                    `<div id="${this.stillAppConst}" class="${TOP_LEVEL_CMP} ${ST_HOME_CMP}">
-                        ${this.template}
-                    </div>`
+                    `<div id="${this.stillAppConst}" class="${TOP_LEVEL_CMP} ${ST_HOME_CMP}">${this.template}</div>`
                 );
 
                 this.template = (new BaseComponent).parseStSideComponent(
@@ -281,7 +295,6 @@ export class Components {
         })();
     }
 
-
     isAppLoaded = () => document.getElementById(this.stillAppConst);
 
     /** @param { ViewComponent } cmp */
@@ -305,9 +318,7 @@ export class Components {
             this.renderOnViewFor('stillUiPlaceholder', cmp);
             ComponentRegistror.add(cmp.cmpInternalId, cmp);
             const cmpParts = Components.componentPartsMap[cmp.cmpInternalId];
-            setTimeout(() =>
-                Components.handleInPartsImpl(cmp, cmp.cmpInternalId, cmpParts)
-            );
+            setTimeout(() => Components.handleInPartsImpl(cmp, cmp.cmpInternalId, cmpParts));
             setTimeout(() => Components.runAfterInit(cmp), 120);
             Components.handleMarkedToRemoveParts();
             Components.removeOldParts();
@@ -342,17 +353,19 @@ export class Components {
         return this;
     }
 
-    /**  @param {ViewComponent} cmp */
-    defineSetter = (cmp, field) => {
-        if (cmp.myAnnotations()?.get(field)?.inject) return;
-        cmp.__defineGetter__(field, () => {
-            const optLst = cmp['stOptListFieldMap']?.get(field);
+    /** @param {ViewComponent} cmp */
+    defineSetter = (cmp, f) => {
+        if (cmp.myAnnotations()?.get(f)?.inject) return;
+        cmp.__defineGetter__(f, () => {
+            const optLst = cmp['stOptListFieldMap']?.get(f);
             const r = {
-                value: cmp['$still_' + field], defined: true,
-                onChange: (callback = function () { }) => {
-                    cmp[`$still${field}Subscribers`].push(callback);
-                },
+                value: cmp['$still_' + f], defined: true,
+                onChange: (cb = () => { }) =>  cmp[`$still${f}Subscribers`].push(cb),
+                onComplete: (cb = () => { }) => cmp[`$${f}CmpltCbs`].push(cb),
                 firstPropag: false, onlyPropSignature: true,
+                set: (val) => { cmp[f] = val, cmp[`$_stset${f}`] = true; },
+                update: (val) => { cmp[`$_stupt${f}`] = true; cmp[f] = val; },
+                delete: (val) => { Components.deleteDomNode(val, cmp, f); },
             };
             if(optLst?.chkBox) r.isChkbox = true;
             if(optLst?.radio) r.isRadio = true;
@@ -363,17 +376,49 @@ export class Components {
 
             const validator = BehaviorComponent.currentFormsValidators;
             if (validator[cmp.cmpInternalId]) {
-                if (field in (validator[cmp?.constructor?.name] || [])) 
-                    r['isValid'] = validator[cmp.constructor.name][field]['isValid'];
+                if (f in (validator[cmp?.constructor?.name] || [])) 
+                    r['isValid'] = validator[cmp.constructor.name][f]['isValid'];
             }
             return r;
         });
     }
 
+    static deleteDomNode(removingList, cmp, field){
+        
+        if(typeof removingList[0] === 'number' || typeof removingList[0] === 'string'){
+            removingList.forEach(itmId => {
+                const node = document.getElementById(cmp.cmpInternalId+itmId);
+                node.parentElement.removeChild(node);
+            });
+        }else{
+            //typeof removingList[0] === 'object' && !Array.isArray(removingList[0])
+            const cntrId = `listenChangeOn-${cmp.cmpInternalId}-${field}`;
+            const mainCnter = document.getElementsByClassName(cntrId)[0];
+            let removingId;
+            removingList.forEach(itm => {
+                let container = mainCnter.getElementsByClassName(`child-${mainCnter.getAttribute('jstid')}-${itm.id}`)[0];
+                if(itm?.childs){
+                    itm?.childs.forEach(subItm => {
+                        const childIdCmplt = container.getAttribute('stinternalid');
+                        let subSubItm = container.getElementsByClassName(`child-${childIdCmplt}-${subItm.id}`)[0];                                      
+                        removingId = subSubItm.getAttribute('stinternalid');                    
+                        if(subSubItm.parentElement.tagName === 'ST-WRAP') subSubItm = document.getElementById(subItm.id);
+                        subSubItm.parentElement.removeChild(subSubItm);
+                    });
+                }else{
+                    removingId = container.getAttribute('stinternalid');
+                    if(container.parentElement.tagName === 'ST-WRAP') container = document.getElementById(itm.id);
+                    container.parentElement.removeChild(container);
+                }
+                $still.c.ref(removingId).unload();
+            });
+        }
+    }
+
     parseOnChange = () => this;
 
     /** @param {ViewComponent} instance */
-    parseGetsAndSets(instance = null, allowfProp = false, field = null) {
+    parseGetsAndSets(instance = null, allowfProp = false, field = null, prntField = null) {
         const cmp = instance || this.component, o = this;
         cmp.setAndGetsParsed = true;
         const annot = cmp.runParseAnnot();
@@ -383,8 +428,9 @@ export class Components {
         cmp.getProperties(allowfProp).forEach(field => parseField(field, cmp));
 
         function parseField(field, cmp) {
-            const inspectField = cmp[field];
-            
+            const inspectField = cmp[field];            
+            if(cmp[`$_stupt${prntField}`] === true) cmp[`$_stupt${field}`] = true;
+
             if(true === inspectField?.injectable || true === inspectField?.stSTI) return;
             if (inspectField?.onlyPropSignature || inspectField?.name == 'Prop'
                 || cmp.myAnnotations()?.get(field)?.prop || annot?.get(field)?.prop
@@ -398,7 +444,7 @@ export class Components {
                     cmp[field].reset = () => {
                         const formRef = field;
                         BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field], true);
-                        document.getElementById(`fId_${field}`).reset();
+                        document.getElementById(`fId_${cmp.cmpInternalId}`).reset();
                     }
                     return;
                 }
@@ -425,13 +471,32 @@ export class Components {
                         }
                         /** This is addressing the edge case where the (renderIf) is parsed after this setter is defined */
                         if (field in cmp.st_flag_ini_val && !(val?.parsed)) {
-                            val = !cmp.st_flag_ini_val[field];
+                            if(typeof val === 'boolean' || ['false','true'].includes(val))
+                                val = !cmp.st_flag_ini_val[field]; 
                             delete cmp.st_flag_ini_val[field];
                         }
                         /** This is for handling (renderIf) */
                         const elmList = document.getElementsByClassName(listenerFlag);
                         for (const elm of elmList) {
-                            if (val) elm.classList.remove($stillconst.PART_HIDE_CSS);
+                            let remHide = false;
+                            if(!(val === 'true' || val === true || val === 'false' || val === false)){
+                                if(elm.classList.contains(`${$stillconst.FLAG}${val?.toString()?.replace(/\s/,'-')}`)){
+                                        remHide = true;
+                                        elm.style.display = '';
+                                }else 
+                                    elm.style.display = 'none';
+                            }
+                            else if(elm.classList.contains($stillconst.NEGATE_FLAG)){
+                                if(val === 'true' || val === true) elm.style.display = 'none';
+                                else{
+                                    remHide = true;
+                                    elm.style.display = '';
+                                }
+                            }
+                            else if(val === 'true' || val === true) elm.style.display = '';
+                            else if(elm.style.display === '') elm.style.display = 'none';
+
+                            if (val === true || remHide) elm.classList.remove($stillconst.PART_HIDE_CSS);
                             else elm.classList.add($stillconst.PART_HIDE_CSS);
                         }
                         cmp.__defineGetter__(field, () => val);
@@ -443,7 +508,7 @@ export class Components {
                 if (!cmp[field] && cmp[field] != 0) value = '';
 
                 Object.assign(cmp, { ['$still_' + field]: value });
-                Object.assign(cmp, { [`$still${field}Subscribers`]: [] });
+                Object.assign(cmp, { [`$still${field}Subscribers`]: [], [`$${field}CmpltCbs`]: [] });
                 o.defineSetter(cmp, field);
 
                 cmp.__defineSetter__(field, (newValue) => {
@@ -478,7 +543,7 @@ export class Components {
                     //Work in the garbage collector for this Components.firstPropagation flag
                     if(Components?.firstPropagation[`${cmp.cmpInternalId}-${field}`]) {
                         clearInterval(firstPropagateTimer);
-                        o.propageteChanges(cmp, field);
+                        //o.propageteChanges(cmp, field);
                     }
                     else if ('value' in cmp[field] && !Components?.firstPropagation[`${cmp.cmpInternalId}-${field}`]) {
                         clearInterval(firstPropagateTimer);
@@ -494,16 +559,43 @@ export class Components {
 
     static firstPropagation = {};
 
+    static handleAtForNewNode(variableName, itm, tagName, f, cmp){
+        window[`${variableName}_${f}`] = [itm], window[`${variableName}`] = '';
+        
+        eval(`${cmp['loopTmplt'][variableName]}`);
+        const result = eval(`${variableName}`);
+        const re = new RegExp(`<for-loop[\\s\\S]*?>([\\s\\S]*?)</for-loop>`,'i');                    
+        const match = result.match(re);                  
+        return match[1];
+    }
+
     /** @param { ViewComponent } cmp */
     propageteChanges(cmp, field, chkBoxOpts = {}) {
-        const cpName = cmp.cmpInternalId.replace('/', '').replace('@', ''), f = field;
+        
+        if(field?.startsWith('$_stup') || field?.endsWith('CmpltCbs')) return;
+        let cpName = cmp.cmpInternalId.replace('/', '').replace('@', ''), f = field;
+        if(cpName.indexOf('/') && cpName.indexOf('npm')) cpName = cpName.replace(/\//g,'');
         const cssRef = `.listenChangeOn-${cpName}-${f}`;
         const subscribers = document.querySelectorAll(cssRef);
+        
+        if (subscribers && !cmp['stOptListFieldMap']?.has(f)){
+            subscribers.forEach(/**@type {HTMLElement}*/elm => 
+                this.dispatchPropagation(elm, f, cmp)
+            );
+        }
+        
         const cssRefCombo = `.listenChangeOn-${cpName}-${f}-combobox`;
         const subscribersCombo = document.querySelectorAll(cssRefCombo);
         const stateChange = `.state-change-${cpName}-${f}`;
         const stateChangeSubsribers = document.querySelectorAll(stateChange);
         const { isChkbox, isRadio, multpl, value } = cmp[f];       
+
+        // @if -> Top level statement variables on the condition change
+        TemplateReactiveResponde.detectAtIfTopLevelConditionChange(cmp, f);
+        // @for -> Gets called when data source (state variable) value got changed
+        TemplateReactiveResponde.reloadeContainerOnDataSourceChange(cmp, f);
+        // @for -> this is for Node update when it was generated using template logic
+        TemplateReactiveResponde.updateDomTreeOnAtForDataSourceChange(cmp, f, value, cpName);
 
         if(isChkbox || (multpl && !cmp['stClk' + f])){
             // chkBoxOpts.A = add, chkBoxOpts.C = click
@@ -527,19 +619,12 @@ export class Components {
         if(isRadio){
             if(chkBoxOpts.A && !chkBoxOpts.C){
                 const opt = document.querySelector(`.${cpName}-${f}-val-${value}`);
-                if(opt) {
-                    //cmp['$still_' + f] = value;
-                    opt.checked = true;
-                }
-                
+                if(opt) opt.checked = true; //cmp['$still_' + f] = value;
             }
         }
 
         if (stateChangeSubsribers) 
             stateChangeSubsribers.forEach(s => s.innerHTML = cmp['$still_' + f]);
-
-        if (subscribers && !cmp['stOptListFieldMap']?.has(f)) 
-            subscribers.forEach(/**@type {HTMLElement}*/elm => this.dispatchPropagation(elm, f, cmp));
 
         if (subscribersCombo) {
             subscribersCombo.forEach(/**@type {HTMLElement}*/elm => {
@@ -594,24 +679,38 @@ export class Components {
     propagetToHTMLContainer(elm, field, cmp) {
 
         (async () => {
-
+            let hasParent = elm.classList.contains('parent_class'), prntId, prntPrevLoad;
+            if(!hasParent){
+                if(!elm.hasAttribute($stillconst.LOOP_PREV_LOAD))
+                    elm.setAttribute($stillconst.LOOP_PREV_LOAD, true);
+            }else{
+                prntId = elm.getAttribute('st-parent-cmp');
+                prntPrevLoad = Components.prevLoadLoopContainer.has(prntId+''+cmp.constructor.name);
+            }
+            
+            if(elm.getAttribute('stchildcmp') === 'true'){
+                if(elm.getAttribute('firstLoad')) elm.setAttribute('firstLoad', false); 
+            }
+            
             let container = document.createElement(elm.tagName);
             let prevClass = elm.getAttribute('newCls');
             prevClass = elm.getAttribute('class').replace(prevClass, '');
             container.className = `${prevClass}`;
 
-            container = await this.parseAndAssigneValue(elm, field, cmp, container);
+            container = await this.parseAndAssigneValue(elm, field, cmp, container, prntPrevLoad);
             if (elm.tagName == 'TBODY')
-                elm.parentNode.insertAdjacentElement('beforeend', container);
+                elm.parentNode.insertAdjacentElement('beforeend', container.container);
 
             else {
-                const loopCntr = elm.querySelector(`.loop-container-${cmp.cmpInternalId}`);
-                if (loopCntr) elm.removeChild(loopCntr);
-                const finalCtnr = document.createElement('output');
-                finalCtnr.innerHTML = container.innerHTML;
-                finalCtnr.className = `loop-container-${cmp.cmpInternalId}`;
-                finalCtnr.style.display = 'contents';
-                elm.insertAdjacentElement('beforeend', finalCtnr);
+                if(container?.fullRerender){
+                    const loopCntr = elm.querySelector(`.loop-container-${cmp.cmpInternalId}`);
+                    if (loopCntr) elm.removeChild(loopCntr);
+                    const finalCtnr = document.createElement('output');
+                    finalCtnr.innerHTML = container.container.innerHTML;
+                    finalCtnr.className = `loop-container-${cmp.cmpInternalId}`;
+                    finalCtnr.style.display = 'contents';
+                    elm.insertAdjacentElement('beforeend', finalCtnr);
+                }
             }
         })();
 
@@ -621,7 +720,7 @@ export class Components {
      * @param { HTMLElement } elm
      * @param { ViewComponent } cmp
      */
-    async parseAndAssigneValue(elm, field, cmp, container) {
+    async parseAndAssigneValue(elm, field, cmp, container, wasPrntLoad = false) {
 
         const hash = elm.getAttribute('hash'), cmpId = cmp.cmpInternalId;
         container.classList.add($stillconst.SUBSCRIBE_LOADED);
@@ -639,10 +738,12 @@ export class Components {
             }
 
             let result = `<option value='' class="${cmpId}-${f}empty" selected>${placeholder}</option>`;
-            container.innerHTML = await this.parseForEachTemplate(tmpltContent, cmp, field, result);
+            container.innerHTML = (await this.parseForEachTemplate(tmpltContent, cmp, field, result)).result;
             return container;
 
         } else {
+
+            if(elm.firstElementChild === null) return;
             tmpltContent = elm.firstElementChild.outerHTML.toString();
             const stDSource = elm.firstElementChild.getAttribute('loopDSource');
 
@@ -662,17 +763,18 @@ export class Components {
             } catch (error) {}   
         }
         container.classList.add(hash);
-
-        container.innerHTML = await this.parseForEachTemplate(
-            tmpltContent, cmp, field, '', childCmp
-        );
-        return container;
+        const result = await this.parseForEachTemplate(tmpltContent, cmp, field, '', childCmp);
+        if(result.fullRerender) container.innerHTML = result.result;
+        return { container, fullRerender: result.fullRerender};
 
     }
 
-    async parseForEachTemplate(tmpltContent, cmp, field, result, childCmp = null) {
+    static loadedTemplates = new Set();
 
-        let template = tmpltContent.replace('display:none;', ''), childTmpl, childResult = '';
+    async parseForEachTemplate(tmpltContent, cmp, field, result, childCmp = null, wasPrntLoad = false) {
+
+        let template = tmpltContent.replace('display:none;', ''), childTmpl, childResult = '', tmpltChk = Components.loadedTemplates;
+        let totalLoopItm = cmp['$still_' + field].length, loopCount = 0, childLvl = 1, fullRerender = false;
         if(template.indexOf('</st-lstgp>')) template = template.replace('display:none;', '');
 
         if (cmp['$still_' + field] instanceof Array) {
@@ -680,84 +782,188 @@ export class Components {
             if (childCmp?.stElement) {
 
                 const childInstance = await (await Components.produceComponent({
-                    cmp: childCmp.stElement,
-                    parentCmp: cmp, registerCls: true
+                    cmp: childCmp.stElement, parentCmp: cmp, registerCls: true
                 }));
 
                 childTmpl = childInstance.template;
                 let fields = Object.entries(childCmp.props), noFieldsMap;
                 if (fields.length == 0) noFieldsMap = true;
 
+                let prntId = cmp.cmpInternalId;
+                if(cmp.$parent) {
+                    prntId = cmp.$parent.cmpInternalId, childLvl = 2;
+                };
+                const loadKey = (childLvl == 2 ? cmp.cmpInternalId+prntId : prntId)+childCmp.stElement;
+                wasPrntLoad = Components.prevLoadLoopContainer.has(loadKey);
+
                 for (const rec of cmp['$still_' + field]) {
                     /** @type { ViewComponent } */
                     const inCmp = new childInstance._class();
                     inCmp.cmpInternalId = 'dynamic-' + inCmp.getUUID();
-                    inCmp.template = childTmpl;
+                    
+                    inCmp.template = (tmpltChk.has(childCmp.stElement) ? childTmpl.replace(/<style>[\s\S]{0,}<\/style>/gi,'') : childTmpl);
+                    tmpltChk.add(childCmp.stElement);
                     inCmp.dynLoopObject = true;
                     inCmp.stillElement = true;
                     inCmp.parentVersionId = cmp.versionId;
+                    inCmp.$parent = cmp;
+                    if(cmp[`$_stupt${field}`] === true) inCmp[`$_stupt${field}`] = true;
 
                     if (noFieldsMap && childCmp.stDSource)
                         fields = Object.entries(cmp['$still_' + field][0]);
 
                     await inCmp.onRender();
-                    childResult += await this
-                        .replaceBoundFieldStElement(inCmp, fields, rec, noFieldsMap)
-                        .getBoundTemplate();
+                    const result = this.replaceBoundFieldStElement(inCmp, fields, rec, noFieldsMap, cmp, field);
+                    
+                    if((loopCount + 1) === totalLoopItm && !wasPrntLoad)
+                        Components.prevLoadLoopContainer.add(loadKey);                    
+
+                    if(result.obj != null){
+                        let content = result.obj?.getBoundTemplate();
+                        
+                        if(result.dynId) content = content.replace('<st-wrap','<st-wrap id="'+rec['id']+'"');
+                        childResult += content;
+                        fullRerender = true;
+                    }
 
                     setTimeout(() => inCmp.parseOnChange(), 500);
                     ComponentRegistror.add(inCmp.cmpInternalId, inCmp);
-                    setTimeout(() => {
+                    setTimeout(async () => {
+                        const instance = result.instance || inCmp;
+                        if(cmp[`$_stupt${field}`] === true) instance[`$_stupt${field}`] = true;
+                        
+                        //if(result.obj === null && result.nodeChanged)                        
+                        //    result.existingNode.parentElement.innerHTML = result.content;
+                        
                         (new Components)
-                            .parseGetsAndSets(
-                                ComponentRegistror.component(inCmp.cmpInternalId)
-                            )
+                            .parseGetsAndSets(ComponentRegistror.component(instance.cmpInternalId),false, null, field);
+
+                        let updateStat = {};
+                        if(cmp[`$_stupt${field}`] === true){
+                            if(result.nodeChanged !== false || result.appending){
+                                if(result.nodeChanged) updateStat = { nodeUpdate: true };
+                                Components.runAfterInit(instance, updateStat);
+                            }
+                        }else{
+
+                            if(result?.appending){
+                                Components.runAfterInit(instance, updateStat);
+                            }else{
+                                if('nodeChanged' in result)
+                                    if(!result.nodeChanged) return;
+    
+                                if(result.nodeChanged) updateStat = { nodeUpdate: true };
+                                Components.runAfterInit(instance, updateStat);
+                            }
+                        }
+                        
                     }, 10);
+                    loopCount++;
                 };
-
+                // Run all the subscribe methods to onComplete for a specific variable
+                const cmpltCbs = Array.isArray(cmp[`$${field}CmpltCbs`]) ? cmp[`$${field}CmpltCbs`] : cmp[`$${field}CmpltCbs`].value;
+                setTimeout(() => cmpltCbs.forEach(async cb => {
+                    const fn = cmpltCbs.shift(); await fn();
+                }), 250);
             } else {
-
+                fullRerender = true;
                 cmp['$still_' + field].forEach((rec) => {
-                    let parsingTemplate = template;
-                    let fields = Object.entries(rec);
-                    result += this.replaceBoundField(parsingTemplate, fields);
+                    result += this.replaceBoundField(template, Object.entries(rec), cmp.cmpInternalId);
                 });
             }
         }
-        return childCmp?.stElement ? childResult : result;
+
+        return { result: childCmp?.stElement ? childResult : result, fullRerender };
     }
 
-    replaceBoundField(parsingTemplate, fields) {
+    replaceBoundField(parsingTemplate, fields, parentId) {
+        let nodeId = null, nodeExists = false;
         for (const [f, v] of fields) {
+            if(f == 'id') nodeId = v;
             parsingTemplate = parsingTemplate.replaceAll(`{item.${f}}`, (m, pos, tmpl) => {
                 const isCls = tmpl.slice(pos + m.length).startsWith('st');
-                return isCls ? v.replace(/\s/g,'-')+' ' : v;
+                return isCls ? new String(v)?.replace(/\s/g,'-')+' ' : v;
             });
+        }
+
+        const isCombo = parsingTemplate.trim().startsWith('<option');
+        const isRadioOrCheck = parsingTemplate.trim().startsWith('<input');
+        
+        if(nodeId && !(isCombo && isRadioOrCheck)){
+            nodeExists = document.getElementById(`${parentId}-child-${nodeId}`)?.nodeValue;
+            parsingTemplate = parsingTemplate.replace(/\>/,` id="${parentId}-child-${nodeId}">`);
+            if(nodeExists){
+                const newNode = new DOMParser().parseFromString(parsingTemplate,'text/html');
+                document.getElementsByClassName(`loop-container-${parentId}`)[0].replaceChild(nodeExists,newNode);
+            }
         }
         return parsingTemplate.replaceAll('($event', '(event');
     }
 
     /** 
      * @param { ViewComponent } obj
-     * @returns { ViewComponent }
+     * @returns { ViewComponent | Object }
      * */
-    replaceBoundFieldStElement(obj, fields, rec, noFieldsMap) {
-
+    replaceBoundFieldStElement(obj, fields, rec, noFieldsMap, cmp, field) {
+        // Abbreviating the Loop word as Lp
+        if(obj['#stLpChild']) obj['#stLpUpdate'] = true;
+        obj['#stLpChild'] = true, obj['#stLpStat'] = {}, obj['#stLpId'] = rec['id'];
+        obj['#stLpIdDesc'] = obj.$parent.cmpInternalId+'-stStat-'+obj.constructor.name+rec['id'];
+        
         if (noFieldsMap) {
             for (const [f, v] of Object.entries(rec)) {
+                if(checkPropBind(obj, f)) obj['#stLpStat'][f] = v;
                 if (f in obj) {
                     if (typeof v == 'string') obj[f] = v?.replace('item.', '')?.trim();
                     else obj[f] = v;
                 }
             }
+            
         } else {
             for (const [f, v] of fields) {
+                if(checkPropBind(obj, f)) obj['#stLpStat'][f] = v;
                 if (typeof v == 'string') obj[f] = rec[v?.replace('item.', '')?.trim()];
                 else obj[f] = rec[v];
             }
         }
 
-        return obj;
+        obj['#stLpStat'] = JSON.stringify(obj['#stLpStat']);
+        let existingNode, nodeChanged, internalId, appending, content; 
+        if(cmp[`$_stupt${field}`]){
+            existingNode = document.getElementById(obj['#stLpIdDesc']);
+            if(!existingNode) {
+                
+                content = obj?.getBoundTemplate();
+                let container = cmp['#stAppndId']
+                    ? document.getElementById(cmp['#stAppndId']).parentNode
+                    : document.getElementsByClassName(`loop-container-${cmp.cmpInternalId}`)[0];
+                
+                if(!container && obj.$parent.loopPrnt)
+                    container = document.getElementsByClassName(`listenChangeOn-${cmp.cmpInternalId}-${field}`)[0];
+
+                obj['#stAppndId'] = obj['#stLpIdDesc'];
+                if(rec['id']) content = content.replace('<st-wrap','<st-wrap id="'+rec['id']+'"');
+                container.insertAdjacentHTML('beforeend', content);
+                nodeChanged = false, existingNode = true, appending = true;
+                setTimeout(async () => await obj.stOnDOMUpdate(),10);
+
+            }else{
+                nodeChanged = existingNode?.getAttribute('stLpStat') != obj['#stLpStat'];
+                internalId = existingNode?.getAttribute('stinternalid');
+                if(internalId) obj.cmpInternalId = internalId;
+                obj.loopPrnt = obj.$parent.cmpInternalId;
+                
+                if(nodeChanged === true){
+                    content = obj?.getBoundTemplate();
+                    existingNode.parentNode.innerHTML = content.replace('<st-wrap>','').replace('<st-wrap>','');
+                }
+                setTimeout(async () => await obj.stOnDOMUpdate(),10);
+            }
+        } 
+        
+        return existingNode 
+            ? { nodeChanged, existingNode, obj: null, content, instance: obj, appending } 
+            : { obj, dynId: rec['id'] };
     }
 
     /** @param {ViewComponent} cmp */
@@ -945,16 +1151,14 @@ export class Components {
         for (const [parentId, cmpParts] of allParts) {
             const parentCmp = $still.context.componentRegistror.componentList[parentId]
             if (parentCmp?.instance?.lone) {
-
-                Components.subscribeAction(
-                    parentCmp.instance.getName(),
-                    (placeHolderId) => {
-                        Components.handleInPartsImpl(
-                            parentCmp?.instance, parentId, cmpParts, placeHolderId
-                        );
-                    }
-                );
-
+                if(!('#stLonePartsParsed' in parentCmp)){
+                    parentCmp['#stLonePartsParsed'] = true;
+                    Components.subscribeAction(
+                        parentCmp.instance.getName(),
+                        (placeHolderId) => 
+                            Components.handleInPartsImpl(parentCmp?.instance, parentId, cmpParts, placeHolderId)
+                    );
+                }
             } else
                 Components.handleInPartsImpl(parentCmp?.instance, parentId, cmpParts);
         }
@@ -993,10 +1197,10 @@ export class Components {
 
             /** Preventing this component to be instantiated in case it should not be 
              * rendered due to the (renderIf) flag value is found to be false */
-            if (parentClss?.contains($stillconst.PART_REMOVE_CSS))
-                continue;
+            if (parentClss?.contains($stillconst.PART_REMOVE_CSS)) continue;
 
-            const { proxy, component, props, annotations, ref } = cmpParts[idx];
+            const { proxy, component, props, annotations, ref, loopPrnt, itm } = cmpParts[idx];
+            
             if (component == undefined) continue;
 
             (async () => {
@@ -1007,14 +1211,19 @@ export class Components {
                         BaseComponent.importScript(`${cmpPath}/${r}`);
                     });
                 } */
-
-                const instance = await (
-                    await Components.produceComponent({ cmp: component, parentCmp })
+               const instance = await (
+                   await Components.produceComponent({ cmp: component, parentCmp })
                 ).newInstance;
+                
+                let cmpTmp;
+                let buildTime = instance['stSetDelay']?.build;
+                if(props['@delayed']) buildTime = WorkerHelper.parseTime(props['@delayed'], component, parentCmp.getName());
+                //Delaying component building for the specified time in case defined
+                if(buildTime) await new Promise((res, rej) => setTimeout(() => res(''), buildTime))
+                
 
-                let cmpName, canHandle = true;
-                if (!Components.obj().canHandleCmpPart(instance))
-                    return;
+                let cmpName, canHandle = true, refName;
+                if (!Components.obj().canHandleCmpPart(instance)) return;
 
                 instance.dynCmpGeneratedId = `st_${UUIDUtil.numberId()}`;
                 /** In case the parent component is Lone component, then child component will also be */
@@ -1022,7 +1231,7 @@ export class Components {
                 await instance.onRender();
                 instance.cmpInternalId = `dynamic-${instance.getUUID()}${component}`;
                 instance.stillElement = true;
-                instance.proxyName = proxy;
+                instance.proxyName = proxy, instance.loopPrntId = loopPrnt;
                 instance.nstngCount = parentCmp?.nstngCount ? parentCmp.nstngCount + 1 : 1;
                 if(cmpInternalId == 'fixed-part') instance['isStFixed'] = true;
                 ComponentRegistror.add(instance.cmpInternalId, instance);
@@ -1030,61 +1239,71 @@ export class Components {
                 if (instance)
                     cmpName = 'constructor' in instance ? instance.constructor.name : null;
 
-                /** TOUCH TO REINSTANTIATE */
-                const cmp = (new Components).getNewParsedComponent(instance, cmpName, true);
-                cmp.parentVersionId = cmpVersionId;
+                /** REINSTANTIATE */
+                cmpTmp = (new Components).getNewParsedComponent(instance, cmpName, true);
+                cmpTmp.parentVersionId = cmpVersionId;
 
                 //if (cmpInternalId != 'fixed-part') {
-                Components.parseProxy(proxy, cmp, parentCmp, annotations);
-                cmp['stName'] = cmpName;
-                StillAppSetup.register(cmp);
+                Components.parseProxy(proxy, cmpTmp, parentCmp, annotations);
+                cmpTmp['stName'] = cmpName, StillAppSetup.register(cmpTmp);
 
-                const allProps = Object.entries(props);
+                let items = {};
+                if(props.item) {
+                    items = JSON.parse(props.item), cmpTmp['stEmbededAtFor'] = true;
+                    delete props.item;
+                }
+
+                const allProps = Object.entries({...props, ...items});
                 for (let [prop, value] of allProps) {
-
-                    if (prop == 'ref') ComponentRegistror.add(value, cmp);
-
+                                        
+                    if (prop == 'ref') refName = TemplateBinding.handleReferenceName(parentCmp, value, cmpTmp);
                     //Proxy gets ignored becuase it was assigned above and it should be the child class
                     if (prop != 'proxy' && prop != 'component') {
-                        if (prop.charAt(0) == '(' && prop.at(-1) == ")") {
-                            const method = prop.replace('(', '').replace(')', '');
-                            cmp[method] = (...param) => parentCmp[value.split('(')[0]](...param);
-                            continue;
-                        }
 
-                        let prefix = String(value).toLowerCase();
+                        if(typeof value !== 'string'){
+                            cmpTmp[prop] = value;
+                        }else{
 
-                        if (prop in instance && !value?.startsWith('parent.') && !value?.startsWith('self.')) {
-                            //Because this assignement will trigger getters for flag, passing an object 
-                            //with v field will allow identify that this is framework initial instance assignement
-                            const _value = ['false', false].includes(value) ? { v: false, stBVal: true } : ['true', true].includes(value) ? { v: true, stBVal: true } : value;
-                            
-                            if(cmpInternalId != 'fixed-part') instance[prop] =  _value;
-                            if(cmpInternalId == 'fixed-part') {
-                                instance[prop] = _value?.stBVal ? _value.v : _value;
-                                instance.__defineGetter__(prop, () => _value?.stBVal ? _value.v : _value);
+                            if (prop.charAt(0) == '(' && prop.at(-1) == ")") {
+                                const method = prop.replace('(', '').replace(')', '');
+                                cmpTmp[method] = (...param) => parentCmp[value.split('(')[0]](...param);
+                                continue;
                             }
-                            continue;
+    
+                            let prefix = String(value).toLowerCase();
+                            if (prop in instance && !value?.startsWith('parent.') && !value?.startsWith('self.')) {
+                                //Because this assignement will trigger getters for flag, passing an object 
+                                //with v field will allow identify that this is framework initial instance assignement
+                                const _value = ['false', false].includes(value) ? { v: false, stBVal: true } : ['true', true].includes(value) ? { v: true, stBVal: true } : value;
+                                
+                                if(cmpInternalId != 'fixed-part') instance[prop] =  _value;
+                                if(cmpInternalId == 'fixed-part') {
+                                    instance[prop] = _value?.stBVal ? _value.v : _value;
+                                    instance.__defineGetter__(prop, () => _value?.stBVal ? _value.v : _value);
+                                }
+                                continue;
+                            }
+    
+                            if (prefix.startsWith('parent.')) prefix = 'parent.';
+                            else if (prefix.startsWith('self.')) prefix = 'self.';
+                            else prefix = '';
+                            
+                            if (prefix == '' && typeof value === 'string') {
+                                value = value.trim();
+                                if (!isNaN(value) || (value.startsWith('\'') && value.endsWith('\''))) 
+                                    cmpTmp[prop] = value;
+                            }
+    
+                            else if ((String(value).toLowerCase().startsWith(prefix) || prefix == '') && typeof value === 'string') {
+
+                                const parentProp = parentCmp[value.replace(prefix, '').trim()];
+                                if (parentProp?.onlyPropSignature) cmp[prop] = parentProp.value;
+                                else cmpTmp[prop] = parentProp?.value || parentProp;
+    
+                            } else
+                            cmpTmp[prop] = value;
                         }
 
-                        if (prefix.startsWith('parent.')) prefix = 'parent.';
-                        else if (prefix.startsWith('self.')) prefix = 'self.';
-                        else prefix = '';
-
-                        if (prefix == '') {
-                            value = value.trim();
-                            if (!isNaN(value) || (value.startsWith('\'') && value.endsWith('\''))) 
-                                cmp[prop] = value;
-                        }
-
-                        else if (String(value).toLowerCase().startsWith(prefix) || prefix == '') {
-
-                            const parentProp = parentCmp[value.replace(prefix, '').trim()];
-                            if (parentProp?.onlyPropSignature) cmp[prop] = parentProp.value;
-                            else cmp[prop] = parentProp?.value || parentProp;
-
-                        } else
-                            cmp[prop] = value;
                     }
                     /** Replace the parent component on the registror So that it get's
                      * updated with the new and fresh data, properties and proxies */
@@ -1097,14 +1316,15 @@ export class Components {
 
                 //replaces the actual template in the <st-element> component placeholder
                 placeHolders[idx]
-                    ?.insertAdjacentHTML('afterbegin', cmp.getBoundTemplate());
+                    ?.insertAdjacentHTML('afterbegin', cmpTmp.getBoundTemplate());
                 // Renders second level of nesting
-                if(cmp?.nstngCount == 1) Components.handleInPlaceParts(cmp);
+                if(cmpTmp?.nstngCount == 1) Components.handleInPlaceParts(cmpTmp);
                 setTimeout(async () => {
                     /** Runs the load method which is supposed to implement what should be run
                      * for the component to be displayed accordingly in the User interface */
-                    await cmp.load();
-                    setTimeout(() => Components.runAfterInit(cmp), 120);
+                    await cmpTmp.load();
+                    setTimeout(() => Components.runAfterInit(cmpTmp), 120);
+                    //setTimeout(() => Components.emitAction(refName), 120);
                     if ((idx + 1) == cmpParts.length && cmpInternalId != 'fixed-part')
                         setTimeout(() => Components.emitAction('runImport'), 120);
 
@@ -1377,12 +1597,14 @@ export class Components {
     setupImportWorker() {
 
         if (!Components.setupImportWorkerState) {
-
-            Components.setupImportWorkerState = true;
-            const worker = new Worker(
-                `${Components.obj().parseBaseUrl(Router.baseUrl)}@still/component/manager/import_worker.js`,
-                { type: 'module' }
-            );
+            let worker;
+            try {                
+                Components.setupImportWorkerState = true;
+                worker = new Worker(
+                    `${Components.obj().parseBaseUrl(Router.baseUrl)}@still/component/manager/import_worker.js`,
+                    { type: 'module' }
+                );
+            } catch (error) {}
 
             worker.postMessage({ components: this['getPrefetchList'](), vendorPath: Components.vendorPath });
             worker.onmessage = function (r) {
@@ -1399,11 +1621,30 @@ export class Components {
     static ref = (name) => ComponentRegistror.getFromRef(name);
 
     static loadInterceptWorker() {
-        if ('serviceWorker' in navigator) {
-            const baseUrl = Components.obj().parseBaseUrl(Router.baseUrl);
-            navigator.serviceWorker.register(`${baseUrl}@still/component/manager/intercept_worker.js`, { type: 'module' })
-                .then(() => setTimeout(() => console.log('Service Worker Registered'), 1000))
-                .catch(err => console.error('SW Registration Failed:', err));
+        if(!window.STILL_HOME_PREXIF || window.STILL_HOME_LOCAL){
+            try {                
+                if ('serviceWorker' in navigator) {
+                    let baseUrl = Components.obj().parseBaseUrl(Router.baseUrl);
+                    if(window.STILL_HOME_LOCAL) baseUrl = baseUrl+window.STILL_HOME_LOCAL;
+                    navigator.serviceWorker.register(`${baseUrl}@still/component/manager/intercept_worker.js`, { type: 'module' })
+                        .then(() => setTimeout(() => console.log('Interceptor Worker Registered'), 1000))
+                        .catch(err => console.error('Interceptor SW Registration Failed:', err));
+                }
+            } catch (error) {}
+        }
+    }
+
+    static loadLoadtWorker() {
+        if(!window.STILL_HOME_PREXIF || window.STILL_HOME_LOCAL){
+            try {            
+                if ('serviceWorker' in navigator) {
+                    let baseUrl = Components.obj().parseBaseUrl(Router.baseUrl);           
+                    if(window.STILL_HOME_PREXIF) baseUrl = 'https://cdn.jsdelivr.net/npm/@stilljs/core@latest/';
+                    else if(window.STILL_HOME_LOCAL) baseUrl = baseUrl+window.STILL_HOME_LOCAL;
+                    if(!window.STILL_HOME_PREXIF || window.STILL_HOME_LOCAL)
+                        StillAppSetup.get().loadWorker = new Worker(`${baseUrl}@still/component/manager/load_worker.js`, { type: 'module' });
+                }
+            } catch (error) { }
         }
     }
 
@@ -1414,8 +1655,7 @@ export class Components {
             if(properties.status === 404){
                 if(!configFile.endsWith('default.json')) new Error('Config file '+file+' not found');
                 return { };
-            }
-                
+            }   
             return await properties.json();
         } catch (error) {
             console.error(error);
@@ -1446,16 +1686,16 @@ export class Components {
 
     isInWhiteList(cmp) {
         const isInBlackList = StillAppSetup.get().getBlackList().includes(cmp?.getName());
-        const isInWhiteList = StillAppSetup.get().getWhiteList().includes(cmp?.getName());
+        let isInWhiteList = StillAppSetup.get().getWhiteList().includes(cmp?.getName());
         if (!isInBlackList && !isInWhiteList && cmp?.isPublic) return true;
         if (isInBlackList) return false;
+        if(!isInBlackList && !isInWhiteList) isInWhiteList = true;
         return isInWhiteList;
     }
 
     /** 
      * @param { ViewComponent | String } cmp
-     * @param { Object | any | null } data
-     * */
+     * @param { Object | any | null } data */
     static async new(cmp, data = null) {
         let cmpName = cmp;
         if (cmp?.__proto__?.name == 'ViewComponent') cmpName = cmp.name;
@@ -1606,16 +1846,48 @@ export class Components {
     }
 
     parseLocalLoader(template) {
-        return template.replace(/<st-loader[\s\(\)a-z0-9\.\=\"]{0,}>/i, (mt) => {
-            let complement = mt.split(' ');
-            if (complement.length > 1) complement = complement[1].slice(0, -1);
-            else complement = '';
-            return `<div class="still-cmp-loader" ${complement}></div>`;
+        return template.replace(/<st-loader[\s\(\)a-z0-9\!\.\=\"]{0,}[\s]{0,}[\/]{0,}>/i, (mt) => {
+            let sheet = document.styleSheets[0], complement = mt.replace('<st-loader','').replace('>',''), lbl = '';
+            
+            if(!sheet['has-still-cmp-loader']){
+                sheet['has-still-cmp-loader'] = true;
+                sheet.insertRule(`
+                    .still-cmp-loader {
+                        border: 10px solid #f3f3f3; border-top: 10px solid #3d3f40; 
+                        border-radius: 50%; width: 120px; margin: 0 auto;
+                        height: 120px; animation: still-cmp-loaderspin 2s linear infinite;
+                    }`,sheet.cssRules.length);
+
+                sheet.insertRule(`
+                    @keyframes still-cmp-loaderspin {0% {transform:rotate(0deg);} 100% {transform:rotate(360deg);}
+                    }`,sheet.cssRules.length);
+
+                sheet.insertRule(`st-loader-cntr{ display: flex;  }`, sheet.cssRules.length)
+
+                if(mt.indexOf(' center ') > 0)
+                    sheet.insertRule(`st-loader-cntr{ 
+                        position: absolute;  left: 50%; top: 50%; transform: translate(-50%, -50%); }`, sheet.cssRules.length)
+            }
+            const lblStartPos = complement.indexOf('(label)="');
+            if(lblStartPos > 0){
+                lbl = complement.slice(lblStartPos+9).slice(0,complement.slice(lblStartPos+9).indexOf('"'));            
+                complement = complement.replace(`(label)="${lbl}"`,'')
+            }
+
+            return `
+            <st-loader-cntr style="flex-direction:column;align-items:center;" ${complement}>
+                <div class="still-cmp-loader"></div>${lbl}
+            </st-loader-cntr>
+            `;
         });
     }
 
-    static runAfterInit(cmp) {
-        (async () => await cmp.stAfterInit())();
+    static runAfterInit(cmp, params = {}) {
+        setTimeout(async () => {
+            await cmp.stOnDOMUpdate();
+            if(!(cmp['#stIsTopLvlCmp'] === true && cmp['stSetDelay']?.init))
+                setTimeout(async () => await cmp.stAfterInit(params),20);
+        } ,10);
         if ('stillDevidersCmp' in cmp) {
             Components.obj().setVertDivider(cmp);
             Components.obj().setHrzntlDevider(cmp);
