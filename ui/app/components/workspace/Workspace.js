@@ -15,7 +15,7 @@ import { StillDivider } from "../../../@still/component/type/ComponentType.js";
 
 export class Workspace extends ViewComponent {
 
-	isPublic = true;
+	isPublic = false;
 
 	/** @Prop */
 	editor;
@@ -89,8 +89,14 @@ export class Workspace extends ViewComponent {
 	/** @Proxy @type { StillDivider } */
 	codeEditorSplitter;
 
-	/** @Proxy */
+	/** @Prop */
 	isEditorOpened = false;
+
+	/** @Prop */
+	showLoading = true;
+
+	/** @Prop */
+	anyPropTest = 0;
 
 	stOnRender() {
 		this.service.on('load', () => {
@@ -101,17 +107,26 @@ export class Workspace extends ViewComponent {
 		});
 	}
 
+	handleLoading(){
+		this.showLoading = true;
+		this.anyPropTest = '3';
+		setTimeout(() => {
+			this.showLoading = false;
+			this.anyPropTest = 0;
+		},5000);
+	}
+
 	async stAfterInit() {
 		this.drawFlowContainer = document.getElementById('drawflow');
 		this.pplService.on('load', () => {
-			console.log(`Service loaded with: `, this.pplService);
+			console.log(`Service loaded with updated: `, this.pplService);
 			/* this.service.createPipeline().then(res => {
 				console.log(`Pipeline created successfully: `, res);
 			}) */
 		});
 		this.buildWorkspaceView();
+		setTimeout(() =>  this.showLoading = false, 1500);
 		//this.cmProxy.codeEditor.setSize(null, 100);
-
 	}
 
 	buildWorkspaceView() {
