@@ -104,6 +104,8 @@ export class Workspace extends ViewComponent {
 
 	loggedUser = null;
 
+	selectedLeftTab = 'content-diagram';
+
 	stOnRender() {
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
@@ -127,7 +129,15 @@ export class Workspace extends ViewComponent {
 		});
 		this.buildWorkspaceView();
 		setTimeout(() =>  this.showLoading = false, 1500);
+		this.onLeftTabChange();
 		//this.cmProxy.codeEditor.setSize(null, 100);
+	}
+
+	onLeftTabChange(){
+		this.selectedLeftTab.onChange(activeTab => {
+			document.getElementsByClassName(activeTab)[0].style.width = '250px';
+			document.getElementsByClassName('separator')[0].style.marginLeft = '150px';
+		});
 	}
 
 	buildWorkspaceView() {
@@ -313,6 +323,11 @@ export class Workspace extends ViewComponent {
 
 	async logout(){
 		await this.userService.logOut();
+	}
+
+	verticalResize({ leftWidth }){
+		const selectedTab = this.selectedLeftTab.value;
+		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth+100)+'px';
 	}
 
 }

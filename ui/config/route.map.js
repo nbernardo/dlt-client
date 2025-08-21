@@ -49,6 +49,10 @@ export const stillRoutesMap = {
             LeftTabs: {
                 path: "app/components/navigation/left",
                 url: "/left-tabs"
+            },
+            FileUpload: {
+                path: "app/components/fileupload",
+                url: "/file-upload"
             }
         },
         lazyInitial: {}

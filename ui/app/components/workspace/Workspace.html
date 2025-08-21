@@ -15,9 +15,11 @@
 		</header>
 		<div class="wrapper">
 
-			<st-element component="LeftTabs" (viewPipelineDiagram)="viewPipelineDiagram(event, dbfile)"></st-element>
+			<div style="width: 500px;" class="divederLeftSide">
+				<st-element component="LeftTabs" (viewPipelineDiagram)="viewPipelineDiagram(event, dbfile)"></st-element>
+			</div>
 			
-			<st-divider type="horizontal"/>
+			<st-divider type="horizontal" resizable="true" resizeCorrectionPx="150" (onResize)="verticalResize(newSize)"/>
 
 			<div class="col-right" id="still-adj-right-panel">
 				<div class="menu">

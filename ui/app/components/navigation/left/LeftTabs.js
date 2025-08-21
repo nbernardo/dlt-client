@@ -2,6 +2,7 @@ import { ViewComponent } from "../../../../@still/component/super/ViewComponent.
 import { StillTreeView } from "../../../../@still/vendors/treeview/StillTreeView.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "../../workspace/icons/database.js";
+import { Workspace } from "../../workspace/Workspace.js";
 
 export class LeftTabs extends ViewComponent {
 
@@ -18,6 +19,11 @@ export class LeftTabs extends ViewComponent {
 
 	objectTypes;
 
+	selectedTab = null;
+
+	/** @type { Workspace } */
+	$parent;
+
 	stAfterInit() {
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
@@ -28,7 +34,7 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	async showHideDatabase(){
-
+		this.selectTab('content-outputs');
 		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getDuckDbs();
 		response = await response.json();
@@ -104,5 +110,9 @@ export class LeftTabs extends ViewComponent {
 
 	/** @template */
 	viewPipelineDiagram(event, dbfile){}
+
+	selectTab(tab){
+		this.$parent.selectedLeftTab = tab;
+	}
 
 }

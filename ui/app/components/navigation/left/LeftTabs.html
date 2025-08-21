@@ -25,7 +25,7 @@
                         <span class="text">Outputs</span>
                     </label>
                 </li>
-                <li class="left-menu-item">
+                <li class="left-menu-item" onclick="component.selectTab('content-data-source')">
                     <label for="tab-data-source">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/db-white.svg" width="23" alt="">
@@ -33,7 +33,7 @@
                         <span class="text">Data Source</span>
                     </label>
                 </li>
-                <li class="left-menu-item">
+                <li class="left-menu-item" onclick="component.selectTab('content-data-files')">
                     <label for="tab-data-files">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/files.svg" width="30" alt="">
@@ -41,7 +41,7 @@
                         <span class="text">Data Files</span>
                     </label>
                 </li>
-                <li class="left-menu-item">
+                <li class="left-menu-item" onclick="component.selectTab('content-api-catalog')">
                     <label for="tab-api-catalog">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/api.png" width="25" alt="">
@@ -49,7 +49,7 @@
                         <span class="text">API Catalog</span>
                     </label>
                 </li>
-                <li class="left-menu-item">
+                <li class="left-menu-item" onclick="component.selectTab('content-diagram')">
                     <label for="tab-diagram">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/flow-modeler.svg" width="23" alt="">
@@ -57,7 +57,7 @@
                         <span class="text">Diagram</span>
                     </label>
                 </li>
-                <li class="left-menu-item">
+                <li class="left-menu-item" onclick="component.selectTab('content-logs')">
                     <label for="tab-logs">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/logs.svg" width="23" alt="">
@@ -65,7 +65,7 @@
                         <span class="text">Logs</span>
                     </label>
                 </li>
-                <li class="left-menu-item">
+                <li class="left-menu-item" onclick="component.selectTab('content-ai')">
                     <label for="tab-ai">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/ai.svg" width="23" alt="">
@@ -108,6 +108,9 @@
 
             <div class="content-panel content-data-files">
                 <h3>Your Data Files</h3>
+                <section>
+                    <st-element component="FileUpload"></st-element>
+                </section>
             </div>
 
             <div class="content-panel content-api-catalog">
