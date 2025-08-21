@@ -89,18 +89,15 @@ export class Router {
 
         const { data, evt, url } = params;
         cmp = Router.initNavigation(cmp);
+        Components.prevLoadLoopContainer.clear();
         if (evt?.containerId) Router.clickEvetCntrId = evt.containerId;
         /**
-         * The or (||) conditions serves to mount the application so the user can 
-         * be redirected straight to a specific page/page-component instead of being 
-         * forced to go to the main/home UI after the login,  as the page is not rendered 
-         * in case the app was not loaded through StillAppSetup.get().loadComponent() 
+         * The or (||) conditions serves to mount the application so the user can be redirected straight to 
+         * a specific page/page-component instead of being forced to go to the main/home UI after the login,  
+         * as the page is not rendered in case the app was not loaded through StillAppSetup.get().loadComponent() 
          */
-        if (
-            cmp === 'init'
-            ||
-            (AppTemplate.get().isAuthN() && !StillAppSetup.get().isAppLoaded())
-        ) {
+        if (cmp === 'init'||
+            (AppTemplate.get().isAuthN() && !StillAppSetup.get().isAppLoaded())) {
             StillAppSetup.get().loadComponent();
             AppTemplate.get().storageSet('stAppInitStatus', true);
             Router.initRouting = true;
@@ -117,31 +114,19 @@ export class Router {
                 Router.getInstance().#data[cmp] = data;
         }
 
-
-        const routeInstance = {
-            route: {
-                ...stillRoutesMap.viewRoutes.lazyInitial,
-                ...stillRoutesMap.viewRoutes.regular
-            }
-        }
-        const route = routeInstance.route[cmp]?.path;
-
         const cmpRegistror = $still.context.componentRegistror.componentList;
-        const cmpInstance = cmpRegistror[cmp]?.instance
+        const instance = cmpRegistror[cmp]?.instance
         const isHomeCmp = StillAppSetup.get().entryComponentName == cmp;
         const isLoneCmp = Router.clickEvetCntrId != null && Router.clickEvetCntrId != 'null';
+
         if (isHomeCmp && isLoneCmp) {
 
             if (cmp in cmpRegistror) {
 
-                $still.context.currentView = cmpInstance;
-                if (
-                    (!AppTemplate.get().isAuthN() && !cmpInstance.isPublic)
-                    || !Components.obj().isInWhiteList(cmpInstance)
-                ) document.write(authErrorMessage());
-
+                $still.context.currentView = instance;
+                const isNotAllowed = (!AppTemplate.get().isAuthN() && !instance.isPublic) || !Components.obj().isInWhiteList(instance);
+                if (isNotAllowed) document.write(authErrorMessage());
                 Router.getAndDisplayPage($still.context.currentView, true, isHomeCmp);
-
 
             } else {
 
@@ -169,7 +154,7 @@ export class Router {
                     );
                     const ctnrId = isLoneCmp ? Router.clickEvetCntrId : 'stillUiPlaceholder';
                     document.getElementById(ctnrId).innerHTML = template;
-                    setTimeout(() => Router.callCmpAfterInit(null, isHomeCmp, Router.appPlaceholder));
+                    setTimeout(() => Router.callCmpAfterInit(null, isHomeCmp, Router.appPlaceholder, newInstance));
 
                 })();
 
@@ -204,11 +189,12 @@ export class Router {
                             return (new Components()).renderPublicComponent(newInstance);
                         }
                     }
-
+                    
+                    const notAllowed = !newInstance.isPublic && !AppTemplate.get().isAuthN();
                     ComponentRegistror.add(cmp, newInstance);
                     const isWhiteListed = Components.obj().isInWhiteList(newInstance);
-                    if (!document.getElementById($stillconst.APP_PLACEHOLDER)
-                        && !newInstance.isPublic && isWhiteListed
+                    if ((!document.getElementById($stillconst.APP_PLACEHOLDER)
+                        && !newInstance.isPublic && !isWhiteListed) || notAllowed
                     ) return document.write(authErrorMessage());
 
                     newInstance.isRoutable = true;
@@ -277,6 +263,7 @@ export class Router {
 
         const appCntrId = Router.appPlaceholder, isPrivate = !cmp.isPublic;
         let appPlaceholder = document.getElementById(appCntrId), soleRouting;
+        if(!appPlaceholder) appPlaceholder = document.getElementById('stillUiPlaceholder');
         const isLoneCmp = Router.clickEvetCntrId != null && Router.clickEvetCntrId != 'null';
 
         if (isLoneCmp) {
@@ -346,7 +333,7 @@ export class Router {
     }
 
 
-    static callCmpAfterInit(cmpId, isHome, appPlaceholder = null) {
+    static callCmpAfterInit(cmpId, isHome, appPlaceholder = null, newInstance = null) {
 
         /**
          * Timer for keep calling the function wrapped code until it finds that the main 
@@ -355,32 +342,26 @@ export class Router {
         let cmpRef = appPlaceholder;
         if (cmpRef == null) cmpRef = isHome ? $stillconst.TOP_LEVEL_CMP : cmpId;
         const loadTImer = setTimeout(async () => {
-            /**
-             * Check if the main component was loaded/rendered
-             */
+            // Check if the main component was loaded/rendered
             if (document.getElementById(cmpRef)) {
                 clearTimeout(loadTImer);
                 /** @type { ViewComponent } */
                 const cmp = $still.context.currentView;
 
-                /**
-                 * Runs stAfterInit special method in case it exists
-                 */
+                if(newInstance != null) ComponentRegistror.add(newInstance.cmpInternalId, newInstance);
+
+                //Runs stAfterInit special method in case it exists
                 if (!Components.checkStInit(cmp.constructor.name))
                     setTimeout(() => Components.runAfterInit(cmp), 200);
 
-                /**
-                 * Load component parts or sub-components inside the main loaded component
+                /** Load component parts or sub-components inside the main loaded component
                  * if(!Components.stAppInitStatus) is to prevent compoenent parts Parsing
                  * When this is called in the App mounting phase, as this (handleInPlaceParts) 
                  * has been handled previously on the Components Funamentals (components.js)
-                 * by already calling Components.handleInPlaceParts($still.context.currentView))
-                 */
-                if (
-                    (!Components.stAppInitStatus
+                 * by already calling Components.handleInPlaceParts($still.context.currentView)) */
+                if ((!Components.stAppInitStatus
                         || AppTemplate.get().storageGet('stAppInitStatus'))
-                    && !Router.initRouting
-                ) {
+                    && !Router.initRouting) {
                     Components.handleInPlaceParts(cmp);
                 } else if (
                     (
@@ -500,8 +481,8 @@ export class Router {
         if (!address)
             window.location.assign('#');
 
-        window.addEventListener('popstate', () => {
-
+        window.addEventListener('popstate', (event) => {
+            
             let url = location.href.toString();
             if (
                 url.slice(0, -3) == Router.baseUrl
@@ -517,7 +498,8 @@ export class Router {
             const route = Router.getUrlPath();
 
             if (route.path != '' && route.path != '#/') {
-                if (route.address) Router.goto(route);
+                if(route.path === '/') Router.goto((new StillAppSetup()).entryComponentName);              
+                else if (route.address) Router.goto(route);
                 else {
                     const pathValue = route.path.replace('#/', '/');
                     const err = $stillconst.MSG.UNKNOWN_ROUTE.replace('{{}}', pathValue)

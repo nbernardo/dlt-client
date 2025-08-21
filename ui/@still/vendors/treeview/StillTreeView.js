@@ -73,9 +73,7 @@ export class StillTreeView extends ViewComponent {
 						margin-top: -20px;
 					}
 
-					.tree-view-blank-space{
-						height: 20px;
-					}
+					.tree-view-blank-space{ height: 20px; }
 				</style>
 
 				`;
@@ -105,7 +103,6 @@ export class StillTreeView extends ViewComponent {
 			treeStructure += `<li class="still-treeview-node">${topNode}</li>`;
 		}
 		
-		
 		this.stWhenReady(() => {
 			const container = document
 				.getElementById(this.dynCmpGeneratedId);
@@ -118,7 +115,6 @@ export class StillTreeView extends ViewComponent {
 			this.showLoader = false;		
 		});
 		
-
 	}
 
 	/** @param { TreeNodeType } param */
@@ -173,7 +169,9 @@ export class StillTreeView extends ViewComponent {
 			this.parseAndPresentTreeData(data);
 			this.#wasTreeLoaded = true;
 		}else{
-			this.dataSource = data;
+			//this.dataSource = data;
+			const treeData = Object.values(data);
+			this.parseAndPresentTreeData(treeData);
 		}
 
 	}

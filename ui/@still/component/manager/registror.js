@@ -1,6 +1,7 @@
 import { StillAppSetup } from "../../../config/app-setup.js";
 import { stillRoutesMap } from "../../../config/route.map.js";
 import { StillHTTPClient } from '../../helper/http.js';
+import { Components } from "../../setup/components.js";
 import { ViewComponent } from "../super/ViewComponent.js";
 
 export class ComponentNotFoundException extends Error {
@@ -54,8 +55,9 @@ export class ComponentRegistror {
         return cmpName in $still.context.componentRegistror.componentList;
     }
 
-    static add = (name, instance) =>
-        $still.context.componentRegistror.componentList[name] = { instance }
+    static add = (name, instance, isRef = false) =>{
+        $still.context.componentRegistror.componentList[name] = { instance };
+    }
     
     static getFromRef(name) {
         const source = $still.context.componentRegistror.componentList;
@@ -90,7 +92,6 @@ export const $still = {
     c: { ref: (ref) => ComponentRegistror.get().componentList[ref].instance },
     controller: (type) => ComponentRegistror.controller(type),
     HTTPClient: new StillHTTPClient(),
-    pressedKeys: new Set(),
     multplWaitSec: 200,
 }
 

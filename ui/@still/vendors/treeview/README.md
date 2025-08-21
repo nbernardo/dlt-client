@@ -255,6 +255,25 @@ export class TreeWithHTMLContent extends ViewComponent {
 ##### Result:
 <img src="imgs/example3.gif" width="500"/>
 
+#### Embeding as a remote component
+Still.js supports remote embedding of self-contained components (no third-party imports) without local installation—only a minor change is needed.:
+```html
+<div>
+  <st-element 
+    proxy="tviewProxy"
+    component="npm/@stilljs/treeview/StillTreeView">
+  </st-element>
+</div>
+```
+To include tree-view.css when remotely embedding `StillTreeView`, manually import it in the embedding component’s JS file:
+
+```js
+import sheet from 'https://cdn.jsdelivr.net/npm/@stilljs/treeview@latest/tree-view.css' with { type: 'css' };
+document.adoptedStyleSheets = [sheet];
+```
+
+In the above scenario, because we're embeding from NPM, we have the npm/ prefix, and the the namespace of the packege and finally the Component name.
+
 <br>
 <br>
 <br>

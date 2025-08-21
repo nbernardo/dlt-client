@@ -37,6 +37,14 @@ export const stillRoutesMap = {
             SqlDBComponent: {
                 path: "app/components/node-types",
                 url: "/sql-db"
+            },
+            DrawFlow: {
+                path: "app/components/drawflow",
+                url: "/draw-flow"
+            },
+            Login: {
+                path: "app/components/auth",
+                url: "/login"
             }
         },
         lazyInitial: {}
