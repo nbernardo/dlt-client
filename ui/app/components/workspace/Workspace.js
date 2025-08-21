@@ -12,6 +12,7 @@ import { EditorLanguageType } from "../../types/editor.js";
 import { StillTreeView } from "../../../@still/vendors/treeview/StillTreeView.js";
 import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "./icons/database.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
+import { UserService } from "../../services/UserService.js";
 
 export class Workspace extends ViewComponent {
 
@@ -57,6 +58,12 @@ export class Workspace extends ViewComponent {
 	terminalProxy;
 
 	/** 
+	 * @Inject 
+	 * @Path services/ 
+	 * @type { UserService }*/
+	userService;
+
+	/** 
 	 * @Prop 
 	 * @type { EditorLanguageType }
 	 * */
@@ -95,12 +102,18 @@ export class Workspace extends ViewComponent {
 	/** @Prop */
 	anyPropTest = 0;
 
+	loggedUser = null;
+
 	stOnRender() {
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
 			this.service.table.onChange(newValue => {
 				console.log(`Workspace was update about changed and new value is: `, newValue);
 			});
+		});
+
+		this.userService.on('load', async () => {
+			this.loggedUser = (await this.userService.getLoggedUser()).name
 		});
 	}
 
@@ -296,6 +309,10 @@ export class Workspace extends ViewComponent {
 	viewPipelineDiagram(event, data){
 		event.preventDefault();
 		console.log(data);
+	}
+
+	async logout(){
+		await this.userService.logOut();
 	}
 
 }

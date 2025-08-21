@@ -2,8 +2,16 @@
 	<st-loader (showIf)="self.showLoading" center (label)="Building the workspace" >
 	<div id="drawflowContainer" (showIf)="!self.showLoading">
 
-		<header>
-			<h2>Workspace</h2>
+		<header style="display: flex; justify-content: space-between;">
+			<h2>DLT-Client Workspace</h2>
+			<div style="display: flex; align-items: center; padding: 5px 50px; flex-direction: column; justify-content: left;">
+				<div style="display: flex; align-items: center;">
+					<img src="app/assets/imgs/logged-usr.svg" width="30" alt=""> &nbsp;@loggedUser
+				</div>
+				<div style="display: flex; width: 100%; padding: 0 35px;">
+					<a href="#" style="font-size: 12px; color: grey;" (click)="logout()">Logout</a>
+				</div>
+			</div>
 		</header>
 		<div class="wrapper">
 
