@@ -20,9 +20,6 @@ export class Workspace extends ViewComponent {
 	/** @Prop */
 	editor;
 
-	/** @Proxy @type { StillTreeView } */
-	dbTreeviewProxy;
-
 	/**
 	 * @Inject
 	 * @Path services/
@@ -105,15 +102,6 @@ export class Workspace extends ViewComponent {
 				console.log(`Workspace was update about changed and new value is: `, newValue);
 			});
 		});
-	}
-
-	handleLoading(){
-		this.showLoading = true;
-		this.anyPropTest = '3';
-		setTimeout(() => {
-			this.showLoading = false;
-			this.anyPropTest = 0;
-		},5000);
 	}
 
 	async stAfterInit() {
@@ -228,39 +216,6 @@ export class Workspace extends ViewComponent {
 		this.terminalProxy.resizeHeight(editorHeight);
 	}
 
-	async showHideDatabase(){
-
-		this.dbTreeviewProxy.clearTreeData();
-		let response = await this.service.getDuckDbs();
-		response = await response.json();
-
-		for(const [_file, tables] of Object.entries(response)){
-			const data = Object.values(tables);
-			const dbfile = _file.replace('.duckdb','');
-			const pipeline = this.dbTreeviewProxy.addNode(
-				{
-					content: this.pipelineTreeViewTemplate(dbfile),
-					isTopLevel: true,
-			});
-
-			const dbSchema = this.dbTreeviewProxy.addNode({
-				content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
-			});
-
-			for(const idx in data){
-				const tableData = data[idx];
-				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
-				const table = this.dbTreeviewProxy.addNode({ 
-					content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
-				});
-				dbSchema.addChild(table);
-			}
-			pipeline.addChild(dbSchema);
-		}
-		
-		this.dbTreeviewProxy.renderTree();
-	}
-
 	async runCode(){
 		const code = this.cmProxy.codeEditor.getValue();
 		const database = [...this.connectedDbs][0]
@@ -341,48 +296,6 @@ export class Workspace extends ViewComponent {
 	viewPipelineDiagram(event, data){
 		event.preventDefault();
 		console.log(data);
-	}
-
-	databaseTreeViewTemplate(tableData, tableToQuery, dbfile){
-		return `<div class="table-in-treeview">
-					<span>${tableIcon} ${tableData.table}</span>
-					<span class="tables-icn-container">
-						<span tooltip-x="-140" tooltip="Copy table path to clipboard"
-							  onclick="self.copyToClipboard('${tableToQuery}')"
-						>
-							${copyClipboardIcin}
-						</span>
-						<span 
-							onclick="self.genInitialDBQuery('${tableToQuery}','${dbfile}')"
-							tooltip-x="-130" tooltip="Query ${tableData.table} table"
-						>
-							${tableToTerminaIcon}
-						</span>
-					</span>
-				</div>`;
-	}
-
-	pipelineTreeViewTemplate(dbfile){
-		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label"> ${pipelineIcon} ${dbfile} </span>
-					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
-						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
-				</div>`;
-	}
-
-	dbSchemaTreeViewTemplate(dbname, dbfile){
-		return `<div class="table-in-treeview">
-					<span> ${dbIcon} <b>${dbname}</b></span>
-					<!-- <span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span> -->
-				</div>`;
-	}
-
-	copyToClipboard(content){
-		this.controller.copyToClipboard(content);
-	}
-
-	async refreshTree(){
-		await this.showHideDatabase();
 	}
 
 }

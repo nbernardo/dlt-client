@@ -3,37 +3,12 @@
 	<div id="drawflowContainer" (showIf)="!self.showLoading">
 
 		<header>
-			<h2 (click)="handleLoading()">Workspace</h2>
+			<h2>Workspace</h2>
 		</header>
 		<div class="wrapper">
-			<div class="col" id="still-adj-left-panel">
-				<div class="tabset">
-					<input type="radio" name="tabset" id="tab1" aria-controls="data-panel">
-					<label for="tab1" onclick="component.showHideDatabase()">Data</label>
-					
-					<input type="radio" name="tabset" id="tab2" aria-controls="draw-diagram-tab" checked>
-					<label for="tab2">Diagram</label>			
-					<div class="tab-panels">
-						<section id="data-panel" class="tab-panel">
-							<st-element 
-								showBullets="false"
-								component="@treeview/StillTreeView"
-								tooltipXPos="10"
-								(onRefreshClick)="refreshTree()"
-								showRefresh="false"
-								tooltipText="Update tree data"
-								proxy="dbTreeviewProxy">
-							</st-element>
-						</section>
-						<section id="draw-diagram-tab" class="tab-panel">
-							<span (forEach)="objectTypes">
-								<st-element component="ObjectType" each="item"></st-element>
-							</span>
-						</section>
-					</div>
-				</div>
-			</div>
 
+			<st-element component="LeftTabs" (viewPipelineDiagram)="viewPipelineDiagram(event, dbfile)"></st-element>
+			
 			<st-divider type="horizontal"/>
 
 			<div class="col-right" id="still-adj-right-panel">
