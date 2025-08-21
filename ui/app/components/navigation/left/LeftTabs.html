@@ -6,6 +6,10 @@
     <input type="radio" id="tab-outputs" name="content-tabs">
     <input type="radio" id="tab-data-source" name="content-tabs">
     <input type="radio" id="tab-diagram" name="content-tabs" checked>
+    <input type="radio" id="tab-data-files" name="content-tabs">
+    <input type="radio" id="tab-api-catalog" name="content-tabs">
+    <input type="radio" id="tab-logs" name="content-tabs">
+    <input type="radio" id="tab-ai" name="content-tabs">
 
     <div class="app-container">
         <div class="sidebar-container">
@@ -30,12 +34,43 @@
                     </label>
                 </li>
                 <li class="left-menu-item">
+                    <label for="tab-data-files">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/files.svg" width="30" alt="">
+                        </span>
+                        <span class="text">Data Files</span>
+                    </label>
+                </li>
+                <li class="left-menu-item">
+                    <label for="tab-api-catalog">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/api.png" width="25" alt="">
+                        </span>
+                        <span class="text">API Catalog</span>
+                    </label>
+                </li>
+                <li class="left-menu-item">
                     <label for="tab-diagram">
                         <span class="icon">
-                            <!-- SVG icon for Diagram (Design Area/Flowchart) -->
                             <img src="app/assets/imgs/left-menu/flow-modeler.svg" width="23" alt="">
                         </span>
                         <span class="text">Diagram</span>
+                    </label>
+                </li>
+                <li class="left-menu-item">
+                    <label for="tab-logs">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/logs.svg" width="23" alt="">
+                        </span>
+                        <span class="text">Logs</span>
+                    </label>
+                </li>
+                <li class="left-menu-item">
+                    <label for="tab-ai">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/ai.svg" width="23" alt="">
+                        </span>
+                        <span class="text">Ai Assistent</span>
                     </label>
                 </li>
             </ul>
@@ -70,6 +105,23 @@
                     </span>
                 </section>
             </div>
+
+            <div class="content-panel content-data-files">
+                <h3>Your Data Files</h3>
+            </div>
+
+            <div class="content-panel content-api-catalog">
+                <h3>API Catalog</h3>
+            </div>
+            
+            <div class="content-panel content-logs">
+                <h3>Logs</h3>
+            </div>
+            
+            <div class="content-panel content-ai">
+                <h3>AI assistent</h3>
+            </div>
+
         </div>
     </div>
 </body>
@@ -93,6 +145,10 @@
     #nav-toggle,
     #tab-outputs,
     #tab-data-source,
+    #tab-data-files,
+    #tab-api-catalog,
+    #tab-logs,
+    #tab-ai,
     #tab-diagram {
         display: none;
     }
@@ -190,7 +246,12 @@
     
     #tab-outputs:checked ~ .app-container .sidebar-menu label[for="tab-outputs"],
     #tab-data-source:checked ~ .app-container .sidebar-menu label[for="tab-data-source"],
-    #tab-diagram:checked ~ .app-container .sidebar-menu label[for="tab-diagram"] {
+    #tab-diagram:checked ~ .app-container .sidebar-menu label[for="tab-diagram"], 
+    #tab-data-files:checked ~ .app-container .sidebar-menu label[for="tab-data-files"], 
+    #tab-api-catalog:checked ~ .app-container .sidebar-menu label[for="tab-api-catalog"], 
+    #tab-logs:checked ~ .app-container .sidebar-menu label[for="tab-logs"], 
+    #tab-ai:checked ~ .app-container .sidebar-menu label[for="tab-ai"] 
+    {
         background-color: #3498db;
         color: white;
         border-left: 4px solid #2980b9;
@@ -223,7 +284,12 @@
     
     #tab-outputs:checked ~ .app-container .content-outputs,
     #tab-data-source:checked ~ .app-container .content-data-source,
-    #tab-diagram:checked ~ .app-container .content-diagram {
+    #tab-diagram:checked ~ .app-container .content-diagram,
+    #tab-data-files:checked ~ .app-container .content-data-files,
+    #tab-api-catalog:checked ~ .app-container .content-api-catalog,
+    #tab-logs:checked ~ .app-container .content-logs,
+    #tab-ai:checked ~ .app-container .content-ai
+    {
         opacity: 1;
         visibility: visible;
     }
