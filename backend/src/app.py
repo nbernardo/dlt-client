@@ -9,13 +9,16 @@ from controller.RequestContext import socketio
 
 from controller.pipeline import pipeline
 from controller.workspace import workspace
+from controller.file_upload import upload, BaseUpload
 
 proj_folder = Path(__file__).parent
+BaseUpload.upload_folder = str(Path(__file__).parent.parent)+'/dbs/files'
 sys.path.insert(0, proj_folder/'node_mapper/')
 set_env(proj_folder)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hash#123098'
+
 CORS(app)
 socketio.init_app(app)
 
@@ -27,4 +30,5 @@ def on_connect():
 
 app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
+app.register_blueprint(upload)
 socketio.run(app, host="0.0.0.0", port=8000)
