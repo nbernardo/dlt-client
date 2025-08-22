@@ -1,4 +1,7 @@
+import { $still } from "../../../@still/component/manager/registror.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
+import { AppTemplate } from "../../../config/app-template.js";
+import { UserService } from "../../services/UserService.js";
 
 export class FileUpload extends ViewComponent {
 
@@ -12,6 +15,18 @@ export class FileUpload extends ViewComponent {
 	fileCount;
 	/** @Prop */
 	selectedFiles = [];
+
+	/**
+	 * @Inject
+	 * @Path services/
+	 * @type { UserService }
+	 */
+	userService;
+
+	/** @Delayed 1s */
+	constructor(){
+		super();
+	}
 
 	stAfterInit(){
 	
@@ -118,17 +133,44 @@ export class FileUpload extends ViewComponent {
 		this.updateFilesDisplay();
 	}
 
-	uploadFiles() {
-		if (this.selectedFiles.length === 0) {
-			alert('No files selected for upload');
-			return;
+	async uploadFiles() {
+		
+		if (this.selectedFiles.length > 0) {
+
+			const formData = new FormData();
+			for (let file of this.selectedFiles) {
+				formData.append('files', file);
+			}
+
+			formData.append('user', (await this.userService.getLoggedUser()).email);
+
+			try {
+				const response = await $still.HTTPClient.post('/upload', formData);
+				//const result = await response.json();
+
+				if (response.ok)  {
+					AppTemplate.toast.success('File(s) uploaded successfully');
+					this.clearAllFiles();
+					this.$parent.filesList = await this.listFiles();
+					document.getElementById('collapse').checked = true;
+				}
+				else AppTemplate.toast.error('Error while uploading the file(s)');
+				
+			} catch (error) {
+				AppTemplate.toast.error(`File(s) upload failed: ${error.message}`);
+			}
 		}
-		
-		// Here you would implement the actual upload logic
-		alert(`Ready to upload ${this.selectedFiles.length} file(s):\n${this.selectedFiles.map(f => f.name).join('\n')}`);
-		
-		// After successful upload, you might want to clear the files
-		// clearAllFiles();
 	}
+
+	async listFiles(){
+		let filesList = null;
+		const user = (await this.userService.getLoggedUser()).email;
+		const response = await $still.HTTPClient.get('/files/'+user);
+		if(response.ok){
+			filesList = await response.json();
+		}
+		return filesList;
+	}
+
 }
 
