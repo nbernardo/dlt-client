@@ -50,25 +50,25 @@ class DltPipeline:
         print("Standard Error:", result.stderr)
 
 
-    def create_v1(self, file_name, data, context: RequestContext) -> Dict[str,str]:
+    def create_v1(self, file_path, file_name, data, context: RequestContext) -> Dict[str,str]:
         """
         This is the pipeline creation
         """
-        file_path = f'{destinations_dir}/{file_name}.py'
+        pplint_file = f'{file_path}/{file_name}.py'
         file_open_flag = 'x+'
-        self.curr_file = file_path
+        self.curr_file = pplint_file
 
-        if os.path.exists(file_path):
+        if os.path.exists(pplint_file):
             message = 'Pipeline exists already'
             print(message)
             return { 'status': False, 'message': message }
 
         # Create python file with pipeline code
-        with open(file_path, file_open_flag, encoding='utf-8') as file:
+        with open(pplint_file, file_open_flag, encoding='utf-8') as file:
             file.write(data)
 
         # Run pipeline generater above by passing the python file
-        result = subprocess.run(['python', file_path],
+        result = subprocess.run(['python', pplint_file],
                                 check=True,
                                 capture_output=True,
                                 text=True)

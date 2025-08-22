@@ -3,10 +3,13 @@ from services.pipeline.DltPipeline import DltPipeline
 from node_mapper.NodeFactory import NodeFactory
 from .RequestContext import RequestContext
 from node_mapper.TemplateNodeType import TemplateNodeType
+import os
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
 
+class BasePipeline:
+    folder = None
 
 @pipeline.route('/pipeline/create', methods=['POST'])
 def create():
@@ -15,8 +18,15 @@ def create():
     """
     payload = request.get_json()
     pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
+    
+    duckdb_path = BasePipeline.folder+'/duckdb/'+payload['user']
+    os.makedirs(duckdb_path, exist_ok=True)
+    
+    ppline_path = BasePipeline.folder+'/pipeline/'+payload['user']
+    os.makedirs(ppline_path, exist_ok=True)
+    
     context = RequestContext(pipeline_name, payload['socketSid'])
-
+    
     grid = payload['drawflow'] if 'drawflow' in payload else ''
     start_id = payload['startNode'] if 'startNode' in payload else ''
     node_params = grid['Home']['data']
@@ -30,8 +40,9 @@ def create():
     all_nodes: list[TemplateNodeType] = None
 
     all_nodes = parse_node(connections, node_params, data_place, context, node_list)
-
-    template = template.replace('%pipeline_name%', f'"{pipeline_name}"')        
+    
+    template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
+    template = template.replace('%Dbfile_name%', pipeline_name)
 
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
@@ -46,7 +57,7 @@ def create():
     pipeline_instance = DltPipeline()
 
     try:
-        result = pipeline_instance.create_v1(pipeline_name, template, context)
+        result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
         success = True
         if result['status'] is False: 
             success, message = False, result['message'] 
