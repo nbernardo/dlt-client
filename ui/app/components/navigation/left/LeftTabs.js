@@ -1,6 +1,8 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
+import { ListState } from "../../../../@still/component/type/ComponentType.js";
 import { StillTreeView } from "../../../../@still/vendors/treeview/StillTreeView.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { FileUpload } from "../../fileupload/FileUpload.js";
 import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "../../workspace/icons/database.js";
 import { Workspace } from "../../workspace/Workspace.js";
 
@@ -17,6 +19,9 @@ export class LeftTabs extends ViewComponent {
 	/** @Proxy @type { StillTreeView } */
 	dbTreeviewProxy;
 
+	/** @Proxy @type { FileUpload } */
+	fileUploadProxy;
+
 	objectTypes;
 
 	selectedTab = null;
@@ -24,13 +29,26 @@ export class LeftTabs extends ViewComponent {
 	/** @type { Workspace } */
 	$parent;
 
+	/**
+	 * @type { ListState<Array<{}>> }
+	 */
+	filesList = [];
+
+	/** @Prop */
+	fileMenu;
+
+	/** @Prop */
+	activeFileDropdown;
+
 	stAfterInit() {
+
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
 			this.service.table.onChange(newValue => {
 				console.log(`Workspace was update about changed and new value is: `, newValue);
 			});
 		});
+
 	}
 
 	async showHideDatabase(){
@@ -108,11 +126,48 @@ export class LeftTabs extends ViewComponent {
 				</div>`;
 	}
 
+	genInitialDBQuery(table, dbfile){
+		this.$parent.genInitialDBQuery(table, dbfile)
+	}
+
 	/** @template */
 	viewPipelineDiagram(event, dbfile){}
 
-	selectTab(tab){
+	async selectTab(tab){
+		if(tab === 'content-data-files'){
+			this.filesList = await this.fileUploadProxy.listFiles();
+			this.setUpFileMenuEvt();
+		}
 		this.$parent.selectedLeftTab = tab;
+	}
+
+	setUpFileMenuEvt(){
+		this.fileMenu = document.getElementById('file-list-popup');
+
+		const obj = this; //Becuase inside callbakc this is not available
+        document.addEventListener('click', function(event) {
+			
+            const [isClickInsideMenu, isClickTrigger] = [obj.fileMenu.contains(event.target), event.target.closest('svg')];
+            if (!isClickInsideMenu && !isClickTrigger) {
+                obj.fileMenu.classList.remove('is-active');
+                obj.activeFileDropdown = null;
+            }
+        });
+	}
+
+	togglePopup(element, filename) {
+		const rect = element.getBoundingClientRect();
+		
+		if (this.activeFileDropdown === element) {
+			this.fileMenu.classList.remove('is-active');
+			this.activeFileDropdown = null;
+		} else {
+			this.fileMenu.classList.remove('is-active');
+			this.fileMenu.style.left = `${rect.left - 8}px`; 
+			this.fileMenu.style.top = `${rect.top}px`;                
+			this.fileMenu.classList.add('is-active');
+			this.activeFileDropdown = element;
+		}
 	}
 
 }

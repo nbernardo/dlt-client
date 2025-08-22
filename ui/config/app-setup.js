@@ -11,8 +11,8 @@ export class StillAppSetup extends StillAppMixin(Components) {
     constructor() {
         super();
         this.setHomeComponent(Workspace);
-        //StillHTTPClient.setBaseUrl('http://localhost:8000');
-        StillHTTPClient.setBaseUrl('https://dlt-client.onrender.com');
+        StillHTTPClient.setBaseUrl('http://localhost:8000');
+        //StillHTTPClient.setBaseUrl('https://dlt-client.onrender.com');
 
         this.addPrefetch({
             component: '@codemirror/CodeMiror',
