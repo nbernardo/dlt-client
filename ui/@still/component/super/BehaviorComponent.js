@@ -47,10 +47,14 @@ export class BehaviorComponent {
      * @param {*} field 
      * @param {{ value: string, required: Blob, pattern: RegExp }} inpt 
      */
-    onValueInput(e, field, inpt, formRef, cmp = null, reset = false) {
+    async onValueInput(e, field, inpt, formRef, cmp = null, reset = false) {
         if(inpt === null) return;
         const fieldType = inpt?.type?.toLowerCase();
         const fieldSrc = this.constructor.name == 'BehaviorComponent' ? cmp : this;
+
+        if (e?.key?.toLowerCase() === 'v') {
+            if (e.ctrlKey || e.metaKey) inpt.value = await navigator.clipboard.readText();
+        }
 
         if(reset){
             fieldSrc[field] = (fieldType == 'checkbox' || inpt.multiple) ? [] : '';

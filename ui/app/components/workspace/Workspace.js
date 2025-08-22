@@ -104,6 +104,8 @@ export class Workspace extends ViewComponent {
 
 	loggedUser = null;
 
+	/** @Prop */ userEmail = null;
+
 	selectedLeftTab = 'content-diagram';
 
 	stOnRender() {
@@ -115,7 +117,9 @@ export class Workspace extends ViewComponent {
 		});
 
 		this.userService.on('load', async () => {
-			this.loggedUser = (await this.userService.getLoggedUser()).name
+			const user = (await this.userService.getLoggedUser());
+			this.loggedUser = user.name;
+			this.userEmail = user.email;
 		});
 	}
 
@@ -176,7 +180,7 @@ export class Workspace extends ViewComponent {
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
-		data = { ...data, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
+		data = { ...data, user: this.userEmail, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
 		console.log(data);
 		const result = await this.pplService.createPipeline(data);
 	}
@@ -247,7 +251,7 @@ export class Workspace extends ViewComponent {
 			session: this.socketData.sid, database
 		};
 
-		let result = await this.service.runCode(payload);
+		let result = await this.service.runCode(payload, this.userEmail);
 		result = await result.json();
 		this.terminalProxy.writeTerminal(result.output);
 	}

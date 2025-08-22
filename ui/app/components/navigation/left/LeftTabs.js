@@ -54,7 +54,7 @@ export class LeftTabs extends ViewComponent {
 	async showHideDatabase(){
 		this.selectTab('content-outputs');
 		this.dbTreeviewProxy.clearTreeData();
-		let response = await this.service.getDuckDbs();
+		let response = await this.service.getDuckDbs(this.$parent.userEmail);
 		response = await response.json();
 
 		for(const [_file, tables] of Object.entries(response)){

@@ -34,9 +34,9 @@ export class WorkspaceService extends BaseService {
         },
     ]
 
-    async runCode(code){
+    async runCode(code, user){
 
-        const url = '/workcpace/code/run';
+        const url = '/workcpace/code/run/'+user;
         const result = await $still.HTTPClient.post(url, JSON.stringify(code), {
             headers: {
                 'Content-Type': 'application/json'
@@ -47,8 +47,8 @@ export class WorkspaceService extends BaseService {
 
     }
 
-    async getDuckDbs(){
-        const url = '/workcpace/duckdb/list';
+    async getDuckDbs(user){
+        const url = '/workcpace/duckdb/list/'+user;
         const result = await $still.HTTPClient.post(url, null, {
             headers: {
                 'Content-Type': 'application/json'
