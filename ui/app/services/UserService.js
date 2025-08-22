@@ -1,4 +1,5 @@
 import { BaseService } from "../../@still/component/super/service/BaseService.js";
+import { Router } from "../../@still/routing/router.js";
 
 export class UserService extends BaseService {
 
@@ -27,17 +28,26 @@ export class UserService extends BaseService {
 	  
 	}
 
-	logOut(){
-		UserService.auth0Client.logout({ localOnly: true });
+	async logOut(){
+		await UserService.auth0Client.logout({ localOnly: true });
+        Router.goto('exit');
 	}
 
     static async isAuthenticated(){
-        if(UserService.auth0Client === null)
-            UserService.auth0Client = await authConnect();
-        
+        await auth0GetConnection();
         return await UserService.auth0Client.isAuthenticated()
     }
 
+    async getLoggedUser(){
+        await auth0GetConnection();
+        return UserService.auth0Client.getUser();
+    }
+
+}
+
+async function auth0GetConnection(){
+    if(UserService.auth0Client === null)
+        UserService.auth0Client = await authConnect();
 }
 
 async function authConnect(){

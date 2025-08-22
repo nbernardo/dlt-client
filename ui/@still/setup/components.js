@@ -1420,6 +1420,7 @@ export class Components {
     static parseProxy(proxy, cmp, parentCmp, annotations) {
         if (proxy) {
             const sbscbrs = parentCmp[proxy].subscribers;
+            delete parentCmp[proxy]; //Because of delay that might happen for nesting component, poxy @annotation parsing might delay
             parentCmp[proxy] = cmp;
             if (sbscbrs && sbscbrs.length) sbscbrs.forEach(async cb => await cb());
         }
@@ -1738,7 +1739,8 @@ export class Components {
     /** This is a complement to the parseDiveder  */
     setVertDivider(c) {
         c['stillDevidersCmp'].forEach((p) => {
-            const { dividerId, type, ev1: onResize, ev2: onLblClick } = p;
+            const { dividerId, type, ev1: onResize, ev2: onLblClick, resizable, resizeCorrectionPx = 0 } = p;
+
             if (type != 'horizontal') return;
             const separator = document.getElementById(dividerId);
             p.parent[p.proxy] = separator;
@@ -1752,13 +1754,23 @@ export class Components {
                 separator.classList.add('resizing'); // Add class to style handle during resize
             });
 
+
             document.addEventListener('mousemove', (e) => {
                 if (!isResizing) return;
-                const deltaX = e.clientX - startX;
+                const deltaX = e.clientX - startX, rszCorrect = resizeCorrectionPx;
                 const newLeftPanelWidth = leftPanelWidth + deltaX;
-                if (newLeftPanelWidth > 50 && window.innerWidth - newLeftPanelWidth > 50)
-                    [_left.style.width, _right.style.flexGrow] = [`${newLeftPanelWidth}px`, 1];
-                if (method) (async () => await method({ leftWidth: newLeftPanelWidth }))();
+
+                if([true,'true'].includes(resizable)){ 
+                    const rect = document.body.getBoundingClientRect();
+                    const relativeX = e.clientX - rect.left;
+                    [_left.style.width, _right.style.flexGrow, separator.style.marginLeft] = [`${relativeX - rszCorrect}px`, 1, `${relativeX - rszCorrect}px`];
+                    if (method) (async () => await method({ leftWidth: relativeX - rszCorrect }))();
+                }
+                else{
+                    if ((newLeftPanelWidth > 50 && window.innerWidth - newLeftPanelWidth > 50))
+                        [_left.style.width, _right.style.flexGrow] = [`${newLeftPanelWidth}px`, 1];
+                    if (method) (async () => await method({ leftWidth: e.clientX - 150 }))();
+                }
             });
 
             document.addEventListener('mouseup', () => {

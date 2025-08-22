@@ -1,0 +1,493 @@
+<body class="left-menu-tabs">
+    <input type="checkbox" id="nav-toggle">
+    
+    <input type="radio" id="tab-outputs" name="content-tabs">
+    <input type="radio" id="tab-data-source" name="content-tabs">
+    <input type="radio" id="tab-diagram" name="content-tabs" checked>
+    <input type="radio" id="tab-data-files" name="content-tabs">
+    <input type="radio" id="tab-api-catalog" name="content-tabs">
+    <input type="radio" id="tab-logs" name="content-tabs">
+    <input type="radio" id="tab-ai" name="content-tabs">
+
+    <div class="app-container">
+        <div class="sidebar-container">
+            
+            <label for="nav-toggle" class="sidebar-toggle">☰</label>
+
+            <ul class="sidebar-menu">
+                <li class="left-menu-item" data-tooltip="Outputs">
+                    <label for="tab-outputs" onclick="component.showHideDatabase()">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/tables.svg" width="23" alt="">
+                        </span>
+                        <span class="text">Outputs</span>
+                    </label>
+                </li>
+                <li class="left-menu-item" onclick="component.selectTab('content-data-source')">
+                    <label for="tab-data-source">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/db-white.svg" width="23" alt="">
+                        </span>
+                        <span class="text">Data Source</span>
+                    </label>
+                </li>
+                <li class="left-menu-item" onclick="component.selectTab('content-data-files')">
+                    <label for="tab-data-files">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/files.svg" width="30" alt="">
+                        </span>
+                        <span class="text">Data Files</span>
+                    </label>
+                </li>
+                <li class="left-menu-item" onclick="component.selectTab('content-api-catalog')">
+                    <label for="tab-api-catalog">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/api.png" width="25" alt="">
+                        </span>
+                        <span class="text">API Catalog</span>
+                    </label>
+                </li>
+                <li class="left-menu-item" onclick="component.selectTab('content-diagram')">
+                    <label for="tab-diagram">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/flow-modeler.svg" width="23" alt="">
+                        </span>
+                        <span class="text">Diagram</span>
+                    </label>
+                </li>
+                <li class="left-menu-item" onclick="component.selectTab('content-logs')">
+                    <label for="tab-logs">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/logs.svg" width="23" alt="">
+                        </span>
+                        <span class="text">Logs</span>
+                    </label>
+                </li>
+                <li class="left-menu-item" onclick="component.selectTab('content-ai')">
+                    <label for="tab-ai">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/ai.svg" width="23" alt="">
+                        </span>
+                        <span class="text">Ai Assistent</span>
+                    </label>
+                </li>
+            </ul>
+        </div>
+
+        <div class="content">
+            
+            <div class="content-panel content-outputs">
+                <h3>Loaded data</h3>
+                <section id="data-panel" class="tab-panel">
+                    <st-element 
+                        showBullets="false"
+                        component="@treeview/StillTreeView"
+                        tooltipXPos="10"
+                        (onRefreshClick)="refreshTree()"
+                        showRefresh="false"
+                        tooltipText="Update tree data"
+                        proxy="dbTreeviewProxy">
+                    </st-element>
+                </section>
+            </div>
+
+            <div class="content-panel content-data-source">
+                <h3>Your Data sources</h3>
+            </div>
+
+            <div class="content-panel content-diagram">
+                <h3>Pipeline Design</h3>
+                <section id="draw-diagram-tab" class="tab-panel">
+                    <span (forEach)="objectTypes">
+                        <st-element component="ObjectType" each="item"></st-element>
+                    </span>
+                </section>
+            </div>
+
+            <div class="content-panel content-data-files">
+                <h3>Your Data Files</h3>
+
+                <section style="height: 70px;">
+                    <st-element component="FileUpload" proxy="fileUploadProxy"></st-element>
+                </section>
+
+                <div class="file-list-wrapper">
+                    <ol class="tiny-menu">
+                        @for(file in this.filesList; idx = $count)
+                            <li class="tiny-menu-item">
+                                <div class="dots-container">
+                                    <svg class="dots-icon" onclick="component.togglePopup(this, 'document.pdf')" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M10 6a2 2 0 100-4 2 2 0 000 4zM10 12a2 2 0 100-4 2 2 0 000 4zM10 18a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" fill-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <img class="file-type-{file.type}" src="app/assets/imgs/left-menu/{file.type}-file.png" width="20">
+                                <div class="file-name">&nbsp;{file.name}</div>
+                                <div class="file-info-list">
+                                    <div class="file-size">{file.size} {file.unit}</div>
+                                </div>
+                            </li>
+                        @endfor
+                    </ol>
+    
+                    <div id="file-list-popup" class="popup">
+                        <ul>
+                            <li onclick="alert('Rename clicked!')">Rename</li>
+                            <li onclick="alert('Download clicked!')">Download</li>
+                            <li onclick="alert('Delete clicked!')">Delete</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="content-panel content-api-catalog">
+                <h3>API Catalog</h3>
+            </div>
+            
+            <div class="content-panel content-logs">
+                <h3>Logs</h3>
+            </div>
+            
+            <div class="content-panel content-ai">
+                <h3>AI assistent</h3>
+            </div>
+
+        </div>
+    </div>
+</body>
+
+
+<style>
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .left-menu-tabs {
+        font-family: 'Arial', sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        min-height: 100vh;
+    }
+    
+    #nav-toggle,
+    #tab-outputs,
+    #tab-data-source,
+    #tab-data-files,
+    #tab-api-catalog,
+    #tab-logs,
+    #tab-ai,
+    #tab-diagram {
+        display: none;
+    }
+
+
+    .app-container {
+        display: flex;
+        width: 100%;
+    }
+
+
+    .sidebar-container {
+        background-color: #2c3e50;
+        color: #ecf0f1;
+        /* Start with a fixed collapsed width */
+        width: 50px;
+        overflow: hidden;
+        transition: width 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        padding-top: 20px;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
+
+
+    #nav-toggle:checked ~ .app-container .sidebar-container {
+        width: 200px;
+    }
+
+
+    .sidebar-toggle {
+        display: block;
+        text-align: right;
+        padding: 10px 10px;
+        cursor: pointer;
+        font-size: 24px;
+        color: #ecf0f1;
+        transition: color 0.3s ease;
+    }
+
+    .sidebar-toggle:hover {
+        color: #3498db;
+    }
+    
+
+    .sidebar-menu {
+        list-style: none;
+        padding-top: 20px;
+    }
+
+
+    .sidebar-menu li label {
+        display: flex;
+        align-items: center;
+        padding: 15px 10px;
+        color: #ecf0f1;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .sidebar-menu li label:hover {
+        background-color: #34495e;
+        border-left: 4px solid #3498db;
+        color: white;
+    }
+
+
+    .sidebar-menu li .icon {
+        font-size: 24px; /* A fallback for text icons */
+        width: 24px;
+        height: 24px;
+        margin-right: 15px;
+        transition: margin 0.3s ease;
+        text-align: center;
+    }
+
+    #nav-toggle:checked ~ .app-container .sidebar-container .icon {
+        margin-right: 15px;
+    }
+
+    .sidebar-menu li .text {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.1s ease;
+    }
+
+    #nav-toggle:checked ~ .app-container .sidebar-container .text {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    #tab-outputs:checked ~ .app-container .sidebar-menu label[for="tab-outputs"],
+    #tab-data-source:checked ~ .app-container .sidebar-menu label[for="tab-data-source"],
+    #tab-diagram:checked ~ .app-container .sidebar-menu label[for="tab-diagram"], 
+    #tab-data-files:checked ~ .app-container .sidebar-menu label[for="tab-data-files"], 
+    #tab-api-catalog:checked ~ .app-container .sidebar-menu label[for="tab-api-catalog"], 
+    #tab-logs:checked ~ .app-container .sidebar-menu label[for="tab-logs"], 
+    #tab-ai:checked ~ .app-container .sidebar-menu label[for="tab-ai"] 
+    {
+        background-color: #3498db;
+        color: white;
+        border-left: 4px solid #2980b9;
+    }
+
+    .content {
+        flex-grow: 1;
+        padding: 40px;
+        line-height: 1.6;
+        color: #34495e;
+        position: relative;
+    }
+
+    .content-panel {
+        position: absolute;
+        top: 10px;
+        left: 0;
+        right: 0;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        background-color: white;
+        padding: 0;
+
+        h3 {
+            text-align: center;
+        }
+
+    }
+    
+    #tab-outputs:checked ~ .app-container .content-outputs,
+    #tab-data-source:checked ~ .app-container .content-data-source,
+    #tab-diagram:checked ~ .app-container .content-diagram,
+    #tab-data-files:checked ~ .app-container .content-data-files,
+    #tab-api-catalog:checked ~ .app-container .content-api-catalog,
+    #tab-logs:checked ~ .app-container .content-logs,
+    #tab-ai:checked ~ .app-container .content-ai
+    {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .content h2 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+    }
+
+
+   /* * Tooltip styling.
+     * The `::after` pseudo-element creates the main tooltip box.
+     */
+     .left-menu-item::after {
+        content: attr(data-tooltip); /* Gets text from the HTML attribute */
+        position: absolute;
+        top: 50%;
+        left: 55px; /* Position to the right of the icon */
+        transform: translateY(-50%);
+        background-color: #555;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 6px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        z-index: 1000000000;
+    }
+
+    /* * Tooltip arrow.
+     * The `::before` pseudo-element creates the small triangular arrow.
+     */
+    .left-menu-item::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 47px; /* Position next to the tooltip box */
+        transform: translateY(-50%) rotate(45deg);
+        width: 10px;
+        height: 10px;
+        background-color: #555;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        z-index: 100000000;
+    }
+
+    /* Show both the tooltip and arrow on hover */
+    .left-menu-item:hover::after,
+    .left-menu-item:hover::before {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Styling for each menu item */
+    .left-menu-item {
+        position: relative; /* Essential for positioning the tooltip */
+        list-style: none;
+        margin: 5px 0;
+        cursor: pointer;
+    }
+
+    /** 
+    List of file Styling 
+    */
+
+        /* All CSS classes are now prefixed with a wrapper to avoid conflicts */
+        .file-list-wrapper { display: flex; justify-content: center; } 
+        .file-list-wrapper .tiny-menu {
+            padding: 4px;
+            background-color: #1f2937;
+            border-radius: .5rem;
+            width: max-content;
+            width: 95%;
+            margin-left: -5px;
+        }
+
+        .file-list-wrapper .tiny-menu-item {
+            padding: 6px 5px;
+            background-color: #374151;
+            border-radius: .375rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color .2s ease;
+            position: relative;
+            margin-top: .25rem;
+            height: 20px;
+        }
+
+        .file-list-wrapper .tiny-menu-item:hover {
+            background-color: #4b5563;
+        }
+
+        .file-list-wrapper .file-name {
+            font-size: .75rem; font-weight: 600;
+            white-space: nowrap; color: white !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-grow: 1;
+        }
+
+        .file-list-wrapper .file-info-list {
+            display: flex;
+            align-items: center;
+            gap: .5rem; padding-left: 5px;
+        }
+
+        .file-list-wrapper .file-size {
+            font-size: .625rem;
+            color: #9ca3af;
+            font-family: monospace;
+            flex-shrink: 0;
+        }
+
+        .file-list-wrapper .dots-icon {
+            width: .75rem;
+            height: .75rem;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: color .2s ease;
+        }
+
+        .file-list-wrapper .dots-icon:hover {
+            color: #fff;
+        }
+
+        .file-list-wrapper .popup {
+            position: fixed;
+            z-index: 20;
+            background-color: #374151;
+            border-radius: .5rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+            padding: 4px 0;
+            font-size: .75rem;
+            color: #e5e7eb;
+            width: 6rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .2s ease, visibility .2s ease;
+        }
+
+        .file-list-wrapper .popup.is-active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .file-list-wrapper .popup ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-list-wrapper .popup li {
+            padding: .5rem;
+            cursor: pointer;
+        }
+
+        .file-list-wrapper .popup li:hover {
+            background-color: #4b5563;
+        }
+
+        .file-type-csv { width: 16px; }
+    
+    /** 
+    END List of file Styling 
+    */
+
+
+</style>

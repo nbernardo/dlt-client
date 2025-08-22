@@ -12,6 +12,7 @@ import { EditorLanguageType } from "../../types/editor.js";
 import { StillTreeView } from "../../../@still/vendors/treeview/StillTreeView.js";
 import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "./icons/database.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
+import { UserService } from "../../services/UserService.js";
 
 export class Workspace extends ViewComponent {
 
@@ -19,9 +20,6 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */
 	editor;
-
-	/** @Proxy @type { StillTreeView } */
-	dbTreeviewProxy;
 
 	/**
 	 * @Inject
@@ -58,6 +56,12 @@ export class Workspace extends ViewComponent {
 	 * @Proxy 
 	 * @type { Terminal }*/
 	terminalProxy;
+
+	/** 
+	 * @Inject 
+	 * @Path services/ 
+	 * @type { UserService }*/
+	userService;
 
 	/** 
 	 * @Prop 
@@ -98,6 +102,10 @@ export class Workspace extends ViewComponent {
 	/** @Prop */
 	anyPropTest = 0;
 
+	loggedUser = null;
+
+	selectedLeftTab = 'content-diagram';
+
 	stOnRender() {
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
@@ -105,15 +113,10 @@ export class Workspace extends ViewComponent {
 				console.log(`Workspace was update about changed and new value is: `, newValue);
 			});
 		});
-	}
 
-	handleLoading(){
-		this.showLoading = true;
-		this.anyPropTest = '3';
-		setTimeout(() => {
-			this.showLoading = false;
-			this.anyPropTest = 0;
-		},5000);
+		this.userService.on('load', async () => {
+			this.loggedUser = (await this.userService.getLoggedUser()).name
+		});
 	}
 
 	async stAfterInit() {
@@ -126,7 +129,15 @@ export class Workspace extends ViewComponent {
 		});
 		this.buildWorkspaceView();
 		setTimeout(() =>  this.showLoading = false, 1500);
+		this.onLeftTabChange();
 		//this.cmProxy.codeEditor.setSize(null, 100);
+	}
+
+	onLeftTabChange(){
+		this.selectedLeftTab.onChange(activeTab => {
+			document.getElementsByClassName(activeTab)[0].style.width = '250px';
+			document.getElementsByClassName('separator')[0].style.marginLeft = '150px';
+		});
 	}
 
 	buildWorkspaceView() {
@@ -228,39 +239,6 @@ export class Workspace extends ViewComponent {
 		this.terminalProxy.resizeHeight(editorHeight);
 	}
 
-	async showHideDatabase(){
-
-		this.dbTreeviewProxy.clearTreeData();
-		let response = await this.service.getDuckDbs();
-		response = await response.json();
-
-		for(const [_file, tables] of Object.entries(response)){
-			const data = Object.values(tables);
-			const dbfile = _file.replace('.duckdb','');
-			const pipeline = this.dbTreeviewProxy.addNode(
-				{
-					content: this.pipelineTreeViewTemplate(dbfile),
-					isTopLevel: true,
-			});
-
-			const dbSchema = this.dbTreeviewProxy.addNode({
-				content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
-			});
-
-			for(const idx in data){
-				const tableData = data[idx];
-				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
-				const table = this.dbTreeviewProxy.addNode({ 
-					content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
-				});
-				dbSchema.addChild(table);
-			}
-			pipeline.addChild(dbSchema);
-		}
-		
-		this.dbTreeviewProxy.renderTree();
-	}
-
 	async runCode(){
 		const code = this.cmProxy.codeEditor.getValue();
 		const database = [...this.connectedDbs][0]
@@ -343,46 +321,13 @@ export class Workspace extends ViewComponent {
 		console.log(data);
 	}
 
-	databaseTreeViewTemplate(tableData, tableToQuery, dbfile){
-		return `<div class="table-in-treeview">
-					<span>${tableIcon} ${tableData.table}</span>
-					<span class="tables-icn-container">
-						<span tooltip-x="-140" tooltip="Copy table path to clipboard"
-							  onclick="self.copyToClipboard('${tableToQuery}')"
-						>
-							${copyClipboardIcin}
-						</span>
-						<span 
-							onclick="self.genInitialDBQuery('${tableToQuery}','${dbfile}')"
-							tooltip-x="-130" tooltip="Query ${tableData.table} table"
-						>
-							${tableToTerminaIcon}
-						</span>
-					</span>
-				</div>`;
+	async logout(){
+		await this.userService.logOut();
 	}
 
-	pipelineTreeViewTemplate(dbfile){
-		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label"> ${pipelineIcon} ${dbfile} </span>
-					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
-						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
-				</div>`;
-	}
-
-	dbSchemaTreeViewTemplate(dbname, dbfile){
-		return `<div class="table-in-treeview">
-					<span> ${dbIcon} <b>${dbname}</b></span>
-					<!-- <span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span> -->
-				</div>`;
-	}
-
-	copyToClipboard(content){
-		this.controller.copyToClipboard(content);
-	}
-
-	async refreshTree(){
-		await this.showHideDatabase();
+	verticalResize({ leftWidth }){
+		const selectedTab = this.selectedLeftTab.value;
+		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth+100)+'px';
 	}
 
 }

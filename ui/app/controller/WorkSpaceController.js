@@ -273,7 +273,11 @@ export class WorkSpaceController extends BaseController {
 
     socketChannelSetup(io, socketData) {
 
-        const socket = io('ws://127.0.0.1:8000/pipeline', { transports: ["websocket"] });
+        // Local Backend address
+        //const socket = io('ws://127.0.0.1:8000/pipeline', { transports: ["websocket"] });
+        // Remote/Cloud Backend address
+        //https://dlt-client.onrender.com
+        const socket = io('wss://dlt-client.onrender.com/pipeline', { transports: ["websocket"] });
         socket.on('connect', () => { });
         socket.on('connected', (data) => socketData.sid = data.sid);
 

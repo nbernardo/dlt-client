@@ -2,39 +2,24 @@
 	<st-loader (showIf)="self.showLoading" center (label)="Building the workspace" >
 	<div id="drawflowContainer" (showIf)="!self.showLoading">
 
-		<header>
-			<h2 (click)="handleLoading()">Workspace</h2>
-		</header>
-		<div class="wrapper">
-			<div class="col" id="still-adj-left-panel">
-				<div class="tabset">
-					<input type="radio" name="tabset" id="tab1" aria-controls="data-panel">
-					<label for="tab1" onclick="component.showHideDatabase()">Data</label>
-					
-					<input type="radio" name="tabset" id="tab2" aria-controls="draw-diagram-tab" checked>
-					<label for="tab2">Diagram</label>			
-					<div class="tab-panels">
-						<section id="data-panel" class="tab-panel">
-							<st-element 
-								showBullets="false"
-								component="@treeview/StillTreeView"
-								tooltipXPos="10"
-								(onRefreshClick)="refreshTree()"
-								showRefresh="false"
-								tooltipText="Update tree data"
-								proxy="dbTreeviewProxy">
-							</st-element>
-						</section>
-						<section id="draw-diagram-tab" class="tab-panel">
-							<span (forEach)="objectTypes">
-								<st-element component="ObjectType" each="item"></st-element>
-							</span>
-						</section>
-					</div>
+		<header style="display: flex; justify-content: space-between;">
+			<h2>DLT-Client Workspace</h2>
+			<div style="display: flex; align-items: center; padding: 5px 50px; flex-direction: column; justify-content: left;">
+				<div style="display: flex; align-items: center;">
+					<img src="app/assets/imgs/logged-usr.svg" width="30" alt=""> &nbsp;@loggedUser
+				</div>
+				<div style="display: flex; width: 100%; padding: 0 35px;">
+					<a href="#" style="font-size: 12px; color: grey;" (click)="logout()">Logout</a>
 				</div>
 			</div>
+		</header>
+		<div class="wrapper">
 
-			<st-divider type="horizontal"/>
+			<div style="width: 500px;" class="divederLeftSide">
+				<st-element component="LeftTabs" (viewPipelineDiagram)="viewPipelineDiagram(event, dbfile)"></st-element>
+			</div>
+			
+			<st-divider type="horizontal" resizable="true" resizeCorrectionPx="150" (onResize)="verticalResize(newSize)"/>
 
 			<div class="col-right" id="still-adj-right-panel">
 				<div class="menu">
