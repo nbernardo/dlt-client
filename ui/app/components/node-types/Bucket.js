@@ -12,9 +12,13 @@ export class Bucket extends ViewComponent {
 	nodeId;
 
 	label = 'Source Bucket'
-	bucketUrl;
+	bucketUrl = '';
 	provider;
 	filePattern;
+	source;
+
+	/** @Prop */
+	showBucketUrlInput = 1;
 
 	/** @Prop */
 	inConnectors = 1;
@@ -42,6 +46,15 @@ export class Bucket extends ViewComponent {
 
 	stAfterInit() {
 		this.wspaceService.on('load', () => { });
+
+		const data = WorkSpaceController.getNode(this.nodeId).data;
+		data['bucketFileSource'] = 1;
+
+		this.source.onChange((newValue) => {
+			this.showBucketUrlInput = newValue;
+			const data = WorkSpaceController.getNode(this.nodeId).data;
+			data['bucketFileSource'] = newValue;
+		});
 
 		this.bucketUrl.onChange((newValue) => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;

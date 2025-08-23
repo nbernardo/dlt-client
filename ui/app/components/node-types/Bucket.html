@@ -9,8 +9,16 @@
 	<div class="box">
 		<div>@bucketUrl</div>
 		<form (formRef)="formRef" onsubmit="return false;">
-			<p>Enter Bucket url:</p>
-			<input type="text" (required)="true" (value)="bucketUrl" placeholder="Basket/Folder URL">
+			<select (value)="source">
+				<option value="1">From DLT Client Folder</option>
+				<option value="2">Cloud URL</option>
+			</select>
+
+			<div (showIf)="self.showBucketUrlInput == 2">
+				<p>Enter Bucket url:</p>
+				<input type="text" (required)="true" (value)="bucketUrl" placeholder="Basket/Folder URL">
+			</div>
+			
 			<p>File pattern:</p>
 			<input type="text" (required)="true" (value)="filePattern" placeholder="Ex: transactions*.csv">
 		</form>

@@ -1,4 +1,5 @@
 import { $stillconst } from "../../setup/constants.js";
+import { sleepForSec } from "../manager/timer.js";
 
 export const validationPatterns = {
     'number': /^\d{0,}$/,
@@ -52,8 +53,12 @@ export class BehaviorComponent {
         const fieldType = inpt?.type?.toLowerCase();
         const fieldSrc = this.constructor.name == 'BehaviorComponent' ? cmp : this;
 
-        if (e?.key?.toLowerCase() === 'v') {
-            if (e.ctrlKey || e.metaKey) inpt.value = await navigator.clipboard.readText();
+        if (e?.ctrlKey || e?.metaKey) {
+            if (e?.key?.toLowerCase() === 'v'){
+                await sleepForSec(5);
+                inpt.value = await navigator.clipboard.readText();
+            }
+            else return;
         }
 
         if(reset){
