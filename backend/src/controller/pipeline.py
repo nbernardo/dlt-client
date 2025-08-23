@@ -16,6 +16,8 @@ def create():
     """
     This is pipeline creation request handler
     """
+    from .file_upload import BaseUpload
+    
     payload = request.get_json()
     pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
     
@@ -26,6 +28,7 @@ def create():
     os.makedirs(ppline_path, exist_ok=True)
     
     context = RequestContext(pipeline_name, payload['socketSid'])
+    context.user = payload['user']
     
     grid = payload['drawflow'] if 'drawflow' in payload else ''
     start_id = payload['startNode'] if 'startNode' in payload else ''
@@ -74,7 +77,7 @@ def create():
         return result['message']
 
 
-def parse_node(connections, node_params, data_place, context, node_list: list):
+def parse_node(connections, node_params, data_place, context: RequestContext, node_list: list):
     """
     This extract data from everysingle node
     """
