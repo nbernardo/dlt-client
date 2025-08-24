@@ -2,7 +2,6 @@
 
     .upload-wrapper {
         font-family: Arial, sans-serif;
-        background-color: #f5f5f5;
         display: flex;
         flex-direction: column; 
         /* justify-content: center; */
@@ -265,7 +264,9 @@
 
 <div class="upload-wrapper">
     <input type="checkbox" id="collapse" class="collapse-checkbox" checked>
-    <label for="collapse" class="collapse-label">New file upload</label>
+    <label for="collapse" class="collapse-label" style="display: flex; justify-content: center; align-items: center;">
+		<img src="app/assets/imgs/left-menu/add-file.png" width="20" height="20"> &nbsp;File upload
+	</label>
 
     <div class="upload-container">
         <h1>Upload File</h1>

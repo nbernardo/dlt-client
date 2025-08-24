@@ -71,4 +71,13 @@ export class WorkspaceService extends BaseService {
         return result;
     }
 
+	async listPplineFiles(user){
+		let filesList = null;
+		const response = await $still.HTTPClient.get('/scriptfiles/'+user);
+		if(response.ok){
+			filesList = await response.json();
+		}
+		return filesList;
+	}
+
 }
