@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from services.pipeline.DltPipeline import DltPipeline
 from node_mapper.NodeFactory import NodeFactory
 from .RequestContext import RequestContext
@@ -10,6 +10,37 @@ pipeline = Blueprint('pipeline', __name__)
 
 class BasePipeline:
     folder = None
+
+
+@pipeline.route('/scriptfiles/<user>/')
+def scriptfiles(user):
+
+   def format_size(size_bytes):
+       if size_bytes < 1024:
+           return size_bytes, "bytes"
+       elif size_bytes < 1024**2:
+           return round(size_bytes/1024, 1), "KB"
+       elif size_bytes < 1024**3:
+           return round(size_bytes/(1024**2), 1), "MB"
+       else:
+           return round(size_bytes/(1024**3), 1), "GB"
+   
+   try:
+        files_path = BasePipeline.folder+'/pipeline/'+user+'/'
+        files = []
+       
+        for filename in os.listdir(files_path):
+           filepath = os.path.join(files_path, filename)
+           if os.path.isfile(filepath):
+               size_bytes = os.path.getsize(filepath)
+               size_value, size_unit = format_size(size_bytes)
+               file_type = filepath.split('.')[-1]
+               files.append({'name': filename, 'size': size_value, 'unit': size_unit, 'type': file_type})
+       
+        return jsonify(files)
+   except FileNotFoundError as err:
+       return jsonify({'error': 'User folder not found'}), 404
+
 
 @pipeline.route('/pipeline/create', methods=['POST'])
 def create():
@@ -125,3 +156,4 @@ def revert_and_notify_failure(
         pipeline_instance.revert_ppline()
     for node in all_nodes:
         node.notify_failure_to_ui('Pipeline', message,False)
+        
