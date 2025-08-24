@@ -1,11 +1,10 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
-import { Components } from "../../@still/setup/components.js";
 import { UUIDUtil } from "../../@still/util/UUIDUtil.js";
-import { AppTemplate } from "../../config/app-template.js";
 
 export class NoteBookController extends BaseController {
 
-    notebookCellsContainer; //= document.getElementById('notebook-cells');
+    notebookCellsContainer;
+    filesOpened = new Set();
 
     createCodeCell(initialCode = '', initialTitle = 'Untitled Cell', initialLang = 'python') {
         const cell = document.createElement('div');
@@ -68,6 +67,9 @@ export class NoteBookController extends BaseController {
         const editorContainer = cell.querySelector('.editor-container');
         const languageSelect = cell.querySelector('.language-select');
 
+        if(initialTitle !== 'Untitled Cell')
+            removeButton.setAttribute('fileName', initialTitle);
+
         // Set initial language
         languageSelect.value = initialLang;
 
@@ -107,7 +109,7 @@ export class NoteBookController extends BaseController {
             }
         }
 
-        this.initializeLineNumbers(document.getElementById(containerId));
+        this.initializeLineNumbers(document.getElementById(containerId), initialTitle);
 
         // Set initial content and highlight
         textarea.value = initialCode;
@@ -158,8 +160,10 @@ export class NoteBookController extends BaseController {
         });
 
         // Add event listener for the remove button
-        removeButton.addEventListener('click', () => {
+        removeButton.addEventListener('click', (e) => {
             cell.remove();
+            const fileName = e.target.getAttribute('fileName');
+            this.filesOpened.delete(fileName);
         });
 
         // Add event listener for the minimize button
@@ -178,11 +182,14 @@ export class NoteBookController extends BaseController {
     }
 
 
-    initializeLineNumbers(editorContainer) {
+    initializeLineNumbers(editorContainer, initialTitle) {
         const textarea = editorContainer.querySelector('.editor-textarea');
         const lineNumbersDiv = editorContainer.querySelector('.line-numbers-column');
         const highlightedPre = editorContainer.querySelector('.editor-highlighted');
         
+        if(initialTitle !== 'Untitled Cell')
+            setTimeout(() => this.updateLineNumbers(textarea, lineNumbersDiv),500);
+
         textarea.addEventListener('input', () => this.updateLineNumbers(textarea, lineNumbersDiv));
         this.syncScroll(textarea, lineNumbersDiv, highlightedPre); this.updateLineNumbers(textarea, lineNumbersDiv);
     }

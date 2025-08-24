@@ -100,7 +100,7 @@ export class Workspace extends ViewComponent {
 	popupWindowProxy;
 
 	/** @Proxy @type { NoteBook } */
-	nodeBookProxy;
+	noteBookProxy;
 
 	/** @Proxy @type { LeftTabs } */
 	leftMenuProxy;
@@ -354,9 +354,11 @@ export class Workspace extends ViewComponent {
 		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth+100)+'px';
 	}
 
-	viewScriptOnEditor(){
-		this.leftMenuProxy.scriptListProxy.selectedFile;
-		console.log(`WHEN CALLING FROM SCRIPT: `,this.leftMenuProxy.scriptListProxy.selectedFile);
+	async viewScriptOnEditor(){
+		const fileName = this.leftMenuProxy.scriptListProxy.selectedFile;
+		const code = await this.service.readScriptFile(this.userEmail, fileName);
+		this.noteBookProxy.openFile = {fileName, code};
+		this.noteBookProxy.showNotebook = true;
 	}
 
 	viewFileOnEditor(){

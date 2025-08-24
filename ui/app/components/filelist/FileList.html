@@ -19,7 +19,7 @@
 	<div id="@uniqId" class="popup file-list-popup">
 		<ul>
 			<li onclick="alert('Rename clicked!')">Rename</li>
-			<li onclick="component.openInEditor()">Open in editor</li>
+			<li onclick="component.openInEditor(); component.closeDropdown()">Open in editor</li>
 			<li onclick="alert('Download clicked!')">Download</li>
 			<li onclick="alert('Delete clicked!')">Delete</li>
 		</ul>

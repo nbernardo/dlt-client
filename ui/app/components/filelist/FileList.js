@@ -53,6 +53,8 @@ export class FileList extends ViewComponent {
         });
 	}
 
+	closeDropdown = () => this.fileMenu.classList.remove('is-active');
+
 	/** @template */
 	openInEditor(){}
 }

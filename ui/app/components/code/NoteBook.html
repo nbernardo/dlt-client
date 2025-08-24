@@ -22,6 +22,9 @@
 		padding: 1rem;
 		border-bottom: 1px solid #ccc;
 		text-align: center;
+		display: flex;
+		justify-content: center;
+		position: relative;
 	}
 
 	.light-code-editor-wrap .notebook-cells {
@@ -387,15 +390,20 @@
 		justify-content: right;
 	}
 
-	minimize-button, maximize-button, remove-button{
-		font-size: 12px;
+	.close-notebook-btn { 
+		position: absolute; margin-top: 35px; padding: 3px 30px; display: block; width: fit-content;
+		color: white !important;
+		background-color: #ef4444 !important;
+		border: none !important;
 	}
+
 </style>
-<div class="light-code-editor-wrap">
+<div class="light-code-editor-wrap" (showIf)="self.showNotebook">
 	<!-- Main Container -->
 	<div class="container">
 		<div class="notebook-header">
 			<h1 class="text-2xl font-bold">Notebook</h1>
+			<button class="close-notebook-btn control-button" onclick="component.closeNoteBook()">&nbsp;Close&nbsp;</button>
 		</div>
 
 		<!-- Notebook Cells Container -->
@@ -405,6 +413,10 @@
 
 		<!-- Add New Cell Button -->
 		<div class="p-4 text-center border-t border-gray-200" style="padding-bottom: 60px; padding-top: 0;">
+			<button 
+				onclick="component.closeNoteBook()"
+				style="background-color: #ef4444;"
+				class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-none shadow-none transition-colors">&nbsp;Close&nbsp;</button>
 			<button style="background-color: #2c3e50;" onclick="component.newCodeCell()" id="add-cell-button"
 				class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-none shadow-none transition-colors">
 				+ Add Code Cell
