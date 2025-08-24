@@ -42,6 +42,20 @@ def scriptfiles(user):
        return jsonify({'error': 'User folder not found'}), 404
 
 
+@pipeline.route('/scriptfiles/<user>/<filename>')
+def read_scriptfiles(user, filename):
+
+   try:
+        file_path = BasePipeline.folder+'/pipeline/'+user+'/'+filename
+        code = ''
+        with open(file_path, 'r') as file:
+            code = file.read()
+
+        return code
+   except FileNotFoundError as err:
+       return jsonify({'error': 'Pipeline not found'}), 404
+
+
 @pipeline.route('/pipeline/create', methods=['POST'])
 def create():
     """
