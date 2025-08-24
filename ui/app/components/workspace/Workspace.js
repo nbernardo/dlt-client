@@ -13,6 +13,9 @@ import { StillTreeView } from "../../../@still/vendors/treeview/StillTreeView.js
 import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "./icons/database.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
 import { UserService } from "../../services/UserService.js";
+import { PopupWindow } from "../popup-window/PopupWindow.js";
+import { LeftTabs } from "../navigation/left/LeftTabs.js";
+import { NoteBook } from "../code/NoteBook.js";
 
 export class Workspace extends ViewComponent {
 
@@ -45,7 +48,7 @@ export class Workspace extends ViewComponent {
 	/** @Prop */
 	socketData = { sid: null };
 
-	activeGrid = "pipeline_name";
+	activeGrid = "Enter pipeline name";
 
 	/** 
 	 * @Proxy 
@@ -92,6 +95,15 @@ export class Workspace extends ViewComponent {
 
 	/** @Proxy @type { StillDivider } */
 	codeEditorSplitter;
+
+	/** @Proxy @type { PopupWindow } */
+	popupWindowProxy;
+
+	/** @Proxy @type { NoteBook } */
+	nodeBookProxy;
+
+	/** @Proxy @type { LeftTabs } */
+	leftMenuProxy;
 
 	/** @Prop */
 	isEditorOpened = false;
@@ -163,7 +175,9 @@ export class Workspace extends ViewComponent {
 	}
 
 	async savePipeline() {
-
+		if(this.activeGrid === 'Enter pipeline name') {
+			return AppTemplate.toast.error('Please enter a valid pipeline name');
+		}
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		const validationResults = formReferences.map((r) => {
@@ -183,6 +197,12 @@ export class Workspace extends ViewComponent {
 		data = { ...data, user: this.userEmail, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
 		console.log(data);
 		const result = await this.pplService.createPipeline(data);
+	}
+
+	resetWorkspace(){
+		this.editor.clearModuleSelected();
+		this.controller.resetEdges();
+		document.getElementById('pplineNamePlaceHolder').innerHTML = 'Enter pipeline name';
 	}
 
 	onPplineNameKeyPress(e) {
@@ -332,6 +352,16 @@ export class Workspace extends ViewComponent {
 	verticalResize({ leftWidth }){
 		const selectedTab = this.selectedLeftTab.value;
 		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth+100)+'px';
+	}
+
+	viewScriptOnEditor(){
+		this.leftMenuProxy.scriptListProxy.selectedFile;
+		console.log(`WHEN CALLING FROM SCRIPT: `,this.leftMenuProxy.scriptListProxy.selectedFile);
+	}
+
+	viewFileOnEditor(){
+		this.leftMenuProxy.scriptListProxy.selectedFile;
+		console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
 	}
 
 }

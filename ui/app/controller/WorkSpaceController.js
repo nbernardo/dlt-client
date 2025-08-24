@@ -32,6 +32,15 @@ export class WorkSpaceController extends BaseController {
     /** @type { PPLineStatEnum } */
     pplineStatus;
 
+    resetEdges(){
+        this.edgeTypeAdded = {};
+        this.formReferences.clear();
+        this.validationErrors = [];
+        this.idCounter = 0;
+        this.cmpIdToNodeIdMap = {};
+        this.pplineStatus = {};
+    }
+
     registerEvents() {
 
         let mobile_item_selec = '';
@@ -274,10 +283,10 @@ export class WorkSpaceController extends BaseController {
     socketChannelSetup(io, socketData) {
 
         // Local Backend address
-        //const socket = io('ws://127.0.0.1:8000/pipeline', { transports: ["websocket"] });
+        const socket = io('ws://127.0.0.1:8000/pipeline', { transports: ["websocket"] });
         // Remote/Cloud Backend address
         //https://dlt-client.onrender.com
-        const socket = io('wss://dlt-client.onrender.com/pipeline', { transports: ["websocket"] });
+        //const socket = io('wss://dlt-client.onrender.com/pipeline', { transports: ["websocket"] });
         socket.on('connect', () => { });
         socket.on('connected', (data) => socketData.sid = data.sid);
 

@@ -16,16 +16,22 @@
 		<div class="wrapper">
 
 			<div style="width: 500px;" class="divederLeftSide">
-				<st-element component="LeftTabs" (viewPipelineDiagram)="viewPipelineDiagram(event, dbfile)"></st-element>
+				<st-element 
+					component="LeftTabs" 
+					(viewPipelineDiagram)="viewPipelineDiagram(event, dbfile)"
+					(openScriptOnEditor)="viewScriptOnEditor()"
+					proxy="leftMenuProxy"
+					(openDataFileOnEditor)="viewFileOnEditor()"
+					></st-element>
 			</div>
 			
 			<st-divider type="horizontal" resizable="true" resizeCorrectionPx="150" (onResize)="verticalResize(newSize)"/>
 
-			<div class="col-right" id="still-adj-right-panel">
+			<div class="col-right" id="still-adj-right-panel" style="position: relative;">
 				<div class="menu">
 					<ul>
 						<li onclick="controller.changeModule('Home'); controller.changeModule(event);" class="selected">
-							<div onkeypress="component.onPplineNameKeyPress(event)" contenteditable="true">
+							<div onkeypress="component.onPplineNameKeyPress(event)" contenteditable="true" id="pplineNamePlaceHolder">
 								@activeGrid
 							</div>
 						</li>
@@ -34,12 +40,16 @@
 					</ul>
 				</div>
 
+				<st-element component="PopupWindow" @delayed="2s" proxy="popupWindowProxy"></st-element>
+
+				<st-element component="NoteBook" @delayed="3s" proxy="nodeBookProxy"></st-element>
+
 				<div id="drawflow" ondrop="controller.drop(event)" ondragover="controller.allowDrop(event)">
 
 					<div class="btn-export" onclick="component.savePipeline()">
 						<i class="fa fa-save"></i> Save
 					</div>
-					<div class="btn-clear" onclick="component.editor.clearModuleSelected()">Clear</div>
+					<div class="btn-clear" onclick="component.resetWorkspace()">Clear</div>
 					<div class="btn-lock">
 						<i id="lock" class="fas fa-lock"
 							onclick="component.editor.editor_mode='fixed'; controller.changeMode('lock');"></i>
