@@ -5,7 +5,7 @@ class PiplineNamespace(Namespace):
     def on_connect(self): pass
     def on_disconnect(self, reason): pass
 
-socketio = SocketIO(cors_allowed_origins=["https://dlt-client.onrender.com", "http://127.0.0.1:8080", "http://localhost:8080"],
+socketio = SocketIO(cors_allowed_origins=["https://dlt-client-ui.onrender.com", "http://127.0.0.1:8080", "http://localhost:8080"],
                     logger=True, engineio_logger=True, async_mode='eventlet')
 
 socketio.on_namespace(PiplineNamespace('/pipeline'))
