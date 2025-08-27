@@ -374,9 +374,8 @@
 		left: 0;
 		padding: 0 8px;
 		height: 30px;
-		background-color: #e5e7eb;
-		border-right: 1px solid #d1d5db;
-		border-bottom: 1px solid #d1d5db;
+		background: none;
+		border: none;
 		z-index: 20;
 	}
 
@@ -406,36 +405,102 @@
 	}
 
 	.monaco-editor-wrap .move-buttons button {
-		background-color: #e5e7eb;
-		border: 1px solid #d1d5db;
-		width: 30px;
-		height: 30px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		transition: background-color 0.2s;
+		width: 15px; height: 30px; display: flex;
+		align-items: center; justify-content: center;
+		cursor: pointer; transition: background-color 0.2s;
+		background: none; border: none; color: grey;
 	}
 
-	.monaco-editor-wrap .move-buttons button:hover {
-		background-color: #d1d5db;
-	}
+	.monaco-editor-wrap .move-buttons button:hover {}
 
 	.monaco-editor-wrap .move-buttons button:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
 		background-color: #f3f4f6;
 	}
+
+
+	.monaco-close-btn-wrap {
+		display: grid; place-items: center; margin: 0; font-family: sans-serif;
+	}
+
+	.monaco-close-btn-wrap .tooltip-container {
+		position: relative; display: inline-block;
+	}
+
+	.monaco-close-btn-wrap .close-btn {
+		width: 40px; height: 40px;
+		border-radius: 50%; border: 2px solid #555;
+		background: none; cursor: pointer;
+		font-size: 16px; color: #555;
+		display: grid; place-items: center;
+		transition: all 0.2s ease-in-out; padding-top: 0;
+		padding-bottom: 1px; width: 30px; height: 30px;
+	}
+
+	.monaco-close-btn-wrap .close-btn:hover {
+		border-color: #f44336; color: #f44336; transform: scale(1.1);
+	}
+
+	.monaco-close-btn-wrap .close-btn:active {
+		transform: scale(0.95);
+	}
+
+	.monaco-close-btn-wrap .tooltip-text {
+		visibility: hidden;
+		opacity: 0;
+		width: 80px;
+		background-color: #333;
+		color: #fff;
+		text-align: center;
+		padding: 5px 0;
+		border-radius: 6px;
+		position: absolute;
+		z-index: 1;
+		bottom: 125%;
+		left: 50%;
+		margin-left: -40px;
+		transition: opacity 0.3s, visibility 0.3s;
+	}
+
+	.monaco-close-btn-wrap .tooltip-text::after {
+		content: "";
+		position: absolute;
+		top: 90%;
+		left: 50%;
+		margin-left: -5px;
+		border-width: 5px;
+		border-style: solid;
+		border-color: #333 transparent transparent transparent;
+	}
+
+	.monaco-close-btn-wrap .tooltip-container:hover .tooltip-text {
+		visibility: visible; opacity: 1;
+	}
 </style>
 <div (showIf)="self.showNotebook" class="monaco-editor-wrap"
 	style="overflow-y: auto; height: 100%; width: calc(100vw - 301px); background: #d3d3d333; z-index: 1; ">
 	<div class="container" style="text-align: center;">
 		<h1 class="title">Notebook Editor</h1>
-		<button onclick="component.closeNoteBook()">Close</button>
+
+		<div class="monaco-close-btn-wrap">
+			<div class="tooltip-container">
+				<button class="close-btn" aria-label="Close button" onclick="component.closeNoteBook()">&times;</button>
+				<span class="tooltip-text">Close</span>
+			</div>
+		</div>
+
 		<span style="text-align: left;">
 			<div id="loading-message">Loading editor...</div>
 			<div id="notebook-container" class="hidden"></div>
 		</span>
-		<button onclick="component.closeNoteBook()">Close</button>
+
+		<div class="monaco-close-btn-wrap">
+			<div class="tooltip-container">
+				<button class="close-btn" aria-label="Close button" onclick="component.closeNoteBook()">&times;</button>
+				<span class="tooltip-text">Close</span>
+			</div>
+		</div>
+
 	</div>
 </div>

@@ -1,5 +1,6 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { Components } from "../../@still/setup/components.js";
+import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 
 class NodeType {
@@ -282,11 +283,9 @@ export class WorkSpaceController extends BaseController {
 
     socketChannelSetup(io, socketData) {
 
-        // Local Backend address
-        const socket = io('ws://127.0.0.1:8000/pipeline', { transports: ["websocket"] });
-        // Remote/Cloud Backend address
-        //https://dlt-client.onrender.com
-        //const socket = io('wss://dlt-client.onrender.com/pipeline', { transports: ["websocket"] });
+        const wssAddr = StillAppSetup.config.get('websockerAddr');
+        const socket = io(wssAddr, { transports: ["websocket"] });
+
         socket.on('connect', () => { });
         socket.on('connected', (data) => socketData.sid = data.sid);
 

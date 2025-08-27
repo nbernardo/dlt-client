@@ -1,5 +1,6 @@
 import { BaseService } from "../../@still/component/super/service/BaseService.js";
 import { Router } from "../../@still/routing/router.js";
+import { StillAppSetup } from "../../config/app-setup.js";
 
 export class UserService extends BaseService {
 
@@ -52,7 +53,7 @@ async function auth0GetConnection(){
 
 async function authConnect(){
     return await auth0.createAuth0Client({
-        domain: "dev-rmnn416pju788hwl.us.auth0.com",
-        clientId: "lwfP9CGSSXC3Fvo1vVhHv21Pmm4oLdBG",
+        domain: StillAppSetup.config.get('auth0.domain'),
+        clientId: StillAppSetup.config.get('auth0.clientId'),
     });
 }

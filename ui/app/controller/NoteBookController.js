@@ -1,5 +1,4 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
-import { UUIDUtil } from "../../@still/util/UUIDUtil.js";
 import { WorkspaceService } from "../services/WorkspaceService.js";
 
 export class NoteBookController extends BaseController {
@@ -24,8 +23,8 @@ export class NoteBookController extends BaseController {
 				<div class="drag-handle">
 					<div class="drag-handle-icon" draggable="true"></div>
 					<div class="move-buttons">
-						<button class="move-up-btn" title="Move cell up">▲</button>
-						<button class="move-down-btn" title="Move cell down">▼</button>
+						<button class="move-up-btn" title="Move cell up">&#8593;</button>
+						<button class="move-down-btn" title="Move cell down">&#8595;</button>
 					</div>
 				</div>
                 <div class="add-cell-container top">
@@ -41,7 +40,7 @@ export class NoteBookController extends BaseController {
                     <div class="button-group">
                         <div class="monaco-play-wrapper">
                             <button filename="${filename}" class="play-arrow-btn" aria-label="Play button">
-                                <span class="tooltip-text">Play</span>
+                                <span class="tooltip-text">Run cell</span>
                             </button>
                         </div>
                         <button class="minimize-cell-btn cell-button minimize-btn">_</button>
@@ -123,8 +122,11 @@ export class NoteBookController extends BaseController {
 	};
 
     openFile(code, filename){
-        //monaco is a global object under window
-        this.addCell(monaco,null,null,code, filename);
+		if(!this.filesOpened.has(filename)){
+			//monaco is a global object under window
+        	this.addCell(monaco,null,null,code, filename);
+			this.filesOpened.add(filename);
+		}
     }
 
 	deleteCell = (id) => {
