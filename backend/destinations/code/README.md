@@ -1,1 +1,0 @@
-This folder will contain the temp generated code files run from the Workspace UI CMD

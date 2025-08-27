@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<style>
+
+*[tooltip] {
+  position: relative;
+  border-bottom: dotted 1px #000;
+}
+
+
+*[tooltip]:hover:before {
+  font-size: 12px;
+  content: attr(tooltip);
+  background-color: #696969;
+  color: #fff;
+  top: 1em;
+  position: absolute;
+  white-space: nowrap;
+  padding: 5px;
+  border-radius: 6px;
+  margin-top: 5px;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+
+/* *[tooltip]:hover::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+} */
+
+
+</style>
+<body style="text-align:center;">
+
+<h2>Tooltip</h2>
+<p>Move the mouse over the text below:</p>
+
+<div tooltipcont="My value is" tooltip="My value is" class="container">Hover over me
+  <span class="tooltiptext">Tooltip text</span>
+</div>
+</body>
+</html>

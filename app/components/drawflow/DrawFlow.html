@@ -1,0 +1,19 @@
+<div id="drawflow" ondrop="component.drop(event)" ondragover="component.allowDrop(event)">
+
+	<div class="btn-export" onclick="component.savePipeline()">
+		<i class="fa fa-save"></i> Save
+	</div>
+	<div class="btn-clear" onclick="component.editor.clearModuleSelected()">Clear</div>
+	<div class="btn-lock">
+		<i id="lock" class="fas fa-lock"
+			onclick="component.editor.editor_mode='fixed'; controller.changeMode('lock');"></i>
+		<i id="unlock" class="fas fa-lock-open"
+			onclick="component.editor.editor_mode='edit'; controller.changeMode('unlock');"
+			style="display:none;"></i>
+	</div>
+	<div class="bar-zoom">
+		<i class="fas fa-search-minus" onclick="component.editor.zoom_out()"></i>
+		<i class="fas fa-search" onclick="component.editor.zoom_reset()"></i>
+		<i class="fas fa-search-plus" onclick="component.editor.zoom_in()"></i>
+	</div>
+</div>

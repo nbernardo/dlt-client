@@ -20,7 +20,10 @@ ui/app/components/node-types/Scratch.js
 ui/app/mixin/Component.js
 ui/app/scratch
 
-dbs
+backend/destinations/pipeline
+backend/destinations/duckdb
+backend/dbs/files
+
 z
 ztore
 package-lock.json

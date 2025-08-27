@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Monaco + Simple Terminal</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: monospace;
+    }
+    #container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    #terminal {
+      height: 30%;
+      overflow-y: auto;
+      background: #1e1e1e;
+      color: #00ff00;
+      padding: 10px;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    #editor {
+      flex: 1;
+    }
+    #run-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 5px 10px;
+      z-index: 1;
+    }
+  </style>
+
+  <!-- Monaco loader -->
+  <script src="https://unpkg.com/monaco-editor@0.34.1/min/vs/loader.js"></script>
+</head>
+<body>
+  <div id="container">
+    <div id="terminal">Terminal ready...\n</div>
+    <div id="editor"></div>
+    <button id="run-btn">Run Code</button>
+  </div>
+
+  <script>
+    let editor;
+
+    // Load Monaco
+    require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@0.34.1/min/vs' }});
+    require(['vs/editor/editor.main'], function () {
+      editor = monaco.editor.create(document.getElementById('editor'), {
+        value: `console.log("Hello from Monaco!");`,
+        language: 'javascript',
+        theme: 'vs-dark'
+      });
+    });
+
+    // Run Button
+    document.getElementById('run-btn').addEventListener('click', () => {
+      const code = editor.getValue();
+      const terminal = document.getElementById('terminal');
+
+      try {
+        const result = eval(code);
+        terminal.textContent += '\n> ' + String(result);
+      } catch (err) {
+        terminal.textContent += '\nError: ' + err.message;
+      }
+
+      terminal.scrollTop = terminal.scrollHeight; // auto scroll
+    });
+  </script>
+</body>
+</html>

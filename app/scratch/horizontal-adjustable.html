@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vertical Adjustable Panels</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+
+
+    .container-divider-parent {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    .container-divider-parent .panel {
+      padding: 10px;
+      overflow: auto;
+    }
+
+    .container-divider-parent .divider {
+      --flex-size: .5;
+      height: 5px;
+      background-color: #666;
+      cursor: ns-resize;
+      position: relative;
+      z-index: 1;
+    }
+
+    .container-divider-parent .panel.top {
+      background-color: #d0f0fd;
+    }
+
+    .container-divider-parent .panel.bottom {
+      background-color: #fef3c7;
+      height: 200px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div>Top Panel</div>
+    <div class="divider" id="st-horizontal-divider"></div>
+    <div>Bottom Panel</div>
+  </div>
+
+  <script>
+    const hdivider = document.getElementById("st-horizontal-divider");
+    const {previousElementSibling: _top, nextElementSibling: _bottom, parentElement: cntr} = hdivider;
+    cntr.classList.add('container-divider-parent');
+    _top.className = _top.className + ' panel top';
+    _bottom.classNam = _bottom.className + ' panel bottom';
+    _top.style.flex = .5;
+    _bottom.style.flex = .5;
+    
+    let isDragging = false;
+
+    hdivider.addEventListener("mousedown", function () {
+      isDragging = true;
+      document.body.style.cursor = 'ns-resize';
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+
+      const {offsetTop: containerOffsetTop, offsetHeight: containerHeight} = cntr;
+      const pointerRelativeY = e.clientY - containerOffsetTop;
+
+      const topHeight = pointerRelativeY;
+      const bottomHeight = containerHeight - topHeight - hdivider.offsetHeight;
+
+      [_top.style.flex, _bottom.style.flex] = ['none', 'none'];
+      [_top.style.height, _bottom.style.height] = [topHeight + "px", bottomHeight + "px"];
+    });
+
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
+      document.body.style.cursor = 'default';
+    });
+  </script>
+</body>
+</html>
