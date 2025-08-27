@@ -166,7 +166,9 @@ export class FileUpload extends ViewComponent {
 		let filesList = null;
 		const user = (await this.userService.getLoggedUser()).email;
 		const response = await $still.HTTPClient.get('/files/'+user);
-		if(response.ok){
+		if(response.status === 404){
+            AppTemplate.toast.error('No data file found under '+user);
+        } else if(response.ok){
 			filesList = await response.json();
 		}
 		return filesList;
