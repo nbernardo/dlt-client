@@ -44,7 +44,7 @@
 
 				<st-element component="NoteBook" @delayed="3s" proxy="noteBookProxy"></st-element>
 
-				<div id="drawflow" ondrop="controller.drop(event)" ondragover="controller.allowDrop(event)">
+				<div id="drawflow" (showIf)="self.showDrawFlow" ondrop="controller.drop(event)" ondragover="controller.allowDrop(event)">
 
 					<div class="btn-export" onclick="component.savePipeline()">
 						<i class="fa fa-save"></i> Save

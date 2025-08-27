@@ -1,219 +1,377 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { UUIDUtil } from "../../@still/util/UUIDUtil.js";
+import { WorkspaceService } from "../services/WorkspaceService.js";
 
 export class NoteBookController extends BaseController {
 
     notebookCellsContainer;
     filesOpened = new Set();
+    cellCounter = 0;
+    uniqueId;
+    cells = {};
+    noteBook;
 
-    createCodeCell(initialCode = '', initialTitle = 'Untitled Cell', initialLang = 'python') {
-        const cell = document.createElement('div');
-        cell.className = 'code-cell';
-        const containerId = 'code_'+UUIDUtil.newId();
+    //This will hold the user email as this is the 
+    // same way the folder was named to be unique
+    userFolder;
 
-        // HTML structure for a single code cell
-        cell.innerHTML = `
-            <div class="p-2 text-right bg-gray-100 flex justify-between items-center">
-                <div class="button-group">
-                    <span contenteditable="true" class="cell-title">${initialTitle}</span>
+	createCell = (id, monaco, content, language = 'python', filename = 'Untitled') => {
+		const cellElement = document.createElement('div');
+		cellElement.id = `cell-${id}`;
+		cellElement.className = 'cell-container';
+
+		cellElement.innerHTML = `
+				<div class="drag-handle">
+					<div class="drag-handle-icon" draggable="true"></div>
+					<div class="move-buttons">
+						<button class="move-up-btn" title="Move cell up">▲</button>
+						<button class="move-down-btn" title="Move cell down">▼</button>
+					</div>
+				</div>
+                <div class="add-cell-container top">
+                    <button class="add-cell-above-btn cell-button add-above-btn">+</button>
                 </div>
-                <div class="button-group">
+                <div class="cell-header">
                     <select class="language-select">
+                        <option value="javascript">JavaScript</option>
                         <option value="python">Python</option>
                         <option value="sql">SQL</option>
-                        <option value="javascript">JavaScript</option>
                         <option value="markdown">Markdown</option>
                     </select>
-                    <button class="minimize-button control-button">-</button>
-                    <button class="maximize-button control-button hidden">+</button>
-                    <button class="remove-button control-button">x</button>
+                    <div class="button-group">
+                        <div class="monaco-play-wrapper">
+                            <button filename="${filename}" class="play-arrow-btn" aria-label="Play button">
+                                <span class="tooltip-text">Play</span>
+                            </button>
+                        </div>
+                        <button class="minimize-cell-btn cell-button minimize-btn">_</button>
+                        <button class="delete-cell-btn cell-button delete-btn">x</button>
+                    </div>
                 </div>
-            </div>
-
-            <div class="editor-container" id="${containerId}">
-                <div class="line-numbers-column"></div>
-                <div class="editor-content">
-                    <pre class="editor-highlighted language-${initialLang}" style="padding-left: 57px;"><code class="code-highlight"></code></pre>
-                    <textarea class="editor-textarea" style="padding-left: 57px;" spellcheck="false"></textarea>
+                <div style="padding-bottom: 7px; margin-top: -6px; font-size: 13px;">${filename}</div>
+                <div class="monaco-editor-container"></div>
+                <div class="editor-resize-handle"></div>
+                <div class="output-wrapper">
+                    <h3 class="output-title">Output</h3>
+                    <div class="output-container"></div>
                 </div>
-            </div>
-
-            <div class="output-container">
-                <div class="output-area">
-                    <pre>Output will appear here.</pre>
+                <div class="add-cell-container bottom">
+                    <button class="add-cell-below-btn cell-button add-below-btn">+</button>
                 </div>
-                <div class="markdown-output hidden"></div>
-            </div>
-            <div class="p-2 text-right bg-gray-100 run-button-light-editor">
-                <button class="run-button bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-4 rounded-none text-sm shadow-none transition-colors">
-                    Run Cell
-                </button>
-            </div>
         `;
 
-        // Append the new cell to the notebook container
-        this.notebookCellsContainer.appendChild(cell);
+		const languageSelect = cellElement.querySelector('.language-select');
+		languageSelect.value = language;
 
-        // Get references to the elements inside the new cell
-        const textarea = cell.querySelector('.editor-textarea');
-        const codeHighlightPre = cell.querySelector('.editor-highlighted');
-        const codeHighlight = cell.querySelector('.code-highlight');
-        const runButton = cell.querySelector('.run-button');
-        const outputArea = cell.querySelector('.output-area');
-        const markdownOutput = cell.querySelector('.markdown-output');
-        const removeButton = cell.querySelector('.remove-button');
-        const minimizeButton = cell.querySelector('.minimize-button');
-        const maximizeButton = cell.querySelector('.maximize-button');
-        const editorContainer = cell.querySelector('.editor-container');
-        const languageSelect = cell.querySelector('.language-select');
+		const editorContainer = cellElement.querySelector('.monaco-editor-container');
+		const editor = monaco.editor.create(editorContainer, {
+			value: content,
+			language: language,
+			theme: 'vs-light',
+			automaticLayout: true,
+			minimap: { enabled: false },
+			scrollBeyondLastLine: false,
+			fontSize: 14
+		});
 
-        if(initialTitle !== 'Untitled Cell')
-            removeButton.setAttribute('fileName', initialTitle);
+		this.cells[id] = { element: cellElement, editor };
 
-        // Set initial language
-        languageSelect.value = initialLang;
+		languageSelect.addEventListener('change', (e) => {
+			const newLanguage = e.target.value;
+			monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
+		});
 
-        // Function to handle highlighting and rendering based on language
-        function updateCellContent() {
-            const lang = languageSelect.value;
-            if (lang === 'markdown') {
-                // Switch to Markdown mode
-                textarea.classList.add('markdown-mode');
-                codeHighlightPre.classList.add('markdown-mode');
-                runButton.textContent = 'Update Preview';
-                outputArea.classList.add('hidden');
-                markdownOutput.classList.remove('hidden');
+		const resizeHandle = cellElement.querySelector('.editor-resize-handle');
+		resizeHandle.addEventListener('mousedown', (e) => {
+			e.preventDefault();
+			const startY = e.clientY;
+			const startHeight = editorContainer.offsetHeight;
 
-                // Render markdown and update the preview area
-                markdownOutput.innerHTML = marked.parse(textarea.value);
-            } else {
-                // Switch to Code mode
-                textarea.classList.remove('markdown-mode');
-                codeHighlightPre.classList.remove('markdown-mode');
-                runButton.textContent = 'Run Cell';
-                outputArea.classList.remove('hidden');
-                markdownOutput.classList.add('hidden');
+			const onMouseMove = (moveEvent) => {
+				const newHeight = startHeight + (moveEvent.clientY - startY);
+				if (newHeight > 50) { 
+					editorContainer.style.height = `${newHeight}px`;
+					editor.layout();
+				}
+			};
 
-                // Update syntax highlighting for code
-                codeHighlightPre.className = `editor-highlighted language-${lang}`;
-                codeHighlight.className = `code-highlight language-${lang}`;
-                
-                // Clear any existing highlighting and set plain text
-                codeHighlight.innerHTML = '';
-                codeHighlight.textContent = textarea.value;
-                
-                // Apply syntax highlighting
-                if (window.Prism) {
-                    Prism.highlightElement(codeHighlight);
-                }
-            }
-        }
+			const onMouseUp = () => {
+				this.noteBook.monacoEditorWrap.removeEventListener('mousemove', onMouseMove);
+				this.noteBook.monacoEditorWrap.removeEventListener('mouseup', onMouseUp);
+			};
 
-        this.initializeLineNumbers(document.getElementById(containerId), initialTitle);
+			this.noteBook.monacoEditorWrap.addEventListener('mousemove', onMouseMove);
+			this.noteBook.monacoEditorWrap.addEventListener('mouseup', onMouseUp);
+		});
 
-        // Set initial content and highlight
-        textarea.value = initialCode;
-        updateCellContent();
+		return cellElement;
+	};
 
-        // Add the event listener for real-time changes
-        textarea.addEventListener('input', () => {
-            updateCellContent();
-            syncScroll();
-        });
-        textarea.addEventListener('scroll', syncScroll);
-        languageSelect.addEventListener('change', updateCellContent);
+	addCell = (monaco, referenceId, position, code = '', filename) => {
+		const newId = this.noteBook.uniqueId + (this.cellCounter++);
+		const newCellElement = this.createCell(newId, monaco, code, 'python', filename);
 
-        // Function to sync scroll between textarea and highlighted code
-        function syncScroll() {
-            if (!textarea.classList.contains('markdown-mode')) {
-                codeHighlightPre.scrollTop = textarea.scrollTop;
-                codeHighlightPre.scrollLeft = textarea.scrollLeft;
-            }
-        }
+		if (!referenceId) {
+			this.noteBook.notebookContainer.appendChild(newCellElement);
+		} else {
+			const referenceElement = this.cells[referenceId].element;
+			if (position === 'above') {
+				this.noteBook.notebookContainer.insertBefore(newCellElement, referenceElement);
+			} else
+				this.noteBook.notebookContainer.insertBefore(newCellElement, referenceElement.nextSibling);
+		}
+	};
 
-        // Add a keydown event listener to handle the Tab key
-        textarea.addEventListener('keydown', (e) => {
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                const value = textarea.value;
-
-                // Insert 4 spaces at the cursor position
-                textarea.value = value.substring(0, start) + '    ' + value.substring(end);
-
-                // Move the cursor to the new position
-                textarea.selectionStart = textarea.selectionEnd = start + 4;
-            }
-        });
-
-        // Add the event listener for the run button
-        runButton.addEventListener('click', () => {
-            const lang = languageSelect.value;
-            if (lang === 'markdown') {
-                // For Markdown, simply re-render the content
-                markdownOutput.innerHTML = marked.parse(textarea.value);
-            } else {
-                // The Pyodide library is not included, so this button is for show
-                outputArea.querySelector('pre').textContent = 'Pyodide is not included. This button is for a notebook-style aesthetic.';
-            }
-        });
-
-        // Add event listener for the remove button
-        removeButton.addEventListener('click', (e) => {
-            cell.remove();
-            const fileName = e.target.getAttribute('fileName');
-            this.filesOpened.delete(fileName);
-        });
-
-        // Add event listener for the minimize button
-        minimizeButton.addEventListener('click', () => {
-            editorContainer.classList.add('minimized');
-            minimizeButton.classList.add('hidden');
-            maximizeButton.classList.remove('hidden');
-        });
-
-        // Add event listener for the maximize button
-        maximizeButton.addEventListener('click', () => {
-            editorContainer.classList.remove('minimized');
-            maximizeButton.classList.add('hidden');
-            minimizeButton.classList.remove('hidden');
-        });
+    openFile(code, filename){
+        //monaco is a global object under window
+        this.addCell(monaco,null,null,code, filename);
     }
 
+	deleteCell = (id) => {
+		if (Object.keys(this.cells).length > 1) { 
+			this.cells[id].editor.dispose();
+			this.cells[id].element.remove();
+			delete this.cells[id];
+		}
+	};
 
-    initializeLineNumbers(editorContainer, initialTitle) {
-        const textarea = editorContainer.querySelector('.editor-textarea');
-        const lineNumbersDiv = editorContainer.querySelector('.line-numbers-column');
-        const highlightedPre = editorContainer.querySelector('.editor-highlighted');
-        
-        if(initialTitle !== 'Untitled Cell')
-            setTimeout(() => this.updateLineNumbers(textarea, lineNumbersDiv),500);
+	runCell = async (id, fileName = null) => {
+		const cellData = this.cells[id];
+		const code = cellData.editor.getValue();
+		const language = cellData.element.querySelector('.language-select').value;
+		const outputContainer = cellData.element.querySelector('.output-container');
+		outputContainer.style.display = 'block';
+		outputContainer.textContent = '';
+		outputContainer.style.color = '#1f2937'; 
 
-        textarea.addEventListener('input', () => this.updateLineNumbers(textarea, lineNumbersDiv));
-        this.syncScroll(textarea, lineNumbersDiv, highlightedPre); this.updateLineNumbers(textarea, lineNumbersDiv);
+		if (language === 'javascript') {
+			try {
+				let capturedOutput = '';
+				const originalConsoleLog = console.log;
+				console.log = (...args) => {
+					capturedOutput += args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ') + '\n';
+				};
+
+				eval(code);
+
+				console.log = originalConsoleLog; // Restore original console.log
+				outputContainer.textContent = capturedOutput || 'Execution completed.';
+			} catch (error) {
+				outputContainer.textContent = `Error: ${error.message}`;
+				outputContainer.style.color = '#dc2626'; // Red for errors
+			}
+		} else if (language === 'markdown') {
+			try {
+				const html = this.noteBook.showdownConverter.makeHtml(code);
+				outputContainer.innerHTML = html;
+				outputContainer.classList.add('markdown-content');
+			} catch (error) {
+				outputContainer.textContent = `Error converting Markdown: ${error.message}`;
+				outputContainer.style.color = '#dc2626';
+			}
+		} else if(language === 'python') {
+            await (new WorkspaceService()).updatePpline(this.userFolder, fileName, code);
+			//outputContainer.textContent = `Execution for ${language} is not supported yet.`;
+			//outputContainer.style.color = '#dc2626';
+		}
+	};
+
+	toggleMinimize = (id) => {
+		const cellData = this.cells[id];
+		const editorContainer = cellData.element.querySelector('.monaco-editor-container');
+		const minimizeButton = cellData.element.querySelector('.minimize-cell-btn');
+
+		if (editorContainer.style.display === 'none') {
+			editorContainer.style.display = 'block';
+			minimizeButton.textContent = '_';
+		} else {
+			editorContainer.style.display = 'none';
+			minimizeButton.textContent = '+';
+		}
+	};
+
+    pythonAutoCompletionSetup(){
+        return autoCompleteProvider();
     }
 
-    updateLineNumbers(textarea, lineNumbersDiv) {
-        const lines = textarea.value.split('\n');
-        const lineCount = lines.length;
-        
-        let lineNumbers = '';
-        for (let i = 1; i <= lineCount; i++) {
-            lineNumbers += i + (i < lineCount ? '<br>' : '');
-        }
-        
-        lineNumbersDiv.innerHTML = lineNumbers;
-    }
-    
-    syncScroll(textarea, lineNumbers, highlightedPre) {
-        textarea.addEventListener('scroll', () => {
-            lineNumbers.scrollTop = textarea.scrollTop;
-            if (highlightedPre) {
-                highlightedPre.scrollTop = textarea.scrollTop;
-                highlightedPre.scrollLeft = textarea.scrollLeft;
-            }
-        });
-    }
-    
+	moveCell = (id, direction) => {
+		const cellElement = this.cells[id].element;
+		const allCells = Array.from(this.noteBook.notebookContainer.children).filter(el => el.classList.contains('cell-container'));
+		const currentIndex = allCells.indexOf(cellElement);
+
+		if (direction === 'up' && currentIndex > 0) {
+			const targetElement = allCells[currentIndex - 1];
+			this.noteBook.notebookContainer.insertBefore(cellElement, targetElement);
+		} else if (direction === 'down' && currentIndex < allCells.length - 1) {
+			const targetElement = allCells[currentIndex + 1];
+			this.noteBook.notebookContainer.insertBefore(cellElement, targetElement.nextSibling);
+		}
+	};
+
+	draggedCell = null;
+	placeholder = null;
+
+	dragStart(){
+
+		this.noteBook.notebookContainer.addEventListener('dragstart', (e) => {
+			
+			if (!e.target.classList.contains('drag-handle-icon'))
+				return e.preventDefault();
+	
+			this.draggedCell = e.target.closest('.cell-container');
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', this.draggedCell.id);
+	
+			[this.placeholder, this.placeholder.className] = [document.createElement('div'), 'drag-placeholder'];
+			setTimeout(() => this.draggedCell.classList.add('dragging'), 0);
+		});
+
+	}
+
+	dragOver(){
+
+		this.noteBook.notebookContainer.addEventListener('dragover', (e) => {
+			e.preventDefault(), e.stopPropagation();
+	
+			const targetCell = e.target.closest('.cell-container');
+			if (!targetCell || targetCell === this.draggedCell)
+				return;
+			
+			const rect = targetCell.getBoundingClientRect();
+			const isAbove = e.clientY < rect.top + rect.height / 2;
+			
+			let insertTarget;
+			if (isAbove) insertTarget = targetCell;
+			else insertTarget = targetCell.nextElementSibling;
+	
+			if (this.placeholder.parentNode !== targetCell.parentNode || this.placeholder.nextElementSibling !== insertTarget) {
+				this.noteBook.notebookContainer.insertBefore(this.placeholder, insertTarget);
+			}
+		});
+	}
+	
+	drop(){
+		this.noteBook.notebookContainer.addEventListener('drop', (e) => {
+			e.preventDefault();
+			
+			if (this.placeholder && this.placeholder.parentNode) 
+				this.noteBook.notebookContainer.insertBefore(this.draggedCell, this.placeholder);
+	
+			if (this.placeholder && this.placeholder.parentNode) 
+				this.placeholder.parentNode.removeChild(this.placeholder);
+			
+			if (this.draggedCell) {
+				this.draggedCell.classList.remove('dragging');
+			}
+			this.draggedCell = null, this.placeholder = null;
+		});
+	}
+
+	dragEnd(){
+
+		this.noteBook.notebookContainer.addEventListener('dragend', () => {
+			// Clean up if the drag was canceled
+			if (this.draggedCell) {
+				this.draggedCell.classList.remove('dragging');
+			}
+			if (this.placeholder && this.placeholder.parentNode) 
+				this.placeholder.parentNode.removeChild(this.placeholder);
+			
+			this.draggedCell = null;
+			this.placeholder = null;
+		});
+
+	}
+
+	dragSetup(){
+		this.dragStart();
+		this.dragOver();
+		this.drop();
+		this.dragEnd();
+	}
+
+}
+
+
+function autoCompleteProvider() {
+
+	return [
+		{
+			label: 'def',
+			kind: monaco.languages.CompletionItemKind.Keyword,
+			insertText: 'def my_function(param):\n\t"""\n\tDocs here.\n\t"""\n\tpass',
+			documentation: 'Defines a function',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'class',
+			kind: monaco.languages.CompletionItemKind.Keyword,
+			insertText: 'class MyClass:\n\tdef __init__(self):\n\t\tpass',
+			documentation: 'Defines a class',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'if',
+			kind: monaco.languages.CompletionItemKind.Keyword,
+			insertText: 'if condition:\n\tpass',
+			documentation: 'An if statement',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'for',
+			kind: monaco.languages.CompletionItemKind.Keyword,
+			insertText: 'for item in iterable:\n\tpass',
+			documentation: 'A for loop',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'while',
+			kind: monaco.languages.CompletionItemKind.Keyword,
+			insertText: 'while condition:\n\tpass',
+			documentation: 'A while loop',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'import',
+			kind: monaco.languages.CompletionItemKind.Keyword,
+			insertText: 'import ',
+			documentation: 'Imports a module'
+		},
+		{
+			label: 'main',
+			kind: monaco.languages.CompletionItemKind.Snippet,
+			insertText: 'if __name__ == "__main__":\n\t$0',
+			documentation: 'Main function entry point',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'print',
+			kind: monaco.languages.CompletionItemKind.Function,
+			insertText: 'print(${1:message})',
+			documentation: 'Prints to the console',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'len',
+			kind: monaco.languages.CompletionItemKind.Function,
+			insertText: 'len(${1:object})',
+			documentation: 'Returns the length (number of items) of an object.',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'str',
+			kind: monaco.languages.CompletionItemKind.Function,
+			insertText: 'str(${1:object})',
+			documentation: 'Returns a string version of the object.',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		},
+		{
+			label: 'list',
+			kind: monaco.languages.CompletionItemKind.Function,
+			insertText: 'list(${1:iterable})',
+			documentation: 'Returns a list from an iterable.',
+			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+		}
+	];
+
 }

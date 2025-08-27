@@ -86,4 +86,11 @@ export class WorkspaceService extends BaseService {
 		return null;
 	}
 
+	async updatePpline(user, fileName, code){
+		const response = await $still.HTTPClient.post('/scriptfiles/'+user+'/'+fileName, code);
+		if(response.ok)
+			return await response.text();
+		return null;
+	}
+
 }

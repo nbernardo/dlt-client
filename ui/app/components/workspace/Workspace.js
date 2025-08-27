@@ -118,6 +118,8 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */ userEmail = null;
 
+	/** @Prop */ showDrawFlow = true;
+
 	selectedLeftTab = 'content-diagram';
 
 	stOnRender() {
@@ -359,6 +361,7 @@ export class Workspace extends ViewComponent {
 		const code = await this.service.readScriptFile(this.userEmail, fileName);
 		this.noteBookProxy.openFile = {fileName, code};
 		this.noteBookProxy.showNotebook = true;
+		this.showDrawFlow = false;
 	}
 
 	viewFileOnEditor(){
