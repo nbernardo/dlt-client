@@ -73,7 +73,7 @@ export class WorkspaceService extends BaseService {
     }
 
 	async listPplineFiles(user){
-        const response = await $still.HTTPClient.get('/scriptfiles/'+user);
+        const response = await $still.HTTPClient.get('/scriptfiles/'+user+'/');
         if(response.status === 404){
             AppTemplate.toast.error('No pipeline(s) found under '+user);
         } else if (response.ok)
