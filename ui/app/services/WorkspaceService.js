@@ -34,9 +34,9 @@ export class WorkspaceService extends BaseService {
         },
     ]
 
-    async runCode(code){
+    async runCode(code, user){
 
-        const url = '/workcpace/code/run';
+        const url = '/workcpace/code/run/'+user;
         const result = await $still.HTTPClient.post(url, JSON.stringify(code), {
             headers: {
                 'Content-Type': 'application/json'
@@ -47,8 +47,8 @@ export class WorkspaceService extends BaseService {
 
     }
 
-    async getDuckDbs(){
-        const url = '/workcpace/duckdb/list';
+    async getDuckDbs(user){
+        const url = '/workcpace/duckdb/list/'+user;
         const result = await $still.HTTPClient.post(url, null, {
             headers: {
                 'Content-Type': 'application/json'
@@ -70,5 +70,27 @@ export class WorkspaceService extends BaseService {
         });
         return result;
     }
+
+	async listPplineFiles(user){
+		const response = await $still.HTTPClient.get('/scriptfiles/'+user);
+		if(response.ok)
+			return await response.json();
+		
+		return null;
+	}
+
+	async readScriptFile(user, fileName){
+		const response = await $still.HTTPClient.get('/scriptfiles/'+user+'/'+fileName);
+		if(response.ok)
+			return await response.text();
+		return null;
+	}
+
+	async updatePpline(user, fileName, code){
+		const response = await $still.HTTPClient.post('/scriptfiles/'+user+'/'+fileName, code);
+		if(response.ok)
+			return await response.text();
+		return null;
+	}
 
 }

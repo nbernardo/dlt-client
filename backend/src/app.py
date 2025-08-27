@@ -7,12 +7,13 @@ from flask_cors import CORS
 from flask_socketio import emit
 from controller.RequestContext import socketio
 
-from controller.pipeline import pipeline
+from controller.pipeline import pipeline, BasePipeline
 from controller.workspace import workspace
 from controller.file_upload import upload, BaseUpload
 
 proj_folder = Path(__file__).parent
 BaseUpload.upload_folder = str(Path(__file__).parent.parent)+'/dbs/files'
+BasePipeline.folder = str(Path(__file__).parent.parent)+'/destinations'
 sys.path.insert(0, proj_folder/'node_mapper/')
 set_env(proj_folder)
 

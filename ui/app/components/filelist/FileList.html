@@ -1,0 +1,139 @@
+<div class="file-list-wrapper">
+	<ol class="tiny-menu">
+		@for(file in this.filesList; idx = $count)
+		<li class="tiny-menu-item">
+			<div class="dots-container">
+				<span class="dots-icon" onclick="component.togglePopup(this, '{file.name}')" fill="currentColor">
+					<img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+				</span>
+			</div>
+			<img class="file-type-{file.type}" src="app/assets/imgs/left-menu/{file.type}-file.png" width="20">
+			<div class="file-name">&nbsp;{file.name}</div>
+			<div class="file-info-list">
+				<div class="file-size">{file.size} {file.unit}</div>
+			</div>
+		</li>
+		@endfor
+	</ol>
+
+	<div id="@uniqId" class="popup file-list-popup">
+		<ul>
+			<li onclick="alert('Rename clicked!')">Rename</li>
+			<li onclick="component.openInEditor(); component.closeDropdown()">Open in editor</li>
+			<li onclick="alert('Download clicked!')">Download</li>
+			<li onclick="alert('Delete clicked!')">Delete</li>
+		</ul>
+	</div>
+</div>
+
+<style>
+	.file-list-wrapper {
+        display: flex;
+        justify-content: center;
+    }
+
+    .file-list-wrapper .tiny-menu {
+        padding: 4px;
+        background-color: #1f2937;
+        border-radius: .5rem;
+        width: max-content;
+        width: 95%;
+        margin-left: -10px;
+    }
+
+    .file-list-wrapper .tiny-menu-item {
+        padding: 6px 5px;
+        background-color: #374151;
+        border-radius: .375rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background-color .2s ease;
+        position: relative;
+        margin-top: .25rem;
+        height: 20px;
+    }
+
+    .file-list-wrapper .tiny-menu-item:hover {
+        background-color: #4b5563;
+    }
+
+    .file-list-wrapper .file-name {
+        font-size: .75rem;
+        font-weight: 600;
+        white-space: nowrap;
+        color: white !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex-grow: 1;
+    }
+
+    .file-list-wrapper .file-info-list {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding-left: 5px;
+    }
+
+    .file-list-wrapper .file-size {
+        font-size: .625rem;
+        color: #9ca3af;
+        font-family: monospace;
+        flex-shrink: 0;
+    }
+
+    .file-list-wrapper .dots-icon {
+        width: .75rem;
+        height: .75rem;
+        color: #9ca3af;
+        cursor: pointer;
+        transition: color .2s ease;
+    }
+
+    .file-list-wrapper .dots-icon img:hover {
+        content: url('app/assets/imgs/file-list/dots-hover.svg');
+    }
+
+    .file-list-wrapper .popup {
+        position: fixed;
+        z-index: 20;
+        background-color: #374151;
+        border-radius: .5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06);
+        padding: 4px 0;
+        font-size: .75rem;
+        color: #e5e7eb;
+        width: 6rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .2s ease, visibility .2s ease;
+    }
+
+    .file-list-wrapper .popup.is-active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .file-list-wrapper .popup ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .file-list-wrapper .popup li {
+        padding: .5rem;
+        cursor: pointer;
+    }
+
+    .file-list-wrapper .popup li:hover {
+        background-color: #4b5563;
+    }
+
+    .file-type-csv {
+        width: 16px;
+    }
+
+    .file-type-py {
+        width: 26px;
+    }
+</style>

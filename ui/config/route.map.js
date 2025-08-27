@@ -53,6 +53,18 @@ export const stillRoutesMap = {
             FileUpload: {
                 path: "app/components/fileupload",
                 url: "/file-upload"
+            },
+            FileList: {
+                path: "app/components/filelist",
+                url: "/file-list"
+            },
+            PopupWindow: {
+                path: "app/components/popup-window",
+                url: "/popup-window"
+            },
+            NoteBook: {
+                path: "app/components/code",
+                url: "/note-book"
             }
         },
         lazyInitial: {}

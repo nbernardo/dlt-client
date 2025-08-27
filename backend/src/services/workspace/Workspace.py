@@ -6,6 +6,7 @@ import duckdb
 #from utils.duckdb_util import DuckdbUtil
 import re
 from tabulate import tabulate
+from controller.pipeline import BasePipeline
 
 pattern = r'^use.*$'
 
@@ -22,15 +23,14 @@ class Workspace:
         self.sql_run_last_ppline_file = None
 
     @staticmethod
-    def connect_to_duckdb(database):
-
+    def connect_to_duckdb(database, user):
         if database in Workspace.duckdb_open_connections:
             return {
                 'connection': Workspace.duckdb_open_connections[database]
             }
 
         try:
-            folder = Workspace.get_duckdb_path_on_ppline()
+            folder = BasePipeline.folder+'/duckdb/'+user
             db_cnx = duckdb.connect(f'{folder}/{database}', read_only=True)
             Workspace.duckdb_open_connections[database] = db_cnx
 
@@ -96,10 +96,10 @@ class Workspace:
         
 
     @staticmethod
-    def execute_sql_query(code):
+    def execute_sql_query(code,user):
         instance = Workspace()
         queries = instance.parse_sql_query(code)
-        queries = [Workspace.connect_and_run_sql_code(q['dbase'],q['table']) for q in queries if q is not None]
+        queries = [Workspace.connect_and_run_sql_code(q['dbase'],q['table'],user) for q in queries if q is not None]
         
         return queries
 
@@ -117,10 +117,10 @@ class Workspace:
 
 
     @staticmethod
-    def connect_and_run_sql_code(database, query_string):
+    def connect_and_run_sql_code(database, query_string, user):
         
         try:
-            con = Workspace.connect_to_duckdb(f'{database}.duckdb')['connection']
+            con = Workspace.connect_to_duckdb(f'{database}.duckdb',user)['connection']
             con.execute(query_string)
             result = con.fetchall()
             return tabulate(result, tablefmt="grid")
@@ -149,12 +149,12 @@ class Workspace:
 
 
     @staticmethod
-    def list_duck_dbs():
+    def list_duck_dbs(files_path):
 
         skip_tables = ['_dlt_loads','_dlt_pipeline_state','_dlt_pipeline_state','_dlt_version']
 
-        folder = Workspace.get_duckdb_path_on_ppline()
-        file_list = os.listdir(folder)
+        #folder = Workspace.get_duckdb_path_on_ppline()
+        file_list = os.listdir(files_path)
         result, tables = {}, None
 
         for _file in file_list:
@@ -163,7 +163,7 @@ class Workspace:
                 if _file not in result:
                     result[_file] = {}
 
-                tables = Workspace.get_tables(f'{folder}/{_file}').fetchall()
+                tables = Workspace.get_tables(f'{files_path}/{_file}').fetchall()
                 for t in tables:
 
                     if t[2] not in skip_tables:

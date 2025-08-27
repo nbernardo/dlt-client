@@ -13,6 +13,9 @@ import { StillTreeView } from "../../../@still/vendors/treeview/StillTreeView.js
 import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "./icons/database.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
 import { UserService } from "../../services/UserService.js";
+import { PopupWindow } from "../popup-window/PopupWindow.js";
+import { LeftTabs } from "../navigation/left/LeftTabs.js";
+import { NoteBook } from "../code/NoteBook.js";
 
 export class Workspace extends ViewComponent {
 
@@ -45,7 +48,7 @@ export class Workspace extends ViewComponent {
 	/** @Prop */
 	socketData = { sid: null };
 
-	activeGrid = "pipeline_name";
+	activeGrid = "Enter pipeline name";
 
 	/** 
 	 * @Proxy 
@@ -93,6 +96,15 @@ export class Workspace extends ViewComponent {
 	/** @Proxy @type { StillDivider } */
 	codeEditorSplitter;
 
+	/** @Proxy @type { PopupWindow } */
+	popupWindowProxy;
+
+	/** @Proxy @type { NoteBook } */
+	noteBookProxy;
+
+	/** @Proxy @type { LeftTabs } */
+	leftMenuProxy;
+
 	/** @Prop */
 	isEditorOpened = false;
 
@@ -103,6 +115,10 @@ export class Workspace extends ViewComponent {
 	anyPropTest = 0;
 
 	loggedUser = null;
+
+	/** @Prop */ userEmail = null;
+
+	/** @Prop */ showDrawFlow = true;
 
 	selectedLeftTab = 'content-diagram';
 
@@ -115,7 +131,9 @@ export class Workspace extends ViewComponent {
 		});
 
 		this.userService.on('load', async () => {
-			this.loggedUser = (await this.userService.getLoggedUser()).name
+			const user = (await this.userService.getLoggedUser());
+			this.loggedUser = user.name;
+			this.userEmail = user.email;
 		});
 	}
 
@@ -159,7 +177,9 @@ export class Workspace extends ViewComponent {
 	}
 
 	async savePipeline() {
-
+		if(this.activeGrid === 'Enter pipeline name') {
+			return AppTemplate.toast.error('Please enter a valid pipeline name');
+		}
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		const validationResults = formReferences.map((r) => {
@@ -176,9 +196,15 @@ export class Workspace extends ViewComponent {
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
-		data = { ...data, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
+		data = { ...data, user: this.userEmail, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
 		console.log(data);
 		const result = await this.pplService.createPipeline(data);
+	}
+
+	resetWorkspace(){
+		this.editor.clearModuleSelected();
+		this.controller.resetEdges();
+		document.getElementById('pplineNamePlaceHolder').innerHTML = 'Enter pipeline name';
 	}
 
 	onPplineNameKeyPress(e) {
@@ -247,7 +273,7 @@ export class Workspace extends ViewComponent {
 			session: this.socketData.sid, database
 		};
 
-		let result = await this.service.runCode(payload);
+		let result = await this.service.runCode(payload, this.userEmail);
 		result = await result.json();
 		this.terminalProxy.writeTerminal(result.output);
 	}
@@ -328,6 +354,19 @@ export class Workspace extends ViewComponent {
 	verticalResize({ leftWidth }){
 		const selectedTab = this.selectedLeftTab.value;
 		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth+100)+'px';
+	}
+
+	async viewScriptOnEditor(){
+		const fileName = this.leftMenuProxy.scriptListProxy.selectedFile;
+		const code = await this.service.readScriptFile(this.userEmail, fileName);
+		this.noteBookProxy.openFile = {fileName, code};
+		this.noteBookProxy.showNotebook = true;
+		this.showDrawFlow = false;
+	}
+
+	viewFileOnEditor(){
+		this.leftMenuProxy.scriptListProxy.selectedFile;
+		console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
 	}
 
 }
