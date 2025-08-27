@@ -18,6 +18,8 @@ export class FileList extends ViewComponent {
 	/** @Prop */
 	selectedFile;
 
+	noFilesMessage = 'No file found';
+
 	// The bellow uniqId is bound to the template as well
 	// so to allow DOM (getElementById) to work properly
 	/** @Prop */

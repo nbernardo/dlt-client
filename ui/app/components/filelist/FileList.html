@@ -1,5 +1,9 @@
 <div class="file-list-wrapper">
 	<ol class="tiny-menu">
+        @if(this.filesList === null)
+            <div style="color: #ffffffbd !important; text-align: center;">@noFilesMessage</div>
+        @endif
+
 		@for(file in this.filesList; idx = $count)
 		<li class="tiny-menu-item">
 			<div class="dots-container">

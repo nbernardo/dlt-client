@@ -138,12 +138,13 @@ export class LeftTabs extends ViewComponent {
 
 	async selectTab(tab){
 		if(tab === 'content-data-files'){
-			//this.filesList = await this.fileUploadProxy.listFiles();
-			this.fileListProxy.filesList = await this.fileUploadProxy.listFiles();
+			this.fileListProxy.noFilesMessage = 'No data file found';
+			this.fileListProxy.filesList = await this.fileUploadProxy.listFiles();			
 			this.fileListProxy.setUpFileMenuEvt();
 		}
 
 		if(tab === 'content-ppline-script'){
+			this.scriptListProxy.noFilesMessage = 'No pipeline found';
 			this.scriptListProxy.filesList = await this.getPplineFiles();
 			this.scriptListProxy.setUpFileMenuEvt();
 		}
@@ -153,7 +154,7 @@ export class LeftTabs extends ViewComponent {
 
 	async getPplineFiles(){
 		const ppLinefiles = await this.$parent.service.listPplineFiles(this.$parent.userEmail);
-		if(ppLinefiles == null) AppTemplate.toast.error('No pipeline found under you user')
+		if(ppLinefiles == null) return null;
 		else return ppLinefiles;
 	}
 

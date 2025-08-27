@@ -1,5 +1,6 @@
 import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
+import { AppTemplate } from "../../config/app-template.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
@@ -72,8 +73,10 @@ export class WorkspaceService extends BaseService {
     }
 
 	async listPplineFiles(user){
-		const response = await $still.HTTPClient.get('/scriptfiles/'+user);
-		if(response.ok)
+        const response = await $still.HTTPClient.get('/scriptfiles/'+user);
+        if(response.status === 404){
+            AppTemplate.toast.error('No pipeline(s) found under '+user);
+        } else if (response.ok)
 			return await response.json();
 		
 		return null;
@@ -81,7 +84,7 @@ export class WorkspaceService extends BaseService {
 
 	async readScriptFile(user, fileName){
 		const response = await $still.HTTPClient.get('/scriptfiles/'+user+'/'+fileName);
-		if(response.ok)
+        if(response.ok)
 			return await response.text();
 		return null;
 	}
