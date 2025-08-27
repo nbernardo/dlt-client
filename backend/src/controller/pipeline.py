@@ -12,50 +12,6 @@ class BasePipeline:
     folder = None
 
 
-@pipeline.route('/scriptfiles/<user>/')
-def scriptfiles(user):
-
-   def format_size(size_bytes):
-       if size_bytes < 1024:
-           return size_bytes, "bytes"
-       elif size_bytes < 1024**2:
-           return round(size_bytes/1024, 1), "KB"
-       elif size_bytes < 1024**3:
-           return round(size_bytes/(1024**2), 1), "MB"
-       else:
-           return round(size_bytes/(1024**3), 1), "GB"
-   
-   try:
-        files_path = BasePipeline.folder+'/pipeline/'+user+'/'
-        files = []
-       
-        for filename in os.listdir(files_path):
-           filepath = os.path.join(files_path, filename)
-           if os.path.isfile(filepath):
-               size_bytes = os.path.getsize(filepath)
-               size_value, size_unit = format_size(size_bytes)
-               file_type = filepath.split('.')[-1]
-               files.append({'name': filename, 'size': size_value, 'unit': size_unit, 'type': file_type})
-       
-        return jsonify(files)
-   except FileNotFoundError as err:
-       return jsonify({'error': 'User folder not found'}), 404
-
-
-@pipeline.route('/scriptfiles/<user>/<filename>')
-def read_scriptfiles(user, filename):
-
-   try:
-        file_path = BasePipeline.folder+'/pipeline/'+user+'/'+filename
-        code = ''
-        with open(file_path, 'r') as file:
-            code = file.read()
-
-        return code
-   except FileNotFoundError as err:
-       return jsonify({'error': 'Pipeline not found'}), 404
-
-
 @pipeline.route('/pipeline/create', methods=['POST'])
 def create():
     """
@@ -94,7 +50,7 @@ def create():
 
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
-        template = template.replace(data[0], value)
+        template = template.replace(data[0], str(value))
 
     if len(context.exceptions) > 0:
         message = list(context.exceptions[0].values())[0]['message']
@@ -171,3 +127,69 @@ def revert_and_notify_failure(
     for node in all_nodes:
         node.notify_failure_to_ui('Pipeline', message,False)
         
+
+@pipeline.route('/scriptfiles/<user>/')
+def scriptfiles(user):
+
+   def format_size(size_bytes):
+       if size_bytes < 1024:
+           return size_bytes, "bytes"
+       elif size_bytes < 1024**2:
+           return round(size_bytes/1024, 1), "KB"
+       elif size_bytes < 1024**3:
+           return round(size_bytes/(1024**2), 1), "MB"
+       else:
+           return round(size_bytes/(1024**3), 1), "GB"
+   
+   try:
+        files_path = BasePipeline.folder+'/pipeline/'+user+'/'
+        files = []
+       
+        for filename in os.listdir(files_path):
+           filepath = os.path.join(files_path, filename)
+           if os.path.isfile(filepath):
+               size_bytes = os.path.getsize(filepath)
+               size_value, size_unit = format_size(size_bytes)
+               file_type = filepath.split('.')[-1]
+               files.append({'name': filename, 'size': size_value, 'unit': size_unit, 'type': file_type})
+       
+        return jsonify(files)
+   except FileNotFoundError as err:
+       return jsonify({'error': 'User folder not found'}), 404
+
+
+@pipeline.route('/scriptfiles/<user>/<filename>', methods=['GET'])
+def read_scriptfiles(user, filename):
+
+   try:
+        file_path = BasePipeline.folder+'/pipeline/'+user+'/'+filename
+        code = ''
+        with open(file_path, 'r') as file:
+            code = file.read()
+
+        return code
+   except FileNotFoundError as err:
+       return jsonify({'error': 'Pipeline not found'}), 404
+
+
+@pipeline.route('/scriptfiles/<user>/<filename>', methods=['POST'])
+def update_ppline(user, filename):
+
+    payload = request.get_data()
+    #pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
+    
+    duckdb_path = BasePipeline.folder+'/duckdb/'+user
+    ppline_path = BasePipeline.folder+'/pipeline/'+user
+    
+    DltPipeline().update_ppline(ppline_path, filename, payload, None)
+    
+    return ''
+   #try:
+   #     file_path = BasePipeline.folder+'/pipeline/'+user+'/'+filename
+   #     code = ''
+   #     with open(file_path, 'r') as file:
+   #         code = file.read()
+
+   #     return code
+   #except FileNotFoundError as err:
+   #    return jsonify({'error': 'Pipeline not found'}), 404

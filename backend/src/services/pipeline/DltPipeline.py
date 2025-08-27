@@ -50,7 +50,7 @@ class DltPipeline:
         print("Standard Error:", result.stderr)
 
 
-    def create_v1(self, file_path, file_name, data, context: RequestContext) -> Dict[str,str]:
+    def create_v1(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
         """
         This is the pipeline creation
         """
@@ -73,7 +73,7 @@ class DltPipeline:
                                 capture_output=True,
                                 text=True)
 
-        if result.returncode == 0:
+        if result.returncode == 0 and context is not None:
             context.emit_ppsuccess()
 
         print("Return Code:", result.returncode)
@@ -84,6 +84,46 @@ class DltPipeline:
             'status': True,
             'message': 'Pipeline run terminated successfully'
         }
+
+
+    def update(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
+        """
+        This is the pipeline update and pipeline code
+        """
+        pplint_file, file_open_flag = f'{file_path}/{file_name}', 'w+' 
+        self.curr_file = pplint_file
+
+        # Create python file with pipeline code
+        with open(pplint_file, file_open_flag, encoding='utf-8') as file:
+            file.write(data.decode('utf-8'))
+
+        
+        # Run pipeline generater above by passing the python file
+        result = subprocess.run(['python', pplint_file],check=True,
+                                capture_output=True,text=True)
+
+        if result.returncode == 0 and context is not None:
+            context.emit_ppsuccess()
+
+        print("Return Code:", result.returncode)
+        print("Standard Output:", result.stdout)
+        print("Standard Error:", result.stderr)
+
+
+        return {
+            'status': True,
+            'message': 'Pipeline run terminated successfully'
+        }
+
+
+    def update_ppline(self, file_path, file_name, data, context: RequestContext) -> Dict[str,str]:
+        """
+        Update the pipeline and file content
+        It uses the create method which will 
+        update since it exists already
+        """
+        self.update(file_path, file_name, data, context)
+
 
     @staticmethod
     def get_template():
