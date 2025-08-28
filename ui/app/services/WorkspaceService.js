@@ -96,4 +96,11 @@ export class WorkspaceService extends BaseService {
 		return null;
 	}
 
+	async readDiagramFile(user, fileName){
+		const response = await $still.HTTPClient.get('/ppline/diagram/'+user+'/'+fileName);
+        if(response.ok)
+			return await response.text();
+		return null;
+	} 
+
 }
