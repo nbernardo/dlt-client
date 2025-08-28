@@ -28,6 +28,9 @@ def create():
     ppline_path = BasePipeline.folder+'/pipeline/'+payload['user']
     os.makedirs(ppline_path, exist_ok=True)
     
+    diagrm_path = BasePipeline.folder+'/code/'+payload['user']
+    os.makedirs(diagrm_path, exist_ok=True)
+    
     context = RequestContext(pipeline_name, payload['socketSid'])
     context.user = payload['user']
     
@@ -58,11 +61,14 @@ def create():
         print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
         return 'Error on creating the pipeline'
 
-    pipeline_instance = DltPipeline()
+    pipeline_instance, success = DltPipeline(), True
 
     try:
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
-        success = True
+        
+        if(result['status'] == True):
+            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'])
+        
         if result['status'] is False: 
             success, message = False, result['message'] 
 
@@ -193,3 +199,17 @@ def update_ppline(user, filename):
    #     return code
    #except FileNotFoundError as err:
    #    return jsonify({'error': 'Pipeline not found'}), 404
+
+   
+@pipeline.route('/ppline/diagram/<user>/<filename>', methods=['GET'])
+def read_diagram_content(user, filename):
+
+   try:
+        file_path = BasePipeline.folder+'/code/'+user+'/'+filename+'.json'
+        code = ''
+        with open(file_path, 'r') as file:
+            code = file.read()
+
+        return code
+   except FileNotFoundError as err:
+       return jsonify({'error': 'Pipeline not found'}), 404
