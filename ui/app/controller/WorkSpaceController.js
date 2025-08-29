@@ -33,7 +33,7 @@ export class WorkSpaceController extends BaseController {
     /** @type { PPLineStatEnum } */
     pplineStatus;
 
-    resetEdges(){
+    resetEdges() {
         this.edgeTypeAdded = {};
         this.formReferences.clear();
         this.validationErrors = [];
@@ -109,6 +109,7 @@ export class WorkSpaceController extends BaseController {
             const dest = ev.dataTransfer.getData("dest");
             const [pos_x, pos_y] = [ev.clientX, ev.clientY];
             const data = { name, label, icon, img, pos_x, pos_y, source, dest };
+
             await this.addNodeToDrawFlow(data);
         }
     }
@@ -122,22 +123,71 @@ export class WorkSpaceController extends BaseController {
         pos_y = pos_y * (this.editor.precanvas.clientHeight / (this.editor.precanvas.clientHeight * this.editor.zoom)) - (this.editor.precanvas.getBoundingClientRect().y * (this.editor.precanvas.clientHeight / (this.editor.precanvas.clientHeight * this.editor.zoom)));
 
         if (['Start', 'End'].includes(inType)) {
-            const tmpl = this.edgeType(inType);
-            if (tmpl != null)
-                this.editor.addNode(name, source, dest, pos_x, pos_y, name, {}, tmpl);
-            return;
+            return this.addStartOrEndNode(name, source, dest, pos_x, pos_y);
         }
-        
+
         const nodeId = this.getNodeId();
-        const { template: tmpl, component } = await Components.new(inType, nodeId);
+        const { template: tmpl, component } = await Components.new(inType, { nodeId });
+        this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
+
+    }
+
+    async processImportingNodes(nodeData) {
+
+        const inOutputMapping = { };
+
+        const nodeList = Object.entries(nodeData);
+        let nodeId = 0;
+
+        for(let [_, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList){
+            if (!['Start', 'End'].includes(name)) {
+
+                //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
+                let { componentId: removedId, ...fields } = data;
+                const { template: tmpl, component } = await Components.new(name, { nodeId: ++nodeId });
+
+                this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
+                setTimeout(() => Object.keys(fields).forEach((f) => component[f] = fields[f]), 10);
+
+                //We first collects all links to render after all nodes are in the diagram
+                inOutputMapping[nodeId] = { inputs, outputs };
+
+            }else{
+                
+                [source, dest] = [ name === 'End', name === 'Start' ];
+                this.addStartOrEndNode(name, source, dest, pos_x, pos_y);
+                inOutputMapping[++nodeId] = { inputs, outputs };
+            }            
+        }
+
+        Object.keys(inOutputMapping).forEach(nodeId => {
+
+            const { inputs, outputs } = inOutputMapping[nodeId];
+            outputs?.output_1?.connections.forEach((link) => {
+                this.editor.addConnection(Number(nodeId), Number(link.node), 'output_1', 'input_1');
+            });
+
+        });
+
+    }
+
+    addStartOrEndNode(name, source, dest, pos_x, pos_y){
+        const tmpl = this.edgeType(name);
+        if (tmpl != null)
+            return this.editor.addNode(name, source, dest, pos_x, pos_y, name, {}, tmpl);
+        return;
+    }
+
+    handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl){
+
         const { inConnectors, outConnectors } = component;
         const initData = { componentId: component.cmpInternalId };
         this.formReferences.set(nodeId, component.cmpInternalId);
         this.edgeTypeAdded[nodeId] = new Set();
-        this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
+        const node = this.editor.addNode(name, inConnectors, outConnectors, pos_x, pos_y, name, initData, tmpl);
         this.clearHTML(nodeId);
         this.cmpIdToNodeIdMap[component.cmpInternalId] = nodeId;
-
+        return node;
     }
 
     changeMode(option) {
@@ -392,7 +442,7 @@ export class WorkSpaceController extends BaseController {
             obj.edgeTypeAdded[input_id].add(output_id);
     }
 
-    copyToClipboard(content){
+    copyToClipboard(content) {
         navigator.clipboard.writeText(content);
     }
 

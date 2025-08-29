@@ -29,16 +29,35 @@ export class SqlDBComponent extends ViewComponent {
 	tableName;
 	selectedDbEngine;
 
+	/** @Prop */ isImport = false;
+
 	/** @Prop @type { STForm } */
 	anotherForm;
 	databaseC;
 	tableNameC;
 
-	stOnRender(nodeId){
+	/**
+	 * The id will be passed when instantiating SqlDBComponent dinamically
+	 * through the Component.new(type, param) where for para nodeId 
+	 * will be passed
+	 * */
+	stOnRender({ nodeId, isImport }){
 		this.nodeId = nodeId;
+		this.isImport = isImport;
 	}
 
 	stAfterInit(){
+
+		// When importing, it might take some time for things to be ready, the the subcrib to on change
+		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
+		if(this.isImport !== false){
+			this.setupOnChangeListen();
+		}
+
+	}
+
+	setupOnChangeListen(){
+
 		this.database.onChange(newValue => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['database'] = newValue;
@@ -48,6 +67,7 @@ export class SqlDBComponent extends ViewComponent {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['dbengine'] = value;
 		});
+
 	}
 
 	addField(){

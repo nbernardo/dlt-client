@@ -180,9 +180,9 @@ export class Workspace extends ViewComponent {
 	}
 
 	async savePipeline() {
-		if(this.activeGrid === 'Enter pipeline name') {
+		if(this.activeGrid.value === 'Enter pipeline name')
 			return AppTemplate.toast.error('Please enter a valid pipeline name');
-		}
+		
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		const validationResults = formReferences.map((r) => {
@@ -347,10 +347,10 @@ export class Workspace extends ViewComponent {
 
 	async viewPipelineDiagram(event, pplineName){
 		event.preventDefault();
-		const content = await this.service.readDiagramFile(this.userEmail, pplineName);
-		console.log(content);
-		
-		this.loadDiagram({ drawflow: JSON.parse(content) });
+		const response = await this.service.readDiagramFile(this.userEmail, pplineName);
+		const result = JSON.parse(response);
+		this.activeGrid = result.pipeline_lbl;
+		await this.controller.processImportingNodes(result.content['Home'].data);
 	}
 
 	async logout(){

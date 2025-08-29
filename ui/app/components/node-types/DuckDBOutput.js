@@ -17,16 +17,34 @@ export class DuckDBOutput extends ViewComponent {
 	/** @Prop */
 	outConnectors = 0;
 
+	/** @Prop */ isImport = false;
+
 	//Bellow property is mapped to the
 	//form To allow validation check
 	/** @Prop */
 	formRef;
 
-	stOnRender(nodeId) {
+	/**
+	 * The id will be passed when instantiating DuckDBOutput dinamically
+	 * through the Component.new(type, param) where for para nodeId 
+	 * will be passed
+	 * */
+	stOnRender({ nodeId, isImport }){
 		this.nodeId = nodeId;
+		this.isImport = isImport;
 	}
 
-	stAfterInit() {
+	stAfterInit(){
+
+		// When importing, it might take some time for things to be ready, the the subcrib to on change
+		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
+		if(this.isImport !== false){
+			this.setupOnChangeListen();
+		}
+
+	}
+
+	setupOnChangeListen(){
 
 		this.database.onChange((newValue) => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
@@ -37,6 +55,7 @@ export class DuckDBOutput extends ViewComponent {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['tableName'] = newValue;
 		});
+
 	}
 
 }

@@ -15,7 +15,7 @@ export class Bucket extends ViewComponent {
 	bucketUrl = '';
 	provider;
 	filePattern;
-	source;
+	bucketFileSource;
 
 	/** @Prop */
 	showBucketUrlInput = 1;
@@ -25,8 +25,9 @@ export class Bucket extends ViewComponent {
 	/** @Prop */
 	outConnectors = 1;
 
-	/** @Prop */
-	formRef;
+	/** @Prop */ formRef;
+
+	/** @Prop */ isImport = false;
 
 	/**
 	 * @Inject
@@ -40,17 +41,34 @@ export class Bucket extends ViewComponent {
 	 * through the Component.new(type, param) where for para nodeId 
 	 * will be passed
 	 * */
-	stOnRender(nodeId) {
+	stOnRender({ nodeId, isImport, filePattern, bucketFileSource }){
 		this.nodeId = nodeId;
+		this.isImport = isImport;
+		//this.filePattern = filePattern;
+		//this.source = bucketFileSource;
 	}
 
-	stAfterInit() {
+	stAfterInit(){
+
 		this.wspaceService.on('load', () => { });
 
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 
-		this.source.onChange((newValue) => {
+		// When importing, it might take some time for things to be ready, the the subcrib to on change
+		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController		
+		if([false,undefined].includes(this.isImport)){
+			this.setupOnChangeListen();
+			console.log(`CALLED ON CHANGE`);
+		}else{
+			console.log(`--- DIDN'T CALLED ON CHANGE`);
+		}
+
+	}
+
+	setupOnChangeListen() {
+		
+		this.bucketFileSource.onChange((newValue) => {
 			this.showBucketUrlInput = newValue;
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['bucketFileSource'] = newValue;
