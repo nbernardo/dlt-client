@@ -21,6 +21,7 @@ def create():
     
     payload = request.get_json()
     pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
+    pipeline_lbl = payload['pplineLbl']
     
     duckdb_path = BasePipeline.folder+'/duckdb/'+payload['user']
     os.makedirs(duckdb_path, exist_ok=True)
@@ -67,7 +68,7 @@ def create():
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
         
         if(result['status'] == True):
-            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'])
+            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl)
         
         if result['status'] is False: 
             success, message = False, result['message'] 

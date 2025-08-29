@@ -86,12 +86,13 @@ class DltPipeline:
         }
 
 
-    def save_diagram(self, diagrm_path, file_name, conent):
+    def save_diagram(self, diagrm_path, file_name, content, pipeline_lbl):
         import json
         # Create python file with pipeline code
         diagrm_file, file_open_flag = f'{diagrm_path}/{file_name}.json', 'x+'
+        pipeline_code = { 'content': content, 'pipeline_lbl': pipeline_lbl }
         with open(diagrm_file, file_open_flag) as file:
-            file.write(json.dumps(conent))
+            file.write(json.dumps(pipeline_code))
 
 
     def update(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
