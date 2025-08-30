@@ -1,6 +1,7 @@
 import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
 import { AppTemplate } from "../../config/app-template.js";
+import { UserUtil } from "../components/auth/UserUtil.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
@@ -101,6 +102,18 @@ export class WorkspaceService extends BaseService {
         if(response.ok)
 			return await response.text();
 		return null;
-	} 
+	}
+
+	async listFiles(){
+        const user = UserUtil.email;
+		let filesList = null;
+		const response = await $still.HTTPClient.get('/files/'+user);
+		if(response.status === 404){
+            AppTemplate.toast.error('No data file found under '+user);
+        } else if(response.ok){
+			filesList = await response.json();
+		}
+		return filesList;
+	}
 
 }
