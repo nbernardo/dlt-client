@@ -28,6 +28,7 @@ export class Bucket extends ViewComponent {
 	/** @Prop */ formRef;
 
 	/** @Prop */ isImport = false;
+	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
 
 	/**
 	 * @Inject
@@ -35,6 +36,11 @@ export class Bucket extends ViewComponent {
 	 * @type { WorkspaceService }
 	 */
 	wspaceService;
+
+	/**
+	 * @Inject @Path services/
+	 * @type { WorkSpaceController } */
+	wSpaceController;
 
 	/**
 	 * The id will be passed when instantiating Bucket dinamically
@@ -62,6 +68,12 @@ export class Bucket extends ViewComponent {
 			console.log(`CALLED ON CHANGE`);
 		}else{
 			console.log(`--- DIDN'T CALLED ON CHANGE`);
+		}
+
+		if(this.isImport){
+			// At this point the WorkSpaceController was loaded by WorkSpace component
+			// hance no this.wSpaceController.on('load') subscrtiption is needed
+			this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 		}
 
 	}

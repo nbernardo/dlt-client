@@ -51,10 +51,16 @@
 
 				<div id="drawflow" (showIf)="self.showDrawFlow" ondrop="controller.drop(event)" ondragover="controller.allowDrop(event)">
 
-					<div class="btn-export" onclick="component.savePipeline()">
-						<i class="fa fa-save"></i> Save
+					<div style="display: flex;" class="clearAndSaveButton">
+						<div class="btn-clear clear-workspace-btn" style="right: 94px;" onclick="component.resetWorkspace()">Clear</div>
+						<div class="btn-export save-pipeline-btn" (showIf)="self.showSaveButton" onclick="component.savePipeline()">
+							<i class="fa fa-save"></i> Save
+						</div>
+						<div class="btn-export update-pipeline-btn" (showIf)="!self.showSaveButton" onclick="component.updatePipeline()">
+							<i class="fa fa-save"></i> Update
+						</div>
 					</div>
-					<div class="btn-clear" onclick="component.resetWorkspace()">Clear</div>
+
 					<div class="btn-lock">
 						<i id="lock" class="fas fa-lock"
 							onclick="component.editor.editor_mode='fixed'; controller.changeMode('lock');"></i>

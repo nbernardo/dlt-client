@@ -18,11 +18,17 @@ export class DuckDBOutput extends ViewComponent {
 	outConnectors = 0;
 
 	/** @Prop */ isImport = false;
+	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
 
 	//Bellow property is mapped to the
 	//form To allow validation check
 	/** @Prop */
 	formRef;
+
+	/**
+	 * @Inject @Path services/
+	 * @type { WorkSpaceController } */
+	wSpaceController;
 
 	/**
 	 * The id will be passed when instantiating DuckDBOutput dinamically
@@ -40,6 +46,12 @@ export class DuckDBOutput extends ViewComponent {
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
 		if(this.isImport !== false){
 			this.setupOnChangeListen();
+		}
+
+		if(this.isImport === true){	
+			// At this point the WorkSpaceController was loaded by WorkSpace component
+			// hance no this.wSpaceController.on('load') subscrtiption is needed
+			this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 		}
 
 	}

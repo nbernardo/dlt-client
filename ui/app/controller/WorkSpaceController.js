@@ -144,7 +144,9 @@ export class WorkSpaceController extends BaseController {
 
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { componentId: removedId, ...fields } = data;
-                const { template: tmpl, component } = await Components.new(name, { nodeId: ++nodeId });
+                console.log(`FIELDS ARE: `,fields);
+                
+                const { template: tmpl, component } = await Components.new(name, { nodeId: ++nodeId, ...fields, isImport: true });
 
                 this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
                 setTimeout(() => Object.keys(fields).forEach((f) => component[f] = fields[f]), 10);
@@ -444,6 +446,14 @@ export class WorkSpaceController extends BaseController {
 
     copyToClipboard(content) {
         navigator.clipboard.writeText(content);
+    }
+
+    disableNodeFormInputs(formWrapClass){
+        const disable = true, defautlFields = 'input[type=text], select';
+        // Disable the default form inputs
+        document.querySelector('.'+formWrapClass).querySelectorAll(defautlFields).forEach(elm => {
+            elm.disabled = disable;
+        });
     }
 
 }
