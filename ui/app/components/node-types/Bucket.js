@@ -5,12 +5,10 @@ import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
 
 export class Bucket extends ViewComponent {
 
-	isPublic = true;
+	isPublic = false;
 
 	/** This is strictly to reference the object in the diagram 
-	 * @Prop
-	 * */
-	nodeId;
+	 * @Prop */ nodeId;
 
 	label = 'Source Bucket'
 	bucketUrl = '';
@@ -46,11 +44,8 @@ export class Bucket extends ViewComponent {
 
 	/** @Prop */ dataSourceFieldsMap = new Map();
 
-	/**
-	 * The id will be passed when instantiating Bucket dinamically
-	 * through the Component.new(type, param) where for para nodeId 
-	 * will be passed
-	 * */
+	/* The id will be passed when instantiating Bucket dinamically through the
+	 * Component.new(type, param) where for para nodeId will be passed  */
 	stOnRender({ nodeId, isImport }){
 		this.nodeId = nodeId;
 		this.isImport = isImport;
@@ -147,8 +142,6 @@ export class Bucket extends ViewComponent {
 		const popupId = fieldsContainerId.split('-')[1];
 		this.fieldListRender(popupId, existingFields);
 		
-		//fieldsContainer.scrollTop = fieldsContainer.style.height.replace('px','');
-		//this.dataSourceFieldsMap.set(this.bucketFileSource.value, existingFields);
 	}
 
 	showTypeMenu(fieldId, clickedIcon, popupId){
@@ -174,20 +167,21 @@ export class Bucket extends ViewComponent {
             const div = document.createElement('div');
 			const containerId = popupId.replace('_',''); // Replace underscore in case it exists
             div.className = 'field';
+			// bellow inner. is being used on the events (onclick, onkeypress) because Backed is embeded
+			// components and the events are inside itself, if it was not embeded then it would be self.
             div.innerHTML = obj.parseEvents(
 				`<div class="icon ${field.type}" onclick="inner.showTypeMenu(${field.id}, this, '${containerId}')">
                     ${DataSourceFields.dataTypes[field.type].icon}
                 </div>
-                <span class="name" onkeypress="inner.saveFielaneName(event)"
+                <span class="name" onkeypress="inner.confirmFieldName(event)"
 					  ${field.new ? 'contenteditable="true" style="color: #a2a0a0;"' : ''}>${field.name}</span>`
 			);			
             container.appendChild(div);
         });
-		
 		container.scrollTop = container.style.height.replace('px','');
     }
 
-	saveFielaneName(e) {
+	confirmFieldName(e) {
 		if (e.key === 'Enter') {
 			e.preventDefault();
 			e.target.blur();

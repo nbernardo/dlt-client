@@ -144,8 +144,7 @@ export class WorkSpaceController extends BaseController {
 
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { componentId: removedId, ...fields } = data;
-                console.log(`FIELDS ARE: `,fields);
-                
+
                 const { template: tmpl, component } = await Components.new(name, { nodeId: ++nodeId, ...fields, isImport: true });
 
                 this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);

@@ -5,7 +5,7 @@ export class PipelineService extends BaseService {
 
     table = new ServiceEvent([]);
 
-    async createPipeline(content = null) {
+    async createOrUpdatePipeline(content = null, update = false) {
 
         const payload = content || {
             "backet_url": "/home/nakassony/dlt-project/z/",
@@ -15,11 +15,12 @@ export class PipelineService extends BaseService {
             "schema": "hospital_data"
         };
 
-        return $still.HTTPClient.post('/pipeline/create', JSON.stringify(payload), {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        const headers = { 'Content-Type': 'application/json' };
+        if(update === true){
+            return $still.HTTPClient.put('/pipeline/create', JSON.stringify(payload), { headers });
+        }else{
+            return $still.HTTPClient.post('/pipeline/create', JSON.stringify(payload), { headers });
+        }
     }
 
 }

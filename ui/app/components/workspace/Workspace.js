@@ -16,6 +16,7 @@ import { UserService } from "../../services/UserService.js";
 import { PopupWindow } from "../popup-window/PopupWindow.js";
 import { LeftTabs } from "../navigation/left/LeftTabs.js";
 import { NoteBook } from "../code/NoteBook.js";
+import { UserUtil } from "../auth/UserUtil.js";
 
 export class Workspace extends ViewComponent {
 
@@ -120,6 +121,8 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */ showDrawFlow = true;
 
+	/** @Prop */ showSaveButton = true;
+
 	selectedLeftTab = 'content-diagram';
 
 	stOnRender() {
@@ -132,6 +135,9 @@ export class Workspace extends ViewComponent {
 
 		this.userService.on('load', async () => {
 			const user = (await this.userService.getLoggedUser());
+			UserUtil.name = user.name;
+			UserUtil.email = user.email;
+			Object.freeze(UserUtil);
 			this.loggedUser = user.name;
 			this.userEmail = user.email;
 		});
@@ -183,6 +189,18 @@ export class Workspace extends ViewComponent {
 		if(this.activeGrid.value === 'Enter pipeline name')
 			return AppTemplate.toast.error('Please enter a valid pipeline name');
 		
+		const data = await this.preparePipelineContent();
+		return await this.pplService.createOrUpdatePipeline(data);
+	}
+
+	async updatePipeline() {
+		const isUpdate = true;
+		const data = await this.preparePipelineContent(isUpdate);
+		return await this.pplService.createOrUpdatePipeline(data, isUpdate);
+	}
+
+	async preparePipelineContent(update = false){
+
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		const validationResults = formReferences.map((r) => {
@@ -201,13 +219,20 @@ export class Workspace extends ViewComponent {
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
 		data = { ...data, user: this.userEmail, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
 		console.log(data);
-		const result = await this.pplService.createPipeline(data);
+
+		if(update === true) data.update = true;
+
+		return data;
+
 	}
 
 	resetWorkspace(){
 		this.editor.clearModuleSelected();
 		this.controller.resetEdges();
+		document.querySelector('.clear-workspace-btn').style.right = '95px';
+		this.showSaveButton = true;
 		document.getElementById('pplineNamePlaceHolder').innerHTML = 'Enter pipeline name';
+		document.getElementById('pplineNamePlaceHolder').contentEditable = true;
 	}
 
 	onPplineNameKeyPress(e) {
@@ -350,6 +375,9 @@ export class Workspace extends ViewComponent {
 		const response = await this.service.readDiagramFile(this.userEmail, pplineName);
 		const result = JSON.parse(response);
 		this.activeGrid = result.pipeline_lbl;
+		document.querySelector('.clear-workspace-btn').style.right = '110px';
+		this.showSaveButton = true;
+		document.getElementById('pplineNamePlaceHolder').contentEditable = false;
 		await this.controller.processImportingNodes(result.content['Home'].data);
 	}
 
@@ -372,7 +400,7 @@ export class Workspace extends ViewComponent {
 
 	viewFileOnEditor(){
 		this.leftMenuProxy.scriptListProxy.selectedFile;
-		console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
+		//console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
 	}
 
 }

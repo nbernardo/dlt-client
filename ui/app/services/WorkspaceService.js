@@ -105,14 +105,24 @@ export class WorkspaceService extends BaseService {
 	}
 
 	async listFiles(){
-        const user = UserUtil.email;
 		let filesList = null;
-		const response = await $still.HTTPClient.get('/files/'+user);
+		const response = await $still.HTTPClient.get('/files/'+UserUtil.email);
 		if(response.status === 404){
-            AppTemplate.toast.error('No data file found under '+user);
+            AppTemplate.toast.error('No data file found under '+UserUtil.email);
         } else if(response.ok){
 			filesList = await response.json();
 		}
+		return filesList;
+	}
+
+	async getCsvFileFields(filename){
+		let filesList = null;
+		const response = await $still.HTTPClient.get(`/ppline/data/csv/${UserUtil.email}/${filename}`);
+		if(response.status === 404)
+            AppTemplate.toast.error('No data file found under '+user);
+        else if(response.ok)
+			filesList = (await response.text());
+		
 		return filesList;
 	}
 
