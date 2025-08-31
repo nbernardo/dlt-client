@@ -4,6 +4,7 @@ from node_mapper.NodeFactory import NodeFactory
 from .RequestContext import RequestContext
 from node_mapper.TemplateNodeType import TemplateNodeType
 import os
+import pandas as pd
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -12,7 +13,7 @@ class BasePipeline:
     folder = None
 
 
-@pipeline.route('/pipeline/create', methods=['POST'])
+@pipeline.route('/pipeline/create', methods=['POST','PUT'])
 def create():
     """
     This is pipeline creation request handler
@@ -21,7 +22,7 @@ def create():
     
     payload = request.get_json()
     pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
-    pipeline_lbl = payload['pplineLbl']
+    pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
     
     duckdb_path = BasePipeline.folder+'/duckdb/'+payload['user']
     os.makedirs(duckdb_path, exist_ok=True)
@@ -51,6 +52,7 @@ def create():
     
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
     template = template.replace('%Dbfile_name%', pipeline_name)
+    template = template.replace('%User_folder%', payload['user'])
 
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
@@ -214,3 +216,14 @@ def read_diagram_content(user, filename):
         return code
    except FileNotFoundError as err:
        return jsonify({'error': 'Pipeline not found'}), 404
+   
+   
+@pipeline.route('/ppline/data/csv/<user>/<filename>')
+def read_csv_file_fields(user, filename):
+    from .file_upload import BaseUpload
+    file_path = BaseUpload.upload_folder+'/'+user+'/'+filename
+    
+    df = pd.read_csv(file_path, nrows=1)
+    return str(df.columns)
+    
+    
