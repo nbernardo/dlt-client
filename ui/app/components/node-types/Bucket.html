@@ -25,14 +25,14 @@
 					<option each="item" value="{item.name}">{item.name}</option>
 				</select>
 
-				<div class="resizable-spinner-wrap" (showIf)="!self.showMoreFileOptions">
+				<div class="resizable-spinner-wrap" (showIf)="self.showMoreFileOptions==2">
 					<div class="container">
 						<div class="spinner" id="spinner"></div>
 					</div>
 				</div>
 
 				<img (showIf)="self.showMoreFileOptions" 
-					onclick="component.setupMoreOptionsMenu(event, '@formWrapClass')"
+					onclick="component.setMoreOptionsMenu(event, '@formWrapClass')"
 					style="margin-right: -17px; padding-left: 3px; width: 15px; cursor: pointer;" src="app/assets/imgs/file-list/dots.svg" width="12">
 
 					<div class="stpopup-right-side popup-right-sede-@formWrapClass">
@@ -40,8 +40,9 @@
 						<div class="ds-fields-wrapper" style="padding: 0; width: 100%; padding-top: 0px; margin: 0;">
 							<div class="container">
 								<div class="header">Table Fields</div>
-								<div class="fields-@formWrapClass"></div>
-								<button class="add-btn" onclick="component.addFieldInDataSource()">Add Field</button>
+								<div class="fields-@formWrapClass" 
+									style="overflow-y: auto; height: 160px; overflow-y: auto; box-shadow: 1px 2px 5px rgb(0 0 0 / 19%) inset;"></div>
+								<button class="add-btn" onclick="component.addFieldInDataSource('fields-@formWrapClass')">+ Add Field</button>
 							</div>
 						</div>
 					</div>

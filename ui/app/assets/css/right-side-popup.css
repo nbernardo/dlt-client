@@ -92,7 +92,7 @@
 .ds-fields-wrapper .field {
     display: flex;
     align-items: center;
-    padding: 10px 15px;
+    padding: 4px 15px;
     border-bottom: 1px solid #eee;
 }
 
@@ -136,7 +136,7 @@
     color: white;
     border: none;
     padding: 8px 15px;
-    margin: 10px 15px;
+    margin: 5px 15px;
     border-radius: 3px;
     cursor: pointer;
 }

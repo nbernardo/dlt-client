@@ -1,7 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
-import { MoreOptionsMenu } from "./util/DataSourceUtil.js";
+import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
 
 export class Bucket extends ViewComponent {
 
@@ -30,7 +30,7 @@ export class Bucket extends ViewComponent {
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
 	/** @Prop */ showMoreFileOptions = false;
-	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef;
+	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef = null;
 
 	/**
 	 * @Inject @Path services/
@@ -43,6 +43,8 @@ export class Bucket extends ViewComponent {
 	wSpaceController;
 
 	filesFromList = [];
+
+	/** @Prop */ dataSourceFieldsMap = new Map();
 
 	/**
 	 * The id will be passed when instantiating Bucket dinamically
@@ -75,9 +77,24 @@ export class Bucket extends ViewComponent {
 
 	setupOnChangeListen() {
 		
-		this.bucketFileSource.onChange((newValue) => {
-
+		this.bucketFileSource.onChange(async (newValue) => {
+			
 			if(this.showBucketUrlInput === 1){
+
+				const selectdFile = newValue.trim();
+				this.showMoreFileOptions = 'searching';
+				if(!this.dataSourceFieldsMap.has(selectdFile)){
+					const fields = await this.wspaceService.getCsvFileFields(newValue.trim());
+					if(fields != null) {
+						// API Response will be something like Index(['ID', 'Name', 'Age', 'Country'], dtype='object')
+						// hence bellow we're clearing things up so to have an array with the proper field names
+						const fieldList = fields.split('[')[1].split(']')[0].replace(/\'|\s/g,'').split(',')
+							.map((name, id) => ({ name, id, type: 'string' }));
+
+						this.dataSourceFieldsMap.set(selectdFile, fieldList);
+					}
+				}
+
 				if(newValue.trim() != "") this.showMoreFileOptions = true;
 				else this.showMoreFileOptions = false;
 				return;
@@ -114,21 +131,71 @@ export class Bucket extends ViewComponent {
 		const res = this.formRef.validate();
 	}
 
-	setupMoreOptionsMenu(e, menuButton){
-		this.moreOptionsRef = (new MoreOptionsMenu)
-		this.moreOptionsRef.setupMoreOptions(e, menuButton);
+	setMoreOptionsMenu(e, containerId){
+		const filesList = this.dataSourceFieldsMap.get(this.bucketFileSource.value);
+		if(this.moreOptionsRef !== null)
+			return this.moreOptionsRef.handleShowPopup(e, containerId);
+		
+		this.fieldListRender(containerId, filesList);
+		this.moreOptionsRef = (new MoreOptionsMenu).handleShowPopup(e, containerId);
+
 	}
 
-	addFieldInDataSource(){
-		this.moreOptionsRef.fieldsMenu.addField();
+	addFieldInDataSource(fieldsContainerId){
+		const existingFields = this.dataSourceFieldsMap.get(this.bucketFileSource.value);
+		existingFields.push({ name: 'Dbl click to edit', id: existingFields.length, type: 'string', new: true });
+		const popupId = fieldsContainerId.split('-')[1];
+		this.fieldListRender(popupId, existingFields);
+		
+		//fieldsContainer.scrollTop = fieldsContainer.style.height.replace('px','');
+		//this.dataSourceFieldsMap.set(this.bucketFileSource.value, existingFields);
 	}
 
-	showTypeMenu(fieldId, iconElement){
-		this.moreOptionsRef.fieldsMenu.showTypeMenu()
+	showTypeMenu(fieldId, clickedIcon, popupId){
+		const filesList = this.dataSourceFieldsMap.get(this.bucketFileSource.value);
+		(new DataSourceFields).showTypeMenu(fieldId, clickedIcon, filesList, popupId, this.fieldListRender, this);
 	}
 
 	hidePopup(popupId){
 		document.querySelector('.popup-right-sede-'+popupId).style.display = 'none';
 	}
 
+	fieldListRender(popupId, filesList, _obj, fieldId, newType) {	
+		
+		const field = filesList.find(f => f.id === fieldId);
+        if (field) field.type = newType;
+        
+        let container = document.querySelector('.fields-'+popupId);
+		if(!container) container = document.querySelector('.fields-_'+popupId);
+        container.innerHTML = '';
+
+        const obj = _obj || this;
+        filesList?.forEach(field => {
+            const div = document.createElement('div');
+			const containerId = popupId.replace('_',''); // Replace underscore in case it exists
+            div.className = 'field';
+            div.innerHTML = obj.parseEvents(
+				`<div class="icon ${field.type}" onclick="inner.showTypeMenu(${field.id}, this, '${containerId}')">
+                    ${DataSourceFields.dataTypes[field.type].icon}
+                </div>
+                <span class="name" onkeypress="inner.saveFielaneName(event)"
+					  ${field.new ? 'contenteditable="true" style="color: #a2a0a0;"' : ''}>${field.name}</span>`
+			);			
+            container.appendChild(div);
+        });
+		
+		container.scrollTop = container.style.height.replace('px','');
+    }
+
+	saveFielaneName(e) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			e.target.blur();
+			e.target.style.color = 'black';
+			e.target.style.fontWeight = 'bold';
+		}
+	}
+
 }
+
+

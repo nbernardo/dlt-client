@@ -120,13 +120,13 @@ export class BaseComponent extends BehaviorComponent {
         //This is for treeview component edge
         if(content?.content){
             content.content = content.content
-                ?.replace(/parent\.|self\./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
-                ?.replace(/inner\./g,`$still.component.ref('${this.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+                ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
+                ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
             return content;
         }
         return content
-            ?.replace(/parent\.|self\./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
-            ?.replace(/inner\./g,`$still.component.ref('${this.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+            ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
+            ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
     };
 
     /** @param { BaseController } controller */
