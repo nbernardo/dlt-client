@@ -147,6 +147,21 @@ class DltPipeline:
 
         return tplt
     
+    
+    @staticmethod
+    def get_transform_template():
+        """
+        This is template handling method
+        """
+        tplt = ''
+        file_name = f'{template_dir}/simple_transform_field.txt'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
+        return tplt
+    
+    
     @staticmethod
     def get_sql_db_template():
         """
@@ -159,6 +174,7 @@ class DltPipeline:
             tplt = file.read()
 
         return tplt
+
 
     def save_instance(self, ppline_name, content):
         """

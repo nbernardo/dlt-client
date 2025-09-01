@@ -1,0 +1,34 @@
+import dlt
+from dlt.sources.filesystem import filesystem, FileItemDict
+from dlt.sources import TDataItems
+from typing import Iterator, Any
+import pandas as pd
+
+# Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
+files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
+
+@dlt.transformer()
+def read_csv_transform_and_add_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
+
+    for cur_file in files_list:
+        with cur_file.open() as file:
+            df = pd.read_csv(file)
+            
+            %transformation%
+
+            yield df.to_dict(orient="records")
+
+
+# Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
+transformed_source = (files | read_csv_transform_and_add_fields()).with_name(%duck_dest_table%)
+
+# Usr_folder: The user name sent in the request
+# Dbfile_name: This is also mapped to the pipeline_name
+dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
+
+# Bellow mapping: schema = DuckDBOutput.duckdb_dest
+pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%,  destination=dest)
+
+info = pipeline.run(transformed_source, write_disposition="merge")
+
+print(info)
