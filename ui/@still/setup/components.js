@@ -1699,10 +1699,13 @@ export class Components {
     /** 
      * @param { ViewComponent | String } cmp
      * @param { Object | any | null } data */
-    static async new(cmp, data = null) {
+    static async new(cmp, data = null, parentId = null) {
         let cmpName = cmp;
         if (cmp?.__proto__?.name == 'ViewComponent') cmpName = cmp.name;
         const { newInstance: instance } = await Components.produceComponent({ cmp: cmpName });
+        
+        if(parentId !== null) instance.$parent = Components.ref(parentId);
+        
         (async () => await instance.stOnRender(data))();
         instance.cmpInternalId = `dynamic-${instance.getUUID()}${instance.getName()}`;
         const template = instance.getBoundTemplate();
@@ -1711,7 +1714,11 @@ export class Components {
             instance.setAndGetsParsed = true;
             (new Components).parseGetsAndSets(instance)
         }, 10);
+         
         ComponentRegistror.add(instance.cmpInternalId, instance);
+        const cmpParts = Components.componentPartsMap[instance.cmpInternalId];
+        if(cmpParts) Components.handleInPartsImpl(instance, instance.cmpInternalId, cmpParts);
+        
         setTimeout(() => Components.runAfterInit(instance), 500);
         return { template, component: instance };
     }

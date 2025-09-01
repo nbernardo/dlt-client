@@ -65,6 +65,14 @@ export const stillRoutesMap = {
             NoteBook: {
                 path: "app/components/code",
                 url: "/note-book"
+            },
+            Transformation: {
+                path: "app/components/node-types",
+                url: "/transformation"
+            },
+            TransformRow: {
+                path: "app/components/node-types/transform",
+                url: "/transform-row"
             }
         },
         lazyInitial: {}

@@ -5,6 +5,7 @@ import { UserUtil } from "../components/auth/UserUtil.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
+import { Transformation } from "../components/node-types/Transformation.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -21,6 +22,8 @@ export class WorkspaceService extends BaseService {
     static DISCONECT_DB = 'DISCONECT';
     static CONNECT_DB = 'CONNECT';
 
+    dataSourceFieldsMap = new Map();
+
     /** @type { Array<ObjectDataTypes> } */
     objectTypes = [
         { icon: 'far fa-circle', label: 'Start', typeName: 'Start', source: 0, dest: 1 },
@@ -28,7 +31,7 @@ export class WorkspaceService extends BaseService {
         { icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
         { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name },
         { icon: 'fas fa-file-alt', label: 'Input File', typeName: 'slack' },
-        { icon: 'fas fa-cogs', label: 'Transformation', typeName: 'github' },
+        { icon: 'fas fa-cogs', label: 'Transformation', typeName: Transformation.name },
         {
             imgIcon: 'app/assets/imgs/duckdb-icon.svg',
             label: 'Out-DBFile (.duckdb)',
@@ -125,5 +128,24 @@ export class WorkspaceService extends BaseService {
 		
 		return filesList;
 	}
+
+	async handleCsvSourceFields(selectdFile){
+
+		if(!this.dataSourceFieldsMap.has(selectdFile)){
+			const fields = await this.getCsvFileFields(selectdFile);
+			if(fields != null) {
+				// API Response will be something like Index(['ID', 'Name', 'Age', 'Country'], dtype='object')
+				// hence bellow we're clearing things up so to have an array with the proper field names
+				const fieldList = fields.split('[')[1].split(']')[0].replace(/\'|\s/g,'').split(',')
+					.map((name, id) => ({ name, id, type: 'string' }));
+
+				this.dataSourceFieldsMap.set(selectdFile, fieldList);
+			}
+		}
+	}
+    
+    getCsvDataSourceFields(sourceName){
+        return this.dataSourceFieldsMap.get(sourceName);
+    }
 
 }

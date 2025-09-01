@@ -2,6 +2,7 @@ import { BaseController } from "../../@still/component/super/service/BaseControl
 import { Components } from "../../@still/setup/components.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
+import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
 
 class NodeType {
     tmplt; data;
@@ -424,12 +425,29 @@ export class WorkSpaceController extends BaseController {
             .children
     }
 
+    /** @param { WorkSpaceController } obj  */
     onConnectionCreate(connection, obj) {
         const { output_id, input_id } = connection;
 
-        const { data } = WorkSpaceController.getNode(input_id);
-        if (data?.componentId) {
-            const inputs = obj.getInputsByNodeId(data?.componentId);
+        const { data: dataIn } = WorkSpaceController.getNode(input_id);
+        const { data: dataOut } = WorkSpaceController.getNode(output_id);
+
+        const destCmpId = dataIn.componentId, srcCmpId = dataOut.componentId;
+
+        const /** @type { NodeTypeInterface } */ destCmp = Components.ref(destCmpId) || {};
+        const /** @type { NodeTypeInterface } */ srcCmp = Components.ref(srcCmpId) || {};
+
+        if('onOutputConnection' in srcCmp){
+            if('onInputConnection' in destCmp){
+                (async () => {
+                    const sourceData = await srcCmp.onOutputConnection();
+                    await destCmp.onInputConnection({ data: sourceData, type: srcCmp.getName() });
+                })();
+            }
+        }
+
+        if (dataIn?.componentId) {
+            const inputs = obj.getInputsByNodeId(dataIn?.componentId);
             [...inputs].forEach(el => {
                 el.style.background = 'white';
                 el.classList.remove('blink');

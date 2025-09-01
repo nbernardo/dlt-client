@@ -1,8 +1,10 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
 
+/** @implements { NodeTypeInterface } */
 export class Bucket extends ViewComponent {
 
 	isPublic = false;
@@ -42,8 +44,6 @@ export class Bucket extends ViewComponent {
 
 	filesFromList = [];
 
-	/** @Prop */ dataSourceFieldsMap = new Map();
-
 	/* The id will be passed when instantiating Bucket dinamically through the
 	 * Component.new(type, param) where for para nodeId will be passed  */
 	stOnRender({ nodeId, isImport }){
@@ -78,17 +78,7 @@ export class Bucket extends ViewComponent {
 
 				const selectdFile = newValue.trim();
 				this.showMoreFileOptions = 'searching';
-				if(!this.dataSourceFieldsMap.has(selectdFile)){
-					const fields = await this.wspaceService.getCsvFileFields(newValue.trim());
-					if(fields != null) {
-						// API Response will be something like Index(['ID', 'Name', 'Age', 'Country'], dtype='object')
-						// hence bellow we're clearing things up so to have an array with the proper field names
-						const fieldList = fields.split('[')[1].split(']')[0].replace(/\'|\s/g,'').split(',')
-							.map((name, id) => ({ name, id, type: 'string' }));
-
-						this.dataSourceFieldsMap.set(selectdFile, fieldList);
-					}
-				}
+				await this.wspaceService.handleCsvSourceFields(selectdFile);
 
 				if(newValue.trim() != "") this.showMoreFileOptions = true;
 				else this.showMoreFileOptions = false;
@@ -127,7 +117,7 @@ export class Bucket extends ViewComponent {
 	}
 
 	setMoreOptionsMenu(e, containerId){
-		const filesList = this.dataSourceFieldsMap.get(this.bucketFileSource.value);
+		const filesList = this.wspaceService.getCsvDataSourceFields(this.bucketFileSource.value);
 		if(this.moreOptionsRef !== null)
 			return this.moreOptionsRef.handleShowPopup(e, containerId);
 		
@@ -137,11 +127,11 @@ export class Bucket extends ViewComponent {
 	}
 
 	addFieldInDataSource(fieldsContainerId){
-		const existingFields = this.dataSourceFieldsMap.get(this.bucketFileSource.value);
+		const existingFields = this.wspaceService.getCsvDataSourceFields(this.bucketFileSource.value);
 		existingFields.push({ name: 'Dbl click to edit', id: existingFields.length, type: 'string', new: true });
 		const popupId = fieldsContainerId.split('-')[1];
 		this.fieldListRender(popupId, existingFields);
-		
+
 	}
 
 	showTypeMenu(fieldId, clickedIcon, popupId){
@@ -190,6 +180,9 @@ export class Bucket extends ViewComponent {
 		}
 	}
 
+	onOutputConnection(){
+		return this.filesFromList.value;
+	}
 }
 
 

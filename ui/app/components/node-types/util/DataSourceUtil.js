@@ -87,7 +87,7 @@ export class DataSourceFields{
             name: randomField.name,
             type: randomField.type
         });
-        this.render();
+        //this.render();
         return randomField.name;
     }
 

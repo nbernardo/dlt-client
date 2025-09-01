@@ -1,0 +1,74 @@
+<form (formRef)="formRef">
+	<tr  class="transform-container-row" id="@rowId">
+		<td><button class="delete-me-row" onclick="component.removeMe()">X</button></td>
+		<td style="display: flex;">
+			<select (required)="true" (forEach)="dataSourceList" (value)="selectedSource"
+				placeholder="Select source name">
+				<option each="item" value="{item.name}">{item.name}</option>
+			</select>
+		</td>
+		<td>
+			<select (required)="true" style="width: 95px;" (forEach)="fieldList" (value)="selectedField"
+				placeholder="Select source name">
+				<option each="item" value="{item.name}">{item.name}</option>
+			</select>
+		</td>
+		<td>
+			<select (required)="true" style="width: 90px;" (value)="selectedType">
+				<option value="">Select the type</option>
+				<option value="CALCULATE">Calculate</option>
+				<option value="CASING">Change case</option>
+				<option value="CODE">Code</option>
+				<option value="CONVERT">Convert</option>
+				<option value="DEDUP">Deduplicate</option>
+				<option value="SPLIT">Split</option>
+			</select>
+		</td>
+		<td>
+			<span (showIf)="self.transformType == 'CONVERT'">
+				<select (required)="true" style="width: 190px;" (value)="transformation">
+					<option value="">Select new type</option>
+					<option value="String">String</option>
+					<option value="Number">Number</option>
+					<option value="Boolean">Boolean</option>
+					<option value="Date">Date</option>
+				</select>
+			</span>
+
+			<span (showIf)="self.transformType == 'CASING'">
+				<select (required)="true" style="width: 190px;" (value)="transformation">
+					<option value="">Select the case</option>
+					<option value="UPPER">Upper Case</option>
+					<option value="LOWER">Lower Case</option>
+				</select>
+			</span>
+			
+			<span (showIf)="self.transformType == 'CODE'">
+				<input type="text" (value)="transformation" style="width: 200px;" placeholder="Ex: field > 0 ? 'Greater' : 'Lower'">
+			</span>
+
+			<span (showIf)="self.transformType == 'CALCULATE'">
+				<input type="text" class="calculate-field" (value)="transformation" style="width: 200px;" placeholder="Ex: - taxes + salary ">
+			</span>
+
+			<span (showIf)="self.transformType == 'DEDUP'">
+				&nbsp; DEDUP(@selectedField)
+			</span>
+
+			<span (showIf)="self.transformType == 'SPLIT'">
+				<span style="display: flex;">
+					<input type="text" placeholder="Sep" style="width: 30px;">
+					<input type="text" (value)="transformation" style="width: 170px; margin-left: 2px;" placeholder="Ex: [newfield1, newfield2, etc.]">
+				</span>
+			</span>
+		</td>
+	</tr>
+</form>
+<style>
+	.transform-container-row td { padding-left: 1px !important; }
+	.transform-container-row td:first-child { padding-left: 0px !important; }
+
+	.transform-container-row select, .transform-container-row input{ font-size: 12px; }
+
+	.delete-me-row{ width: 10px; border: none; background: none; cursor: pointer; font-size: 8px; }
+</style>
