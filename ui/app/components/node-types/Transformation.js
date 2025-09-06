@@ -2,6 +2,7 @@ import { ViewComponent } from "../../../@still/component/super/ViewComponent.js"
 import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { Components } from "../../../@still/setup/components.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
+import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { Bucket } from "./Bucket.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { TRANFORM_ROW_PREFIX, TransformRow } from "./transform/TransformRow.js";
@@ -26,6 +27,17 @@ export class Transformation extends ViewComponent {
 	/** This will hold all added transform
 	 * @Prop @type { Map<TransformRow> } */
 	fieldRows = new Map();
+
+	/** @Prop */
+	reserved = [' and', ' or', ' not', ' None',' else', ' if'];
+
+	/** @Prop */
+	nodeId;
+
+	stOnRender({ nodeId, isImport }){
+		this.nodeId = nodeId;
+		this.isImport = isImport;
+	}
 
 	async stAfterInit(){
 		await this.addNewField();
@@ -59,6 +71,142 @@ export class Transformation extends ViewComponent {
 		document.getElementById(rowId).remove();
 	}
 
-	
+	parseTransformationCode(){
+		let finalCode = "";
+		const rowsConfig = [];
+		for(const [_, code] of [...this.transformPieces]){
+			
+			let { type, field, transform  } = code;
+			rowsConfig.push(code);
+			field = `df['${field}']`;
+
+			if(type === 'CODE')
+				finalCode += `\n${this.parseCodeOnDf(transform, code.field)}`;
+
+			if(type === 'CASING')
+				finalCode += `\n${this.parseCasing(transform, code.field)}`;
+
+			if(type === 'CALCULATE')
+				finalCode += `\n${field} = ${this.parseCalculate(transform)}`;
+
+			if(type === 'SPLIT')
+				finalCode += `\n${this.parseSplit(field, code.sep, transform)}`;
+
+			if(type === 'CONVERT'){
+				if(transform === 'date') finalCode += `\n${field} = pd.to_datetime(df['${field}'])`;
+				else finalCode += `\n${field} = ${field}.astype(${transform})`;
+			}
+
+		}
+		
+		console.log(`VALUE IS: `, finalCode);
+		
+		const data = WorkSpaceController.getNode(this.nodeId).data;
+		data['code'] = finalCode;
+		data['rows'] = rowsConfig;
+
+		return finalCode;
+		
+	}
+
+	parseCasing(transform, field){
+		return 'UPPER' === transform 
+			? `df['${field}'] =  df['${field}'].str.upper()` 
+			: 'LOWER' === transform ? `df['${field}'] = df['${field}'].str.lower()`
+				: `# df['${field}'] Unchenged case`;	 
+	}
+
+	parseCodeOnDf(transform, field){
+
+		let matchCount = 0, addSpace = '';
+		const isMultiConditionCode = [' and ',' or '].includes(transform);
+		const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z]{1,}\(|s{0,}\'[\sA-Z]{1,}\'|\s{0,}[A-Z]{1,}/ig;
+		const hasSplit = transform.indexOf('.split(') > 0;
+
+		const parsePieces = (wrd, pos, transform, side = null) => {
+			matchCount++;
+			
+			// In case split is being used
+			if(wrd.indexOf('.split(') == 0 && wrd.endsWith(']')){
+				return wrd.replace('.','.str.').replace(')[',').str[');
+			}
+			
+
+			if(wrd.startsWith('.') && wrd.endsWith('('))
+				return wrd.replace('.','.str.');
+			
+			if(wrd.trim() == "' '") return wrd
+
+			const isWordBitwise = ['and','or'].includes(wrd.trim());
+			if(isWordBitwise) return `) ${wrd} (`;
+			if(matchCount > 1) addSpace = ' ';
+
+			if(
+				pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\"") && !transform[pos-1]?.startsWith("'")
+				|| pos > 0 && !transform[pos-1]?.startsWith("'") && !transform[pos-1]?.startsWith("\"")
+			)
+				return isMultiConditionCode ? `(${addSpace}df['${wrd.trim()}']` : `${addSpace}df['${wrd.trim()}']`;
+			else {
+				const isLiteral = (wrd.startsWith("'") && wrd.endsWith("'")) || (wrd.endsWith('"') && wrd.startsWith("'"))
+
+				if(hasSplit && side == 'right' && !isLiteral)
+					return `df.loc[condition, '${wrd}']`;
+				else if(isLiteral || (transform[pos-1]?.startsWith("'") || transform[pos-1]?.startsWith("\"")))
+					return wrd
+				return `df['${wrd}']`;
+			}
+		}
+
+		let [leftSide, rightSide] = transform.split(' then ');
+		leftSide = leftSide?.trim()?.replace(regex, (wrd, pos) => {
+			return parsePieces(wrd, pos, transform);	
+		});
+
+		matchCount = 0, addSpace = '';
+		rightSide = rightSide?.trim()?.replace(regex, (wrd, pos) => {
+			return parsePieces(wrd, pos, rightSide, 'right');
+		});
+
+		const condition = `condition = ${leftSide.replaceAll(' and ',' & ').replaceAll(' or ',' | ')}`;
+		return `${condition}\ndf.loc[condition, '${field}'] = ${rightSide}`;
+	}
+
+	parseCode(transform, field){
+		
+		transform = transform.replace(/\s{0,}[A-Z]{1,}/ig, (wrd, pos) => {
+					
+			if(this.reserved.includes(wrd)) return `${wrd} `;
+
+			if(pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\"") && !transform[pos-1].startsWith("'"))
+				return `df['${wrd.trim()}']`;
+			else if(pos > 0 && !transform[pos-1].startsWith("'") && !transform[pos-1].startsWith("\""))
+				return `df['${wrd.trim()}']`;
+			else return wrd;
+				
+		});
+
+		return `${field} = ${transform}`
+	}
+
+	parseCalculate(transform){
+		return transform.replace(/\s{0,}[A-Z]{1,}/ig, (wrd, pos) => {					
+			if(pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\""))
+				return ` df['${wrd.trim()}'] `;
+			else if(pos > 0 && !transform[pos-1].startsWith("'") && !transform[pos-1].startsWith("\""))
+				return ` df['${wrd.trim()}'] `;
+			else return wrd;
+				
+		});
+	}
+
+	parseSplit(field, sep, vars){
+		vars = vars.replace(/\[|\]/g,'').split(',');		
+		let content = `${vars} = ${field}.str.split('${sep}', n=${vars.length})\n`;
+		
+		for(const field of vars)
+			content += `df['${field.trim()}'] = ${field}\n`;
+
+		return `${content}`;
+	}
 	
 }

@@ -21,6 +21,7 @@ export class TransformRow extends ViewComponent {
 	selectedField;
 	selectedType;
 	transformation;
+	separatorChar;
 	fieldList = [{ name: '' }]; //Setting initial value
 
 	/** @type { Transformation } */
@@ -33,6 +34,8 @@ export class TransformRow extends ViewComponent {
 
 	async stAfterInit(){
 		
+		this.$parent.transformPieces.set(this.rowId, {})
+
 		this.selectedSource.onChange(async (newValue) => {
 			const fileName = newValue.trim();
 			await this.wspaceService.handleCsvSourceFields(fileName)
@@ -40,15 +43,20 @@ export class TransformRow extends ViewComponent {
 			this.fieldList = fieldList;
 		});
 
-		this.selectedField.onChange(fieldName => {
-			const curVal = this.$parent.transformPieces.get(this.rowId) || {};
-			this.$parent.transformPieces.set(this.rowId, {...curVal, field: fieldName});
-		});
+		this.selectedField.onChange(field => this.updateValue({ field }));
+		this.transformation.onChange(value => this.updateValue({ transform: value.trim() }));
+		this.separatorChar.onChange(value => this.updateValue({ sep: value.trim() }));
 
 		this.selectedType.onChange(value => {
 			this.transformType = value.trim();
+			this.updateValue({ type: this.transformType });
 		});
 
+	}
+
+	updateValue(value){
+		const curVal = this.$parent.transformPieces.get(this.rowId);
+		this.$parent.transformPieces.set(this.rowId, {...curVal, ...value});
 	}
 
 	removeMe(){

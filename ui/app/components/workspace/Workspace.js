@@ -17,6 +17,7 @@ import { PopupWindow } from "../popup-window/PopupWindow.js";
 import { LeftTabs } from "../navigation/left/LeftTabs.js";
 import { NoteBook } from "../code/NoteBook.js";
 import { UserUtil } from "../auth/UserUtil.js";
+import { Transformation } from "../node-types/Transformation.js";
 
 export class Workspace extends ViewComponent {
 
@@ -190,6 +191,7 @@ export class Workspace extends ViewComponent {
 			return AppTemplate.toast.error('Please enter a valid pipeline name');
 		
 		const data = await this.preparePipelineContent();
+		if(data === null) return data;
 		return await this.pplService.createOrUpdatePipeline(data);
 	}
 
@@ -203,16 +205,24 @@ export class Workspace extends ViewComponent {
 
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
-		const validationResults = formReferences.map((r) => {
+		let validationResults = formReferences.map(async (r) => {
 			const component = Components.ref(r);
+
 			if(component.getName() === SqlDBComponent.name) component.getTables();
+			if(component.getName() === Transformation.name) {
+				component.parseTransformationCode();
+				return true;
+			}
+
 			const form = component.formRef;
-			return form?.validate();
+			return await form?.validate();
 		});
+
+		validationResults = await Promise.all(validationResults);	
 
 		const anyInvalidForm = validationResults.indexOf(false) >= 0;
 		const isValidSubmission = this.handleSubmissionError(anyInvalidForm);
-		if (!isValidSubmission) return;
+		if (!isValidSubmission) return null;
 
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];

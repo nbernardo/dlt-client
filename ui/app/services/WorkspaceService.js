@@ -122,7 +122,7 @@ export class WorkspaceService extends BaseService {
 		let filesList = null;
 		const response = await $still.HTTPClient.get(`/ppline/data/csv/${UserUtil.email}/${filename}`);
 		if(response.status === 404)
-            AppTemplate.toast.error('No data file found under '+user);
+            AppTemplate.toast.error('No data file found under '+UserUtil.email);
         else if(response.ok)
 			filesList = (await response.text());
 		
