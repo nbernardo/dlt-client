@@ -439,13 +439,13 @@ export class Components {
             ) {
 
                 if (inspectField?.sTForm) {
-                    cmp[field].validate = function () {
+                    cmp[field].validate = async function () {
                         const formRef = field;
-                        return BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field]);
+                        return await BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field]);
                     }
-                    cmp[field].reset = () => {
+                    cmp[field].reset = async () => {
                         const formRef = field;
-                        BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field], true);
+                        await BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field], true);
                         document.getElementById(`fId_${cmp.cmpInternalId}`).reset();
                     }
                     return;
@@ -454,7 +454,7 @@ export class Components {
                 let listenerFlag = inspectField?.listenerFlag, inVal = inspectField?.inVal;
                 cmp[field] = cmp[field]?.value || cmp[field];
                 if (typeof inspectField == 'boolean') {
-                    listenerFlag = `_stFlag${field}_${cmp.constructor.name}_change`;
+                    listenerFlag = `_stFlag${field}_${cmp.cmpInternalId}_change`;
                     cmp[field] = { inVal: inspectField }, inVal = inspectField;
                 }
 
@@ -524,7 +524,7 @@ export class Components {
                     o.defineSetter(cmp, field);
                     setTimeout(async () => await cmp.stOnUpdate());
 
-                    if (cmp[`$still${field}Subscribers`].length > 0) {
+                    if (cmp[`$still${field}Subscribers`].length > 0) { 
                         setTimeout(() => cmp[`$still${field}Subscribers`].forEach(
                             subscriber => subscriber(cmp['$still_' + field])
                         ));

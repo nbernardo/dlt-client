@@ -513,7 +513,7 @@ export class BaseComponent extends BehaviorComponent {
         //Bind (value) on the input form
         if (this.isThereAForm()) {
 
-            const extremRe = /[ \r \< \$ \( \) \- \s A-Za-z0-9 \/\:\;\* \{ \} \[ \] \. \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
+            const extremRe = /[ \r \@ \_\< \$ \( \) \-\+\\ \s A-Za-z0-9 \/\:\;\* \{ \} \[ \] \. \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
             const matchValueBind = /\(value\)\=\"[\w.{}]*\"\s?/.source, matchClose = /[\s]{0,}>/.source;
             const matchForEachRE = '(forEach)=\"', mtchValue = '(value)="', matchChange = '(change)="';
             const valueBindRE = new RegExp(extremRe + matchValueBind + extremRe + matchClose , "gi");
@@ -614,7 +614,7 @@ export class BaseComponent extends BehaviorComponent {
         if(showFlag.startsWith('!')) [showFlag, negateFlag] = [showFlag.slice(1),true];
         else if(showFlag.indexOf('==') > 0){
             [showFlag, flagVal] = showFlag.split('==');
-            litValFlag = `flag-${flagVal?.trim()?.replace(/\'/g,'')?.replace(/\s/g,'-')}`;
+            litValFlag = `flag-${flagVal?.trim()?.replace(/\'/g,'')?.replace(/\s/g,'-')} context-${this.cmpInternalId}`;
         }
 
         return [showFlag, negateFlag, litValFlag, flagVal];
@@ -622,9 +622,7 @@ export class BaseComponent extends BehaviorComponent {
 
     parseShowIf(template, reSIf, matchShowIfRE, handleErrorMessage) {
 
-        const clsName = this.dynLoopObject || this.lone
-            ? this.cmpInternalId
-            : this.constructor.name;
+        const clsName = this.cmpInternalId;
         const cls = this;
 
         return template.replace(reSIf, (mt) => {
