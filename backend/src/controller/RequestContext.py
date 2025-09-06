@@ -25,6 +25,8 @@ class RequestContext:
         self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
         self.socket_sid = socket_sid
         self.user = None
+        self.transformation = None
+        self.monitor_file_name = None
 
     def add_exception(self, type, error):
         """

@@ -14,23 +14,31 @@ class Bucket(TemplateNodeType):
         """
         Initialize the instance
         """
-        self.template = DltPipeline.get_template()
         
-        # When instance is created only to get the template 
-        # Nothing more takes place except for the template itself
-        if data is None: return None
+        try:
+        
+            self.template = DltPipeline.get_template()\
+                                if context.transformation == None else DltPipeline.get_transform_template()
+            
+            # When instance is created only to get the template 
+            # Nothing more takes place except for the template itself
+            if data is None: return None
 
-        self.context = context
-        self.component_id = data['componentId']
-        user_folder = BaseUpload.upload_folder+'/'+context.user
+            self.context = context
+            self.component_id = data['componentId']
+            user_folder = BaseUpload.upload_folder+'/'+context.user
 
-        self.context.emit_start(self, '')
-        # bucket_url is mapped in /pipeline_templates/simple.txt
-        self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
-        # file_pattern is mapped in /pipeline_templates/simple.txt
-        self.file_pattern = data['filePattern']
-        # To point to the 
-        self.bucket_file_source = data['bucketFileSource']
+            self.context.emit_start(self, '')
+            # bucket_url is mapped in /pipeline_templates/simple.txt
+            self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
+            # file_pattern is mapped in /pipeline_templates/simple.txt
+            self.file_pattern = data['filePattern']
+            # To point to the 
+            self.bucket_file_source = data['bucketFileSource']
+            
+        except Exception as error:
+            return self.notify_failure_to_ui('Bucket',error)
+
 
     def run(self):
         """

@@ -21,42 +21,34 @@ def create():
     from .file_upload import BaseUpload
     
     payload = request.get_json()
-    pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
-    pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
+    print('THIS IS THE CONTENT')
+    print(payload)
     
-    duckdb_path = BasePipeline.folder+'/duckdb/'+payload['user']
-    os.makedirs(duckdb_path, exist_ok=True)
-    
-    ppline_path = BasePipeline.folder+'/pipeline/'+payload['user']
-    os.makedirs(ppline_path, exist_ok=True)
-    
-    diagrm_path = BasePipeline.folder+'/code/'+payload['user']
-    os.makedirs(diagrm_path, exist_ok=True)
-    
+    pipeline_name, pipeline_lbl = set_pipeline_name(payload)
     context = RequestContext(pipeline_name, payload['socketSid'])
-    context.user = payload['user']
     
-    grid = payload['drawflow'] if 'drawflow' in payload else ''
-    start_id = payload['startNode'] if 'startNode' in payload else ''
-    node_params = grid['Home']['data']
+    duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
+    start_node_id, node_params = pepeline_init_param(payload)
+    node_params = parse_transformation_task(node_params, context)
 
-    start_node = node_params.get(f'{start_id}')
+    start_node = node_params.get(f'{start_node_id}')
     connections = start_node.get('outputs').get('output_1').values()
     first_connection_id = list(connections)[0][0]['node']
     fst_connection = node_params.get(first_connection_id)
-    template = NodeFactory.new_node(fst_connection.get('name',None)).template
+    template = NodeFactory.new_node(fst_connection.get('name',None), None, context).template
     data_place, node_list = {}, []
-    all_nodes: list[TemplateNodeType] = None
 
-    all_nodes = parse_node(connections, node_params, data_place, context, node_list)
-    
-    template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
-    template = template.replace('%Dbfile_name%', pipeline_name)
-    template = template.replace('%User_folder%', payload['user'])
+    all_nodes: list[TemplateNodeType] = parse_node(connections, node_params, data_place, context, node_list)
+    template = template_final_parsing(template, pipeline_name, payload, duckdb_path, context)
+
+    print('DATA PLACE IS: '+str(data_place))
 
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
         template = template.replace(data[0], str(value))
+
+    print('TEMPLATE FINAL IS')
+    print(template)
 
     if len(context.exceptions) > 0:
         message = list(context.exceptions[0].values())[0]['message']
@@ -76,7 +68,7 @@ def create():
             success, message = False, result['message'] 
 
     except Exception as err:
-        result = { 'message': err.stderr }
+        result = { 'message': err }
         success, message = False, result['message']
 
     finally:
@@ -85,6 +77,71 @@ def create():
             revert_and_notify_failure(pipeline_instance, all_nodes, message)
 
         return result['message']
+
+
+def pepeline_init_param(payload):
+    grid = payload['drawflow'] if 'drawflow' in payload else ''
+    start_id = payload['startNode'] if 'startNode' in payload else ''
+    node_params = grid['Home']['data']
+    
+    return start_id, node_params
+
+
+def parse_transformation_task(node_params, context: RequestContext):
+    
+    """
+    This code will be added to the pipeline as a transformation step
+    and the pipeline will run in a separate process/subprocess, then
+    the print statement is for it the send progress to main process
+    """
+    
+    code = ''
+    for id in node_params:
+        if node_params[id]['name'] == 'Transformation':
+            
+            node_data = node_params[id]['data']
+            code_lines = node_data['code'].split('\n')
+            # Generate the transformation code line 
+            # by line and assign to code variable
+            for line in code_lines:
+                # Adds 12 spaces (3 tabs) in each line
+                code += '\n'+ ' ' * 12  +line.expandtabs(8)
+            
+            code += '\n'+ ' ' * 12 + f"print('{node_data['componentId']}', flush=True)"
+            code += '\n'+ ' ' * 12 + f"time.sleep(2)"
+    
+    context.transformation = None if code == '' else code
+    return node_params
+
+
+def handle_user_tenancy_folders(payload, context: RequestContext):
+    duckdb_path = BasePipeline.folder+'/duckdb/'+payload['user']
+    os.makedirs(duckdb_path, exist_ok=True)
+    
+    ppline_path = BasePipeline.folder+'/pipeline/'+payload['user']
+    os.makedirs(ppline_path, exist_ok=True)
+    
+    diagrm_path = BasePipeline.folder+'/code/'+payload['user']
+    os.makedirs(diagrm_path, exist_ok=True)
+    
+    context.user = payload['user']
+    return duckdb_path, ppline_path, diagrm_path
+    
+
+def set_pipeline_name(payload):
+    pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
+    pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
+    return pipeline_name, pipeline_lbl
+    
+
+def template_final_parsing(template, pipeline_name, payload, duckdb_path, context: RequestContext = None):
+    template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
+    template = template.replace('%Dbfile_name%', pipeline_name)
+    template = template.replace('%User_folder%', payload['user'])
+    if(context.transformation):
+        template = template.replace('%transformation%', context.transformation)
+    
+    return template
 
 
 def parse_node(connections, node_params, data_place, context: RequestContext, node_list: list):

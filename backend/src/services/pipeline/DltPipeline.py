@@ -5,6 +5,7 @@ import json
 from controller.RequestContext import RequestContext
 from pathlib import Path
 from typing import Dict
+from node_mapper.Transformation import Transformation
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
 destinations_dir = f'{root_dir}/destinations/pipeline'
@@ -45,6 +46,8 @@ class DltPipeline:
                                 capture_output=True,
                                 text=True)
 
+        
+
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout)
         print("Standard Error:", result.stderr)
@@ -68,22 +71,39 @@ class DltPipeline:
             file.write(data)
 
         # Run pipeline generater above by passing the python file
-        result = subprocess.run(['python', pplint_file],
-                                check=True,
-                                capture_output=True,
-                                text=True)
+        result = subprocess.Popen(['python', pplint_file],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    text=True,
+                                    bufsize=1
+                                )
+        
+        if(context.transformation is not None):
+            while True:
+                line = result.stdout.readline()
+                if not line:
+                    break
+                
+                line = line.strip()
+                if(line.endswith('Transformation') and line.startswith('dynamic-_cmp')):
+                    component_ui_id = line
+                    Transformation(None, context, component_ui_id).notify_completion_to_ui()
 
+        result.wait()
+           
         if result.returncode == 0 and context is not None:
             context.emit_ppsuccess()
 
         print("Return Code:", result.returncode)
-        print("Standard Output:", result.stdout)
-        print("Standard Error:", result.stderr)
+        print("Standard Output:", result.stdout.read())
+        print("Standard Error:", result.stderr.read())
 
-        return {
-            'status': True,
-            'message': 'Pipeline run terminated successfully'
-        }
+        message, status = 'Pipeline run terminated successfully', True
+        
+        if result.returncode != 0:
+            message, status = str(result.stderr.read()), False
+
+        return { 'status': status, 'message': message }
 
 
     def save_diagram(self, diagrm_path, file_name, content, pipeline_lbl):
