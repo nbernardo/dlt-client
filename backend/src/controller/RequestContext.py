@@ -17,6 +17,7 @@ class RequestContext:
     step_start = 'pplineStepStart'
     namespace = '/pipeline'
     ppline_success = 'pplineSuccess'
+    ppline_trace = 'pplineTrace'
     FAILED = 'FAILED'
 
     def __init__(self, ppline_name=None, socket_sid=None):
@@ -87,6 +88,20 @@ class RequestContext:
         emit(
             RequestContext.ppline_success,
             {'success': data, 'sid': self.socket_sid},
+            to=self.socket_sid,
+            namespace=RequestContext.namespace
+        )
+        socketio.sleep(0)
+
+
+    def emit_ppline_trace(self, data):
+        """
+        This emit trace to UI so it can be used to print accordingly 
+        (e.g. logs)
+        """
+        emit(
+            RequestContext.ppline_trace,
+            { 'data': data, 'sid': self.socket_sid},
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )

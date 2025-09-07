@@ -3,6 +3,7 @@ from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
 from typing import Iterator, Any
 import pandas as pd
+import time
 
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
 files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
@@ -13,9 +14,9 @@ def read_csv_transform_and_add_fields(files_list: Iterator[FileItemDict]) -> Ite
     for cur_file in files_list:
         with cur_file.open() as file:
             df = pd.read_csv(file)
-            
+            # <transformation>
             %transformation%
-
+            # </transformation> DO NOT REMOVE THIS LINE
             yield df.to_dict(orient="records")
 
 

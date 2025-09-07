@@ -88,6 +88,8 @@ class DltPipeline:
                 if(line.endswith('Transformation') and line.startswith('dynamic-_cmp')):
                     component_ui_id = line
                     Transformation(None, context, component_ui_id).notify_completion_to_ui()
+                else:
+                    context.emit_ppline_trace(line)
 
         result.wait()
            

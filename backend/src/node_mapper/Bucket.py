@@ -35,6 +35,8 @@ class Bucket(TemplateNodeType):
             self.file_pattern = data['filePattern']
             # To point to the 
             self.bucket_file_source = data['bucketFileSource']
+            if(str(data['bucketFileSource']).endswith('.csv') and not str(data['bucketFileSource']).endswith('*.csv')):
+                self.bucket_file_source = data['bucketFileSource'].replace('.csv','*.csv')
             
         except Exception as error:
             return self.notify_failure_to_ui('Bucket',error)
