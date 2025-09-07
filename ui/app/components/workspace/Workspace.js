@@ -9,8 +9,6 @@ import { CodeMiror } from "../../../@still/vendors/codemirror/CodeMiror.js";
 import { Terminal } from "./terminal/Terminal.js";
 import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
 import { EditorLanguageType } from "../../types/editor.js";
-import { StillTreeView } from "../../../@still/vendors/treeview/StillTreeView.js";
-import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "./icons/database.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
 import { UserService } from "../../services/UserService.js";
 import { PopupWindow } from "../popup-window/PopupWindow.js";
@@ -153,7 +151,7 @@ export class Workspace extends ViewComponent {
 			}) */
 		});
 		this.buildWorkspaceView();
-		setTimeout(() =>  this.showLoading = false, 1500);
+		setTimeout(() =>  this.showLoading = false, 100);
 		this.onLeftTabChange();
 		//this.cmProxy.codeEditor.setSize(null, 100);
 	}

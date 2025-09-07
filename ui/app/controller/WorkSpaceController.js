@@ -38,7 +38,7 @@ export class WorkSpaceController extends BaseController {
         this.edgeTypeAdded = {};
         this.formReferences.clear();
         this.validationErrors = [];
-        this.idCounter = 0;
+        //this.idCounter = 0;
         this.cmpIdToNodeIdMap = {};
         this.pplineStatus = {};
     }
@@ -363,6 +363,10 @@ export class WorkSpaceController extends BaseController {
             const tasks = this.pplineSteps[sid];
             this.pplineStatus = PPLineStatEnum.Finished;
             [...tasks].forEach(WorkSpaceController.addSuccessStatus);
+        });
+
+        socket.on('pplineTrace', ({ data: trace }) => {
+            console.log('FROM BACK: ',trace);
         });
 
     }
