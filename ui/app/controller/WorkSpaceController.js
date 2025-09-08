@@ -3,6 +3,7 @@ import { Components } from "../../@still/setup/components.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
+import { Workspace } from "../components/workspace/Workspace.js";
 
 class NodeType {
     tmplt; data;
@@ -33,6 +34,8 @@ export class WorkSpaceController extends BaseController {
     pplineSteps = {};
     /** @type { PPLineStatEnum } */
     pplineStatus;
+    /** @type { Workspace } */
+    wSpaceComponent;
 
     resetEdges() {
         this.edgeTypeAdded = {};
@@ -344,6 +347,7 @@ export class WorkSpaceController extends BaseController {
         socket.on('pplineError', ({ componentId, sid, error }) => {
             WorkSpaceController.addFailedStatus(componentId);
             AppTemplate.toast.error(error.message);
+            this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
         });
 
         socket.on('pplineStepStart', ({ componentId, sid }) => {
@@ -357,6 +361,7 @@ export class WorkSpaceController extends BaseController {
             const node = WorkSpaceController.getNode(nodeId);
             if (Object.keys(node.outputs).length > 0)
                 WorkSpaceController.addPreSuccessStatus(componentId);
+            this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
         });
 
         socket.on('pplineSuccess', ({ sid }) => {
@@ -365,8 +370,9 @@ export class WorkSpaceController extends BaseController {
             [...tasks].forEach(WorkSpaceController.addSuccessStatus);
         });
 
-        socket.on('pplineTrace', ({ data: trace }) => {
-            console.log('FROM BACK: ',trace);
+        socket.on('pplineTrace', ({ data: trace, time, error }) => {
+            const logType = (error ? 'error' : 'info');
+            this.wSpaceComponent.logProxy.appendLogEntry(logType,trace, time);
         });
 
     }

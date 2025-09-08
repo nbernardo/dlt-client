@@ -73,6 +73,10 @@ export const stillRoutesMap = {
             TransformRow: {
                 path: "app/components/node-types/transform",
                 url: "/transform-row"
+            },
+            LogDisplay: {
+                path: "app/components/log",
+                url: "/log-display"
             }
         },
         lazyInitial: {}

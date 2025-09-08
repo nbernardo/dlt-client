@@ -16,6 +16,7 @@ import { LeftTabs } from "../navigation/left/LeftTabs.js";
 import { NoteBook } from "../code/NoteBook.js";
 import { UserUtil } from "../auth/UserUtil.js";
 import { Transformation } from "../node-types/Transformation.js";
+import { LogDisplay } from "../log/LogDisplay.js";
 
 export class Workspace extends ViewComponent {
 
@@ -50,15 +51,10 @@ export class Workspace extends ViewComponent {
 
 	activeGrid = "Enter pipeline name";
 
-	/** 
-	 * @Proxy 
-	 * @type { CodeMiror }*/
-	cmProxy;
 
 	/** 
-	 * @Proxy 
-	 * @type { Terminal }*/
-	terminalProxy;
+	 * @Proxy @type { LogDisplay }*/
+	logProxy;
 
 	/** 
 	 * @Inject 
@@ -173,6 +169,7 @@ export class Workspace extends ViewComponent {
 			var id = document.getElementById("drawflow");
 			this.editor = new Drawflow(id);
 			this.controller.editor = this.editor;
+			this.controller.wSpaceComponent = this;
 			this.editor.reroute = true;
 			this.editor.start();
 			this.controller.handleListeners(this.editor);
@@ -190,6 +187,7 @@ export class Workspace extends ViewComponent {
 		
 		const data = await this.preparePipelineContent();
 		if(data === null) return data;
+		this.logProxy.showLogs = true;
 		return await this.pplService.createOrUpdatePipeline(data);
 	}
 
