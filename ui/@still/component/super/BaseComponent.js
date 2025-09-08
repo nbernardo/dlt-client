@@ -644,7 +644,10 @@ export class BaseComponent extends BehaviorComponent {
                             
                             listenerFlag = `_stFlag${classFlag}_${(clsName.indexOf('/')) ? clsName.split('/').slice(-1) : clsName}_change`;
                             Object.assign(showFlagValue, { listenerFlag, inVal: showFlagValue.value, parsed: true });
-                            this[classFlag] = showFlagValue;
+                            // In some cases the getsAndSets of flag is parse prior (in components.js) the template
+                            if(!this.st_flag_ini_val)
+                                this[classFlag] = showFlagValue;
+
                         } catch (e) {
                             handleErrorMessage(classFlag, matchInstance);
                         }
