@@ -77,7 +77,7 @@ class DltPipeline:
                                     text=True,
                                     bufsize=1
                                 )
-        
+        pipeline_exception = False
         if(context.transformation is not None):
             while True:
                 line = result.stdout.readline()
@@ -85,25 +85,37 @@ class DltPipeline:
                     break
                 
                 line = line.strip()
-                if(line.endswith('Transformation') and line.startswith('dynamic-_cmp')):
+                is_transformation_step = (line.endswith('Transformation')\
+                                           and line.startswith('dynamic-_cmp'))
+                
+                if(is_transformation_step and pipeline_exception == False):
                     component_ui_id = line
                     Transformation(None, context, component_ui_id).notify_completion_to_ui()
+                elif(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
+                    pipeline_exception = True
+                    message = line.startswith('RUNTIME_ERROR:')
+                    context.emit_ppline_trace(line.replace('RUNTIME_ERROR:',''), error=True)
                 else:
                     context.emit_ppline_trace(line)
 
         result.wait()
            
-        if result.returncode == 0 and context is not None:
+        if result.returncode == 0 and context is not None and pipeline_exception == False:
             context.emit_ppsuccess()
-
-        print("Return Code:", result.returncode)
-        print("Standard Output:", result.stdout.read())
-        print("Standard Error:", result.stderr.read())
+        if pipeline_exception == True:
+            return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
 
         message, status = 'Pipeline run terminated successfully', True
         
+        error_messages = None
         if result.returncode != 0:
-            message, status = str(result.stderr.read()), False
+            error_messages = result.stderr.read().split('\n')
+            message, status = '\n'.join(error_messages[1:]), False
+            context.emit_ppline_trace(message, error=True)
+
+        print("Return Code:", result.returncode)
+        print("Standard Output:", result.stdout.read())
+        print("Standard Error:", message if error_messages != None else None)
 
         return { 'status': status, 'message': message }
 

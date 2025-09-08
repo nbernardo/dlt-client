@@ -1,5 +1,5 @@
 from flask_socketio import SocketIO, emit, Namespace
-
+from datetime import datetime
 
 class PiplineNamespace(Namespace):
     def on_connect(self): pass
@@ -29,6 +29,11 @@ class RequestContext:
         self.transformation = None
         self.monitor_file_name = None
 
+    def get_time(self):
+        dt = datetime.now()
+        return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
+
     def add_exception(self, type, error):
         """
         Register any likely error from pipeline phase
@@ -43,7 +48,7 @@ class RequestContext:
         emit(
             RequestContext.step_error,
             {'componentId': obj.component_id,
-                'sid': self.socket_sid, 'error': error},
+                'sid': self.socket_sid, 'error': error, 'time': self.get_time()},
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
@@ -58,7 +63,7 @@ class RequestContext:
         emit(
             RequestContext.step_success,
             {'componentId': obj.component_id,
-                'data': data, 'sid': self.socket_sid},
+                'data': data, 'sid': self.socket_sid, 'time': self.get_time()},
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
@@ -73,7 +78,7 @@ class RequestContext:
         emit(
             RequestContext.step_start,
             {'componentId': obj.component_id, 'data': data,
-                'sid': self.socket_sid},
+                'sid': self.socket_sid, 'time': self.get_time()},
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
@@ -87,21 +92,21 @@ class RequestContext:
         """
         emit(
             RequestContext.ppline_success,
-            {'success': data, 'sid': self.socket_sid},
+            {'success': data, 'sid': self.socket_sid, 'time': self.get_time() },
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
         socketio.sleep(0)
 
 
-    def emit_ppline_trace(self, data):
+    def emit_ppline_trace(self, data, error = False):
         """
         This emit trace to UI so it can be used to print accordingly 
         (e.g. logs)
         """
         emit(
             RequestContext.ppline_trace,
-            { 'data': data, 'sid': self.socket_sid},
+            { 'data': data, 'sid': self.socket_sid, 'time': self.get_time(), 'error': error },
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )

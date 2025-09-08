@@ -60,7 +60,7 @@ def create():
 
     try:
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
-        
+
         if(result['status'] == True):
             pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl)
         
@@ -72,7 +72,6 @@ def create():
         success, message = False, result['message']
 
     finally:
-
         if success is False:
             revert_and_notify_failure(pipeline_instance, all_nodes, message)
 

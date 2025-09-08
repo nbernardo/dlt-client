@@ -3,14 +3,19 @@ from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
 from typing import Iterator, Any
 import pandas as pd
-import time
+
+"""
+The pipeline run in a different process/sub-process
+hence the different print statement as this is how it
+will communicate with the main process about the progress
+"""
 
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
 files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
 
 @dlt.transformer()
-def read_csv_transform_and_add_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
-
+def read_csv_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
+    print('Starting tranformation(s)', flush=True)
     for cur_file in files_list:
         with cur_file.open() as file:
             df = pd.read_csv(file)
@@ -20,16 +25,21 @@ def read_csv_transform_and_add_fields(files_list: Iterator[FileItemDict]) -> Ite
             yield df.to_dict(orient="records")
 
 
-# Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
-transformed_source = (files | read_csv_transform_and_add_fields()).with_name(%duck_dest_table%)
+print('Starting the pipeline', flush=True)
 
-# Usr_folder: The user name sent in the request
-# Dbfile_name: This is also mapped to the pipeline_name
-dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
+try:
+    # Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
+    transformed_source = (files | read_csv_and_transform_fields()).with_name(%duck_dest_table%)
 
-# Bellow mapping: schema = DuckDBOutput.duckdb_dest
-pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%,  destination=dest)
+    # Usr_folder: The user name sent in the request
+    # Dbfile_name: This is also mapped to the pipeline_name
+    dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
 
-info = pipeline.run(transformed_source, write_disposition="merge")
+    # Bellow mapping: schema = DuckDBOutput.duckdb_dest
+    pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%,  destination=dest)
 
-print(info)
+    info = pipeline.run(transformed_source, write_disposition="merge")
+    print(info, flush=True)
+except Exception as err:
+    print('RUNTIME_ERROR:Runtime Pipeline error')
+    print(err)
