@@ -23,6 +23,8 @@ export class LogDisplay extends ViewComponent {
 
 	appendLogEntry(type, entry, time) {
 
+		if(this.showLogs === false) this.showLogs = true;
+
 		if(type === 'error' && entry.trim() == "")
 			return;
 

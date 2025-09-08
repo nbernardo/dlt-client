@@ -52,8 +52,8 @@ export class WorkspaceService extends BaseService {
 
     }
 
-    async getDuckDbs(user){
-        const url = '/workcpace/duckdb/list/'+user;
+    async getDuckDbs(user, socketId){
+        const url = '/workcpace/duckdb/list/'+user+'/'+socketId;
         const result = await $still.HTTPClient.post(url, null, {
             headers: {
                 'Content-Type': 'application/json'
