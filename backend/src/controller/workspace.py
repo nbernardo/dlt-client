@@ -2,6 +2,8 @@ from flask import Blueprint, request
 from pathlib import Path
 from services.workspace.Workspace import Workspace
 from controller.pipeline import BasePipeline
+from .RequestContext import RequestContext
+
 
 workspace = Blueprint('workspace', __name__)
 
@@ -20,10 +22,26 @@ def run_code(user):
     return { 'output': output, 'lang': payload['code'] }
 
 
-@workspace.route('/workcpace/duckdb/list/<user>', methods=['POST'])
-def list_duck_dbs(user):
+@workspace.route('/workcpace/duckdb/list/<user>/<socket_id>', methods=['POST'])
+def list_duck_dbs(user, socket_id):
+
+    context = RequestContext(None, socket_id)
     duckdb_path = BasePipeline.folder+'/duckdb/'+user+'/'
-    dbs = Workspace.list_duck_dbs(duckdb_path)
+    dbs = Workspace.list_duck_dbs(duckdb_path, user)
+    errors_list = None
+
+    if((user in Workspace.duckdb_open_errors)):
+        
+        if(len(Workspace.duckdb_open_errors[user]) > 0):
+            errors_list = Workspace.duckdb_open_errors[user]
+            del Workspace.duckdb_open_errors[user]
+
+            return { 
+                'error': True, 
+                'message': 'Failed to connect some of the DuckDb, check the logs for details',
+                'trace': errors_list
+            }
+            
     return dbs
 
 

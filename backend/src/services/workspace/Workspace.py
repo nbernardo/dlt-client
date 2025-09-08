@@ -18,6 +18,7 @@ class Workspace:
     }
 
     duckdb_open_connections = {}
+    duckdb_open_errors = {}
 
     def __init__(self):
         self.sql_run_last_ppline_file = None
@@ -149,7 +150,7 @@ class Workspace:
 
 
     @staticmethod
-    def list_duck_dbs(files_path):
+    def list_duck_dbs(files_path, user):
 
         skip_tables = ['_dlt_loads','_dlt_pipeline_state','_dlt_pipeline_state','_dlt_version']
 
@@ -163,7 +164,12 @@ class Workspace:
                 if _file not in result:
                     result[_file] = {}
 
-                tables = Workspace.get_tables(f'{files_path}/{_file}').fetchall()
+                tables_list = Workspace.get_tables(f'{files_path}/{_file}',None, user)
+
+                if 'error' in tables_list: 
+                    continue
+                
+                tables = tables_list['tables'].fetchall()
                 for t in tables:
 
                     if t[2] not in skip_tables:
@@ -186,16 +192,24 @@ class Workspace:
         return result
     
     @staticmethod
-    def get_tables(database = None, where = None):
-        cnx = duckdb.connect(f'{database}', read_only=True)
-        cursor = cnx.cursor()
-        where_clause = f'WHERE {where}' if where is not None else ''
-        query = f"SELECT \
-                    database_name, schema_name, table_name, \
-                    estimated_size, column_count FROM \
-                    duckdb_tables {where_clause}"
-        print(f'THE QUERY WILL BE: {query}')
-        return cursor.execute(query)
+    def get_tables(database = None, where = None, user = None):
+        try:
+            cnx = duckdb.connect(f'{database}', read_only=True)
+            cursor = cnx.cursor()
+            where_clause = f'WHERE {where}' if where is not None else ''
+            query = f"SELECT \
+                        database_name, schema_name, table_name, \
+                        estimated_size, column_count FROM \
+                        duckdb_tables {where_clause}"
+            print(f'Fetching DuckDb tables: {query}')
+            
+            return { 'tables': cursor.execute(query) }
+        except duckdb.IOException as err:
+            if not(user in Workspace.duckdb_open_errors):
+                Workspace.duckdb_open_errors[user] = []
+
+            Workspace.duckdb_open_errors[user].append(str(err))
+            return { 'error': True, 'error_list': Workspace.duckdb_open_errors[user] }
         
 
     @staticmethod
