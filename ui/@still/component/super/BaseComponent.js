@@ -642,7 +642,7 @@ export class BaseComponent extends BehaviorComponent {
                             const value = eval(`cls.${classFlag}`);
                             showFlagValue = { value: value?.parsed ? value.value : value, onlyPropSignature: true };
                             
-                            listenerFlag = `_stFlag${classFlag}_${(clsName.indexOf('/')) ? clsName.split('/').slice(-1) : clsName}_change`;
+                            listenerFlag = `_stFlag${classFlag}_${(clsName.indexOf('/')) ? clsName.replace(/\@|\//g,'') : clsName}_change`;
                             Object.assign(showFlagValue, { listenerFlag, inVal: showFlagValue.value, parsed: true });
                             // In some cases the getsAndSets of flag is parse prior (in components.js) the template
                             if(!this.st_flag_ini_val)

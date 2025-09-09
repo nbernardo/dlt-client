@@ -454,7 +454,7 @@ export class Components {
                 let listenerFlag = inspectField?.listenerFlag, inVal = inspectField?.inVal;
                 cmp[field] = cmp[field]?.value || cmp[field];
                 if (typeof inspectField == 'boolean') {
-                    listenerFlag = `_stFlag${field}_${cmp.cmpInternalId}_change`;
+                    listenerFlag = `_stFlag${field}_${cmp.cmpInternalId.replace(/\@|\//g,'')}_change`;
                     cmp[field] = { inVal: inspectField }, inVal = inspectField;
                 }
 
