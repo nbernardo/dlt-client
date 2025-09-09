@@ -72,6 +72,6 @@ export const FormHelper = {
 }
 
 export function genInputsClasses(validatorClass, cmpId, field, optValue, isOptList = false, isThereComboBox = false){
-    const listenCls = isThereComboBox ? '' : `listenChangeOn-${cmpId}-${field}`;
+    const listenCls = isThereComboBox ? `listenChangeOn-${cmpId}-${field}-combobox ` : `listenChangeOn-${cmpId}-${field} `;
     return `${validatorClass} ${listenCls} ${ isOptList ? `${cmpId}-${field}-val-${optValue}` : '' }`;
 }
