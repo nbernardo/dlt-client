@@ -34,6 +34,7 @@ export class Bucket extends ViewComponent {
 	/** @Prop */ showMoreFileOptions = false;
 	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef = null;
 
+	/** @Prop */ showLoading = false;
 	/**
 	 * @Inject @Path services/
 	 * @type { WorkspaceService } */
@@ -51,6 +52,7 @@ export class Bucket extends ViewComponent {
 	stOnRender({ nodeId, isImport }) {
 		this.nodeId = nodeId;
 		this.isImport = isImport;
+		if(isImport) this.showLoading = true;
 	}
 
 	async stAfterInit() {
@@ -67,7 +69,12 @@ export class Bucket extends ViewComponent {
 		if (this.isImport) {
 			// At this point the WorkSpaceController was loaded by WorkSpace component
 			// hance no this.wSpaceController.on('load') subscrtiption is needed
-			this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+			if (this.isImport) {
+				if (this.bucketFileSource.value === '1') 
+					this.selectedFilePattern = this.filePattern.value;
+				this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+				this.showLoading = false;
+			}
 		}
 
 	}
@@ -87,7 +94,7 @@ export class Bucket extends ViewComponent {
 
 		this.selectedFilePattern.onChange(async (newValue) => {
 			const selectdFile = newValue.trim();
-			if(selectdFile == '') return;
+			if (selectdFile == '') return;
 
 			this.showMoreFileOptions = 'searching';
 			await this.wspaceService.handleCsvSourceFields(selectdFile);

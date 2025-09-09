@@ -41,9 +41,10 @@ export class WorkSpaceController extends BaseController {
         this.edgeTypeAdded = {};
         this.formReferences.clear();
         this.validationErrors = [];
-        //this.idCounter = 0;
+        this.idCounter = 0;
         this.cmpIdToNodeIdMap = {};
         this.pplineStatus = {};
+        this.editor.nodeId = 1;
     }
 
     registerEvents() {
@@ -318,7 +319,8 @@ export class WorkSpaceController extends BaseController {
         //const allNodes = Object.keys(this.editor.drawflow.drawflow.Home.data);
         //if (allNodes.length == 0) return 1;
         //return Number(allNodes.slice(-1)[0]) + 1;
-        return ++this.idCounter;
+        this.idCounter = this.idCounter + 1
+        return this.idCounter;
     }
 
     static getNode(nodeId) {
