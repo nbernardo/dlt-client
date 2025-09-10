@@ -45,7 +45,7 @@
 			</span>
 			
 			<span (showIf)="self.transformType == 'CODE'">
-				<textarea cols="50" rows="1" (value)="transformation" placeholder="Ex: field > 0 ? 'Greater' : 'Lower'"></textarea>
+				<textarea cols="50" id="@rowId-code" rows="1" (value)="transformation" placeholder="Ex: field > 0 ? 'Greater' : 'Lower'"></textarea>
 			</span>
 
 			<span (showIf)="self.transformType == 'CALCULATE'">

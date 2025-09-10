@@ -15,6 +15,7 @@ export class TransformRow extends ViewComponent {
 
 	/** @Prop */ rowId;
 	/** @Prop */ transformType;
+	/** @Prop */ configData = null; // This is only used when importing/reviewing a previous created node
 
 	dataSourceList;
 	selectedSource;
@@ -27,15 +28,19 @@ export class TransformRow extends ViewComponent {
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId, importFields }){
+	stOnRender({ dataSources, rowId, importFields }) {
 		this.dataSourceList = dataSources;
 		this.rowId = rowId;
+
+		if (importFields)
+			this.configData = importFields;
+
 		console.log(`NEW ROW CREATED: `, importFields);
-		
+
 	}
 
-	async stAfterInit(){
-		
+	async stAfterInit() {
+
 		this.$parent.transformPieces.set(this.rowId, {})
 
 		this.selectedSource.onChange(async (newValue) => {
@@ -55,16 +60,36 @@ export class TransformRow extends ViewComponent {
 			this.updateTransformValue({ type: this.transformType });
 		});
 
+		if (this.configData !== null)
+			this.handleConfigData();
+
 	}
 
-	updateTransformValue(value){
+	handleConfigData() {
+		const { dataSource, field, type, transform } = this.configData;
+		this.selectedSource = dataSource;
+		this.selectedField = field;
+		this.selectedType = type;
+
+		if (type === 'CODE') document.getElementById(`${this.rowId}-code`).value = transform;
+		else this.transformation = transform;
+	}
+
+	updateTransformValue(value) {
 		const curVal = this.$parent.transformPieces.get(this.rowId);
-		this.$parent.transformPieces.set(this.rowId, {...curVal, ...value});
+		this.$parent.transformPieces.set(this.rowId, { ...curVal, ...value });
 	}
 
-	removeMe(){
-		this.unload();
-		this.$parent.removeField(this.rowId);
+	removeMe() {
+		const obj = this;
+		function handleDeletion() {
+			obj.unload();
+			obj.$parent.removeField(obj.rowId);
+		}
+
+		if (this.configData !== null && this.$parent.confirmModification === false) 
+			return this.$parent.confirmActionDialog(handleDeletion);
+		handleDeletion(this);
 	}
 
 }
