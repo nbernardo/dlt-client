@@ -8,19 +8,27 @@
 	</div>
 	<div class="box">
 		
-		<table class="transform-container-@uniqueId transform-container">
-			<tr>
-				<td></td>
-				<td>Source</td>
-				<td>Field</td>
-				<td>Transf. type</td>
-				<td>Output expected</td>
-			</tr>
-		</table>
-		<div style="margin: 3px 8px;">
-			<button style="margin-left: 18px;" (click)="addNewField()">&nbsp; + Existing field &nbsp;</button>
-			<button style="margin-left: 18px;" (click)="parseTransformationCode()">&nbsp; Parse code &nbsp;</button>
-		</div>
+		<st-loader 
+			small center
+			(showIf)="self.showLoading" 
+			topPadding="50"
+			(label)="Parsing Rules..."/>
+
+		<span (showIf)="!self.showLoading">
+			<table class="transform-container-@uniqueId transform-container">
+				<tr>
+					<td></td>
+					<td>Source</td>
+					<td>Field</td>
+					<td>Transf. type</td>
+					<td>Output expected</td>
+				</tr>
+			</table>
+			<div style="margin: 3px 8px;">
+				<button style="margin-left: 18px;" (click)="addNewField()">&nbsp; + Existing field &nbsp;</button>
+				<button style="margin-left: 18px;" (click)="parseTransformationCode()">&nbsp; Parse code &nbsp;</button>
+			</div>
+		</span>
 	</div>
 </div>
 <style>
