@@ -1,5 +1,6 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
+import { Components } from "../../../@still/setup/components.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
@@ -60,6 +61,13 @@ export class Bucket extends ViewComponent {
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 		this.filesFromList = await this.wspaceService.listFiles();
+
+		if(this.isImport){
+			// This is mainly because WorkSpaceController will setup reactive notification from source component to 
+			// terget component if connection is being created, regular targets of Backet are Transformation and 
+			// DuckDBOutput, in case isImport == true, this event is emitted when data source/files are listed
+			this.notifyReadiness();
+		}
 
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController		
@@ -190,6 +198,9 @@ export class Bucket extends ViewComponent {
 	onOutputConnection() {
 		return this.filesFromList.value;
 	}
+
+	notifyReadiness = () => 
+		Components.emitAction(`nodeReady${this.cmpInternalId}`);
 }
 
 

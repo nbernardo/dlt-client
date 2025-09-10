@@ -28,6 +28,13 @@ export class Transformation extends ViewComponent {
 	 * @Prop @type { Map<TransformRow> } */
 	fieldRows = new Map();
 
+	/** This will only hold the row when importive/viewing 
+	 *  previously created pipeline which has transformation
+	 *  as one of its steps, and it's filled automatically by 
+	 * the the WorkspaceController at processImportingNodes
+	 * @Prop @type { Array } */
+	rows = null;
+
 	/** @Prop */
 	reserved = [' and', ' or', ' not', ' None',' else', ' if'];
 
@@ -36,10 +43,12 @@ export class Transformation extends ViewComponent {
 
 	stOnRender({ nodeId, isImport }){
 		this.nodeId = nodeId;
-		this.isImport = isImport;
+		this.isImport = isImport;		
 	}
 
 	async stAfterInit(){
+		if(this.isImport && this.rows !== null)
+			return this.rows.forEach(async rowConfig => await this.addNewField(rowConfig));
 		await this.addNewField();
 	}
 
@@ -50,11 +59,11 @@ export class Transformation extends ViewComponent {
 		}
 	}
 
-	async addNewField(){
+	async addNewField(data = null){
 
 		const parentId = this.cmpInternalId;
 		const rowId = TRANFORM_ROW_PREFIX+''+UUIDUtil.newId();
-		const initialData = { dataSources: this.databaseList.value, rowId };
+		const initialData = { dataSources: this.databaseList.value, rowId, importFields: data };
 
 		// Create a new instance of TransformRow component
 		const { component, template } = await Components.new('TransformRow', initialData, parentId);

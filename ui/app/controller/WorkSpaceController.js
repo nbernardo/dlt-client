@@ -36,6 +36,7 @@ export class WorkSpaceController extends BaseController {
     pplineStatus;
     /** @type { Workspace } */
     wSpaceComponent;
+    isImportProgress = false;
 
     resetEdges() {
         this.edgeTypeAdded = {};
@@ -48,11 +49,9 @@ export class WorkSpaceController extends BaseController {
     }
 
     registerEvents() {
-
         let mobile_item_selec = '';
         let mobile_last_move = null;
         window.drawpositionMobile = (ev) => mobile_last_move = ev;
-
     }
 
     allowDrop = (ev) => ev.preventDefault();
@@ -67,7 +66,6 @@ export class WorkSpaceController extends BaseController {
         this.editor.precanvas.style.top = this.editor.canvas_y + 'px';
         console.log(transform);
         this.editor.editor_mode = "fixed";
-
     }
 
     closemodal(e) {
@@ -127,24 +125,23 @@ export class WorkSpaceController extends BaseController {
         pos_x = pos_x * (this.editor.precanvas.clientWidth / (this.editor.precanvas.clientWidth * this.editor.zoom)) - (this.editor.precanvas.getBoundingClientRect().x * (this.editor.precanvas.clientWidth / (this.editor.precanvas.clientWidth * this.editor.zoom)));
         pos_y = pos_y * (this.editor.precanvas.clientHeight / (this.editor.precanvas.clientHeight * this.editor.zoom)) - (this.editor.precanvas.getBoundingClientRect().y * (this.editor.precanvas.clientHeight / (this.editor.precanvas.clientHeight * this.editor.zoom)));
 
-        if (['Start', 'End'].includes(inType)) {
+        if (['Start', 'End'].includes(inType))
             return this.addStartOrEndNode(name, source, dest, pos_x, pos_y);
-        }
 
         const nodeId = this.getNodeId();
-        const { template: tmpl, component } = await Components.new(inType, { nodeId });
+        this.isImportProgress = false;
+        const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false });
         this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
 
     }
 
     async processImportingNodes(nodeData) {
 
-        const inOutputMapping = { };
-
-        const nodeList = Object.entries(nodeData);
+        const [inOutputMapping, nodeList] = [{}, Object.entries(nodeData)];
         let nodeId = 0;
+        this.isImportProgress = nodeList.length > 0 ? true : false;
 
-        for(let [_, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList){
+        for (let [_, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList) {
             if (!['Start', 'End'].includes(name)) {
 
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
@@ -158,33 +155,31 @@ export class WorkSpaceController extends BaseController {
                 //We first collects all links to render after all nodes are in the diagram
                 inOutputMapping[nodeId] = { inputs, outputs };
 
-            }else{
-                
-                [source, dest] = [ name === 'End', name === 'Start' ];
+            } else {
+
+                [source, dest] = [name === 'End', name === 'Start'];
                 this.addStartOrEndNode(name, source, dest, pos_x, pos_y);
                 inOutputMapping[++nodeId] = { inputs, outputs };
-            }            
+            }
         }
 
         Object.keys(inOutputMapping).forEach(nodeId => {
-
             const { inputs, outputs } = inOutputMapping[nodeId];
             outputs?.output_1?.connections.forEach((link) => {
                 this.editor.addConnection(Number(nodeId), Number(link.node), 'output_1', 'input_1');
             });
-
         });
 
     }
 
-    addStartOrEndNode(name, source, dest, pos_x, pos_y){
+    addStartOrEndNode(name, source, dest, pos_x, pos_y) {
         const tmpl = this.edgeType(name);
         if (tmpl != null)
             return this.editor.addNode(name, source, dest, pos_x, pos_y, name, {}, tmpl);
         return;
     }
 
-    handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl){
+    handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl) {
 
         const { inConnectors, outConnectors } = component;
         const initData = { componentId: component.cmpInternalId };
@@ -221,9 +216,7 @@ export class WorkSpaceController extends BaseController {
         if (this.edgeTypeAdded[type]) return null;
         this.edgeTypeAdded[type] = this.getNodeId();
         return `
-            <div class="edge-label">
-                ${type}
-            </div>
+            <div class="edge-label">${type}</div>
             <div></div>
         `;
     }
@@ -251,7 +244,7 @@ export class WorkSpaceController extends BaseController {
         const obj = this;
         editor.on('nodeCreated', function (id) {
             console.log("Node created " + id);
-        })
+        });
 
         editor.on('nodeRemoved', function (id) {
             if (id == obj.edgeTypeAdded[NodeTypeEnum.START])
@@ -264,19 +257,19 @@ export class WorkSpaceController extends BaseController {
             //when validating the pipeline submittions/save
             obj.formReferences.delete(Number(id));
             delete obj.edgeTypeAdded[id];
-        })
+        });
 
         editor.on('nodeSelected', function (id) {
             console.log("Node selected " + id);
-        })
+        });
 
         editor.on('moduleCreated', function (name) {
             console.log("Module Created " + name);
-        })
+        });
 
         editor.on('moduleChanged', function (name) {
             console.log("Module Changed " + name);
-        })
+        });
 
         editor.on('connectionCreated', connections => obj.onConnectionCreate(connections, obj));
 
@@ -287,38 +280,35 @@ export class WorkSpaceController extends BaseController {
 
             if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
                 obj.edgeTypeAdded[input_id].delete(output_id);
-        })
+        });
 
         editor.on('mouseMove', function (position) {
             //console.log('Position mouse x:' + position.x + ' y:' + position.y);
-        })
+        });
 
         editor.on('nodeMoved', function (id) {
             console.log("Node moved " + id);
-        })
+        });
 
         editor.on('zoom', function (zoom) {
             console.log('Zoom level ' + zoom);
-        })
+        });
 
         editor.on('translate', function (position) {
             console.log('Translate x:' + position.x + ' y:' + position.y);
-        })
+        });
 
         editor.on('addReroute', function (id) {
             console.log("Reroute added " + id);
-        })
+        });
 
         editor.on('removeReroute', function (id) {
             console.log("Reroute removed " + id);
-        })
+        });
 
     }
 
     getNodeId() {
-        //const allNodes = Object.keys(this.editor.drawflow.drawflow.Home.data);
-        //if (allNodes.length == 0) return 1;
-        //return Number(allNodes.slice(-1)[0]) + 1;
         this.idCounter = this.idCounter + 1
         return this.idCounter;
     }
@@ -374,7 +364,7 @@ export class WorkSpaceController extends BaseController {
 
         socket.on('pplineTrace', ({ data: trace, time, error }) => {
             const logType = (error ? 'error' : 'info');
-            this.wSpaceComponent.logProxy.appendLogEntry(logType,trace, time);
+            this.wSpaceComponent.logProxy.appendLogEntry(logType, trace, time);
         });
 
     }
@@ -441,46 +431,69 @@ export class WorkSpaceController extends BaseController {
     onConnectionCreate(connection, obj) {
         const { output_id, input_id } = connection;
 
-        const { data: dataIn } = WorkSpaceController.getNode(input_id);
-        const { data: dataOut } = WorkSpaceController.getNode(output_id);
+        const { data: nodeIn } = WorkSpaceController.getNode(input_id);
+        const { data: nodeOut } = WorkSpaceController.getNode(output_id);
 
-        const destCmpId = dataIn.componentId, srcCmpId = dataOut.componentId;
+        this.reactiveNotifyOnConnection(nodeOut, nodeIn);
 
-        const /** @type { NodeTypeInterface } */ destCmp = Components.ref(destCmpId) || {};
-        const /** @type { NodeTypeInterface } */ srcCmp = Components.ref(srcCmpId) || {};
-
-        if('onOutputConnection' in srcCmp){
-            if('onInputConnection' in destCmp){
-                (async () => {
-                    const sourceData = await srcCmp.onOutputConnection();
-                    await destCmp.onInputConnection({ data: sourceData, type: srcCmp.getName() });
-                })();
-            }
-        }
-
-        if (dataIn?.componentId) {
-            const inputs = obj.getInputsByNodeId(dataIn?.componentId);
+        if (nodeIn?.componentId) {
+            const inputs = obj.getInputsByNodeId(nodeIn?.componentId);
             [...inputs].forEach(el => {
                 el.style.background = 'white';
                 el.classList.remove('blink');
             });
         }
+        // In case it's importing, reviweing the previous created pipeline
+        // Not allowing changes other than the transformations
+        if (obj.edgeTypeAdded[output_id] !== undefined) {
+            if (output_id != obj.edgeTypeAdded[NodeTypeEnum.START])
+                obj.edgeTypeAdded[output_id].add(input_id);
 
-        if (output_id != obj.edgeTypeAdded[NodeTypeEnum.START])
-            obj.edgeTypeAdded[output_id].add(input_id);
+            if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
+                obj.edgeTypeAdded[input_id].add(output_id);
+        }
+    }
 
-        if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
-            obj.edgeTypeAdded[input_id].add(output_id);
+    /** This method if to provide the components of the workspace with capabilities to return something 
+     *  to the component it's connecting connecting to, then the connecting component will implement 
+     *  onOutputConnection and connected component will implement onInputConnection providing reactive
+     *  communication when connecting one node to another */
+    reactiveNotifyOnConnection(nodeOut, nodeIn) {
+
+        const destCmpId = nodeIn.componentId, srcCmpId = nodeOut.componentId;
+
+        const /** @type { NodeTypeInterface } */ destCmp = Components.ref(destCmpId) || {};
+        const /** @type { NodeTypeInterface } */ srcCmp = Components.ref(srcCmpId) || {};
+
+        function setupNotification() {
+            if ('onOutputConnection' in srcCmp) {
+                if ('onInputConnection' in destCmp) {
+                    (async () => {
+                        const sourceData = await srcCmp.onOutputConnection();
+                        await destCmp.onInputConnection({ data: sourceData, type: srcCmp.getName() });
+                    })();
+                }
+            }
+        }
+        if(this.isImportProgress === false)
+            return setupNotification();
+
+        /** subscribeAction is the other side of emiAction boths under Components 
+         *  in this case, we want the source component to notify targed component
+         *  only when it emits an event with its id (source component id) stating */
+        Components.subscribeAction(`nodeReady${srcCmpId}`, () => setupNotification());
+
+
     }
 
     copyToClipboard(content) {
         navigator.clipboard.writeText(content);
     }
 
-    disableNodeFormInputs(formWrapClass){
+    disableNodeFormInputs(formWrapClass) {
         const disable = true, defautlFields = 'input[type=text], select';
         // Disable the default form inputs
-        document.querySelector('.'+formWrapClass).querySelectorAll(defautlFields).forEach(elm => {
+        document.querySelector('.' + formWrapClass).querySelectorAll(defautlFields).forEach(elm => {
             elm.disabled = disable;
         });
     }

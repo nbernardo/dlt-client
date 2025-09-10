@@ -27,9 +27,11 @@ export class TransformRow extends ViewComponent {
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId }){
+	stOnRender({ dataSources, rowId, importFields }){
 		this.dataSourceList = dataSources;
 		this.rowId = rowId;
+		console.log(`NEW ROW CREATED: `, importFields);
+		
 	}
 
 	async stAfterInit(){
@@ -37,24 +39,25 @@ export class TransformRow extends ViewComponent {
 		this.$parent.transformPieces.set(this.rowId, {})
 
 		this.selectedSource.onChange(async (newValue) => {
-			const fileName = newValue.trim();
-			await this.wspaceService.handleCsvSourceFields(fileName)
-			const fieldList = await this.wspaceService.getCsvDataSourceFields(fileName);
+			const dataSource = newValue.trim(); //If it's file will be filename, id DB it'll be table name
+			await this.wspaceService.handleCsvSourceFields(dataSource)
+			const fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
 			this.fieldList = fieldList;
+			this.updateTransformValue({ dataSource });
 		});
 
-		this.selectedField.onChange(field => this.updateValue({ field }));
-		this.transformation.onChange(value => this.updateValue({ transform: value.trim() }));
-		this.separatorChar.onChange(value => this.updateValue({ sep: value.trim() }));
+		this.selectedField.onChange(field => this.updateTransformValue({ field }));
+		this.transformation.onChange(value => this.updateTransformValue({ transform: value.trim() }));
+		this.separatorChar.onChange(value => this.updateTransformValue({ sep: value.trim() }));
 
 		this.selectedType.onChange(value => {
 			this.transformType = value.trim();
-			this.updateValue({ type: this.transformType });
+			this.updateTransformValue({ type: this.transformType });
 		});
 
 	}
 
-	updateValue(value){
+	updateTransformValue(value){
 		const curVal = this.$parent.transformPieces.get(this.rowId);
 		this.$parent.transformPieces.set(this.rowId, {...curVal, ...value});
 	}
