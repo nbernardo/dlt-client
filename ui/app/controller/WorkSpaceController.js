@@ -130,7 +130,8 @@ export class WorkSpaceController extends BaseController {
 
         const nodeId = this.getNodeId();
         this.isImportProgress = false;
-        const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false });
+        const parentId = this.wSpaceComponent.cmpInternalId;
+        const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false }, parentId);
         this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
 
     }
@@ -146,8 +147,8 @@ export class WorkSpaceController extends BaseController {
 
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { componentId: removedId, ...fields } = data;
-
-                const { template: tmpl, component } = await Components.new(name, { nodeId: ++nodeId, ...fields, isImport: true });
+                const parentId = this.wSpaceComponent.cmpInternalId;
+                const { template: tmpl, component } = await Components.new(name, { nodeId: ++nodeId, ...fields, isImport: true }, parentId);
 
                 this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
                 setTimeout(() => Object.keys(fields).forEach((f) => component[f] = fields[f]), 10);
@@ -496,6 +497,25 @@ export class WorkSpaceController extends BaseController {
         document.querySelector('.' + formWrapClass).querySelectorAll(defautlFields).forEach(elm => {
             elm.disabled = disable;
         });
+    }
+
+    showDialog(message,{ onConfirm = () => {}, onCancel = () => {} } = {}){
+        const dialog = document.getElementById('wodkspaceMainDialog');
+        const defaultMessage = dialog.querySelector('.dialog-message').innerHTML;
+        if(message)
+            dialog.querySelector('.dialog-message').innerHTML = message;
+        
+        dialog.showModal();
+
+        dialog.querySelector('.btn-confirm').onclick = async () => {
+            await onConfirm(); dialog.close();
+            dialog.querySelector('.dialog-message').innerHTML = defaultMessage;
+        }
+
+        dialog.querySelector('.btn-cancel').onclick = async () => {
+            await onCancel(); dialog.close();
+            dialog.querySelector('.dialog-message').innerHTML = defaultMessage;
+        }
     }
 
 }
