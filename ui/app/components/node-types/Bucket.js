@@ -78,10 +78,10 @@ export class Bucket extends ViewComponent {
 			// At this point the WorkSpaceController was loaded by WorkSpace component
 			// hance no this.wSpaceController.on('load') subscrtiption is needed
 			if (this.isImport) {
-				if (this.bucketFileSource.value === '1') 
-					this.selectedFilePattern = this.filePattern.value;
+				this.selectedFilePattern = this.filePattern.value;
 				this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 				this.showLoading = false;
+				data['filePattern'] = this.filePattern.value;
 			}
 		}
 

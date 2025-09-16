@@ -107,7 +107,7 @@ export class Transformation extends ViewComponent {
 
 	parseTransformationCode() {
 		let finalCode = "";
-		const rowsConfig = [];
+		const rowsConfig = [];		
 		for (const [_, code] of [...this.transformPieces]) {
 
 			let { type, field, transform } = code;

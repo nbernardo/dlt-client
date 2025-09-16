@@ -72,7 +72,7 @@ export class TransformRow extends ViewComponent {
 		this.selectedType = type;
 
 		if (type === 'CODE') document.getElementById(`${this.rowId}-code`).value = transform;
-		else this.transformation = transform;
+		this.transformation = transform;
 	}
 
 	updateTransformValue(value) {

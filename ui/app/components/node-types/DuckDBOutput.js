@@ -40,18 +40,20 @@ export class DuckDBOutput extends ViewComponent {
 		this.isImport = isImport;
 	}
 
-	stAfterInit(){
-
+	stAfterInit(){		
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
-		if(this.isImport !== false){
+		if(this.isImport === false){
 			this.setupOnChangeListen();
 		}
 
 		if(this.isImport === true){	
 			// At this point the WorkSpaceController was loaded by WorkSpace component
 			// hance no this.wSpaceController.on('load') subscrtiption is needed
+			const data = WorkSpaceController.getNode(this.nodeId).data;
 			this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+			data['database'] = this.database.value;
+			data['tableName'] = this.tableName.value;
 		}
 
 	}

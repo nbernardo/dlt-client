@@ -161,6 +161,8 @@ export class WorkSpaceController extends BaseController {
                 [source, dest] = [name === 'End', name === 'Start'];
                 this.addStartOrEndNode(name, source, dest, pos_x, pos_y);
                 inOutputMapping[++nodeId] = { inputs, outputs };
+                if(name === 'Start')
+                    this.edgeTypeAdded[NodeTypeEnum.START] = nodeId;
             }
         }
 
@@ -181,7 +183,7 @@ export class WorkSpaceController extends BaseController {
     }
 
     handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl) {
-
+        
         const { inConnectors, outConnectors } = component;
         const initData = { componentId: component.cmpInternalId };
         this.formReferences.set(nodeId, component.cmpInternalId);
