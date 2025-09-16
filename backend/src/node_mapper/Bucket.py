@@ -39,7 +39,7 @@ class Bucket(TemplateNodeType):
                 self.bucket_file_source = data['bucketFileSource'].replace('.csv','*.csv')
             
         except Exception as error:
-            return self.notify_failure_to_ui('Bucket',error)
+            self.notify_failure_to_ui('Bucket',error)
 
 
     def run(self):

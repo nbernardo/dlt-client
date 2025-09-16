@@ -1,5 +1,6 @@
 from flask_socketio import SocketIO, emit, Namespace
 from datetime import datetime
+from utils.FileVersionManager import FileVersionManager
 
 class PiplineNamespace(Namespace):
     def on_connect(self): pass
@@ -20,7 +21,7 @@ class RequestContext:
     ppline_trace = 'pplineTrace'
     FAILED = 'FAILED'
 
-    def __init__(self, ppline_name=None, socket_sid=None):
+    def __init__(self, ppline_name=None, socket_sid=None, file_manager: FileVersionManager  = None):
         self.ppline_name = ppline_name
         self.exceptions = []
         self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
@@ -28,6 +29,16 @@ class RequestContext:
         self.user = None
         self.transformation = None
         self.monitor_file_name = None
+        self.file_manager: FileVersionManager = file_manager
+        self.action_type = None
+
+        self.connections = None
+        self.node_params = None 
+        self.ppline_path = None
+        self.diagrm_path = None
+        self.pipeline_lbl = None
+        
+
 
     def get_time(self):
         dt = datetime.now()
