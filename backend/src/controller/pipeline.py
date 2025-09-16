@@ -72,8 +72,6 @@ def create_new_ppline(fst_connection,
     all_nodes: list[TemplateNodeType] = parse_node(connections, node_params, data_place, context, node_list)
     template = template_final_parsing(template, pipeline_name, payload, duckdb_path, context)
 
-    #print('DATA PLACE IS: '+str(data_place))
-
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
         template = template.replace(data[0], str(value))
@@ -337,7 +335,7 @@ def update_ppline(user, filename):
     pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
     ppline_path = BasePipeline.folder+'/pipeline/'+user
 
-    start_node_id, node_params = pepeline_init_param(payload)
+    _, node_params = pepeline_init_param(payload)
     context = RequestContext(pipeline_name, payload['socketSid'])
     
     pipeline_instance = DltPipeline()
@@ -349,15 +347,7 @@ def update_ppline(user, filename):
     pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl)
     
     return ''
-   #try:
-   #     file_path = BasePipeline.folder+'/pipeline/'+user+'/'+filename
-   #     code = ''
-   #     with open(file_path, 'r') as file:
-   #         code = file.read()
 
-   #     return code
-   #except FileNotFoundError as err:
-   #    return jsonify({'error': 'Pipeline not found'}), 404
 
    
 @pipeline.route('/ppline/diagram/<user>/<filename>', methods=['GET'])
