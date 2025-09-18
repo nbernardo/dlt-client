@@ -1,12 +1,13 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
+import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 
 export class LogDisplay extends ViewComponent {
 
-	isPublic = true;
+	isPublic = false;
 
 	/** @Prop */ showLogs = false;
 	/** @Prop */ logOutput;
-	/** @Prop */ logTableBody;
+	/** @Prop @type { HTMLTableElement } */ logTableBody;
 	/** @Prop */ scrollControlBtn;
 
     /** @Prop */ logLevels = {info: 'INFO', warn: 'WARN', error: 'ERROR'};
@@ -14,11 +15,14 @@ export class LogDisplay extends ViewComponent {
     /** @Prop */ maxDelay = 2000; // Max possible delay in ms
     /** @Prop */ lastLogTime = null;
     /** @Prop */ isAutoScrollEnabled = true;
+    /** @Prop */ logTableId = '_'+UUIDUtil.newId();
+    /** @Prop */ autoScrollBtnId = '_autoScroll'+UUIDUtil.newId();
+    /** @Prop */ logOutputContainerId = '_outLog'+UUIDUtil.newId();
 
 	stAfterInit() {
-		this.logOutput = document.getElementById('log-output');
-		this.logTableBody = document.querySelector('#log-output-table tbody');
-		this.scrollControlBtn = document.getElementById('scroll-control-btn');
+		this.logOutput = document.getElementById(this.logOutputContainerId);
+		this.logTableBody = document.querySelector(`#${this.logTableId} tbody`);
+		this.scrollControlBtn = document.getElementById(this.autoScrollBtnId);
 	}
 
 	appendLogEntry(type, entry, time) {
@@ -104,4 +108,7 @@ export class LogDisplay extends ViewComponent {
 
 		return row;
 	}
+
+	clearLogs = () => this.logTableBody.innerHTML = '';
+	showHideLogsDisplay = () => this.showLogs = !this.showLogs;
 }

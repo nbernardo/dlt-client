@@ -434,4 +434,7 @@ export class Workspace extends ViewComponent {
 		//console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
 	}
 
+	showHideLogsDisplay = () => this.logProxy.showHideLogsDisplay();
+	
+
 }
