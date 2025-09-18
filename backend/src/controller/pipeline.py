@@ -43,11 +43,15 @@ def create():
     context.node_params = node_params
 
     if(context.action_type == 'UPDATE'):
-        return create_new_version_ppline(fst_connection, 
+        result =  create_new_version_ppline(fst_connection, 
                         pipeline_name, 
                         payload, 
                         duckdb_path, 
                         context)
+        
+        if not context.success_emitted:
+            context.emit_ppsuccess()
+        return result
     else:
         return create_new_ppline(fst_connection, 
                         pipeline_name, 
@@ -76,8 +80,8 @@ def create_new_ppline(fst_connection,
         value = data[1] if check_type(data[1]) else str(data[1])
         template = template.replace(data[0], str(value))
 
-    #print('TEMPLATE FINAL IS')
-    #print(template)
+    print('TEMPLATE FINAL IS')
+    print(template)
 
     if len(context.exceptions) > 0:
         message = list(context.exceptions[0].values())[0]['message']
@@ -127,6 +131,9 @@ def create_new_version_ppline(fst_connection,
     diagrm_path = context.diagrm_path
     pipeline_lbl = context.pipeline_lbl
 
+    data_place, node_list = {}, []
+    all_nodes: list[TemplateNodeType] = parse_node(connections, node_params, data_place, context, node_list)
+
     file_path = f'{ppline_path}/{pipeline_name}.py'
     pipeline_instance = DltPipeline()
     template = pipeline_instance.get_template_from_existin_ppline(file_path)
@@ -137,9 +144,12 @@ def create_new_version_ppline(fst_connection,
 
     parse_transformation_task(node_params, context)
     transformation = context.transformation
-    template = template.replace('%transformation%',transformation)
+
+    if(transformation is not None):
+        template = template.replace('%transformation%',transformation)
 
     try:
+        success = True
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
         if(result['status'] == True):
             pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl, True, False)
@@ -152,8 +162,8 @@ def create_new_version_ppline(fst_connection,
         success, message = False, result['message']
 
     finally:
-        #if success is False:
-        #    revert_and_notify_failure(pipeline_instance, all_nodes, message)
+        if success is False:
+            revert_and_notify_failure(pipeline_instance, all_nodes, message)
 
         return result['message']
 

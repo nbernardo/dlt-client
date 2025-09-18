@@ -31,6 +31,7 @@ class RequestContext:
         self.monitor_file_name = None
         self.file_manager: FileVersionManager = file_manager
         self.action_type = None
+        self.success_emitted = None
 
         self.connections = None
         self.node_params = None 
@@ -107,6 +108,7 @@ class RequestContext:
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
+        self.success_emitted = True
         socketio.sleep(0)
 
 

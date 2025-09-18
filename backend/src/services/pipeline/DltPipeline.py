@@ -77,12 +77,18 @@ class DltPipeline:
                                     bufsize=1
                                 )
         pipeline_exception = False
-        if(context.transformation is not None):
+
+        # TODO: If needed, flag can be assigned with proper logic so UI logs will only came in 
+        #  specific situation like will only print if the ppline has transformation or if it's
+        #  ppline update, otherwise flag = True will print in log in any scenario
+        #  flag = context.transformation is not None or context.action_type == 'UPDATE'
+        flag = True
+        
+        if(flag):
             while True:
                 line = result.stdout.readline()
                 if not line:
                     break
-                
                 line = line.strip()
                 is_transformation_step = (line.endswith('Transformation')\
                                            and line.startswith('dynamic-_cmp'))
