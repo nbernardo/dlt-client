@@ -90,7 +90,7 @@
 
             <div class="content-panel content-outputs">
                 <h3>Loaded data</h3>
-                <section id="data-panel" class="tab-panel">
+                <section id="data-panel" class="tab-panel data-panel">
                     <st-element showBullets="false" component="@treeview/StillTreeView" tooltipXPos="10"
                         (onRefreshClick)="refreshTree()" showRefresh="false" tooltipText="Update tree data"
                         proxy="dbTreeviewProxy">
@@ -161,6 +161,10 @@
         background-color: #f0f2f5;
         display: flex;
         min-height: 100vh;
+    }
+
+    .data-panel {
+        width: 100%; overflow-y: scroll; height: 100vh;
     }
 
     #nav-toggle,

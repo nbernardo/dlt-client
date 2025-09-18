@@ -46,6 +46,8 @@ export class WorkSpaceController extends BaseController {
         this.cmpIdToNodeIdMap = {};
         this.pplineStatus = {};
         this.editor.nodeId = 1;
+        this.wSpaceComponent.wasDiagramSaved = false;
+        this.wSpaceComponent.isAnyDiagramActive = false;
     }
 
     registerEvents() {
@@ -250,6 +252,9 @@ export class WorkSpaceController extends BaseController {
         });
 
         editor.on('nodeRemoved', function (id) {
+
+            if(obj.currentTotalNodes() === 0) obj.wSpaceComponent.resetWorkspace();
+            
             if (id == obj.edgeTypeAdded[NodeTypeEnum.START])
                 return delete obj.edgeTypeAdded[NodeTypeEnum.START];
 
@@ -321,6 +326,11 @@ export class WorkSpaceController extends BaseController {
         return obj.editor.drawflow.drawflow.Home.data[nodeId] || {};
     }
 
+    currentTotalNodes() {
+        const obj = WorkSpaceController.get();
+        return Object.keys(obj.editor.drawflow.drawflow.Home.data)?.length || 0;
+    }
+
     clearHTML(nodeId) {
         WorkSpaceController.getNode(nodeId).html = '';
     }
@@ -373,43 +383,58 @@ export class WorkSpaceController extends BaseController {
     }
 
     static addRunningStatus(containerHTMLClass) {
-        document
-            .querySelector(`.${containerHTMLClass}`)
-            .querySelector('div[class=title-box]')
-            .querySelector('.statusicon')
-            .className = 'statusicon running-status';
+        const container = document
+            .querySelector(`.${containerHTMLClass}`);
+
+        if(container){
+            container.querySelector('div[class=title-box]')
+                .querySelector('.statusicon')
+                .className = 'statusicon running-status';
+        }
     }
 
     static remRunningStatus(containerHTMLClass) {
-        document
-            .querySelector(`.${containerHTMLClass}`)
-            .querySelector('div[class=title-box]')
-            .querySelector('.statusicon')
-            .classList.remove('running-status');
+        const container = document
+            .querySelector(`.${containerHTMLClass}`);
+            
+        if(container){
+            container.querySelector('div[class=title-box]')
+                .querySelector('.statusicon')
+                .classList.remove('running-status');
+        }
     }
 
     static addFailedStatus(containerHTMLClass) {
-        document
-            .querySelector(`.${containerHTMLClass}`)
-            .querySelector('div[class=title-box]')
-            .querySelector('.statusicon')
-            .className = 'statusicon failed-status';
+        const container = document
+            .querySelector(`.${containerHTMLClass}`);
+            
+        if(container){
+            container.querySelector('div[class=title-box]')
+                .querySelector('.statusicon')
+                .className = 'statusicon failed-status';
+        }
     }
 
     static addSuccessStatus(containerHTMLClass) {
-        document
-            .querySelector(`.${containerHTMLClass}`)
-            .querySelector('div[class=title-box]')
-            .querySelector('.statusicon')
-            .className = 'statusicon success-status';
+        const container = document
+            .querySelector(`.${containerHTMLClass}`);
+            
+        if(container){
+            container.querySelector('div[class=title-box]')
+                .querySelector('.statusicon')
+                .className = 'statusicon success-status';
+        }
     }
 
     static addPreSuccessStatus(containerHTMLClass) {
-        document
-            .querySelector(`.${containerHTMLClass}`)
-            .querySelector('div[class=title-box]')
-            .querySelector('.statusicon')
-            .className = 'statusicon pre-success-status';
+        const container = document
+            .querySelector(`.${containerHTMLClass}`);
+            
+        if(container){
+            container.querySelector('div[class=title-box]')
+                .querySelector('.statusicon')
+                .className = 'statusicon pre-success-status';
+        }
     }
 
     addWorkspaceError(error) {
@@ -486,7 +511,6 @@ export class WorkSpaceController extends BaseController {
          *  only when it emits an event with its id (source component id) stating */
         Components.subscribeAction(`nodeReady${srcCmpId}`, () => setupNotification());
 
-
     }
 
     copyToClipboard(content) {
@@ -501,23 +525,78 @@ export class WorkSpaceController extends BaseController {
         });
     }
 
-    showDialog(message,{ onConfirm = () => {}, onCancel = () => {} } = {}){
+    /**
+     * 
+     * @param {*} message 
+     * @param {{ type: 'confirm'|'ok', onConfirm: Function, onCancel: Function, title: String }} param1 
+     */
+    showDialog(message,{ type = 'confirm', onConfirm = () => {}, onCancel = () => {}, title = null } = {}){
         const dialog = document.getElementById('wodkspaceMainDialog');
+        dialog.querySelector('.dialog-title').innerHTML = title || 'Confirm Action';
         const defaultMessage = dialog.querySelector('.dialog-message').innerHTML;
+
+        if(type === 'confirm'){
+            document.querySelector('.btn-confirm').style.display = '';
+            document.querySelector('.btn-cancel').style.display = '';
+            document.querySelector('.btn-ok').style.display = 'none';
+        }
+
+        if(type === 'ok'){
+            document.querySelector('.btn-confirm').style.display = 'none';
+            document.querySelector('.btn-cancel').style.display = 'none';
+            document.querySelector('.btn-ok').style.display = '';          
+        }
+
         if(message)
             dialog.querySelector('.dialog-message').innerHTML = message;
         
         dialog.showModal();
 
-        dialog.querySelector('.btn-confirm').onclick = async () => {
-            await onConfirm(); dialog.close();
-            dialog.querySelector('.dialog-message').innerHTML = defaultMessage;
-        }
+        dialog.querySelector('.btn-confirm').onclick = async () => await confirmAction();
+        dialog.querySelector('.btn-ok').onclick = async () => await confirmAction();
 
         dialog.querySelector('.btn-cancel').onclick = async () => {
             await onCancel(); dialog.close();
             dialog.querySelector('.dialog-message').innerHTML = defaultMessage;
         }
+
+        async function confirmAction(){
+            await onConfirm(); dialog.close();
+            dialog.querySelector('.dialog-message').innerHTML = defaultMessage;
+        }
+    }
+
+    /**
+     * @param {'save'|'update'} type 
+     */
+    twiceDiagramSaveAlert(type = 'save'){
+		let message = 'You cannot load more than one pipelin at time, please clear the workspace to load another pipeline';
+		let title = 'Cannot save the pipeline twice.';
+        if(type === 'update'){
+            title = 'No changes to update.';
+            message = 'No changes were done on the diagram/pipeline, so there is nothing to update';
+        }
+		return this.showDialog(message, { type: 'ok', title });
+    }
+    
+    moreThanOnePipelineOpenAlert(){
+        const message = 'You cannot load more than one pipelin at time, please clear the workspace to load another pipeline';
+		const title = 'Cannot load multiple pipeline.';
+		return this.showDialog(message, { type: 'ok', title });	
+    }
+    
+    noPipelineToSaveAlert(){
+        const message = 'There is no pipeline in the workspace to be save/updated';
+		const title = 'Nothing to be saved.';
+		return this.showDialog(message, { type: 'ok', title });	
+    }
+
+    isTherePipelineToSave(){
+        if(this.currentTotalNodes() == 0 && !this.wSpaceComponent.isAnyDiagramActive){
+			this.noPipelineToSaveAlert();
+			return false;
+		}
+        return true;
     }
 
 }

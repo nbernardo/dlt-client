@@ -118,6 +118,9 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */ showSaveButton = true;
 
+	/** @Prop */ isAnyDiagramActive = false;
+	/** @Prop */ wasDiagramSaved = false;
+
 	selectedLeftTab = 'content-diagram';
 
 	stOnRender() {
@@ -182,19 +185,35 @@ export class Workspace extends ViewComponent {
 	}
 
 	async savePipeline() {
+
+		if(!this.controller.isTherePipelineToSave()) return null;
+
 		if(this.activeGrid.value === 'Enter pipeline name')
 			return AppTemplate.toast.error('Please enter a valid pipeline name');
 		
+		if(this.wasDiagramSaved)
+			return this.controller.twiceDiagramSaveAlert('save');
+
 		const data = await this.preparePipelineContent();
 		if(data === null) return data;
 		this.logProxy.showLogs = true;
-		return await this.pplService.createOrUpdatePipeline(data);
+		const result = await this.pplService.createOrUpdatePipeline(data);
+		this.wasDiagramSaved = true;
+		return result;
 	}
 
 	async updatePipeline() {
+
+		if(!this.controller.isTherePipelineToSave()) return null;
+
+		if(this.wasDiagramSaved)
+			return this.controller.twiceDiagramSaveAlert('update');
+
 		const isUpdate = true;
 		const data = await this.preparePipelineContent(isUpdate);
-		return await this.pplService.createOrUpdatePipeline(data, isUpdate);
+		const result = await this.pplService.createOrUpdatePipeline(data, isUpdate);
+		this.wasDiagramSaved = true;
+		return result;
 	}
 
 	async preparePipelineContent(update = false){
@@ -236,9 +255,10 @@ export class Workspace extends ViewComponent {
 		this.editor.clearModuleSelected();
 		this.controller.resetEdges();
 		document.querySelector('.clear-workspace-btn').style.right = '95px';
-		this.showSaveButton = true;
-		document.getElementById('pplineNamePlaceHolder').innerHTML = 'Enter pipeline name';
+		this.activeGrid = 'Enter pipeline name';
 		document.getElementById('pplineNamePlaceHolder').contentEditable = true;
+		if(this.showSaveButton !== true)
+			this.showSaveButton = true;
 	}
 
 	onPplineNameKeyPress(e) {
@@ -378,13 +398,18 @@ export class Workspace extends ViewComponent {
 
 	async viewPipelineDiagram(event, pplineName){
 		event.preventDefault();
+		if(this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0)
+			return this.controller.moreThanOnePipelineOpenAlert();
+
 		const response = await this.service.readDiagramFile(this.userEmail, pplineName);
 		const result = JSON.parse(response);
 		this.activeGrid = result.pipeline_lbl;
 		document.querySelector('.clear-workspace-btn').style.right = '110px';
-		this.showSaveButton = true;
+		this.showSaveButton = false;
+		this.isAnyDiagramActive = true;
 		document.getElementById('pplineNamePlaceHolder').contentEditable = false;
 		await this.controller.processImportingNodes(result.content['Home'].data);
+		this.wasDiagramSaved = false;
 	}
 
 	async logout(){
