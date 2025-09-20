@@ -1,6 +1,6 @@
 export class UserUtil {
 
-    static email;
-    static name;
+    static email = null;
+    static name = null;
 
 }

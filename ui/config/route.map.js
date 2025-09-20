@@ -77,6 +77,14 @@ export const stillRoutesMap = {
             LogDisplay: {
                 path: "app/components/log",
                 url: "/log-display"
+            },
+            Config: {
+                path: "app/components/config",
+                url: "/config"
+            },
+            Header: {
+                path: "app/components/parts",
+                url: "/header"
             }
         },
         lazyInitial: {}

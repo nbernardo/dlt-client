@@ -58,10 +58,11 @@
                     </label>
                 </li>
 
-                <li class="left-menu-item" onclick="component.selectTab('content-ppline-script')">
-                    <label for="tab-script-ppline">
+                <li class="left-menu-item" 
+                    onclick="component.selectTab('content-ppline-script')">
+                    <label for="tab-script-ppline" tooltip="Pipeline script" tooltip-x="0">
                         <span class="icon">
-                            <img src="app/assets/imgs/left-menu/python-files.png" width="28" alt="">
+                            <img src="app/assets/imgs/left-menu/dlt-logo.png" width="28" alt="">
                         </span>
                         <span class="text">Pipeline Scripts</span>
                     </label>
@@ -330,13 +331,11 @@
     /* * Tooltip styling.
      * The `::after` pseudo-element creates the main tooltip box.
      */
-    .left-menu-item::after {
+    /* .left-menu-item::after {
         content: attr(data-tooltip);
-        /* Gets text from the HTML attribute */
         position: absolute;
         top: 50%;
         left: 55px;
-        /* Position to the right of the icon */
         transform: translateY(-50%);
         background-color: #555;
         color: white;
@@ -347,17 +346,16 @@
         visibility: hidden;
         transition: opacity 0.3s ease, visibility 0.3s ease;
         z-index: 1000000000;
-    }
+    } */
 
     /* * Tooltip arrow.
      * The `::before` pseudo-element creates the small triangular arrow.
      */
-    .left-menu-item::before {
+    /* .left-menu-item::before {
         content: '';
         position: absolute;
         top: 50%;
         left: 47px;
-        /* Position next to the tooltip box */
         transform: translateY(-50%) rotate(45deg);
         width: 10px;
         height: 10px;
@@ -366,7 +364,7 @@
         visibility: hidden;
         transition: opacity 0.3s ease, visibility 0.3s ease;
         z-index: 100000000;
-    }
+    } */
 
     /* Show both the tooltip and arrow on hover */
     .left-menu-item:hover::after,

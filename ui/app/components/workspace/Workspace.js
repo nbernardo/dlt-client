@@ -17,6 +17,8 @@ import { NoteBook } from "../code/NoteBook.js";
 import { UserUtil } from "../auth/UserUtil.js";
 import { Transformation } from "../node-types/Transformation.js";
 import { LogDisplay } from "../log/LogDisplay.js";
+import { Router } from "../../../@still/routing/router.js";
+import { Assets } from "../../../@still/util/componentUtil.js";
 
 export class Workspace extends ViewComponent {
 
@@ -124,6 +126,11 @@ export class Workspace extends ViewComponent {
 	selectedLeftTab = 'content-diagram';
 
 	stOnRender() {
+
+		setTimeout(async () => {
+			await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/chart.js', type: 'js' });
+		});
+
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
 			this.service.table.onChange(newValue => {
@@ -133,9 +140,11 @@ export class Workspace extends ViewComponent {
 
 		this.userService.on('load', async () => {
 			const user = (await this.userService.getLoggedUser());
-			UserUtil.name = user.name;
-			UserUtil.email = user.email;
-			Object.freeze(UserUtil);
+			if(UserUtil.name === null){
+				UserUtil.name = user.name;
+				UserUtil.email = user.email;
+				Object.freeze(UserUtil);
+			}
 			this.loggedUser = user.name;
 			this.userEmail = user.email;
 		});
@@ -147,7 +156,7 @@ export class Workspace extends ViewComponent {
 			console.log(`Service loaded with updated: `, this.pplService);
 			/* this.service.createPipeline().then(res => {
 				console.log(`Pipeline created successfully: `, res);
-			}) */
+			})*/
 		});
 		this.buildWorkspaceView();
 		setTimeout(() =>  this.showLoading = false, 100);
@@ -436,5 +445,4 @@ export class Workspace extends ViewComponent {
 
 	showHideLogsDisplay = () => this.logProxy.showHideLogsDisplay();
 	
-
 }

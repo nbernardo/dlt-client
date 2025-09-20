@@ -1,0 +1,49 @@
+<div>
+
+	<header style="display: flex; justify-content: space-between;">
+		<h2 style="display: flex;">
+			<div>
+				<img src="app/assets/imgs/dlt-client-logo-white.png" width="85" style="margin-top: 13px;">
+			</div>
+			<div> &nbsp;| Workspace</div>
+		</h2>
+		<div class="top-workspace-nav"
+			style="display: flex; align-items: center; padding: 5px 50px; justify-content: left;">
+
+			<div (click)="goto('Workspace')" 
+				class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
+				tooltip-y="-10" onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
+				<img src="app/assets/imgs/app.png" width="25" alt="">
+			</div>
+
+			<div class="action-icon counter-icon" counter="0" tooltip="Schedule pipline job(s)" 
+				tooltip-x="0"
+				tooltip-y="12" onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
+				<img src="app/assets/imgs/routine.png" width="25" alt="">
+			</div>
+
+			<div class="action-icon" tooltip="Pipeline(s) log display" tooltip-y="10"
+				onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
+				<img src="app/assets/imgs/logs-svgrepo-com.svg" width="18" alt="">
+			</div>
+
+			<div class="action-icon" tooltip="Configurations" tooltip-y="10" tooltip-x="0" (click)="goto('Config')"
+				style="cursor: pointer; border: none;">
+				<img src="app/assets/imgs/gears.png" width="20" alt="">
+			</div>
+
+			<div style="border: .5px solid #e1dddd; height: 38px;"></div>
+
+			<div class="user-info-wrapper"
+				style="display: flex; align-items: center; padding: 0px 50px; flex-direction: column; justify-content: left; padding-left: 22px;">
+				<div style="display: flex; align-items: center;">
+					<img src="app/assets/imgs/logged-usr.svg" width="30" alt=""> &nbsp;@loggedUser
+				</div>
+				<div style="display: flex; width: 100%; padding: 0 35px;">
+					<a href="#" style="font-size: 12px; color: grey;" (click)="logout()">Logout</a>
+				</div>
+			</div>
+		</div>
+	</header>
+
+</div>
