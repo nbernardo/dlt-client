@@ -1037,7 +1037,6 @@ export class Components {
         let cmpName = cmp.constructor.name, template;
 
         if ((!cmp.isPublic && isUnAuthn) && !Components.obj().isInWhiteList(cmp)) {
-
             if (document.querySelector(`.${$stillconst.ST_FIXE_CLS}`)) {
 
                 return document.getElementById($stillconst.UI_PLACEHOLDER)
@@ -1392,7 +1391,7 @@ export class Components {
 
                     const list = Object
                         .entries(registror)
-                        .filter(r => r[1].instance.parentVersionId == versionId)
+                        .filter(r => r[1]?.instance?.parentVersionId == versionId)
                         .map(r => r[0]);
 
                     list.forEach(
@@ -1406,7 +1405,7 @@ export class Components {
                 Object
                     .entries($still.context.componentRegistror.componentList)
                     .forEach(async r => {
-                        if (r[1].instance.navigationId < Router.navCounter) {
+                        if (r[1]?.instance?.navigationId < Router.navCounter) {
                             await registror[r[0]]?.instance?.stOnUnload();
                             delete $still.context.componentRegistror.componentList[r[0]]
                         }

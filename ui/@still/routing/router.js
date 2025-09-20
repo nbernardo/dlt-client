@@ -271,13 +271,15 @@ export class Router {
             soleRouting = true;
         }
         const cmpId = cmp.getUUID(), cmpName = cmp.constructor.name;
-        if (isReRender || isLoneCmp) {
+        //TODO: Refactor for component fast reloading mechanisms, for now 1 == 0 is to deactivating it
+        if (1 == 0 && (isReRender || isLoneCmp)) {
             Components
                 .unloadLoadedComponent(soleRouting && appPlaceholder)
                 .then(async () => {
                     Router.handleUnauthorizeIfPresent();
                     if (Router.noPermAccessProcess(isPrivate, appPlaceholder, cmp)) return;
                     if (cmp.subImported) {
+                        //TODO: make adjustements to this flow
                         const pageContent = `
                         <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName}" style="display:contents;">
                             ${cmp.getTemplate()}

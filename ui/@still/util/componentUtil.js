@@ -49,6 +49,11 @@ class AssetType {
 export class Assets {
 
     static imported = new Set(); 
+    /**
+     * 
+     * @param {AssetType} param 
+     * @returns 
+     */
     static async import({ path = '', type = null }){
         
         if(Assets.imported.has(path)) return;
