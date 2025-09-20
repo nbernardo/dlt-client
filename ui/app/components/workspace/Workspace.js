@@ -121,9 +121,18 @@ export class Workspace extends ViewComponent {
 	/** @Prop */ showSaveButton = true;
 
 	/** @Prop */ isAnyDiagramActive = false;
-	/** @Prop */ wasDiagramSaved = false;
 
+	/** @Prop */ wasDiagramSaved = false;
+	
+	/** @Prop */ selectedPplineName = false;
+	
 	selectedLeftTab = 'content-diagram';
+	
+	/** @Prop */ schedulePeriodicitySelected;
+
+	schedulePeriodicity;
+	scheduleTimeType = 'min';
+	scheduleTime;
 
 	stOnRender() {
 
@@ -161,6 +170,7 @@ export class Workspace extends ViewComponent {
 		this.buildWorkspaceView();
 		setTimeout(() =>  this.showLoading = false, 100);
 		this.onLeftTabChange();
+		this.handlePplineSchedulePopup();
 		//this.cmProxy.codeEditor.setSize(null, 100);
 	}
 
@@ -419,6 +429,7 @@ export class Workspace extends ViewComponent {
 		document.getElementById('pplineNamePlaceHolder').contentEditable = false;
 		await this.controller.processImportingNodes(result.content['Home'].data);
 		this.wasDiagramSaved = false;
+		this.selectedPplineName = pplineName;
 	}
 
 	async logout(){
@@ -444,5 +455,58 @@ export class Workspace extends ViewComponent {
 	}
 
 	showHideLogsDisplay = () => this.logProxy.showHideLogsDisplay();
+
+	handlePplineSchedulePopup(){
+
+		const { btnPipelineSchedule } = this.controller.getPplineScheduleVars();
+		this.controller.handlePplineScheduleHideShow();
+
+		this.schedulePeriodicity.onChange(val => {
+			btnPipelineSchedule.disabled = true;
+			this.schedulePeriodicitySelected = val, this.scheduleTime = '';
+			handleBtnEnabling(this);
+		});
+
+		this.scheduleTimeType.onChange(() => handleBtnEnabling(this));
+		this.scheduleTime.onChange(() => handleBtnEnabling(this));
+
+		function handleBtnEnabling(obj = this){
+			if(obj.schedulePeriodicity.value === 'every'){
+				if(['min','hour'].includes(obj.scheduleTimeType.value) && obj.scheduleTime.value !== ""){
+					btnPipelineSchedule.disabled = false;
+				}else btnPipelineSchedule.disabled = true;
+			}else{
+				if(obj.scheduleTime.value !== '') btnPipelineSchedule.disabled = false;
+				else btnPipelineSchedule.disabled = true;
+			}
+		}
+		
+	}
+
+	changeScheduleTime = (newValue) => this.scheduleTime = newValue;
+	
+	async scheduleJob(){
+		
+		const { btnPipelineSchedule } = this.controller.getPplineScheduleVars();
+		btnPipelineSchedule.disabled = true;
+		const payload = { 
+			ppline_name: this.selectedPplineName,
+			socket_id: this.socketData.sid,
+			settings: {
+				type: this.scheduleTimeType.value,
+				periodicity: this.schedulePeriodicity.value,
+				time: this.scheduleTime.value
+			}
+		};
+		const result = await this.service.schedulePipeline(JSON.stringify(payload));
+		if([false,'failed'].includes(result))
+			AppTemplate.toast.error('Error while scheduling job for '+this.activeGrid.value);
+		else
+			AppTemplate.toast.success('New schedule for '+this.activeGrid.value+' created successfully');
+
+		this.schedulePeriodicity = '';
+		this.scheduleTime = '';
+		btnPipelineSchedule.disabled = false;
+	}
 	
 }

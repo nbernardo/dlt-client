@@ -148,4 +148,20 @@ export class WorkspaceService extends BaseService {
         return this.dataSourceFieldsMap.get(sourceName);
     }
 
+	async updateSocketId(socketId){
+		const response = await $still.HTTPClient.post('/workcpace/socket_id/'+UserUtil.email+'/'+socketId);
+		if(response.ok)
+			return await response.text();
+		return null;
+	}
+
+	async schedulePipeline(payload){
+        const url = '/workcpace/ppline/schedule/'+UserUtil.email;
+        const headers = { 'Content-Type': 'application/json' };
+		const response = await $still.HTTPClient.post(url,payload,{ headers });
+		if(response.ok)
+			return await response.text();
+		return false;
+	}
+
 }

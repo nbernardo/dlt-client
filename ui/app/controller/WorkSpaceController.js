@@ -38,6 +38,10 @@ export class WorkSpaceController extends BaseController {
     wSpaceComponent;
     isImportProgress = false;
 
+    /** Pipeline schedule variables */
+    btnPipelineSchedule;
+    dropMenu;
+
     resetEdges() {
         this.edgeTypeAdded = {};
         this.formReferences.clear();
@@ -347,7 +351,10 @@ export class WorkSpaceController extends BaseController {
         const socket = io(wssAddr, { transports: ["websocket"] });
 
         socket.on('connect', () => { });
-        socket.on('connected', (data) => socketData.sid = data.sid);
+        socket.on('connected', async (data) => {
+            await this.wSpaceComponent.service.updateSocketId(data.sid);
+            socketData.sid = data.sid;
+        });
 
         socket.on('pplineError', ({ componentId, sid, error }) => {
             WorkSpaceController.addFailedStatus(componentId);
@@ -597,6 +604,22 @@ export class WorkSpaceController extends BaseController {
 			return false;
 		}
         return true;
+    }
+
+    /** @returns { { btnPipelineSchedule: HTMLButtonElement } } */
+    getPplineScheduleVars(){
+        if(this.btnPipelineSchedule === undefined){
+            this.btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
+            this.dropMenu = document.querySelector('.pipeline-context-drop-menu .submenu');
+        }
+        return { btnPipelineSchedule: this.btnPipelineSchedule, dropMenu: this.dropMenu };
+    }
+
+    handlePplineScheduleHideShow(){
+        const dropMenu = this.dropMenu;
+        document.querySelector('.pipeline-context-drop-menu').onmouseover = () => dropMenu.style.display = 'block';
+		document.onclick = (event) => 
+			!dropMenu.contains(event.target) ? dropMenu.style.display = 'none' : '';
     }
 
 }

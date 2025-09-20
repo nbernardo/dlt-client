@@ -69,16 +69,71 @@
 
 				<div class="col-right" id="still-adj-right-panel" style="position: relative;">
 					<div class="menu">
-						<ul>
+						<ul style="display: flex;">
 							<li onclick="controller.changeModule('Home'); controller.changeModule(event);"
-								class="selected">
+								class="selected" tooltip="Pipeline name" tooltip-x="0" tooltip-y="20">
 								<div onkeypress="component.onPplineNameKeyPress(event)" contenteditable="true"
 									id="pplineNamePlaceHolder">
 									@activeGrid
 								</div>
 							</li>
-							<li onclick="controller.changeModule('Other'); controller.changeModule(event);">Space 2
-							</li>
+							<span (showIf)="self.isAnyDiagramActive">
+								<li style="border: none;" class="pipeline-context-drop-menu">
+									<div style="display: flex; align-items: center;" class="schedule-job-menu">
+										<img src="app/assets/imgs/routine.png" width="20" alt="">
+										&nbsp;Schedule job
+									</div>
+									<ul class="submenu" style="display: none;">
+										<li class="context-content">
+											<div style="color: black; font-weight: bold;">New Pipeline Job Schedule</div>
+											<form (formRef)="pplineScheduleFormRef">
+												<div>
+													<label for="email" style="color: black;" class="form-label">Pipeline Name</label>
+													<input type="text" disabled (value)="activeGrid" class="form-input">
+												</div>
+												<div class="form-group-input">
+													<label for="role" style="color: black;" class="form-label">Schedule Peridicity</label>
+													<select (value)="schedulePeriodicity">
+														<option value="" disabled selected>Select an option...</option>
+														<option value="every">Every</option>
+														<option value="daily">Daily</option>
+														<option value="weekly">Weekly</option>
+														<option value="monthly">Monthly</option>
+													</select>
+												</div>
+												<div class="form-group-input">
+													<label for="email" style="color: black;" class="form-label">Time setting</label>
+													
+													<div class="time-setting" style="display: flex;">
+
+														<span (showIf)="self.schedulePeriodicitySelected == 'every'">
+															<div style="display: flex;">
+																<input class="form-input" type="number" (value)="scheduleTime" placeholder="e.g. 10">
+																<select (value)="scheduleTimeType">
+																	<option value="min">Min</option>
+																	<option value="hour">Hour</option>
+																</select>
+															</div>
+														</span>
+
+														<span (showIf)="self.schedulePeriodicitySelected == 'daily'">
+															<input 
+																onchange="component.changeScheduleTime(this.value)"
+																style="width: 12em;" placeholder="e.g. 12:00" 
+																type="time" (value)="scheduleTime" class="form-input">
+														</span>
+
+													</div>
+												</div>
+												<button onclick="component.scheduleJob()" id="btnPipelineSchedule" class="btn btn-primary" disabled>
+													Schedule Job
+												</button>
+											</form>
+										</li>
+									</ul>
+								</li>
+							</span>
+							<li style="display: none;" onclick="controller.changeModule('Other'); controller.changeModule(event);">Space 2</li>
 						</ul>
 					</div>
 
@@ -114,6 +169,10 @@
 							<i class="fas fa-search" onclick="component.editor.zoom_reset()"></i>
 							<i class="fas fa-search-plus" onclick="component.editor.zoom_in()"></i>
 						</div>
+					</div>
+
+					<div style="position: absolute;">
+						<st-element component="LogDisplay" proxy="logProxy"></st-element>
 					</div>
 				</div>
 			</div>
@@ -306,4 +365,47 @@
 		background: #0056b3;
 	}
 	/** End Dialog styling */
+
+
+	/** Active Pipeline Dropdown menu */
+
+        .pipeline-context-drop-menu {
+            list-style-type: none;
+            position: relative;
+        }
+
+        .pipeline-context-drop-menu .submenu {
+			display: none;
+			position: absolute;
+			top: 100%;
+			left: 0;
+			padding: 0;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			z-index: 100000000;
+			background: #e9e7e7;
+			border: none;
+			width: 230px;
+        }
+
+        .pipeline-context-drop-menu .submenu li {
+            list-style-type: none;
+        }
+
+        .pipeline-context-drop-menu .context-content {
+			padding-bottom: 12px !important;
+        }
+
+		.pipeline-context-drop-menu .form-label {
+			margin-bottom: -0.5rem;
+			font-weight: bold;
+        }
+
+        .pipeline-context-drop-menu .submenu li div {
+            display: block;
+            color: white;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+	/** End Active Pipeline Dropdown menu */
 </style>
