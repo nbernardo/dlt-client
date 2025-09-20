@@ -60,3 +60,27 @@ def disconnect_duckdb():
     session = payload['session']
     result = Workspace.connect_to_duckdb(database, session)
     return result
+
+
+@workspace.route('/workcpace/socket_id/<namespace>/<socket_id>', methods=['POST'])
+def update_socket_id(namespace, socket_id):
+    Workspace.update_socket_id(namespace, socket_id)
+    return ''
+
+
+@workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['POST'])
+def create_ppline_schedule(namespace):
+    import json
+    ppline_name = None
+    try:
+        payload = request.get_json()
+        settings = payload['settings']
+        ppline_name = payload['ppline_name']
+        # socket_id = payload['socket_id']
+
+        Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace)
+    except Exception as error:
+        print(f'Error while trying to schedule {ppline_name} pipeline')
+        print(error)
+        return 'failed'
+    return 'success'

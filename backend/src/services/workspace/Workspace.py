@@ -3,8 +3,8 @@ from pathlib import Path
 import uuid
 import os
 import duckdb
-#from utils.duckdb_util import DuckdbUtil
 import re
+from utils.duckdb_util import DuckdbUtil
 from tabulate import tabulate
 from controller.pipeline import BasePipeline
 
@@ -210,8 +210,76 @@ class Workspace:
 
             Workspace.duckdb_open_errors[user].append(str(err))
             return { 'error': True, 'error_list': Workspace.duckdb_open_errors[user] }
-        
+    
 
+    @staticmethod
+    def update_socket_id(namespace, new_sock_id):
+        try:
+            if(DuckdbUtil.workspace_table_exists('socket_connection') == False):
+                DuckdbUtil.create_socket_conection_table()
+
+            cnx = DuckdbUtil.get_workspace_db_instance()
+            cursor = cnx.cursor()
+            query = f"INSERT INTO socket_connection (namespace,socket_id) VALUES ('{namespace}', '{new_sock_id}')\
+                      ON CONFLICT (namespace) DO UPDATE SET namespace = EXCLUDED.namespace, socket_id = EXCLUDED.socket_id;"
+            
+            cursor.execute(query)
+
+        except duckdb.IOException as err:
+            print({ 'error': True, 'error_list': err })
+    
+
+    @staticmethod
+    def update_namespace_alias(namespace, new_alias):
+        try:
+            table = 'namespace'
+            if(DuckdbUtil.workspace_table_exists(table) == False):
+                DuckdbUtil.create_namespace_alias_table()
+
+            cnx = DuckdbUtil.get_workspace_db_instance()
+            cursor = cnx.cursor()
+            query = f"INSERT INTO {table} (namespace_id,namespaces_alias) VALUES ('{namespace}', '{new_alias}')\
+                      ON CONFLICT (namespace_id) \
+                      DO UPDATE SET namespace_id = EXCLUDED.namespace_id, namespaces_alias = EXCLUDED.namespaces_alias;"
+            cursor.execute(query)
+
+        except duckdb.IOException as err:
+            print({ 'error': True, 'error_list': err })
+    
+
+    @staticmethod
+    def create_ppline_schedule(ppline_name, schedule_settings, namespace):
+        try:
+            table = 'ppline_schedule'
+            if(DuckdbUtil.workspace_table_exists(table) == False):
+                DuckdbUtil.create_ppline_schedule_table()
+
+            cnx = DuckdbUtil.get_workspace_db_instance()
+            cursor = cnx.cursor()
+            query = f"INSERT INTO {table} (ppline_name,schedule_settings,namespace)\
+                      VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}')"
+            cursor.execute(query)
+
+        except duckdb.IOException as err:
+            print({ 'error': True, 'error_list': err })
+    
+
+    @staticmethod
+    def alias_name_space(namespace, new_sock_id):
+        try:
+            if(DuckdbUtil.namespace_db_exists() == False):
+                DuckdbUtil.create_namespace_alias()
+
+            cnx = DuckdbUtil.get_workspace_db_instance()
+            cursor = cnx.cursor()
+            query = f"INSERT INTO namespace (namespace_id,alias) VALUES ('{namespace}', '{new_sock_id}')\
+                      ON CONFLICT (namespace_id) DO UPDATE SET namespace_id = EXCLUDED.namespace_id, alias = EXCLUDED.alias;"
+            cursor.execute(query)
+
+        except duckdb.IOException as err:
+            print({ 'error': True, 'error_list': err })
+        
+        
     @staticmethod
     def get_code_path():
         root_dir = str(Path(__file__).parent).replace('src/services/workspace', '')
@@ -229,7 +297,10 @@ class Workspace:
         root_dir = str(Path(__file__).parent).replace('src/services/workspace','destinations')
         return f'{root_dir}/pipeline'
     
+
     @staticmethod
     def remove_code_file(file):
         os.remove(file)
+
+    
 

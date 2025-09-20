@@ -3,6 +3,8 @@ import duckdb
 
 class DuckdbUtil:
 
+    dltdbinstance = None
+
     @staticmethod
     def get_tables(database = None, where = None):
         cnx = duckdb.connect(f'{database}', read_only=True)
@@ -14,5 +16,79 @@ class DuckdbUtil:
                     duckdb_tables {where_clause}"
         print(f'THE QUERY WILL BE: {query}')
         return cursor.execute(query)
+    
+
+    @staticmethod
+    def get_workspace_db_instance():
+        if DuckdbUtil.dltdbinstance == None:
+            DuckdbUtil.dltdbinstance = duckdb.connect('dltworkspace.duckdb')
+        return DuckdbUtil.dltdbinstance
+
+
+    @staticmethod
+    def create_socket_conection_table():
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = "CREATE TABLE IF NOT EXISTS socket_connection (\
+            namespace VARCHAR,\
+            socket_id VARCHAR,\
+            PRIMARY KEY (namespace))"
+        cnx.execute(query)
+
+
+    @staticmethod
+    def create_namespace_alias_table():
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = "CREATE TABLE IF NOT EXISTS namespace (\
+            namespace_id VARCHAR,\
+            namespaces_alias JSON,\
+            PRIMARY KEY (namespace_id))"
+        cnx.execute(query)
+
+
+    @staticmethod
+    def create_namespace_user_table():
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = "CREATE TABLE IF NOT EXISTS users (\
+            user_email VARCHAR,\
+            namespaces JSON,\
+            PRIMARY KEY (user_email))"
+        cnx.execute(query)
+
+
+    @staticmethod
+    def create_ppline_schedule_table():
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = "CREATE TABLE IF NOT EXISTS ppline_schedule (\
+            ppline_name VARCHAR,\
+            namespace VARCHAR,\
+            schedule_settings JSON)"
+        cnx.execute(query)
+
+    @staticmethod
+    def workspace_table_exists(tbl = 'namespace'):
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        cursor = cnx.cursor()
+        query = f"SELECT EXISTS (SELECT 1 FROM duckdb_tables WHERE table_name = '{tbl}') as tbl_exists"
+        result = cursor.execute(query).fetchall()[0][0]   
+        return result
+
+
+
+    @staticmethod
+    def get_socket_id(namespace):
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        cursor = cnx.cursor()
+        query = f"SELECT * FROM socket_connection WHERE namespace = {namespace}"
+        result = cursor.execute(query).fetchall()[0][0]   
+        return result
+
+
+    @staticmethod
+    def create_namespace_alias(namespace):
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        cursor = cnx.cursor()
+        query = f"SELECT * FROM socket_connection WHERE namespace = {namespace}"
+        result = cursor.execute(query).fetchall()[0][0]   
+        return result
 
 

@@ -477,7 +477,7 @@ body {
     position: absolute;
     z-index: 100000000000000000000000;
     white-space: nowrap;
-    padding: 5px;
+    padding: 5px !important;
     border-radius: 6px;
     margin-top: attr(tooltip-y px,5px);
     margin-left: attr(tooltip-x px, -100px);
