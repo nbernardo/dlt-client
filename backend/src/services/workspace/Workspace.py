@@ -248,7 +248,7 @@ class Workspace:
     
 
     @staticmethod
-    def create_ppline_schedule(ppline_name, schedule_settings, namespace):
+    def create_ppline_schedule(ppline_name, schedule_settings, namespace, type, periodicity, time):
         try:
             table = 'ppline_schedule'
             if(DuckdbUtil.workspace_table_exists(table) == False):
@@ -256,12 +256,31 @@ class Workspace:
 
             cnx = DuckdbUtil.get_workspace_db_instance()
             cursor = cnx.cursor()
-            query = f"INSERT INTO {table} (ppline_name,schedule_settings,namespace)\
-                      VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}')"
+            query = f"INSERT INTO {table} (ppline_name,schedule_settings,namespace,type,periodicity,time)\
+                      VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}','{type}','{periodicity}','{time}')"
             cursor.execute(query)
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': err })
+    
+
+    @staticmethod
+    def get_ppline_schedule(namespace):
+        try:
+            table = 'ppline_schedule'
+            if(DuckdbUtil.workspace_table_exists(table) == False):
+                DuckdbUtil.create_ppline_schedule_table()
+
+            cnx = DuckdbUtil.get_workspace_db_instance()
+            cursor = cnx.cursor()
+            query = f"SELECT ppline_name,schedule_settings,namespace,type,periodicity,time FROM {table} WHERE namespace = '{namespace}'"
+            cursor.execute(query)
+
+            return { 'data': cursor.fetchall(), 'error': False }
+
+        except duckdb.IOException as err:
+            print({ 'error': True, 'error_list': err })
+            return { 'error': True, 'error_list': err }
     
 
     @staticmethod

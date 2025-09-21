@@ -76,11 +76,25 @@ def create_ppline_schedule(namespace):
         payload = request.get_json()
         settings = payload['settings']
         ppline_name = payload['ppline_name']
+        type, periodicity, time = settings['type'], settings['periodicity'], settings['time']
         # socket_id = payload['socket_id']
 
-        Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace)
+        Workspace.create_ppline_schedule(
+            ppline_name, json.dumps(settings), namespace, type, periodicity, time
+        )
     except Exception as error:
         print(f'Error while trying to schedule {ppline_name} pipeline')
         print(error)
         return 'failed'
     return 'success'
+
+
+@workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['GET'])
+def get_ppline_schedule(namespace):
+    try:
+        return Workspace.get_ppline_schedule(namespace)
+    except Exception as error:
+        print(f'Error while trying to schedule schedule pipelines')
+        print(error)
+        return 'failed'
+    

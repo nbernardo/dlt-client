@@ -58,9 +58,16 @@ class DuckdbUtil:
     @staticmethod
     def create_ppline_schedule_table():
         cnx = DuckdbUtil.get_workspace_db_instance()
+        cnx.execute('CREATE SEQUENCE ppline_schedul_sequence;')
+
         query = "CREATE TABLE IF NOT EXISTS ppline_schedule (\
+            id INTEGER PRIMARY KEY DEFAULT nextval('ppline_schedul_sequence'),\
             ppline_name VARCHAR,\
+            type VARCHAR,\
+            periodicity VARCHAR,\
+            time VARCHAR,\
             namespace VARCHAR,\
+            last_run VARCHAR,\
             schedule_settings JSON)"
         cnx.execute(query)
 
