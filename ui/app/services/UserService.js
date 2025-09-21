@@ -6,6 +6,7 @@ export class UserService extends BaseService {
 
     static auth0Client = null;
     userDetailes = null;
+    static namespace = null;
 
     async auth0Connect(){
         UserService.auth0Client = await authConnect();
@@ -42,6 +43,12 @@ export class UserService extends BaseService {
     async getLoggedUser(){
         await auth0GetConnection();
         return UserService.auth0Client.getUser();
+    }
+
+    static async getNamespace(){
+        if(UserService.namespace === null)
+            UserService.namespace = (await new UserService().getLoggedUser()).email
+        return UserService.namespace
     }
 
 }

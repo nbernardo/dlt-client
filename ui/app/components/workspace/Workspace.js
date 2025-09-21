@@ -5,8 +5,6 @@ import { AppTemplate } from "../../../config/app-template.js";
 import { NodeTypeEnum, PPLineStatEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
-import { CodeMiror } from "../../../@still/vendors/codemirror/CodeMiror.js";
-import { Terminal } from "./terminal/Terminal.js";
 import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
 import { EditorLanguageType } from "../../types/editor.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
@@ -17,8 +15,8 @@ import { NoteBook } from "../code/NoteBook.js";
 import { UserUtil } from "../auth/UserUtil.js";
 import { Transformation } from "../node-types/Transformation.js";
 import { LogDisplay } from "../log/LogDisplay.js";
-import { Router } from "../../../@still/routing/router.js";
 import { Assets } from "../../../@still/util/componentUtil.js";
+import { Header } from "../parts/Header.js";
 
 export class Workspace extends ViewComponent {
 
@@ -53,10 +51,11 @@ export class Workspace extends ViewComponent {
 
 	activeGrid = "Enter pipeline name";
 
-
-	/** 
-	 * @Proxy @type { LogDisplay }*/
+	/** @Proxy @type { LogDisplay }*/
 	logProxy;
+
+	/** @Proxy @type { Header }*/
+	headerProxy;
 
 	/** 
 	 * @Inject 
@@ -495,7 +494,8 @@ export class Workspace extends ViewComponent {
 			settings: {
 				type: this.scheduleTimeType.value,
 				periodicity: this.schedulePeriodicity.value,
-				time: this.scheduleTime.value
+				time: this.scheduleTime.value,
+				ppline_label: this.activeGrid.value,
 			}
 		};
 		const result = await this.service.schedulePipeline(JSON.stringify(payload));
@@ -504,6 +504,8 @@ export class Workspace extends ViewComponent {
 		else
 			AppTemplate.toast.success('New schedule for '+this.activeGrid.value+' created successfully');
 
+		const response = await WorkspaceService.getPipelineSchedules();
+		this.headerProxy.scheduledPipelines = response.data;
 		this.schedulePeriodicity = '';
 		this.scheduleTime = '';
 		btnPipelineSchedule.disabled = false;

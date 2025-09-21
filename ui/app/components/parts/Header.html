@@ -10,16 +10,34 @@
 		<div class="top-workspace-nav"
 			style="display: flex; align-items: center; padding: 5px 50px; justify-content: left;">
 
-			<div (click)="goto('Workspace')" 
-				class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
+			<div (click)="goto('Workspace')" class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
 				tooltip-y="-10" onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
 				<img src="app/assets/imgs/app.png" width="25" alt="">
 			</div>
 
-			<div class="action-icon counter-icon" counter="0" tooltip="Schedule pipline job(s)" 
-				tooltip-x="0"
-				tooltip-y="12" onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
+			<div 
+				class="action-icon counter-icon scheduled-pipeline-context-drop-menu" 
+				onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
 				<img src="app/assets/imgs/routine.png" width="25" alt="">
+				<span>@scheduledPipelinesCount</span>
+				<ul class="submenu">
+					<li style="background: #f8f8f8 !important">Scheduled pipelines</li>
+					@if(this.scheduledPipelines.length === 0)
+						<li>No Job scheduled</li>
+					@endif
+
+					@for(ppline in this.scheduledPipelines)
+					<li>
+						<div class="list-item-header">
+							{JSON.parse(ppline[1]).ppline_label}
+							<div class="list-item-details">
+								<output>Setting: {ppline[4]} {ppline[5]} {ppline[3]}</output>
+								<output>Last Run: 3h ago</output>
+							</div>
+						</div>
+					</li>
+					@endfor
+				</ul>
 			</div>
 
 			<div class="action-icon" tooltip="Pipeline(s) log display" tooltip-y="10"
@@ -45,5 +63,52 @@
 			</div>
 		</div>
 	</header>
-
 </div>
+
+<style>
+
+        .scheduled-pipeline-context-drop-menu .submenu {
+			width: 20vw !important;
+			background: rgb(236, 235, 235) !important;
+		}
+
+
+        .scheduled-pipeline-context-drop-menu .submenu li {
+            list-style-type: none;
+            padding: 10px 15px;
+            color: #333 !important;
+            border-bottom: 1px solid #ccc;
+            transition: background-color 0.3s;
+			font-weight: bold;
+        }
+
+        .scheduled-pipeline-context-drop-menu .submenu li:last-child {
+            border-bottom: none;
+        }
+
+		.scheduled-pipeline-context-drop-menu .submenu li:first-child:hover
+		{
+            background-color: #f8f8f8 !important;
+        }
+
+        .scheduled-pipeline-context-drop-menu .submenu li:hover {
+            background-color: #f0f0f0;
+        }
+
+        .scheduled-pipeline-context-drop-menu .submenu .list-item-header {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+			color: #333;
+        }
+
+        .scheduled-pipeline-context-drop-menu .submenu .list-item-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: #888;
+			font-weight: normal;
+        }
+
+
+</style>

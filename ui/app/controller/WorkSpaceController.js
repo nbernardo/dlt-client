@@ -38,6 +38,8 @@ export class WorkSpaceController extends BaseController {
     wSpaceComponent;
     isImportProgress = false;
 
+    static scheduledPipelinesInitList;
+
     /** Pipeline schedule variables */
     btnPipelineSchedule;
     dropMenu;
@@ -618,8 +620,9 @@ export class WorkSpaceController extends BaseController {
     handlePplineScheduleHideShow(){
         const dropMenu = this.dropMenu;
         document.querySelector('.pipeline-context-drop-menu').onmouseover = () => dropMenu.style.display = 'block';
-		document.onclick = (event) => 
-			!dropMenu.contains(event.target) ? dropMenu.style.display = 'none' : '';
+		document.addEventListener('click', (event) => 
+			!dropMenu.contains(event.target) ? dropMenu.style.display = 'none' : ''
+        );
     }
 
 }

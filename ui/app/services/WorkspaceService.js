@@ -6,6 +6,7 @@ import { Bucket } from "../components/node-types/Bucket.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
+import { UserService } from "./UserService.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -19,6 +20,8 @@ export class ObjectDataTypes {
 export class WorkspaceService extends BaseService {
 
     table = new ServiceEvent([]);
+    schedulePipelines = new ServiceEvent([]);
+    
     static DISCONECT_DB = 'DISCONECT';
     static CONNECT_DB = 'CONNECT';
 
@@ -156,12 +159,22 @@ export class WorkspaceService extends BaseService {
 	}
 
 	async schedulePipeline(payload){
-        const url = '/workcpace/ppline/schedule/'+UserUtil.email;
+        const namespace = UserUtil.email;
+        const url = '/workcpace/ppline/schedule/'+namespace;
         const headers = { 'Content-Type': 'application/json' };
 		const response = await $still.HTTPClient.post(url,payload,{ headers });
 		if(response.ok)
 			return await response.text();
 		return false;
+	}
+
+	static async getPipelineSchedules(){
+        const namespace = await UserService.getNamespace();
+        const url = '/workcpace/ppline/schedule/'+namespace;
+		const response = await $still.HTTPClient.get(url);
+		if(response.ok && !response.error)
+			return await response.json();
+		return null;
 	}
 
 }
