@@ -8,7 +8,7 @@ from flask_socketio import emit
 from controller.RequestContext import socketio
 
 from controller.pipeline import pipeline, BasePipeline
-from controller.workspace import workspace
+from controller.workspace import workspace, call_scheduled_job
 from controller.file_upload import upload, BaseUpload
 
 proj_folder = Path(__file__).parent
@@ -28,6 +28,8 @@ def on_connect():
     emit('connected', {'sid': request.sid}, to=request.sid)
     socketio.sleep(0)
 
+    
+call_scheduled_job()
 
 app.register_blueprint(pipeline)
 app.register_blueprint(workspace)

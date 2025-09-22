@@ -313,7 +313,7 @@ class Workspace:
                 ppline_name = sched[0]
                 namespace = sched[2]
                 file_path = f'{namespace}/{ppline_name}'
-
+                
                 if(Workspace.schedule_jobs.get(file_path,None) != True):
                     schedule.every(1).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
                     schedule.every(20).seconds.do(lambda: print('Ola pessoal'))

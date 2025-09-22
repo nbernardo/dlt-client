@@ -1,6 +1,10 @@
+from os import getenv as env
 from flask import Blueprint, request
 from services.workspace.Workspace import Workspace
 from controller.pipeline import BasePipeline
+from flask_cors import cross_origin
+import threading
+
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -62,12 +66,6 @@ def disconnect_duckdb():
 @workspace.route('/workcpace/socket_id/<namespace>/<socket_id>', methods=['POST'])
 def update_socket_id(namespace, socket_id):
     Workspace.update_socket_id(namespace, socket_id)
-    global schedule_was_called
-
-    if(schedule_was_called == None):
-        Workspace.schedule_pipeline_job()
-        schedule_was_called = True
-
     return ''
 
 
@@ -112,3 +110,27 @@ def get_ppline_schedule(namespace):
         print(error)
         return 'failed'
     
+
+@workspace.route('/workcpace/ppline/job/schedule/', methods=['POST'])
+@cross_origin(origins=[env('APP_SRV_ADDR')])
+def setup_job_schedules():
+    Workspace.schedule_pipeline_job()
+    return ''
+    
+
+def call_scheduled_job():
+    import requests
+    import time
+
+    time.sleep(2)
+
+    def call_end_point():
+        while True:
+            response = requests.post(f'{env('APP_SRV_ADDR')}/workcpace/ppline/job/schedule/')
+            response.raise_for_status()
+            if response.status_code == 200 or response.status_code == 204:
+                break
+            time.sleep(2)
+
+    task = threading.Thread(target=call_end_point)
+    task.start()

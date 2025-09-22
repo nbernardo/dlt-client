@@ -8,6 +8,8 @@ from typing import Dict
 from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
 from utils.duckdb_util import DuckdbUtil
+import uuid
+
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
 destinations_dir = f'{root_dir}/destinations/pipeline'
@@ -269,11 +271,14 @@ class DltPipeline:
 
         return new_file_name_version
     
+
+    processed_job = { 'start': {}, 'end': {} }
     @staticmethod
     def run_pipeline_job(file_path, namespace):
-
+        
         socket_id = DuckdbUtil.get_socket_id(namespace)
         context = RequestContext(None, socket_id)
+        job_execution_id = uuid.uuid4()
 
         try:
 
@@ -301,6 +306,10 @@ class DltPipeline:
                     message = line.startswith('RUNTIME_ERROR:')
                     context.emit_ppline_job_trace(line.replace('RUNTIME_ERROR:',''), error=True)
                 else:
+                    if(type(line) == str):
+                        if(line.__contains__('Files/Bucket loaded')):
+                            if(has_ppline_job('start',job_execution_id)):
+                                pass
                     context.emit_ppline_job_trace(line)
 
             result.wait()
@@ -312,6 +321,9 @@ class DltPipeline:
                 message = 'Runtime Pipeline error, check the logs for details'
                 context.emit_ppline_job_trace(message, error=True)
             else:
+                if(line.__contains__('Pipeline run terminated successfully')):
+                    if(has_ppline_job('end',job_execution_id)):
+                        pass
                 context.emit_ppline_job_trace('Pipeline run terminated successfully')
             
             error_messages = None
@@ -324,8 +336,26 @@ class DltPipeline:
                 context.emit_ppline_job_trace(message, error=True)
             
             result.kill()
+            clear_job_transaction_id(job_execution_id)
         
         except Exception as err:
             message = f'Error while running job for {file_path.split('/')[1]} pipeline'
             context.emit_ppline_job_trace(message,error=True)
             context.emit_ppline_job_trace(err.with_traceback,error=True)
+
+
+def has_ppline_job(evt, job_transaction_id):
+
+    if(DltPipeline.processed_job[evt].get(job_transaction_id,None) == None):
+        DltPipeline.processed_job['end'][job_transaction_id] = True
+        return False
+    else:
+        return True
+
+
+def clear_job_transaction_id(job_transaction_id):
+    if(job_transaction_id in DltPipeline.processed_job['start']):
+        del DltPipeline.processed_job['start'][job_transaction_id]
+    
+    if(job_transaction_id in DltPipeline.processed_job['end']):
+        del DltPipeline.processed_job['end'][job_transaction_id]
