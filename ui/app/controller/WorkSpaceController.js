@@ -354,8 +354,8 @@ export class WorkSpaceController extends BaseController {
 
         socket.on('connect', () => { });
         socket.on('connected', async (data) => {
-            await this.wSpaceComponent.service.updateSocketId(data.sid);
             socketData.sid = data.sid;
+            await this.wSpaceComponent.service.updateSocketId(data.sid);
         });
 
         socket.on('pplineError', ({ componentId, sid, error }) => {
@@ -381,11 +381,14 @@ export class WorkSpaceController extends BaseController {
         socket.on('pplineSuccess', ({ sid }) => {
             const tasks = this.pplineSteps[sid];
             this.pplineStatus = PPLineStatEnum.Finished;
-            [...tasks].forEach(WorkSpaceController.addSuccessStatus);
+            if(tasks)
+                [...tasks].forEach(WorkSpaceController.addSuccessStatus);
         });
 
-        socket.on('pplineTrace', ({ data: trace, time, error }) => {
+        socket.on('pplineTrace', ({ data: trace, time, error, job }) => {
             const logType = (error ? 'error' : 'info');
+            if(job && trace.indexOf('Could not set lock on file') > 0)
+                return;
             this.wSpaceComponent.logProxy.appendLogEntry(logType, trace, time);
         });
 

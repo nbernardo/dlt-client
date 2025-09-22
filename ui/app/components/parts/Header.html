@@ -10,7 +10,7 @@
 		<div class="top-workspace-nav"
 			style="display: flex; align-items: center; padding: 5px 50px; justify-content: left;">
 
-			<div (click)="goto('Workspace')" class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
+			<div (click)="navigateTo('Workspace')" class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
 				tooltip-y="-10" onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
 				<img src="app/assets/imgs/app.png" width="25" alt="">
 			</div>
@@ -19,7 +19,17 @@
 				class="action-icon counter-icon scheduled-pipeline-context-drop-menu" 
 				onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
 				<img src="app/assets/imgs/routine.png" width="25" alt="">
-				<span>@scheduledPipelinesCount</span>
+				<span>
+					<output (showIf)="self.showScheduleCounter">@scheduledPipelinesCount</output>
+					
+					@if(this.scheduledPipelinesCount === -1)
+						<div class="mini-loader-container">
+							<div class="mini-loader-dot"></div>
+							<div class="mini-loader-dot"></div>
+							<div class="mini-loader-dot"></div>
+						</div>
+					@endif
+				</span>
 				<ul class="submenu">
 					<li style="background: #f8f8f8 !important">Scheduled pipelines</li>
 					@if(this.scheduledPipelines.length === 0)
@@ -40,12 +50,15 @@
 				</ul>
 			</div>
 
-			<div class="action-icon" tooltip="Pipeline(s) log display" tooltip-y="10"
-				onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
-				<img src="app/assets/imgs/logs-svgrepo-com.svg" width="18" alt="">
-			</div>
+			<span (showIf)="self.showLogsIcon">
+				<div class="action-icon" tooltip="Pipeline(s) log display" tooltip-y="10"
+					onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
+					<img src="app/assets/imgs/logs-svgrepo-com.svg" width="18" alt="">
+				</div>
+			</span>
 
-			<div class="action-icon" tooltip="Configurations" tooltip-y="10" tooltip-x="0" (click)="goto('Config')"
+			<div class="action-icon" tooltip="Configurations" tooltip-y="10" tooltip-x="0" 
+				(click)="navigateTo('Config')"
 				style="cursor: pointer; border: none;">
 				<img src="app/assets/imgs/gears.png" width="20" alt="">
 			</div>
@@ -109,6 +122,5 @@
             color: #888;
 			font-weight: normal;
         }
-
 
 </style>

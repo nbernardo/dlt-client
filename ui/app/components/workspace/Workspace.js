@@ -167,6 +167,7 @@ export class Workspace extends ViewComponent {
 			})*/
 		});
 		this.buildWorkspaceView();
+		
 		setTimeout(() =>  this.showLoading = false, 100);
 		this.onLeftTabChange();
 		this.handlePplineSchedulePopup();
@@ -452,8 +453,6 @@ export class Workspace extends ViewComponent {
 		this.leftMenuProxy.scriptListProxy.selectedFile;
 		//console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
 	}
-
-	showHideLogsDisplay = () => this.logProxy.showHideLogsDisplay();
 
 	handlePplineSchedulePopup(){
 

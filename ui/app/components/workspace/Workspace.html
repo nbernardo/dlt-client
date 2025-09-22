@@ -55,7 +55,7 @@
 					</div>
 				</header>
 			-->
-			<st-element component="Header" proxy="headerProxy"></st-element>
+			<st-element component="Header" proxy="headerProxy" showLogsIcon="true"></span></st-element>
 			<div class="wrapper">
 
 				<div style="width: 500px;" class="divederLeftSide">
@@ -184,16 +184,21 @@
 
 <style>
 	.top-workspace-nav .counter-icon span{
-		margin-left: -30px; top: 18px;
+		margin-left: -4px;
+		top: 18px;
 		border-radius: 100%;
 		position: absolute;
 		font-size: 10px;
 		padding: 3px;
 		padding-bottom: 4px;
-		width: 15px; height: 15px;
+		width: 19px;
+		height: 18px;
 		text-align: center;
 		background: #2c3e50;
 		color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.top-workspace-nav .action-icon{
@@ -416,6 +421,70 @@
             text-decoration: none;
             white-space: nowrap;
         }
-
+		
 	/** End Active Pipeline Dropdown menu */
+
+
+	/** Mini Loader styling */
+		/** Dot Mini Loader */
+        .mini-loader-container {
+            width: 13px;
+            height: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .mini-loader-dot {
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            background-color: #E5E7EB; /* Changed to a lighter gray for better contrast */
+            animation: pulse-dot 1.5s infinite ease-in-out both;
+        }
+
+        .mini-loader-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .mini-loader-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% {
+                transform: scale(0.6);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+		/** End Dot Mini loader */
+		
+		
+		/** Spinner Mini loader */
+        .mini-loader-spinner {
+            width: 13px;
+            height: 13px;
+            border: 2px solid #E5E7EB;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+		/** End Spinner Mini loader */
+
+
+	/** End Mini Loader styling */
 </style>

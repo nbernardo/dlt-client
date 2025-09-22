@@ -1,8 +1,10 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { ListState } from "../../../@still/component/type/ComponentType.js";
 import { Router } from "../../../@still/routing/router.js";
+import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { UserUtil } from "../auth/UserUtil.js";
+import { Workspace } from "../workspace/Workspace.js";
 
 export class Header extends ViewComponent {
 
@@ -18,12 +20,18 @@ export class Header extends ViewComponent {
 	 * @type { WorkspaceService }*/
 	workspaceService;
 
-	scheduledPipelinesCount = '...';
+	scheduledPipelinesCount = -1;
 
 	/** @type { ListState<Array> } */
 	scheduledPipelines = [];
 
 	loggedUser = null;
+
+	/** @Prop */ showLogsIcon = true;
+	/** @Prop */ showScheduleCounter = false;
+
+	/** @type { Workspace } */
+	$parent;
 
 	stAfterInit(){
 		
@@ -42,20 +50,22 @@ export class Header extends ViewComponent {
 
 		this.scheduledPipelines.onChange(val => this.scheduledPipelinesCount = val.length || 0);
 
-		this.workspaceService.on('load', () => {
-			this.workspaceService.schedulePipelines = Header.scheduledPipelinesInitList.data;
-			this.scheduledPipelinesCount = this.workspaceService.schedulePipelines.value.length;
+		this.workspaceService.on('load', async () => {
+			const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
+			this.workspaceService.schedulePipelines = scheduledPipelinesInitList.data;			
 			this.scheduledPipelines = this.workspaceService.schedulePipelines.value;
+			this.scheduledPipelinesCount = this.workspaceService.schedulePipelines.value.length;
+			this.showScheduleCounter = true;
 		});
 
 		this.handleScheduledPplineHideShow();
 	}
 
-	gotoConfig = () => Router.goto('Config');
-	
-	async stBeforeInit(){
-		Header.scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
-	}
+	navigateTo = (routeName) => {
+		if(routeName == Router.getCurrentViewName())
+			return
+		Router.goto(routeName);
+	} 
 
     handleScheduledPplineHideShow(){
         const scheduleIcon = document.querySelector('.scheduled-pipeline-context-drop-menu');
@@ -66,5 +76,11 @@ export class Header extends ViewComponent {
 			!dropMenu.contains(event.target) ? dropMenu.style.display = 'none' : ''
 		);
     }
+
+	showHideLogsDisplay = () => this.$parent.logProxy.showHideLogsDisplay();
+
+	logout(){
+		this.userService.logOut();
+	}
 
 }

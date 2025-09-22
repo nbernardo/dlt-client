@@ -700,3 +700,10 @@ header a {
     button[disabled]:hover {
         background: lightgray !important;
     }
+
+    .menu-added-arrow{
+        padding-left: 5px;
+        margin-top: -9px;
+        font-size: 18px;
+        color: #b9b6b6;
+    }
