@@ -24,6 +24,7 @@ class DuckdbUtil:
             DuckdbUtil.dltdbinstance = duckdb.connect('dltworkspace.duckdb')
         return DuckdbUtil.dltdbinstance
 
+
     @staticmethod
     def check_pipline_db(dbfile_path):
         """
@@ -77,7 +78,7 @@ class DuckdbUtil:
             periodicity VARCHAR,\
             time VARCHAR,\
             namespace VARCHAR,\
-            last_run VARCHAR,\
+            last_run TIMESTAMP,\
             schedule_settings JSON)"
         cnx.execute(query)
 

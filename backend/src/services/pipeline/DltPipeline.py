@@ -9,6 +9,7 @@ from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
 from utils.duckdb_util import DuckdbUtil
 import uuid
+from datetime import datetime
 
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
@@ -337,11 +338,38 @@ class DltPipeline:
             
             result.kill()
             clear_job_transaction_id(job_execution_id)
+
+            dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            ppline_name = str(file_path).replace(f'{namespace}/','')
+            DltPipeline.update_pipline_runtime(namespace,ppline_name,dt)
+
         
         except Exception as err:
             message = f'Error while running job for {file_path.split('/')[1]} pipeline'
             context.emit_ppline_job_trace(message,error=True)
             context.emit_ppline_job_trace(err.with_traceback,error=True)
+
+
+    @staticmethod
+    def update_pipline_runtime(namespace, ppline, time):
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = f"UPDATE ppline_schedule\
+                    SET last_run='{time}'\
+                    WHERE\
+                        namespace='{namespace}'\
+                        and ppline_name='{ppline}'"
+        cnx.execute(query)
+
+
+    @staticmethod
+    def get_pipline_runtime(namespace, ppline):
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = f"UPDATE ppline_schedule\
+                    SET last_run='{time}'\
+                    WHERE\
+                        namespace='{namespace}'\
+                        and ppline_name='{ppline}'"
+        cnx.execute(query)
 
 
 def has_ppline_job(evt, job_transaction_id):

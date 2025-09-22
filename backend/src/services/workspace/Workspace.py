@@ -269,6 +269,12 @@ class Workspace:
 
     @staticmethod
     def get_ppline_schedule(namespace = None):
+
+        field_names = [
+            'id','ppline_name','schedule_settings','namespace',
+            'type','periodicity','time', 'last_run'
+        ]
+
         try:
             table = 'ppline_schedule'
             if(DuckdbUtil.workspace_table_exists(table) == False):
@@ -277,9 +283,17 @@ class Workspace:
             where = f"WHERE namespace = '{namespace}'" if namespace != None else ''
             cnx = DuckdbUtil.get_workspace_db_instance()
             cursor = cnx.cursor()
-            query = f"SELECT ppline_name,schedule_settings,namespace,type,periodicity,time FROM {table} {where}"
+            query = f"SELECT {','.join(field_names)} FROM {table} {where}"
             cursor.execute(query)
-            return { 'data': cursor.fetchall(), 'error': False }
+            result = cursor.fetchall()
+            final_data = []
+
+            if(len(result)):
+                for row in result:
+                    row_to_json = dict(zip(field_names,row))
+                    final_data.append(row_to_json)
+
+            return { 'data': final_data, 'error': False }
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': err })
@@ -310,11 +324,11 @@ class Workspace:
             schedules = result['data']
         
             for sched in schedules:
-                ppline_name = sched[0]
-                namespace = sched[2]
-                type = sched[3]
-                periodicity = sched[4]
-                time = int(sched[5])
+                ppline_name = sched['ppline_name']
+                namespace = sched['namespace']
+                type = sched['type']
+                periodicity = sched['periodicity']
+                time = int(sched['time'])
                 file_path = f'{namespace}/{ppline_name}'
                 
                 if(Workspace.schedule_jobs.get(file_path,None) != True):
