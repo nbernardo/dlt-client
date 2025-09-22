@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict
 from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
+from utils.duckdb_util import DuckdbUtil
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
 destinations_dir = f'{root_dir}/destinations/pipeline'
@@ -83,7 +84,7 @@ class DltPipeline:
         #  ppline update, otherwise flag = True will print in log in any scenario
         #  flag = context.transformation is not None or context.action_type == 'UPDATE'
         flag = True
-        
+
         if(flag):
             while True:
                 line = result.stdout.readline()
@@ -121,6 +122,9 @@ class DltPipeline:
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout.read())
         print("Standard Error:", message if error_messages != None else None)
+
+        result.kill()
+
         return { 'status': status if len(result.stderr.read()) > 0 else True, 'message': message }
 
 
@@ -137,6 +141,8 @@ class DltPipeline:
             diagrm_file, file_open_flag = f'{diagrm_path}/{file_name}.json', 'x+'
             with open(diagrm_file, file_open_flag) as file:
                 file.write(json.dumps(pipeline_code))
+
+
 
 
     def update(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
@@ -263,3 +269,63 @@ class DltPipeline:
 
         return new_file_name_version
     
+    @staticmethod
+    def run_pipeline_job(file_path, namespace):
+
+        socket_id = DuckdbUtil.get_socket_id(namespace)
+        context = RequestContext(None, socket_id)
+
+        try:
+
+            ppline_file = f'{destinations_dir}/{file_path}.py'
+            db_root_path = destinations_dir.replace('pipeline','duckdb')
+            DuckdbUtil.check_pipline_db(f'{db_root_path}/{file_path}.duckdb')
+            print('####### WILL RUN JOB FOR '+file_path)
+
+            # Run pipeline generater above by passing the python file
+            result = subprocess.Popen(['python', ppline_file],
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        text=True,
+                                        bufsize=1)
+            pipeline_exception = False
+
+            while True:
+                line = result.stdout.readline()
+                if not line: 
+                    break
+                line = line.strip()
+            
+                if(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
+                    pipeline_exception = True
+                    message = line.startswith('RUNTIME_ERROR:')
+                    context.emit_ppline_job_trace(line.replace('RUNTIME_ERROR:',''), error=True)
+                else:
+                    context.emit_ppline_job_trace(line)
+
+            result.wait()
+            
+            if result.returncode == 0 and context is not None and pipeline_exception == False:
+                context.emit_ppsuccess()
+
+            if pipeline_exception == True:
+                message = 'Runtime Pipeline error, check the logs for details'
+                context.emit_ppline_job_trace(message, error=True)
+            else:
+                context.emit_ppline_job_trace('Pipeline run terminated successfully')
+            
+            error_messages = None
+            if result.returncode != 0:
+                err = result.stderr.read()
+                if(err.index('Could not set lock on file') > 0):
+                    pass
+                error_messages = err.split('\n')
+                message = '\n'.join(error_messages[1:])
+                context.emit_ppline_job_trace(message, error=True)
+            
+            result.kill()
+        
+        except Exception as err:
+            message = f'Error while running job for {file_path.split('/')[1]} pipeline'
+            context.emit_ppline_job_trace(message,error=True)
+            context.emit_ppline_job_trace(err.with_traceback,error=True)

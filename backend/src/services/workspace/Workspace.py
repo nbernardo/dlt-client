@@ -7,6 +7,9 @@ import re
 from utils.duckdb_util import DuckdbUtil
 from tabulate import tabulate
 from controller.pipeline import BasePipeline
+from services.pipeline.DltPipeline import DltPipeline
+import schedule
+import asyncio
 
 pattern = r'^use.*$'
 
@@ -265,17 +268,17 @@ class Workspace:
     
 
     @staticmethod
-    def get_ppline_schedule(namespace):
+    def get_ppline_schedule(namespace = None):
         try:
             table = 'ppline_schedule'
             if(DuckdbUtil.workspace_table_exists(table) == False):
                 DuckdbUtil.create_ppline_schedule_table()
 
+            where = f"WHERE namespace = '{namespace}'" if namespace != None else ''
             cnx = DuckdbUtil.get_workspace_db_instance()
             cursor = cnx.cursor()
-            query = f"SELECT ppline_name,schedule_settings,namespace,type,periodicity,time FROM {table} WHERE namespace = '{namespace}'"
+            query = f"SELECT ppline_name,schedule_settings,namespace,type,periodicity,time FROM {table} {where}"
             cursor.execute(query)
-
             return { 'data': cursor.fetchall(), 'error': False }
 
         except duckdb.IOException as err:
@@ -297,7 +300,32 @@ class Workspace:
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': err })
+
+    schedule_jobs = dict()        
+
+    @staticmethod
+    def schedule_pipeline_job():
+        result = Workspace.get_ppline_schedule()
+        if result['error'] != True:
+            schedules = result['data']
         
+            for sched in schedules:
+                ppline_name = sched[0]
+                namespace = sched[2]
+                file_path = f'{namespace}/{ppline_name}'
+
+                if(Workspace.schedule_jobs.get(file_path,None) != True):
+                    schedule.every(1).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
+                    schedule.every(20).seconds.do(lambda: print('Ola pessoal'))
+                    print("Scheduling pipeline Job for "+file_path)
+                    Workspace.schedule_jobs[file_path] = True
+
+            while True:
+                schedule.run_pending()
+                asyncio.sleep(1)
+        else:
+            ...
+
         
     @staticmethod
     def get_code_path():

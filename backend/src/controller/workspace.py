@@ -1,11 +1,9 @@
 from flask import Blueprint, request
-from pathlib import Path
 from services.workspace.Workspace import Workspace
 from controller.pipeline import BasePipeline
-from .RequestContext import RequestContext
-
 
 workspace = Blueprint('workspace', __name__)
+schedule_was_called = None
 
 @workspace.route('/workcpace/code/run/<user>', methods=['POST'])
 def run_code(user):
@@ -25,7 +23,6 @@ def run_code(user):
 @workspace.route('/workcpace/duckdb/list/<user>/<socket_id>', methods=['POST'])
 def list_duck_dbs(user, socket_id):
 
-    context = RequestContext(None, socket_id)
     duckdb_path = BasePipeline.folder+'/duckdb/'+user+'/'
     dbs = Workspace.list_duck_dbs(duckdb_path, user)
     errors_list = None
@@ -65,12 +62,21 @@ def disconnect_duckdb():
 @workspace.route('/workcpace/socket_id/<namespace>/<socket_id>', methods=['POST'])
 def update_socket_id(namespace, socket_id):
     Workspace.update_socket_id(namespace, socket_id)
+    global schedule_was_called
+
+    if(schedule_was_called == None):
+        Workspace.schedule_pipeline_job()
+        schedule_was_called = True
+
     return ''
 
 
 @workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['POST'])
 def create_ppline_schedule(namespace):
     import json
+    from services.pipeline.DltPipeline import DltPipeline
+    import schedule
+
     ppline_name = None
     try:
         payload = request.get_json()
@@ -82,6 +88,14 @@ def create_ppline_schedule(namespace):
         Workspace.create_ppline_schedule(
             ppline_name, json.dumps(settings), namespace, type, periodicity, time
         )
+        file_path = f'{namespace}/{ppline_name}'
+        Workspace.schedule_jobs[file_path] = True
+
+        schedule.every(1).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
+        schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline'))
+
+        schedule.run_pending()
+
     except Exception as error:
         print(f'Error while trying to schedule {ppline_name} pipeline')
         print(error)

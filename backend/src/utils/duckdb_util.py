@@ -1,5 +1,5 @@
 import duckdb
-
+import time
 
 class DuckdbUtil:
 
@@ -23,6 +23,16 @@ class DuckdbUtil:
         if DuckdbUtil.dltdbinstance == None:
             DuckdbUtil.dltdbinstance = duckdb.connect('dltworkspace.duckdb')
         return DuckdbUtil.dltdbinstance
+
+    @staticmethod
+    def check_pipline_db(dbfile_path):
+        """
+        This is only for trying to check if duckdb is not locked in case it's locked an exception will
+        be thrown, because this is calle in the pipeline job, it'll prevent it to move forward
+        """
+        cnx = duckdb.connect(dbfile_path)
+        cnx.close()
+        time.sleep(1)
 
 
     @staticmethod
@@ -85,7 +95,7 @@ class DuckdbUtil:
     def get_socket_id(namespace):
         cnx = DuckdbUtil.get_workspace_db_instance()
         cursor = cnx.cursor()
-        query = f"SELECT * FROM socket_connection WHERE namespace = {namespace}"
+        query = f"SELECT socket_id FROM socket_connection WHERE namespace = '{namespace}'"
         result = cursor.execute(query).fetchall()[0][0]   
         return result
 
@@ -94,7 +104,7 @@ class DuckdbUtil:
     def create_namespace_alias(namespace):
         cnx = DuckdbUtil.get_workspace_db_instance()
         cursor = cnx.cursor()
-        query = f"SELECT * FROM socket_connection WHERE namespace = {namespace}"
+        query = f"SELECT namespaces_alias FROM namespace WHERE namespace_id = '{namespace}'"
         result = cursor.execute(query).fetchall()[0][0]   
         return result
 

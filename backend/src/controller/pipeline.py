@@ -382,4 +382,3 @@ def read_csv_file_fields(user, filename):
     df = pd.read_csv(file_path, nrows=1)
     return str(df.columns)
     
-    
