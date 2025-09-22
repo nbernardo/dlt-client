@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { ListState } from "../../../@still/component/type/ComponentType.js";
 import { Router } from "../../../@still/routing/router.js";
+import { AppTemplate } from "../../../config/app-template.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { UserUtil } from "../auth/UserUtil.js";
@@ -64,6 +65,7 @@ export class Header extends ViewComponent {
 	navigateTo = (routeName) => {
 		if(routeName == Router.getCurrentViewName())
 			return
+		AppTemplate.showLoading();
 		Router.goto(routeName);
 	} 
 
@@ -74,6 +76,10 @@ export class Header extends ViewComponent {
 
 		document.addEventListener('click', (event) => 
 			!dropMenu.contains(event.target) ? dropMenu.style.display = 'none' : ''
+		);
+
+		document.addEventListener('mouseover', (event) => 
+			!dropMenu.contains(event.target) && !scheduleIcon.contains(event.target)  ? dropMenu.style.display = 'none' : ''
 		);
     }
 

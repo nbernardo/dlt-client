@@ -17,6 +17,7 @@ import { Transformation } from "../node-types/Transformation.js";
 import { LogDisplay } from "../log/LogDisplay.js";
 import { Assets } from "../../../@still/util/componentUtil.js";
 import { Header } from "../parts/Header.js";
+import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 
 export class Workspace extends ViewComponent {
 
@@ -134,7 +135,7 @@ export class Workspace extends ViewComponent {
 	scheduleTime;
 
 	stOnRender() {
-
+		AppTemplate.hideLoading();
 		setTimeout(async () => {
 			await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/chart.js', type: 'js' });
 		});
@@ -171,7 +172,7 @@ export class Workspace extends ViewComponent {
 		setTimeout(() =>  this.showLoading = false, 100);
 		this.onLeftTabChange();
 		this.handlePplineSchedulePopup();
-		//this.cmProxy.codeEditor.setSize(null, 100);
+		this.resetWorkspace();
 	}
 
 	onLeftTabChange(){
@@ -278,6 +279,9 @@ export class Workspace extends ViewComponent {
 		document.getElementById('pplineNamePlaceHolder').contentEditable = true;
 		if(this.showSaveButton !== true)
 			this.showSaveButton = true;
+        this.wasDiagramSaved = false;
+        this.isAnyDiagramActive = false;
+        this.isAnyDiagramActive = false;
 	}
 
 	onPplineNameKeyPress(e) {
@@ -454,10 +458,8 @@ export class Workspace extends ViewComponent {
 		//console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
 	}
 
-	handlePplineSchedulePopup(){
-
-		const { btnPipelineSchedule } = this.controller.getPplineScheduleVars();
-		this.controller.handlePplineScheduleHideShow();
+	handlePplineSchedulePopup(){		
+		const btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
 
 		this.schedulePeriodicity.onChange(val => {
 			btnPipelineSchedule.disabled = true;
@@ -485,7 +487,7 @@ export class Workspace extends ViewComponent {
 	
 	async scheduleJob(){
 		
-		const { btnPipelineSchedule } = this.controller.getPplineScheduleVars();
+		const btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
 		btnPipelineSchedule.disabled = true;
 		const payload = { 
 			ppline_name: this.selectedPplineName,

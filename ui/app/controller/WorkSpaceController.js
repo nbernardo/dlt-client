@@ -52,8 +52,6 @@ export class WorkSpaceController extends BaseController {
         this.cmpIdToNodeIdMap = {};
         this.pplineStatus = {};
         this.editor.nodeId = 1;
-        this.wSpaceComponent.wasDiagramSaved = false;
-        this.wSpaceComponent.isAnyDiagramActive = false;
     }
 
     registerEvents() {
@@ -615,17 +613,25 @@ export class WorkSpaceController extends BaseController {
     getPplineScheduleVars(){
         if(this.btnPipelineSchedule === undefined){
             this.btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
-            this.dropMenu = document.querySelector('.pipeline-context-drop-menu .submenu');
+            this.dropMenu = document.querySelector('.pipeline-context-drop-menu .schedule-drop-submenu');
         }
         return { btnPipelineSchedule: this.btnPipelineSchedule, dropMenu: this.dropMenu };
     }
 
-    handlePplineScheduleHideShow(){
-        const dropMenu = this.dropMenu;
-        document.querySelector('.pipeline-context-drop-menu').onmouseover = () => dropMenu.style.display = 'block';
-		document.addEventListener('click', (event) => 
-			!dropMenu.contains(event.target) ? dropMenu.style.display = 'none' : ''
-        );
+    /** @param { HTMLDivElement } target */
+    handlePplineScheduleHideShow(target){
+        
+        target.nextElementSibling.style.display = 'block';
+
+        if(!target.dataset.eventSet){
+            target.dataset.eventSet = true;
+            const dropMenu = target.nextElementSibling;
+            
+		    document.addEventListener('mouseover', (event) => 
+		    	!dropMenu.contains(event.target) && !target.contains(event.target)  ? dropMenu.style.display = 'none' : ''
+		    );
+        }
+        
     }
 
 }
