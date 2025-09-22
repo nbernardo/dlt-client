@@ -61,11 +61,7 @@ export class Router {
         Router.goto(cmp, { data, url, evt: { containerId } });
     }
 
-    /**
-     * 
-
-     * @param {String} data 
-     */
+    /** @param {String} data  */
     static aliasGoto1(cmp, url = false, containerId = null) {
         if (!url) Router.clearUrlPath();
         Router.goto(cmp, { data: {}, url, evt: { containerId } });
@@ -81,10 +77,8 @@ export class Router {
     }
 
     /**
-     *
      * @param {*} cmp 
-     * @param {{data, path}} param1
-     */
+     * @param {{data, path}} param1 */
     static goto(cmp, params = GotoParams) {
 
         const { data, evt, url } = params;
@@ -582,5 +576,7 @@ export class Router {
         window.location.href = location.origin + '/#/' + Router.preView.getName();
         window.location.reload();
     }
+
+    static getCurrentViewName = () => $still.context.currentView.getName()
 
 }
