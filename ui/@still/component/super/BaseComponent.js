@@ -341,7 +341,7 @@ export class BaseComponent extends BehaviorComponent {
             this['#stLoopFields'].add(ds);
             mt = mt.replace(`${drctv}="${ds}"`, subscriptionCls);
 
-            return `<output class="${hashValue}"></output>${mt}`;
+            return `<output class="${hashValue} ${internalId}"></output>${mt}`;
 
         })
         // This is to hide the template of the foreach wrapper, and it'll be shown when parsing each element of the list

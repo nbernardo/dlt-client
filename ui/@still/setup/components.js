@@ -307,7 +307,7 @@ export class Components {
 
             setTimeout(async () => await cmp.onRender());
             this.template = `
-            <output class="${$stillconst.ANY_COMPONT_LOADED}" style="display:contents;">
+            <output class="${$stillconst.ANY_COMPONT_LOADED} ${cmp.cmpInternalId}" style="display:contents;">
                 ${cmp.getBoundTemplate()}
             </output>
             `;
@@ -344,7 +344,7 @@ export class Components {
 
         return `<st-wrap 
                     id="${TOP_LEVEL_CMP}"
-                    class="${loadCmpClass} ${TOP_LEVEL_CMP} ${ST_HOME_CMP1}">
+                    class="${loadCmpClass} ${TOP_LEVEL_CMP} ${ST_HOME_CMP1} ${cmp.cmpInternalId}">
                     ${template}
                 </st-wrap>`;
     }
@@ -1382,6 +1382,11 @@ export class Components {
 
             delete registror[Router.preView?.cmpInternalId];
             delete registror[Router.preView?.constructor?.name];
+            //Clear the HTML Content of the previous view            
+            const prevCmp = document.querySelector('.'+Router.preView?.cmpInternalId);
+            if(prevCmp.id === 'still-toplevel-and-root-app')
+                document.querySelector('.'+Router.preView?.cmpInternalId+' div').innerHTML = '';
+            else prevCmp.firstChild.innerHTML = '';
 
             setTimeout(() => {
                 if (versionId) {

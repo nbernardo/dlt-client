@@ -275,7 +275,7 @@ export class Router {
                     if (cmp.subImported) {
                         //TODO: make adjustements to this flow
                         const pageContent = `
-                        <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName}" style="display:contents;">
+                        <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName} ${cmp.cmpInternalId}" style="display:contents;">
                             ${cmp.getTemplate()}
                         </output>`;
                         appPlaceholder.insertAdjacentHTML('afterbegin', pageContent);
@@ -301,7 +301,7 @@ export class Router {
                     }
 
                     const pageContent = `
-                        <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName}" style="display:contents;">
+                        <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName} ${cmp.cmpInternalId}" style="display:contents;">
                             ${cmp.getTemplate()}
                         </output>`;
 
