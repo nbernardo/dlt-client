@@ -31,18 +31,24 @@
 					@endif
 				</span>
 				<ul class="submenu">
-					<li style="background: #f8f8f8 !important">Scheduled pipelines</li>
+					<li style="background: #f8f8f8 !important; cursor:auto;">
+						<img 
+							onclick="component.getScheduleList()"
+							src="app/assets/imgs/refresh-svgrepo-com.svg" 
+							style="cursor: pointer;" width="16">
+						&nbsp;Scheduled pipelines
+					</li>
 					@if(this.scheduledPipelines.length === 0)
 						<li>No Job scheduled</li>
 					@endif
 
 					@for(ppline in this.scheduledPipelines)
-					<li>
+					<li id="{ppline.id}">
 						<div class="list-item-header">
-							{JSON.parse(ppline[1]).ppline_label}
+							{JSON.parse(ppline.schedule_settings).ppline_label}
 							<div class="list-item-details">
-								<output>Setting: {ppline[4]} {ppline[5]} {ppline[3]}</output>
-								<output>Last Run: 3h ago</output>
+								<output><b>Setting:</b> {ppline.periodicity} {ppline.time} {ppline.type}</output>
+								<output><b>Last Run:</b> {ppline.last_run == null ? 'None' : ppline.last_run}</output>
 							</div>
 						</div>
 					</li>
@@ -121,6 +127,12 @@
             font-size: 0.8em;
             color: #888;
 			font-weight: normal;
+			flex-direction: column;
+			margin-top: 5px;
         }
+
+		.scheduled-pipeline-context-drop-menu .submenu .list-item-details:first {
+			margin-top: 2px;
+		}
 
 </style>

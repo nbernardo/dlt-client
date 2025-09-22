@@ -37,11 +37,11 @@ export class LeftTabs extends ViewComponent {
 	/** @type { Workspace } */
 	$parent;
 
-	/** @Prop */
-	fileMenu;
+	/** @Prop */ fileMenu;
 
-	/** @Prop */
-	activeFileDropdown;
+	/** @Prop */ activeFileDropdown;
+	
+	/** @Prop */ fetchingPipelineData = false;
 
 	stAfterInit() {
 
@@ -54,7 +54,14 @@ export class LeftTabs extends ViewComponent {
 
 	}
 
+	/** @param { HTMLElement | null } target */
 	async showHideDatabase(){
+		
+		if(this.fetchingPipelineData == false){
+			this.fetchingPipelineData = true;
+		}else
+			return; //This will prevent the button to be clicked multiple times
+
 		this.selectTab('content-outputs');
 		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getDuckDbs(this.$parent.userEmail, this.$parent.socketData.sid);
@@ -94,6 +101,7 @@ export class LeftTabs extends ViewComponent {
 		}
 		
 		this.dbTreeviewProxy.renderTree();
+		this.fetchingPipelineData = false;
 	}
 
 	pipelineTreeViewTemplate(dbfile){

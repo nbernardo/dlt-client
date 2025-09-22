@@ -20,7 +20,7 @@ export class ObjectDataTypes {
 export class WorkspaceService extends BaseService {
 
     table = new ServiceEvent([]);
-    schedulePipelines = new ServiceEvent([]);
+    schedulePipelinesStore = new ServiceEvent([]);
     
     static DISCONECT_DB = 'DISCONECT';
     static CONNECT_DB = 'CONNECT';

@@ -3,6 +3,7 @@ import { Components } from "../../@still/setup/components.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
+import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 
 class NodeType {
@@ -37,6 +38,9 @@ export class WorkSpaceController extends BaseController {
     /** @type { Workspace } */
     wSpaceComponent;
     isImportProgress = false;
+
+    /** @type { Header } */
+    activeHeader = null;
 
     static scheduledPipelinesInitList;
 
@@ -385,6 +389,10 @@ export class WorkSpaceController extends BaseController {
 
         socket.on('pplineTrace', ({ data: trace, time, error, job }) => {
             const logType = (error ? 'error' : 'info');
+            
+            // Because the backend is running in multithreading, sometimes multiple thread are trying to access 
+            // the database file (.duckdb), which does not harm the normal proces, anyway an exceptio can be thrown
+            // hence we skip it by checking if it happenes when it comes to pipeline job that are running
             if(job && trace.indexOf('Could not set lock on file') > 0)
                 return;
             this.wSpaceComponent.logProxy.appendLogEntry(logType, trace, time);
