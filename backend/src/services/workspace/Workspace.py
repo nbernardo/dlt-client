@@ -312,11 +312,18 @@ class Workspace:
             for sched in schedules:
                 ppline_name = sched[0]
                 namespace = sched[2]
+                type = sched[3]
+                periodicity = sched[4]
+                time = int(sched[5])
                 file_path = f'{namespace}/{ppline_name}'
                 
                 if(Workspace.schedule_jobs.get(file_path,None) != True):
-                    schedule.every(1).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
-                    print("Scheduling pipeline Job for "+file_path)
+                    if(type == 'min'):
+                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
+                    if(type == 'hour'):
+                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, namespace)
+
+                    print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
                     Workspace.schedule_jobs[file_path] = True
 
             while True:

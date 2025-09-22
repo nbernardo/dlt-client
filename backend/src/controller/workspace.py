@@ -91,9 +91,13 @@ def create_ppline_schedule(namespace):
         file_path = f'{namespace}/{ppline_name}'
         Workspace.schedule_jobs[file_path] = True
 
-        schedule.every(1).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
-        schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline'))
+        if(type == 'min'):
+            schedule.every(int(time)).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
+        if(type == 'hour'):
+            schedule.every(int(time)).hours.do(DltPipeline.run_pipeline_job, file_path, namespace)
 
+        schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline'))
+        print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
         schedule.run_pending()
 
     except Exception as error:
