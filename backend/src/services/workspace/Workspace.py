@@ -316,7 +316,6 @@ class Workspace:
                 
                 if(Workspace.schedule_jobs.get(file_path,None) != True):
                     schedule.every(1).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
-                    schedule.every(20).seconds.do(lambda: print('Ola pessoal'))
                     print("Scheduling pipeline Job for "+file_path)
                     Workspace.schedule_jobs[file_path] = True
 

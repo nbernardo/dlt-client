@@ -4,6 +4,8 @@ from services.workspace.Workspace import Workspace
 from controller.pipeline import BasePipeline
 from flask_cors import cross_origin
 import threading
+import requests
+import time
 
 
 workspace = Blueprint('workspace', __name__)
@@ -119,12 +121,9 @@ def setup_job_schedules():
     
 
 def call_scheduled_job():
-    import requests
-    import time
-
-    time.sleep(2)
-
+    
     def call_end_point():
+        time.sleep(10)
         while True:
             response = requests.post(f'{env('APP_SRV_ADDR')}/workcpace/ppline/job/schedule/')
             response.raise_for_status()
