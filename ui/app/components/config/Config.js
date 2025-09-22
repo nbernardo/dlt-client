@@ -6,10 +6,6 @@ export class Config extends ViewComponent {
 
 	isPublic = false;
 
-	stOnRender(){
-		AppTemplate.showLoading();
-	}
-
 	stAfterInit() {
 		AppTemplate.hideLoading();
 		//setTimout to avoid the component/page load to 
