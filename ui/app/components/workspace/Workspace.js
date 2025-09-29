@@ -511,5 +511,9 @@ export class Workspace extends ViewComponent {
 		this.scheduleTime = '';
 		btnPipelineSchedule.disabled = false;
 	}
+
+	callChat(){
+		WorkspaceService.startChatConversation();
+	}
 	
 }

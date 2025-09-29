@@ -177,4 +177,13 @@ export class WorkspaceService extends BaseService {
 		return null;
 	}
 
+	static async startChatConversation(){
+        const namespace = await UserService.getNamespace();
+        const url = '/workcpace/agent/'+namespace;
+		const response = await $still.HTTPClient.get(url);
+		if(response.ok && !response.error)
+			return await response.json();
+		return null;
+	}
+
 }
