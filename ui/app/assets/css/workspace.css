@@ -254,7 +254,7 @@
 	    width: 3px;
 	    height: 3px;
 	    border-radius: 50%;
-	    background-color: #E5E7EB;
+	    background-color: attr(dot-color, #E5E7EB);
 	    /* Changed to a lighter gray for better contrast */
 	    animation: pulse-dot 1.5s infinite ease-in-out both;
 	}

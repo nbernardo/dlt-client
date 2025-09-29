@@ -1,5 +1,6 @@
 <div class="ai-agent-wrapper"> <!-- New wrapper div -->
-	<div class="app-container">
+	<div class="app-container ai-app-container">
+		<div class="ai-agent-height-resize" style="margin-top: -16px;"></div>
 		<h1 class="main-heading">
 			AI Agent
 		</h1>
@@ -11,15 +12,6 @@
 			onkeypress="component.sendChatRequest(event)" 
 			id="user-input" class="user-input" placeholder="Type your query here..."></textarea>
 
-		<div id="output-container">
-			<p id="output-text" class="cursor">Click 'Start Stream' to connect to the backend.</p>
-		</div>
-
-		<div class="controls-row">
-			<div id="loading-indicator" class="loading-indicator">
-				<span>Streaming Data...</span>
-			</div>
-		</div>
-
+		<div id="@outputContainerId" class="output-container"></div>
 	</div>
 </div>

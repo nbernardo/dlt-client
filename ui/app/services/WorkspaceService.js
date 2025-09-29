@@ -180,9 +180,13 @@ export class WorkspaceService extends BaseService {
 	static async startChatConversation(){
         const namespace = await UserService.getNamespace();
         const url = '/workcpace/agent/'+namespace;
-		const response = await $still.HTTPClient.get(url);
-		if(response.ok && !response.error)
-			return await response.json();
+        try {
+            const response = await $still.HTTPClient.get(url);
+            if(response.ok && !response.error)
+                return await response.json();            
+        } catch (error) {
+           console.log(`Error on starting the chat: `, error); 
+        }
 		return null;
 	}
 
