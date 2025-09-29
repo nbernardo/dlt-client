@@ -113,7 +113,7 @@ def get_ppline_schedule(namespace):
     try:
         return Workspace.get_ppline_schedule(namespace)
     except Exception as error:
-        print(f'Error while trying to schedule schedule pipelines')
+        print(f'Error while trying to connect with AI agent')
         print(error)
         return 'failed'
 
@@ -123,17 +123,44 @@ def start_ai_agent(namespace):
     try:
         return setup_agent(namespace)
     except Exception as error:
-        print(f'Error while trying to schedule schedule pipelines')
+        print(f'Error while trying to connect with AI agent')
         print(error)
         return 'failed'
     
 
-@workspace.route('/workcpace/agent/<namespace>/<username>', methods=['GET'])
+@workspace.route('/workcpace/agent/<namespace>/<username>', methods=['POST'])
 def start_ai_agent_with_username(namespace, username):
     try:
         return setup_agent(namespace, username)
     except Exception as error:
         print(f'Error while trying to schedule schedule pipelines')
+        print(error)
+        return 'failed'
+
+
+@workspace.route('/workcpace/agent/<namespace>', methods=['POST'])
+def message_ai_agent(namespace):
+
+    try:
+        payload = request.get_json()
+        message = payload['message']
+        return send_message_to_agent(message, namespace)
+    except Exception as error:
+        print(f'AI Agent error while processing your request {str(error)}')
+        print(error)
+        return 'failed'
+    
+
+@workspace.route('/workcpace/agent/<namespace>/<username>', methods=['POST'])
+def message_ai_agent_with_username(namespace, username):
+    
+    try:
+        payload = request.get_json()
+        message = payload['message']
+        return send_message_to_agent(message, namespace, username)
+    
+    except Exception as error:
+        print(f'AI Agent error while processing your request {str(error)}')
         print(error)
         return 'failed'
     
@@ -168,11 +195,15 @@ def setup_agent(user, namespace = None):
             selected_namespace = namespace if namespace != None else user
             namespace_folder = BasePipeline.folder+f'/duckdb/{selected_namespace}'
             agents_list[user] = Agent(namespace_folder)
-        
-        agent: Agent = agents_list[user]
-        agent.cloud_mistral_call()
 
         return { 'error': False, 'success': True }
     except Exception as err:
         print(f'Error while staring the AI agent: {err}')
-        return { 'error': f'Error while staring AI Agent {err}', 'success': False }
+        return { 'error': f'Error while staring AI Agent: {err}', 'success': False }
+    
+
+def send_message_to_agent(message, namespace, user_id = None):
+    user = user_id if user_id != None else namespace
+    agent: Agent = agents_list[user]
+
+    return { 'success': True, 'result': agent.cloud_mistral_call(message) }

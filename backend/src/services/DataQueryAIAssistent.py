@@ -79,6 +79,7 @@ class DataQueryAIAssistent:
         conn = DuckdbUtil.get_connection_for(self.db)
         db_result = conn.execute(query).fetchall()
         print(db_result)
+        return db_result
         
 
     def generate_sql_query_signal(self, natural_language_question: str) -> str:
@@ -89,11 +90,8 @@ class DataQueryAIAssistent:
         return f"Request acknowledged: {natural_language_question}"
 
 
-    def cloud_mistral_call(self):
-
+    def cloud_mistral_call(self, user_prompt):
         client, model = self.client, self.model
-        user_prompt = "get me all records from Italy on db1.mydata_source table,bring only the first, last name and date of registration." \
-                      " make the fields name according to the schema field names"
         
         try:
             self.messages.append({"role": "user", "content": user_prompt})
@@ -128,7 +126,7 @@ class DataQueryAIAssistent:
                          })
                     
                     print("\n2. Sending Tool Output back to LLM for SQL Generation...")                
-                    self.handle_response(client, model)
+                    return { 'answer': 'final', 'result': self.handle_response(client, model) }
 
                 else:
                     print(f"Error: Unknown function name requested: {function_name}")
@@ -136,6 +134,7 @@ class DataQueryAIAssistent:
             else:
                 print("1. LLM decided not to call a function. Raw response:")
                 print(tool_calling)
+                return { 'answer': 'intermediate', 'result': tool_calling }
 
         except Exception as e:
             print(f"\nAn error occurred: {e}")
