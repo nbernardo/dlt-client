@@ -10,10 +10,12 @@ from controller.RequestContext import socketio
 from controller.pipeline import pipeline, BasePipeline
 from controller.workspace import workspace, call_scheduled_job
 from controller.file_upload import upload, BaseUpload
+from utils.duckdb_util import DuckdbUtil
 
 proj_folder = Path(__file__).parent
 BaseUpload.upload_folder = str(Path(__file__).parent.parent)+'/dbs/files'
 BasePipeline.folder = str(Path(__file__).parent.parent)+'/destinations'
+DuckdbUtil.workspacedb_path = str(Path(__file__).parent.parent)+'/dbs/files'
 sys.path.insert(0, proj_folder/'node_mapper/')
 set_env(proj_folder)
 

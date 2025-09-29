@@ -6,7 +6,8 @@ from flask_cors import cross_origin
 import threading
 import requests
 import time
-
+from services.DataQueryAIAssistent import DataQueryAIAssistent as Agent
+from typing import List
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -115,6 +116,26 @@ def get_ppline_schedule(namespace):
         print(f'Error while trying to schedule schedule pipelines')
         print(error)
         return 'failed'
+
+
+@workspace.route('/workcpace/agent/<namespace>', methods=['GET'])
+def start_ai_agent(namespace):
+    try:
+        return setup_agent(namespace)
+    except Exception as error:
+        print(f'Error while trying to schedule schedule pipelines')
+        print(error)
+        return 'failed'
+    
+
+@workspace.route('/workcpace/agent/<namespace>/<username>', methods=['GET'])
+def start_ai_agent_with_username(namespace, username):
+    try:
+        return setup_agent(namespace, username)
+    except Exception as error:
+        print(f'Error while trying to schedule schedule pipelines')
+        print(error)
+        return 'failed'
     
 
 @workspace.route('/workcpace/ppline/job/schedule/', methods=['POST'])
@@ -137,3 +158,21 @@ def call_scheduled_job():
 
     task = threading.Thread(target=call_end_point)
     task.start()
+    
+
+agents_list: List[Agent] = {}
+def setup_agent(user, namespace = None):
+
+    try:
+        if(not(user in agents_list)):
+            selected_namespace = namespace if namespace != None else user
+            namespace_folder = BasePipeline.folder+f'/duckdb/{selected_namespace}'
+            agents_list[user] = Agent(namespace_folder)
+        
+        agent: Agent = agents_list[user]
+        agent.cloud_mistral_call()
+
+        return { 'error': False, 'success': True }
+    except Exception as err:
+        print(f'Error while staring the AI agent: {err}')
+        return { 'error': f'Error while staring AI Agent {err}', 'success': False }

@@ -1,9 +1,11 @@
 import duckdb
 import time
+from duckdb import DuckDBPyConnection
 
 class DuckdbUtil:
 
     dltdbinstance = None
+    workspacedb_path = None
 
     @staticmethod
     def get_tables(database = None, where = None):
@@ -21,7 +23,8 @@ class DuckdbUtil:
     @staticmethod
     def get_workspace_db_instance():
         if DuckdbUtil.dltdbinstance == None:
-            DuckdbUtil.dltdbinstance = duckdb.connect('dltworkspace.duckdb')
+            workspacedb = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb'
+            DuckdbUtil.dltdbinstance = duckdb.connect(workspacedb)
         return DuckdbUtil.dltdbinstance
 
 
@@ -108,5 +111,15 @@ class DuckdbUtil:
         query = f"SELECT namespaces_alias FROM namespace WHERE namespace_id = '{namespace}'"
         result = cursor.execute(query).fetchall()[0][0]   
         return result
+
+
+
+    db_connections = {}
+    @staticmethod
+    def get_connection_for(db_filename) -> DuckDBPyConnection:
+        if(not(db_filename in DuckdbUtil.db_connections)):
+            DuckdbUtil.db_connections[db_filename] = duckdb.connect(f'{db_filename}')
+           
+        return DuckdbUtil.db_connections[db_filename]
 
 
