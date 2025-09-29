@@ -25,6 +25,8 @@ export class AIAgent extends ViewComponent {
 
     /** @Prop */ appContainer;
 
+    /** @Prop */ isThereAgentMessage = false;
+
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
 
@@ -45,15 +47,25 @@ export class AIAgent extends ViewComponent {
 		await WorkspaceService.startChatConversation();
 	}
 
-	sendChatRequest(event) {
+	async sendChatRequest(event) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
 			const message = event.target.value;
 			event.target.value = '';
 			this.createMessageBubble(message, 'user');
 			this.scrollToBottom();
-			WorkspaceService.sendAgentMessage(message);
-			this.createMessageBubble(this.loadingContent(), 'agent')
+			this.createMessageBubble(this.loadingContent(), 'agent');
+			const { result } = await WorkspaceService.sendAgentMessage(message);
+
+			let response = result?.result;
+			
+			if((response || []).length === 0)
+				response = 'No data found for the submitted query. Do you want to send another query?';
+
+			if(this.isThereAgentMessage === false) this.isThereAgentMessage = true;
+			
+			AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph')
+			AIAgent.lastAgentParagraph.innerHTML = response;
 		}
 	}
 
@@ -85,7 +97,7 @@ export class AIAgent extends ViewComponent {
 	scrollToBottom() {
 		setTimeout(() => {
 			this.outputContainer.scrollTop = this.outputContainer.scrollHeight;
-		}, 100);
+		}, 200);
 	}
 
 	setResizeHandling() {

@@ -85,7 +85,8 @@
             border-radius: 0.5rem; /* rounded-lg */
             border: 1px solid #d1d5db; /* border border-gray-300 */
             box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); /* shadow-inner approximation */
-            padding-bottom: 0;
+            padding-bottom: 20px;
+            padding-top: 5px;
         }
 
         /* === Controls and Button === */
@@ -181,6 +182,7 @@
     background-color: #059669; /* emerald-600 */
     color: white;
     border-bottom-right-radius: 0.25rem;
+    margin-top: 5px;
 }
 
 /* Agent Message Row and Bubble */
@@ -188,6 +190,7 @@
     display: flex;
     justify-content: flex-start; /* Align to the left */
     width: 100%;
+    margin-top: 5px;
 }
 
 .ai-agent-wrapper .agent-message-bubble {
