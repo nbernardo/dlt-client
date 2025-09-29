@@ -7,6 +7,8 @@ from utils.duckdb_util import DuckdbUtil
 
 class DataQueryAIAssistent:
 
+    prev_answered = 'PREV_ANSWER:'
+
     def __init__(self, base_db_path):
         self.DB_SCHEMA = '''The database contains %total_table% tables:'''
         self.db_path = base_db_path
@@ -23,6 +25,7 @@ class DataQueryAIAssistent:
         "You are a SQL query generator. When a user asks about data, you MUST first call the 'generate_sql_query_signal' tool. "
         "Always call this tool before doing anything else." \
         f" You'll always run the function calling even if it's a previous answered questions."
+        f" If for some reason, you're unable to call the function and answering with previous answer, just prefix it with {prev_answered}."
         f"\n\n--- DATABASE SCHEMA ---\n%db_schema%\n-----------------------."
     )
 
@@ -112,18 +115,24 @@ class DataQueryAIAssistent:
                             
                 print(f"1. LLM requested Tool Call: {function_name}")
                 print(f"   -> Arguments: {function_args.get('natural_language_question')}")
+                
+                is_prev_response = tool_calling.choices[0]\
+                    .message.content.startswith(DataQueryAIAssistent.prev_answered)
+                
+                if function_name == "generate_sql_query_signal" or is_prev_response == True:
 
-                if function_name == "generate_sql_query_signal":
-                    function_output = self.generate_sql_query_signal(function_args.get('natural_language_question', ''))
+                    if(is_prev_response != True):
+                        # Only handle function call if the actual function was called, in case of prev answer skip this
+                        function_output = self.generate_sql_query_signal(function_args.get('natural_language_question', ''))
 
-                    self.messages.append(tool_calling.choices[0].message)
-                    for tool_cal in tool_calls:
-                        tool_cal.function.name
-                        self.messages.append(                         {
-                             "role": "tool",
-                             "content": json.dumps({"result": function_output}),
-                             "tool_call_id": found_tool.id
-                         })
+                        self.messages.append(tool_calling.choices[0].message)
+                        for tool_cal in tool_calls:
+                            tool_cal.function.name
+                            self.messages.append(                         {
+                                "role": "tool",
+                                "content": json.dumps({"result": function_output}),
+                                "tool_call_id": found_tool.id
+                            })
                     
                     print("\n2. Sending Tool Output back to LLM for SQL Generation...")                
                     return { 'answer': 'final', 'result': self.handle_response(client, model) }
@@ -133,8 +142,9 @@ class DataQueryAIAssistent:
                     
             else:
                 print("1. LLM decided not to call a function. Raw response:")
-                print(tool_calling)
-                return { 'answer': 'intermediate', 'result': tool_calling }
+                print(tool_calling.choices[0].message.content)
+                self.messages.append({ 'role': 'assistant', 'content': tool_calling.choices[0].message.content })
+                return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
 
         except Exception as e:
             print(f"\nAn error occurred: {e}")
@@ -146,7 +156,7 @@ class DataQueryAIAssistent:
         self.messages.append({ 'role': 'assistant', 'content': nl_to_sql_call.choices[0].message.content })
         sql_query = nl_to_sql_call.choices[0].message.content.strip()
         sql_query = DataQueryAIAssistent.parse_sql(sql_query)
-        self.run_query(sql_query)
+        return self.run_query(sql_query)
 
 
 
