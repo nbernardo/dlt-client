@@ -1,0 +1,158 @@
+        .ai-agent-wrapper {
+            /* Styles moved from body */
+            font-family: sans-serif; /* System font replacement for Inter */
+            background-color: #f3f4f6; /* Light background: gray-100 */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 95%;
+            width: 100%; /* Ensure it spans the full width of the body */
+            box-sizing: border-box;
+        }
+
+        /* App Container Styling (w-full max-w-3xl bg-white shadow-xl rounded-xl p-6 md:p-8) */
+        .ai-agent-wrapper .app-container {
+            width: 100%;
+            background-color: #fff;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+            border-radius: 0.75rem; /* rounded-xl */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            border: 1px solid #80808054;
+        }
+
+        /* === Typography & Heading Styles === */
+        .ai-agent-wrapper .main-heading {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: 700; /* font-bold */
+            color: #059669; /* text-emerald-600 */
+            margin-bottom: 4px;
+        }
+        
+        .ai-agent-wrapper .description-text {
+            font-size: 0.875rem; /* text-sm */
+            color: #4b5563; /* text-gray-600 */
+            margin-bottom: 1.5rem; /* mb-6 */
+        }
+
+        /* Inline Code Snippet Styling (bg-gray-200 p-1 rounded text-gray-800) */
+        .ai-agent-wrapper .code-snippet {
+            background-color: #e5e7eb;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            color: #1f2937;
+            font-family: monospace; /* System font replacement for Inconsolata */
+            font-size: 0.85rem;
+            line-height: 1;
+        }
+
+        /* === Input Area Styling (NEW) === */
+        .ai-agent-wrapper .user-input {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.75rem; /* p-3 */
+            margin-bottom: 1rem; /* mb-4 */
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            resize: vertical;
+            font-family: sans-serif;
+            font-size: 1rem;
+            color: #1f2937; /* text-gray-800 */
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            box-sizing: border-box; /* Ensures padding and border are included in the element's total width and height */
+        }
+
+        .ai-agent-wrapper .user-input:focus {
+            outline: none;
+            border-color: #059669; /* emerald-600 */
+            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.3); /* Focus ring */
+        }
+
+        /* === Output Area === */
+        .ai-agent-wrapper #output-container {
+            font-family: monospace; /* Monospace font for code/terminal look */
+            min-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap; /* Preserve formatting but wrap lines */
+            font-size: 0.95rem;
+            line-height: 1.6;
+            min-height: 100px;
+
+            /* Light theme colors and styling */
+            background-color: #f9fafb; /* bg-gray-50 */
+            color: #111827; /* Dark text for contrast */
+            padding: 1rem; /* p-4 */
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #d1d5db; /* border border-gray-300 */
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); /* shadow-inner approximation */
+            margin-bottom: 1rem; /* Added margin for separation from controls */
+        }
+
+        /* === Controls and Button === */
+        .ai-agent-wrapper .controls-row {
+            margin-top: 1.5rem; /* mt-6 */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Button Styling (px-5 py-2 bg-emerald-600...) */
+        .ai-agent-wrapper .stream-button {
+            padding: 0.625rem 1.25rem;
+            background-color: #059669; /* emerald-600 */
+            color: white;
+            font-weight: 600; 
+            border-radius: 0.5rem; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06); /* shadow-md */
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            user-select: none;
+        }
+
+        .ai-agent-wrapper .stream-button:hover:not(:disabled) {
+            background-color: #047857; /* emerald-700 */
+        }
+        
+        .ai-agent-wrapper .stream-button:focus:not(:disabled) {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.5); /* Focus ring */
+        }
+
+        .ai-agent-wrapper .stream-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        /* === Typing and Loading Indicators === */
+
+        /* Blinking cursor animation (These do not need prefixing as they are animations) */
+        .cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+            margin-left: 2px;
+            font-weight: bold;
+        }
+
+        @keyframes blink {
+            from, to { color: transparent; }
+            50% { color: #059669; } /* Darker Emerald for contrast */
+        }
+
+        /* Loading Indicator (Text only) */
+        .ai-agent-wrapper .loading-indicator {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            color: #059669;
+            font-size: 0.875rem; /* text-sm equivalent */
+            font-weight: 600; 
+        }
+
+        .ai-agent-wrapper .loading-indicator.visible {
+            display: flex;
+        }
+        
+        /* Removed .loader and @keyframes spin */
