@@ -2,6 +2,7 @@ import { BaseController } from "../../@still/component/super/service/BaseControl
 import { Components } from "../../@still/setup/components.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
+import { AIAgent } from "../components/agent/AIAgent.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
@@ -389,7 +390,7 @@ export class WorkSpaceController extends BaseController {
 
         socket.on('pplineTrace', ({ data: trace, time, error, job }) => {
             const logType = (error ? 'error' : 'info');
-            
+
             // Because the backend is running in multithreading, sometimes multiple thread are trying to access 
             // the database file (.duckdb), which does not harm the normal proces, anyway an exceptio can be thrown
             // hence we skip it by checking if it happenes when it comes to pipeline job that are running
@@ -639,7 +640,21 @@ export class WorkSpaceController extends BaseController {
 		    	!dropMenu.contains(event.target) && !target.contains(event.target)  ? dropMenu.style.display = 'none' : ''
 		    );
         }
-        
+    }
+
+    /** @type { AIAgent } */
+    startedAgend = null;
+
+    async startAgent(){  
+        if(this.startAgent){
+            const parentId = this.wSpaceComponent.cmpInternalId;
+            const { template, component } = await Components.new('AIAgent', {}, parentId);
+            this.startAgent = component;      
+            document.querySelector('.ai-agent-placeholder').insertAdjacentHTML('beforeend', template);
+            this.wSpaceComponent.openAgent = true;
+        }else{
+            this.startedAgend.startNewAgent();
+        }    
     }
 
 }

@@ -186,4 +186,15 @@ export class WorkspaceService extends BaseService {
 		return null;
 	}
 
+	static async sendAgentMessage(message){
+        const namespace = await UserService.getNamespace();
+        const url = '/workcpace/agent/'+namespace;
+		const response = await $still.HTTPClient.post(url, JSON.stringify({ message }), {
+            headers: { 'content-type': 'Application/json' }
+        });
+		if(response.ok && !response.error)
+			return await response.json();
+		return null;
+	}
+
 }

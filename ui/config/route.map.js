@@ -85,6 +85,10 @@ export const stillRoutesMap = {
             Header: {
                 path: "app/components/parts",
                 url: "/header"
+            },
+            AIAgent: {
+                path: "app/components/agent",
+                url: "/aia-gent"
             }
         },
         lazyInitial: {}

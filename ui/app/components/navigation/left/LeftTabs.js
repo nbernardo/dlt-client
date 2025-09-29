@@ -13,8 +13,7 @@ export class LeftTabs extends ViewComponent {
 	isPublic = true;
 
 	/**
-	 * @Inject
-	 * @Path services/
+	 * @Inject @Path services/
 	 * @type { WorkspaceService } */
 	service;
 
@@ -150,9 +149,6 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.genInitialDBQuery(table, dbfile)
 	}
 
-	/** @template */
-	viewPipelineDiagram(event, dbfile){}
-
 	async selectTab(tab){
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
@@ -179,12 +175,17 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.popupWindowProxy.showWindowPopup = true;
 	}
 
-	// console.log(`FROM LIST TAB OPEN: `,this.scriptListProxy.selectedFile);
 	/** @template */
 	async openScriptOnEditor(){}
 
-	// console.log(`DATA FILE OPENING: `,this.fileListProxy.selectedFile);
 	/** @template */
 	async openDataFileOnEditor(){}
+
+	/** @template */
+	viewPipelineDiagram(event, dbfile){}
+
+	async startAIAssistant(){
+		await this.$parent.controller.startAgent();
+	}
 
 }

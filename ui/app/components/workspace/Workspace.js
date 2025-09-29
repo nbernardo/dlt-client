@@ -125,6 +125,8 @@ export class Workspace extends ViewComponent {
 	/** @Prop */ wasDiagramSaved = false;
 	
 	/** @Prop */ selectedPplineName = false;
+
+	/** @Prop */ openAgent = false;
 	
 	selectedLeftTab = 'content-diagram';
 	
@@ -510,10 +512,6 @@ export class Workspace extends ViewComponent {
 		this.schedulePeriodicity = '';
 		this.scheduleTime = '';
 		btnPipelineSchedule.disabled = false;
-	}
-
-	callChat(){
-		WorkspaceService.startChatConversation();
 	}
 	
 }
