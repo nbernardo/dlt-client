@@ -34,7 +34,7 @@ class DuckdbUtil:
         This is only for trying to check if duckdb is not locked in case it's locked an exception will
         be thrown, because this is calle in the pipeline job, it'll prevent it to move forward
         """
-        cnx = duckdb.connect(dbfile_path)
+        cnx = DuckdbUtil.get_connection_for(dbfile_path)
         cnx.close()
         time.sleep(1)
 
@@ -120,6 +120,11 @@ class DuckdbUtil:
         if(not(db_filename in DuckdbUtil.db_connections)):
             DuckdbUtil.db_connections[db_filename] = duckdb.connect(f'{db_filename}')
            
-        return DuckdbUtil.db_connections[db_filename]
+        return DuckdbUtil.db_connections[db_filename]    
+    
+    
+    @staticmethod
+    def del_connection_for(db_filename) -> DuckDBPyConnection:
+        del DuckdbUtil.db_connections[db_filename]
 
 

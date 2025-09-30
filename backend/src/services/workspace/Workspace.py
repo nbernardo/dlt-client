@@ -9,7 +9,7 @@ from tabulate import tabulate
 from controller.pipeline import BasePipeline
 from services.pipeline.DltPipeline import DltPipeline
 import schedule
-import asyncio
+import time as timelib
 
 pattern = r'^use.*$'
 
@@ -193,11 +193,63 @@ class Workspace:
                         }
 
         return result
-    
+
+
+    @staticmethod
+    def list_duck_dbs_with_fields(files_path, user):
+
+        skip_tables = ['_dlt_loads','_dlt_pipeline_state','_dlt_pipeline_state','_dlt_version']
+
+        #folder = Workspace.get_duckdb_path_on_ppline()
+        file_list = os.listdir(files_path)
+        result, tables = {}, ''
+        table_counter = 0
+        current_pipeline = None
+        current_schema = None
+        
+        for _file in file_list:
+
+            if _file.endswith('.duckdb') or _file.endswith('.db'):
+                if _file not in result:
+                    result[_file] = {}
+
+                ppline_file = f'{files_path}/{_file}'
+                columns_list = Workspace.get_tables_and_field(f'{ppline_file}',None, user)
+
+                if 'error' in columns_list: 
+                    continue
+                
+                columns = columns_list['tables'].fetchall()
+                for table_name, schema_name, column_name, data_type in columns:
+
+                    if table_name not in skip_tables:
+
+                        k = f'{ppline_file}-{schema_name}-{table_name}'
+                        if k not in result:
+                            table_counter = table_counter + 1
+                            if table_counter > 1: 
+                                tables += f'DB-File: {current_pipeline}'
+                                tables += f'\nSchema: {current_schema}\n\n'
+
+                            result[k] = True
+                            tables += f"{table_counter}. Table: '{schema_name}.{table_name}'\n"\
+                                      f'Columns:\n'
+                        
+                        current_pipeline = ppline_file
+                        current_schema = schema_name
+                        tables += f'- {column_name}\n'\
+                
+                tables += f'DB-File: {current_pipeline}'
+                tables += f'\nSchema: {current_schema}'
+                        
+
+        return tables
+
+
     @staticmethod
     def get_tables(database = None, where = None, user = None):
         try:
-            cnx = duckdb.connect(f'{database}', read_only=True)
+            cnx = DuckdbUtil.get_connection_for(f'{database}')
             cursor = cnx.cursor()
             where_clause = f'WHERE {where}' if where is not None else ''
             query = f"SELECT \
@@ -205,6 +257,32 @@ class Workspace:
                         estimated_size, column_count FROM \
                         duckdb_tables {where_clause}"
             print(f'Fetching DuckDb tables: {query}')
+            
+            return { 'tables': cursor.execute(query) }
+        except duckdb.IOException as err:
+            if not(user in Workspace.duckdb_open_errors):
+                Workspace.duckdb_open_errors[user] = []
+
+            Workspace.duckdb_open_errors[user].append(str(err))
+            return { 'error': True, 'error_list': Workspace.duckdb_open_errors[user] }
+    
+    
+    @staticmethod
+    def get_tables_and_field(database = None, where = None, user = None):
+        try:
+            cnx = DuckdbUtil.get_connection_for(f'{database}')
+            cursor = cnx.cursor()
+            where_clause = f'WHERE {where}' if where is not None else ''
+
+            query = f"SELECT DISTINCT \
+                    t.table_name, \
+                    t.schema_name, \
+                    column_name, \
+                    data_type \
+                FROM duckdb_tables t \
+                JOIN duckdb_columns c ON t.table_name = c.table_name \
+                {where_clause} \
+                ORDER BY t.table_name, column_name"
             
             return { 'tables': cursor.execute(query) }
         except duckdb.IOException as err:
@@ -342,7 +420,7 @@ class Workspace:
 
             while True:
                 schedule.run_pending()
-                asyncio.sleep(1)
+                timelib.sleep(1)
         else:
             ...
 

@@ -4,42 +4,42 @@ import re
 from mistralai import Mistral
 from os import getenv as env
 from utils.duckdb_util import DuckdbUtil
+from services.workspace.Workspace import Workspace
+from groq import Groq
 
 class DataQueryAIAssistent:
 
     prev_answered = 'PREV_ANSWER:'
+    generate_sql_query = "'generate_sql_query_signal'"
 
-    def __init__(self, base_db_path):
+    def __init__(self, base_db_path, dbfile = ''):
+
         self.DB_SCHEMA = '''The database contains %total_table% tables:'''
         self.db_path = base_db_path
-        self.db = f'{self.db_path}/servicos_agendandos_pipeline.duckdb'
-        self.messages = [{"role": "system", "content": self.get_system_instructions()}]
+        self.db = f'{self.db_path}/{dbfile}'
+
+        self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
+        self.messages = [{"role": "system", "content": self.get_system_instructions_from_ini_meta()}]
 
         api_key = env('MISTRAL_API_KEY')
-        self.model = "mistral-large-latest"
+        #self.model = "mistral-large-latest"
+        self.model = "mistral-medium-2508"
         self.client = Mistral(api_key=api_key)
         self.chat_turns = []
         
 
     SYSTEM_INSTRUCTION = (
-        "You are a SQL query generator. When a user asks about data, you MUST first call the 'generate_sql_query_signal' tool. "
-        "Always call this tool before doing anything else." \
-        f" You'll always run the function calling even if it's a previous answered questions."
+        f"You are a SQL query generator. When a user asks about data."
+        f" Always call this tool before doing anything else." \
+        f" In case you're asked to update the Database betadata you'll call 'get_database_update' allways even if you've answered before." \
+        f" If the query envolves function calling you'll always run the function calling even if it's a previous answered questions."
+        f" If you're asked about tables or metadata, just use the DATABASE SCHEMA loaded, don't query the Database. "
+        f" At the end of each table columns there is two more metadata, the DB-File and the Schema for table seen above. "
+        f" If asked to query a specific table, you'll do {generate_sql_query} call, and you MAST generate the query enclosed in sql``` and you'll also add the DB-File enclosed in %% of that same table . "
+        f" When generating the query, you MUST only output the query, nothing else. "
         f" If for some reason, you're unable to call the function and answering with previous answer, just prefix it with {prev_answered}."
         f"\n\n--- DATABASE SCHEMA ---\n%db_schema%\n-----------------------."
     )
-
-
-    def parse_sql(content):
-
-        sql_query = None
-        #sql_pattern = r'\b(SELECT\s+.*?;|INSERT\s+.*?;|UPDATE\s+.*?;|DELETE\s+.*?;)'
-        sql_pattern = r'\b(SELECT\s+.*?;)'
-        sql_match = re.search(sql_pattern, content, re.IGNORECASE | re.DOTALL)
-        if sql_match:
-            sql_query = sql_match.group(1).strip()
-        
-        return sql_query
 
 
     def get_system_instructions(self):
@@ -57,8 +57,11 @@ class DataQueryAIAssistent:
                 JOIN duckdb_columns c ON t.table_name = c.table_name \
                 ORDER BY t.table_name, column_name"
 
-        conn = duckdb.connect(db)
-        columns = conn.execute(query).fetchall()
+        try:
+            conn = DuckdbUtil.get_connection_for(db)
+            columns = conn.execute(query).fetchall()
+        except Exception as err:
+            print('Error while trying to connect AI Agent: '+str(err))
         
         for table_name, schema_name, column_name, data_type in columns:
 
@@ -73,9 +76,17 @@ class DataQueryAIAssistent:
                 pass
 
         DB_SCHEMA = DB_SCHEMA.replace('%total_table%',str(table_count))
-        conn.close()
 
         return DataQueryAIAssistent.SYSTEM_INSTRUCTION.replace('%db_schema%',DB_SCHEMA)
+
+
+    def get_system_instructions_from_ini_meta(self):
+
+        DB_SCHEMA = self.DB_SCHEMA.replace('%total_table%',self.ini_tables)
+        complete_instructions = DataQueryAIAssistent.SYSTEM_INSTRUCTION\
+            .replace('%db_schema%',DB_SCHEMA)
+
+        return complete_instructions
 
 
     def run_query(self, query):
@@ -117,7 +128,13 @@ class DataQueryAIAssistent:
                 print(f"   -> Arguments: {function_args.get('natural_language_question')}")
                 
                 is_prev_response = tool_calling.choices[0]\
-                    .message.content.startswith(DataQueryAIAssistent.prev_answered)
+                    .message.content.strip().startswith(DataQueryAIAssistent.prev_answered)
+
+                if function_name == 'get_database_update':
+
+                    self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
+                    self.messages = [{"role": "system", "content": self.get_system_instructions_from_ini_meta()}]
+                    return { 'answer': 'final', 'result': "Ok, I'll update the DB metadata" }
                 
                 if function_name == "generate_sql_query_signal" or is_prev_response == True:
 
@@ -144,18 +161,109 @@ class DataQueryAIAssistent:
                 print("1. LLM decided not to call a function. Raw response:")
                 print(tool_calling.choices[0].message.content)
                 self.messages.append({ 'role': 'assistant', 'content': tool_calling.choices[0].message.content })
+                #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
                 return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
 
         except Exception as e:
-            print(f"\nAn error occurred: {e}")
-            print("Please ensure the 'ollama' Python package is installed (`pip install ollama`), Ollama is running, and you have pulled the required model (`ollama pull phi3`).")
+            print(f"\nInternal error occurred: {e}")
+            return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
+            
 
+    def cloud_groq_call(self, user_prompt):
 
-    def handle_response(self, client: Mistral, model):
-        nl_to_sql_call = client.chat.complete(model=model, messages=self.messages,)
+        api_key = env('GROQ_API_KEY')
+        self.model = "llama-3.3-70b-versatile"
+        self.client = Groq(api_key=api_key)
+
+        client, model = self.client, self.model
+        
+        try:
+            self.messages.append({"role": "user", "content": user_prompt})
+            tool_calling = client.chat.completions.create(
+                model=model,
+                messages=self.messages,
+                tools=ToolsDefinition.SQL_TOOL,
+                stream=False
+            )
+
+            tool_calls = tool_calling.choices[0].message.tool_calls
+
+            if tool_calls is not None:
+
+                is_prev_response = False
+                found_tool = tool_calls[0]
+                function_name = found_tool.function.name
+                function_args = found_tool.function.arguments
+                function_args = json.loads(function_args)
+                            
+                print(f"1. LLM requested Tool Call: {function_name}")
+                print(f"   -> Arguments1: {function_args.get('natural_language_question')}")
+                print(f"   -> Arguments2: {function_args.get('database_file')}")
+                
+                if tool_calling.choices[0].message.content:
+                    is_prev_response = tool_calling.choices[0]\
+                        .message.content.strip().startswith(DataQueryAIAssistent.prev_answered)
+                
+                if function_name == 'get_database_update':
+
+                    self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
+                    self.messages = [{"role": "system", "content": self.get_system_instructions_from_ini_meta()}]
+                    return { 'answer': 'final', 'result': "Ok, I'll update the DB metadata" }
+                
+                if function_name == "generate_sql_query_signal" or is_prev_response == True:
+
+                    if(is_prev_response != True):
+                        # Only handle function call if the actual function was called, in case of prev answer skip this
+                        function_output = self.generate_sql_query_signal(function_args.get('natural_language_question', ''))
+
+                        db_file = function_args.get('database_file')
+                        db_file = AIDataContentParser.extract_dbfile_pat(db_file)
+
+                        self.db = db_file
+                        self.messages.append(tool_calling.choices[0].message)
+                        for tool_cal in tool_calls:
+                            tool_cal.function.name
+                            self.messages.append({
+                                "role": "tool",
+                                "content": json.dumps({"result": function_output}),
+                                "tool_call_id": found_tool.id
+                            })
+                    
+                    print("\n2. Sending Tool Output back to LLM for SQL Generation...")                
+                    return { 'answer': 'final', 'result': self.handle_response(client, model, 'Groq') }
+
+                else:
+                    print(f"Error: Unknown function name requested: {function_name}")
+                    
+            else:
+                print("1. LLM decided not to call a function. Raw response:")
+                print(tool_calling.choices[0].message.content)
+                self.messages.append({ 'role': 'assistant', 'content': tool_calling.choices[0].message.content })
+                #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
+                return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
+
+        except Exception as e:
+            print(f"\nInternal error occurred: {e}")
+            return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
+            
+
+    def handle_response(self, client: Mistral | Groq, model, strategy = 'mistral'):
+
+        nl_to_sql_call = None
+        if strategy == 'Groq':
+            nl_to_sql_call = client.chat.completions.create(model=model, messages=self.messages,stream=False)
+        if strategy == 'mistral':
+            nl_to_sql_call = client.chat.complete(model=model, messages=self.messages,)
+
+        actual_query = nl_to_sql_call.choices[0].message.content
+        if actual_query.index('%%'):
+            actual_query = actual_query.split('%%')[0]
+
         self.messages.append({ 'role': 'assistant', 'content': nl_to_sql_call.choices[0].message.content })
-        sql_query = nl_to_sql_call.choices[0].message.content.strip()
-        sql_query = DataQueryAIAssistent.parse_sql(sql_query)
+        sql_query = actual_query.strip()
+        sql_query = AIDataContentParser.parse_sql(sql_query)
+        if sql_query == None:
+            return 'Could not run the query. Can you refine it?'
         return self.run_query(sql_query)
 
 
@@ -175,6 +283,10 @@ class ToolsDefinition:
                         "natural_language_question": {
                             "type": "string",
                             "description": "The full natural language question from the user. IMPORTANT: The argument passed to this function MUST be the original user question, verbatim, without alteration."
+                        },
+                        "database_file": {
+                            "type": "string",
+                            "description": "LLM Will extract from the Database Schema from DB-File. IMPORTANT: This MUST be extracted from the last line of each table corresponding to the one being queried."
                         }
                     },
                     "required": ["natural_language_question"]
@@ -184,6 +296,31 @@ class ToolsDefinition:
     ]
 
 
+
+class AIDataContentParser:
+
+    @staticmethod
+    def parse_sql(content):
+
+        sql_query = None
+        sql_pattern = r'(SELECT\s+.*?;)'
+        sql_match = re.search(sql_pattern, content, re.IGNORECASE | re.DOTALL)
+        if sql_match:
+            sql_query = sql_match.group(1).strip()
+        
+        elif str(content).lower.index('```sql',''):
+            sql_query = content.replace('```sql','').replace('```','').replace('\n','').trim()
+
+        return sql_query
+
+
+    @staticmethod
+    def extract_dbfile_pat(content):
+        
+        pattern = r'%%(.+?)%%'
+        matches = re.findall(pattern, content, re.DOTALL)
+        
+        return matches[0] if len(matches) > 0 else content
 
 
 

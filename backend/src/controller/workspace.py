@@ -144,7 +144,7 @@ def message_ai_agent(namespace):
     try:
         payload = request.get_json()
         message = payload['message']
-        return send_message_to_agent(message, namespace)
+        return send_message_to_agent_wit_groq(message, namespace)
     except Exception as error:
         print(f'AI Agent error while processing your request {str(error)}')
         print(error)
@@ -206,4 +206,11 @@ def send_message_to_agent(message, namespace, user_id = None):
     user = user_id if user_id != None else namespace
     agent: Agent = agents_list[user]
 
-    return { 'success': True, 'result': agent.cloud_mistral_call(message) }
+    return { 'success': True, 'result': agent.cloud_mistral_call(message) }    
+
+
+def send_message_to_agent_wit_groq(message, namespace, user_id = None):
+    user = user_id if user_id != None else namespace
+    agent: Agent = agents_list[user]
+
+    return { 'success': True, 'result': agent.cloud_groq_call(message) }
