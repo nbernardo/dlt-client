@@ -241,8 +241,7 @@ class Workspace:
                 
                 tables += f'DB-File: {current_pipeline}'
                 tables += f'\nSchema: {current_schema}'
-                        
-
+               
         return tables
 
 

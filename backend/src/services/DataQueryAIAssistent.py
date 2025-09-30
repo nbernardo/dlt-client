@@ -31,7 +31,7 @@ class DataQueryAIAssistent:
     SYSTEM_INSTRUCTION = (
         f"You are a SQL query generator. When a user asks about data."
         f" Always call this tool before doing anything else." \
-        f" In case you're asked to update the Database betadata you'll call 'get_database_update' allways even if you've answered before." \
+        f" For update the Database metadata/Database/metadata you MUST ALWAYS call 'get_database_update' even if you've answered before." \
         f" If the query envolves function calling you'll always run the function calling even if it's a previous answered questions."
         f" If you're asked about tables or metadata, just use the DATABASE SCHEMA loaded, don't query the Database. "
         f" At the end of each table columns there is two more metadata, the DB-File and the Schema for table seen above. "
@@ -134,7 +134,7 @@ class DataQueryAIAssistent:
 
                     self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
                     self.messages = [{"role": "system", "content": self.get_system_instructions_from_ini_meta()}]
-                    return { 'answer': 'final', 'result': "Ok, I'll update the DB metadata" }
+                    return { 'answer': 'final', 'result': "I'm now updated. Do you want to know something specific" }
                 
                 if function_name == "generate_sql_query_signal" or is_prev_response == True:
 
@@ -197,8 +197,9 @@ class DataQueryAIAssistent:
                 function_args = json.loads(function_args)
                             
                 print(f"1. LLM requested Tool Call: {function_name}")
-                print(f"   -> Arguments1: {function_args.get('natural_language_question')}")
-                print(f"   -> Arguments2: {function_args.get('database_file')}")
+                if function_args != None:
+                    print(f"   -> Arguments1: {function_args.get('natural_language_question')}")
+                    print(f"   -> Arguments2: {function_args.get('database_file')}")
                 
                 if tool_calling.choices[0].message.content:
                     is_prev_response = tool_calling.choices[0]\
@@ -208,7 +209,7 @@ class DataQueryAIAssistent:
 
                     self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
                     self.messages = [{"role": "system", "content": self.get_system_instructions_from_ini_meta()}]
-                    return { 'answer': 'final', 'result': "Ok, I'll update the DB metadata" }
+                    return { 'answer': 'final', 'result': "I'm now updated. Do you want to know something specific?" }
                 
                 if function_name == "generate_sql_query_signal" or is_prev_response == True:
 
@@ -256,6 +257,7 @@ class DataQueryAIAssistent:
             nl_to_sql_call = client.chat.complete(model=model, messages=self.messages,)
 
         actual_query = nl_to_sql_call.choices[0].message.content
+
         if actual_query.index('%%'):
             actual_query = actual_query.split('%%')[0]
 
@@ -291,7 +293,16 @@ class ToolsDefinition:
                     },
                     "required": ["natural_language_question"]
                 }
-            }
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "get_database_update",
+                "description": "This is especially for providing Metadata update capabilities in the implementation. "
+                               "This will be called everytime the agent is asked to update itself. "
+                               "The update ask can include terms like Medatata, Database or both",
+            },
         },
     ]
 
@@ -305,11 +316,12 @@ class AIDataContentParser:
         sql_query = None
         sql_pattern = r'(SELECT\s+.*?;)'
         sql_match = re.search(sql_pattern, content, re.IGNORECASE | re.DOTALL)
+
         if sql_match:
             sql_query = sql_match.group(1).strip()
-        
-        elif str(content).lower.index('```sql',''):
-            sql_query = content.replace('```sql','').replace('```','').replace('\n','').trim()
+
+        if sql_match == None and str(content).lower().strip().index('```sql') >= 0:
+            sql_query = content.replace('```sql','').replace('```','').replace('\n','').strip()
 
         return sql_query
 
