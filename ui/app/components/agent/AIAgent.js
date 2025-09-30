@@ -55,9 +55,11 @@ export class AIAgent extends ViewComponent {
 			this.createMessageBubble(message, 'user');
 			this.scrollToBottom();
 			this.createMessageBubble(this.loadingContent(), 'agent');
-			const { result } = await WorkspaceService.sendAgentMessage(message);
+			const { result, error: errMessage, success } = await WorkspaceService.sendAgentMessage(message);
 
-			let response = result?.result;
+			let response = null;
+			if(success === false) response = errMessage;
+			else response = result?.result;
 			
 			if((response || []).length === 0)
 				response = 'No data found for the submitted query. Do you want to send another query?';
