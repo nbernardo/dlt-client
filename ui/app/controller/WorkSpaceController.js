@@ -3,6 +3,7 @@ import { Components } from "../../@still/setup/components.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
+import { UserUtil } from "../components/auth/UserUtil.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
@@ -358,6 +359,7 @@ export class WorkSpaceController extends BaseController {
         socket.on('connect', () => { });
         socket.on('connected', async (data) => {
             socketData.sid = data.sid;
+            UserUtil.sid = socketData.sid;
             await this.wSpaceComponent.service.updateSocketId(data.sid);
         });
 
