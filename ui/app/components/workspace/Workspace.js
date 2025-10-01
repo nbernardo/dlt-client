@@ -513,5 +513,7 @@ export class Workspace extends ViewComponent {
 		this.scheduleTime = '';
 		btnPipelineSchedule.disabled = false;
 	}
+
+	showOrHideAgent = () => this.openAgent = !this.openAgent;
 	
 }

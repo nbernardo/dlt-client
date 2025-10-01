@@ -646,15 +646,18 @@ export class WorkSpaceController extends BaseController {
     startedAgend = null;
 
     async startAgent(){  
-        if(this.startAgent){
+        if(!this.startedAgend){
             const parentId = this.wSpaceComponent.cmpInternalId;
             const { template, component } = await Components.new('AIAgent', {}, parentId);
-            this.startAgent = component;      
+            this.startedAgend = component;      
             document.querySelector('.ai-agent-placeholder').insertAdjacentHTML('beforeend', template);
-            this.wSpaceComponent.openAgent = true;
+            this.wSpaceComponent.showOrHideAgent();
         }else{
+            if(!this.wSpaceComponent.openAgent)
+                this.wSpaceComponent.showOrHideAgent();
+
             this.startedAgend.startNewAgent();
-        }    
+        }
     }
 
 }

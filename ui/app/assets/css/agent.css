@@ -29,12 +29,15 @@
             font-weight: 700; /* font-bold */
             color: #059669; /* text-emerald-600 */
             margin-bottom: 4px;
+            margin-top: 8px;
         }
         
         .ai-agent-wrapper .description-text {
             font-size: 0.875rem; /* text-sm */
             color: #4b5563; /* text-gray-600 */
             margin-bottom: 1.5rem; /* mb-6 */
+            padding-left: 14px;
+            padding-top: 12px;
         }
 
         /* Inline Code Snippet Styling (bg-gray-200 p-1 rounded text-gray-800) */
@@ -252,3 +255,9 @@
 	z-index: 10;
 }
         
+.add-info{
+    font-size: 10px;
+    display: block;
+    font-weight: normal;
+    color: black;
+}

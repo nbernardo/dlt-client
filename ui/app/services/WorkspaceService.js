@@ -185,7 +185,7 @@ export class WorkspaceService extends BaseService {
             if(response.ok && !response.error)
                 return await response.json();            
         } catch (error) {
-           console.log(`Error on starting the chat: `, error); 
+           console.log(`Error on starting the chat: `, error);
         }
 		return null;
 	}

@@ -44,7 +44,9 @@ export class AIAgent extends ViewComponent {
 	}
 
 	async startNewAgent() {
-		await WorkspaceService.startChatConversation();
+		try {
+			await WorkspaceService.startChatConversation();
+		} catch (error) {}
 	}
 
 	async sendChatRequest(event) {
@@ -92,8 +94,6 @@ export class AIAgent extends ViewComponent {
 		bubble.appendChild(textP);
 		row.appendChild(bubble);
 		this.outputContainer.appendChild(row);
-
-		return textP;
 	}
 
 	scrollToBottom() {
@@ -156,5 +156,8 @@ export class AIAgent extends ViewComponent {
 			</div>
 		`;
 	}
+
+	hideAgentUI = () => this.$parent.showOrHideAgent();
+	
 
 }
