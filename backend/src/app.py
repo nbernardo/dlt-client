@@ -31,9 +31,10 @@ def on_connect():
     socketio.sleep(0)
 
     
-call_scheduled_job()
 
 app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
 app.register_blueprint(upload)
-socketio.run(app, host="0.0.0.0", port=8000)
+call_scheduled_job()
+# allow_unsafe_werkzeug=True - Because of Docker
+socketio.run(app, host="0.0.0.0", port=8000, allow_unsafe_werkzeug=True)

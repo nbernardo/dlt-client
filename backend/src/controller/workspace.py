@@ -170,22 +170,38 @@ def message_ai_agent_with_username(namespace, username):
 def setup_job_schedules():
     Workspace.schedule_pipeline_job()
     return ''
+
+    
+import os
+def call_scheduled_job():
+
+    if os.path.exists('/.dockerenv'):
+        # In case the app is running in Docker we call the schedul implementation 
+        # straight instead of API call (else case),
+        debounce_call_scheduled_job()
+        
+    else:
+        def call_end_point():
+            time.sleep(2)
+            while True:
+                response = requests.post(f'{env('APP_SRV_ADDR')}/workcpace/ppline/job/schedule/')
+                response.raise_for_status()
+                if response.status_code == 200 or response.status_code == 204:
+                    break
+                time.sleep(.5)
+
+        task = threading.Thread(target=call_end_point)
+        task.start()
     
 
-def call_scheduled_job():
-    
+def debounce_call_scheduled_job():
+
     def call_end_point():
-        time.sleep(10)
-        while True:
-            response = requests.post(f'{env('APP_SRV_ADDR')}/workcpace/ppline/job/schedule/')
-            response.raise_for_status()
-            if response.status_code == 200 or response.status_code == 204:
-                break
-            time.sleep(2)
+        Workspace.schedule_pipeline_job()
 
     task = threading.Thread(target=call_end_point)
     task.start()
-    
+
 
 agents_list: List[Agent] = {}
 def setup_agent(user, namespace = None):
