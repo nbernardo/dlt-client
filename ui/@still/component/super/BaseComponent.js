@@ -213,8 +213,7 @@ export class BaseComponent extends BehaviorComponent {
         else {
 
             if (
-                this.cmpInternalId && !this.isRoutable
-                && !this.getRoutableCmp()
+                this.cmpInternalId && !this.isRoutable && !this.getRoutableCmp()
                 /* && this.cmpInternalId.indexOf(dynamic) == 0 */
             ) {
                 /** If component was generated dynamically in a loop */
@@ -294,7 +293,6 @@ export class BaseComponent extends BehaviorComponent {
                         if((bfrBind.startsWith('="') || bfrBind.startsWith('(\'')) && (aftBind[0] == '"' || aftBind == '\')"')){
                             return data;
                         }
-
                         //this.#stateChangeSubsribers.push(`subrcibe-${clsName}-${field}`);
                         return `<state class="state-change-${clsName}-${field}">${data}</state>`;
 
@@ -424,49 +422,50 @@ export class BaseComponent extends BehaviorComponent {
         this.onChangeEventsList.forEach(elm => {
 
             const evtComposition = elm.evt.split('="')[1].split('(');
-            const evt = evtComposition[0];
-            const paramVal = evtComposition[1].replace(')', '');
-            const uiElm = elm._className;
-            document.querySelector(`.${uiElm}`).onchange = async (event) => {
-                const inpt = event.target, oldValues = [];;
-                const { value, dataset: { formref, field, cls } } = inpt;
-                const fieldPath = `${cls}${formref ? `-${formref}` : ''}`;
-                const { multpl } = (this['stOptListFieldMap'].get(field) || {});
+            const [evt, uiElm] = [evtComposition[0], elm._className];
+            const paramVal = evtComposition[1].replace(')', ''), actualUiCmp = document.querySelector(`.${uiElm}`);
 
-                if(multpl){
-                    event.target.querySelectorAll('option').forEach(r => {
-                        if(r.selected && r.value != '') oldValues.push(r.value);
-                    });
-                    this[field] = oldValues;
-                    this['stClk' + field] = true;
+            if(actualUiCmp){
+
+                document.querySelector(`.${uiElm}`).onchange = async (event) => {
+                    const inpt = event.target, oldValues = [];
+                    const { value, dataset: { formref, field, cls } } = inpt;
+                    const fieldPath = `${cls}${formref ? `-${formref}` : ''}`;
+                    const { multpl } = (this['stOptListFieldMap'].get(field) || {});
+    
+                    if(multpl){
+                        event.target.querySelectorAll('option').forEach(r => {
+                            if(r.selected && r.value != '') oldValues.push(r.value);
+                        });
+                        this[field] = oldValues, this['stClk' + field] = true;
+                    }
+    
+                    let isValid = value == '' ? false : true;
+    
+                    if (!isValid) inpt.classList.add('still-validation-failed-style');
+                    else inpt.classList.remove('still-validation-failed-style');
+    
+                    if (fieldPath && field && (formref && !!(formref)))
+                        BehaviorComponent.currentFormsValidators[this.cmpInternalId+'-'+formref][field]['isValid'] = isValid;
+    
+                    setTimeout(() => {
+                        const param = paramVal.indexOf('$event') == 0 ? event : paramVal;
+                        const instance = eval(this.getClassPath());
+    
+                        if (field != undefined) {
+                            if (!(field in instance)) 
+                                throw new Error(`Field with name ${field} is not define in ${this.getName()}`);
+                            if(!multpl) instance[field] = value;
+                        }
+    
+                        if (evt != 'Components.void') {
+                            if (!(evt in instance)) 
+                                throw new Error(`Method with name ${evt}() is not define in ${this.getName()}`);
+                            instance[evt](param);
+                        }
+                    })
                 }
 
-                let isValid = true;
-                if (value == '') isValid = false;
-
-                if (!isValid) inpt.classList.add('still-validation-failed-style');
-                else inpt.classList.remove('still-validation-failed-style');
-
-                if (fieldPath && field && (formref && !!(formref)))
-                    BehaviorComponent.currentFormsValidators[this.cmpInternalId+'-'+formref][field]['isValid'] = isValid;
-
-                setTimeout(() => {
-                    const param = paramVal.indexOf('$event') == 0 ? event : paramVal;
-                    const instance = eval(this.getClassPath());
-
-                    if (field != undefined) {
-                        if (!(field in instance)) 
-                            throw new Error(`Field with name ${field} is not define in ${this.getName()}`);
-                        if(!multpl) instance[field] = value;
-                    }
-
-                    if (evt != 'Components.void') {
-                        if (!(evt in instance)) 
-                            throw new Error(`Method with name ${evt}() is not define in ${this.getName()}`);
-                        instance[evt](param);
-                    }
-
-                })
             }
         });
     }

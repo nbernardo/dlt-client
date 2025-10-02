@@ -186,7 +186,6 @@ export class Components {
                 StillError.handleStComponentNotFound(error, parentCmp, clsName);
             return false;
         }
-
     }
 
     static parseTemlpateCssToScope(template) {
@@ -555,7 +554,6 @@ export class Components {
                 }, 200);
             }
         }
-
         return this;
     }
 
@@ -655,9 +653,8 @@ export class Components {
      * @param { HTMLElement } elm
      * @param { ViewComponent } cmp
      */
-    propageteToInput(elm, field, cmp) {
-        elm.value = cmp['$still_' + field];
-    }
+    propageteToInput = (elm, field, cmp) => elm.value = cmp['$still_' + field];
+    
 
     /**
      * @param { HTMLElement } elm
@@ -874,7 +871,6 @@ export class Components {
                 });
             }
         }
-
         return { result: childCmp?.stElement ? childResult : result, fullRerender };
     }
 
@@ -1384,9 +1380,11 @@ export class Components {
             delete registror[Router.preView?.constructor?.name];
             //Clear the HTML Content of the previous view            
             const prevCmp = document.querySelector('.'+Router.preView?.cmpInternalId);
-            if(prevCmp.id === 'still-toplevel-and-root-app')
-                document.querySelector('.'+Router.preView?.cmpInternalId+' div').innerHTML = '';
-            else prevCmp.firstChild.innerHTML = '';
+            if(prevCmp){
+                if(prevCmp?.id === 'still-toplevel-and-root-app')
+                    document.querySelector('.'+Router.preView?.cmpInternalId+' div').innerHTML = '';
+                else prevCmp.firstChild.innerHTML = '';
+            }
 
             setTimeout(() => {
                 if (versionId) {
