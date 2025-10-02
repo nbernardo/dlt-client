@@ -50,6 +50,14 @@ export class WorkSpaceController extends BaseController {
     btnPipelineSchedule;
     dropMenu;
 
+    /** 
+     * When loading/importing an existing diagram 
+     * the nodes are re-created in the diagram as 
+     * needed due to that the nodeId can be different,
+     * hence we have the bellow map  
+     * */
+    static importNodeIdMapping;
+
     resetEdges() {
         this.edgeTypeAdded = {};
         this.formReferences.clear();
@@ -150,17 +158,22 @@ export class WorkSpaceController extends BaseController {
 
     async processImportingNodes(nodeData) {
 
+        WorkSpaceController.importNodeIdMapping = {};
         const [inOutputMapping, nodeList] = [{}, Object.entries(nodeData)];
         let nodeId = 0;
         this.isImportProgress = nodeList.length > 0 ? true : false;
 
-        for (let [_, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList) {
+        for (let [originalNodeId, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList) {
+            
+            nodeId++;
+            WorkSpaceController.importNodeIdMapping[originalNodeId] = Number(nodeId)
+
             if (!['Start', 'End'].includes(name)) {
 
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { componentId: removedId, ...fields } = data;
                 const parentId = this.wSpaceComponent.cmpInternalId;
-                const { template: tmpl, component } = await Components.new(name, { nodeId: ++nodeId, ...fields, isImport: true }, parentId);
+                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true }, parentId);
 
                 this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
                 setTimeout(() => Object.keys(fields).forEach((f) => component[f] = fields[f]), 10);
@@ -172,16 +185,17 @@ export class WorkSpaceController extends BaseController {
 
                 [source, dest] = [name === 'End', name === 'Start'];
                 this.addStartOrEndNode(name, source, dest, pos_x, pos_y);
-                inOutputMapping[++nodeId] = { inputs, outputs };
+                inOutputMapping[nodeId] = { inputs, outputs };
                 if(name === 'Start')
                     this.edgeTypeAdded[NodeTypeEnum.START] = nodeId;
             }
         }
 
         Object.keys(inOutputMapping).forEach(nodeId => {
-            const { inputs, outputs } = inOutputMapping[nodeId];
+            const { outputs } = inOutputMapping[nodeId];
             outputs?.output_1?.connections.forEach((link) => {
-                this.editor.addConnection(Number(nodeId), Number(link.node), 'output_1', 'input_1');
+                const targetNode = WorkSpaceController.importNodeIdMapping[Number(link.node)];
+                this.editor.addConnection(Number(nodeId), targetNode, 'output_1', 'input_1');
             });
         });
 
@@ -359,7 +373,6 @@ export class WorkSpaceController extends BaseController {
         socket.on('connect', () => { });
         socket.on('connected', async (data) => {
             socketData.sid = data.sid;
-            UserUtil.sid = socketData.sid;
             await this.wSpaceComponent.service.updateSocketId(data.sid);
         });
 
