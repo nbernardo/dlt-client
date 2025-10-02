@@ -15,6 +15,9 @@ export class Login extends ViewComponent {
 	/** @Prop */
 	loggedUser = null;
 
+	/** @Prop */
+	isAnonumousLogin = StillAppSetup.config.get('anonymousLogin');
+
 	/**
 	 * @Inject
 	 * @Path services/
@@ -28,16 +31,24 @@ export class Login extends ViewComponent {
 
 	async login(provider){
 
+		if(this.isAnonumousLogin){
+			this.userService.anonymousLogin();
+			return this.handleSuccessLogin();
+		}
+		
 		const { user, success } = await this.userService.login(provider);
 		
 		if(success === false) this.loginSuccess = false;
 
-		if(user){
-	 		this.loginSuccess = true;
-	 		StillAppSetup.get().setAuthN(true);
-	 		Router.goto('Workspace');
-		}
+		if(user) 
+			this.handleSuccessLogin();
 		
+	}
+
+	handleSuccessLogin(){
+	 	this.loginSuccess = true;
+	 	StillAppSetup.get().setAuthN(true);
+	 	Router.goto('Workspace');
 	}
 
 	logOut(){

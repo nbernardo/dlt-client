@@ -1,5 +1,6 @@
 import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
+import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
 import { Bucket } from "../components/node-types/Bucket.js";
@@ -178,7 +179,10 @@ export class WorkspaceService extends BaseService {
 	}
 
 	static async startChatConversation(){
-        const namespace = await UserService.getNamespace();
+
+        const namespace = StillAppSetup.config.get('anonymousLogin') 
+            ? UserUtil.email : await UserService.getNamespace();
+        
         const url = '/workcpace/agent/'+namespace;
         try {
             const response = await $still.HTTPClient.get(url);
@@ -191,7 +195,10 @@ export class WorkspaceService extends BaseService {
 	}
 
 	static async sendAgentMessage(message){
-        const namespace = await UserService.getNamespace();
+
+        const namespace = StillAppSetup.config.get('anonymousLogin') 
+            ? UserUtil.email : await UserService.getNamespace();
+
         const url = '/workcpace/agent/'+namespace;
 		const response = await $still.HTTPClient.post(url, JSON.stringify({ message }), {
             headers: { 'content-type': 'Application/json' }

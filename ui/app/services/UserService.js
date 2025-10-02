@@ -30,6 +30,11 @@ export class UserService extends BaseService {
 	  
 	}
 
+	async anonymousLogin(){
+        this.userDetailes = { user: {name: 'Anonymous', 'email': 'anonymous-dlt@none.dlt'}, success: true, exception: false };
+        return this.userDetailes;	  
+	}
+
 	async logOut(){
 		await UserService.auth0Client.logout({ localOnly: true });
         Router.goto('exit');
@@ -41,13 +46,19 @@ export class UserService extends BaseService {
     }
 
     async getLoggedUser(){
+        const anonymousLogin = StillAppSetup.config.get('anonymousLogin');
+        if(anonymousLogin){
+            return new Promise(resolve => {
+                resolve(this.userDetailes);
+            });
+        }
         await auth0GetConnection();
         return UserService.auth0Client.getUser();
     }
 
     static async getNamespace(){
         if(UserService.namespace === null)
-            UserService.namespace = (await new UserService().getLoggedUser()).email
+            UserService.namespace = (await new UserService().getLoggedUser())?.email
         return UserService.namespace
     }
 

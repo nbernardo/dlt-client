@@ -45,7 +45,11 @@ export class Header extends ViewComponent {
 		
 		this.userService.on('load', async () => {
 
-			const user = (await this.userService.getLoggedUser());
+			let user = (await this.userService.getLoggedUser());
+
+			if(user?.user)
+				user = user?.user;
+
 			if(UserUtil.name === null){
 				UserUtil.name = user.name;
 				UserUtil.email = user.email;
