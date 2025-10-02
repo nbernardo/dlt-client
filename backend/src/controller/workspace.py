@@ -148,7 +148,9 @@ def message_ai_agent(namespace):
     except Exception as error:
         print(f'AI Agent error while processing your request {str(error)}')
         print(error)
-        return 'failed'
+        result = 'No medatata was loaded about your namespace.'\
+              if str(error).strip() == namespace else 'Could not load details about your namespace.'
+        return { 'error': True, 'result': { 'result': result } }
     
 
 @workspace.route('/workcpace/agent/<namespace>/<username>', methods=['POST'])
@@ -215,7 +217,7 @@ def setup_agent(user, namespace = None):
         return { 'error': False, 'success': True }
     except Exception as err:
         print(f'Error while staring the AI agent: {err}')
-        return { 'error': f'Error while staring AI Agent: {err}', 'success': False }
+        return { 'error': f'Error while staring AI Agent: {str(err)}', 'success': False }
     
 
 def send_message_to_agent(message, namespace, user_id = None):
