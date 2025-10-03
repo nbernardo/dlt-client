@@ -33,10 +33,10 @@ class DataQueryAIAssistent:
         f" Always call this tool before doing anything else." \
         f" For update the Database metadata/Database/metadata you MUST ALWAYS call 'get_database_update' even if you've answered before." \
         f" If the query envolves function calling you'll always run the function calling even if it's a previous answered questions."
-        f" If you're asked about tables or metadata, just use the DATABASE SCHEMA loaded, don't query the Database. "
+        f" If you're asked about tables or metadata or DB/DATABASE SCHEMA, just use the DATABASE SCHEMA loaded, don't query the Database. "
         f" At the end of each table columns there is two more metadata, the DB-File and the Schema for table seen above. "
         f" If asked to query a specific table, you'll do {generate_sql_query} call, and you MAST generate the query enclosed in sql``` and you'll also add the DB-File enclosed in %% of that same table . "
-        f" When generating the query, you MUST only output the query, nothing else. "
+        f" When generating the query, you MUST only output the query, nothing else. Query MUST use all needes fields from table separated by comma, do use *. "
         f" If for some reason, you're unable to call the function and answering with previous answer, just prefix it with {prev_answered}."
         f"\n\n--- DATABASE SCHEMA ---\n%db_schema%\n-----------------------."
     )
@@ -152,7 +152,7 @@ class DataQueryAIAssistent:
                             })
                     
                     print("\n2. Sending Tool Output back to LLM for SQL Generation...")                
-                    return { 'answer': 'final', 'result': self.handle_response(client, model) }
+                    return { 'answer': 'final', **self.handle_response(client, model) }
 
                 else:
                     print(f"Error: Unknown function name requested: {function_name}")
@@ -231,7 +231,7 @@ class DataQueryAIAssistent:
                             })
                     
                     print("\n2. Sending Tool Output back to LLM for SQL Generation...")                
-                    return { 'answer': 'final', 'result': self.handle_response(client, model, 'Groq') }
+                    return { 'answer': 'final', **self.handle_response(client, model, 'Groq') }
 
                 else:
                     print(f"Error: Unknown function name requested: {function_name}")
@@ -265,8 +265,11 @@ class DataQueryAIAssistent:
         sql_query = actual_query.strip()
         sql_query = AIDataContentParser.parse_sql(sql_query)
         if sql_query == None:
-            return 'Could not run the query. Can you refine it?'
-        return self.run_query(sql_query)
+            return { 'result': 'Could not run the query. Can you refine it?' }
+        return { 
+            'result': self.run_query(sql_query), 
+            'fields': actual_query.lower().split('from')[0].split('select',1)[1] 
+        }
 
 
 
@@ -289,6 +292,9 @@ class ToolsDefinition:
                         "database_file": {
                             "type": "string",
                             "description": "LLM Will extract from the Database Schema from DB-File. IMPORTANT: This MUST be extracted from the last line of each table corresponding to the one being queried."
+                        },
+                        "fields_in_query": {
+                            "type": "string"
                         }
                     },
                     "required": ["natural_language_question"]
