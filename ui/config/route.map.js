@@ -89,6 +89,10 @@ export const stillRoutesMap = {
             AIAgent: {
                 path: "app/components/agent",
                 url: "/aia-gent"
+            },
+            Grid: {
+                path: "app/components/grid",
+                url: "/grid"
             }
         },
         lazyInitial: {}

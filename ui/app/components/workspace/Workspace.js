@@ -519,5 +519,16 @@ export class Workspace extends ViewComponent {
 	}
 
 	showOrHideAgent = () => this.openAgent = !this.openAgent;
+
+	async showPopWindow() {
+		
+		const { template } = await Components.new('Grid', {}, this.cmpInternalId);
+		const contentContainer = document
+			.getElementById(this.popupWindowProxy.uniqueId)
+			.querySelector('.popup-mov-window-content');
+		
+		contentContainer.innerHTML = template;
+		this.popupWindowProxy.openPopup();
+	}
 	
 }

@@ -35,12 +35,14 @@ export class PopupWindow extends ViewComponent {
 
 	openPopup() {
 		this.popup.classList.remove('hidden');
+		this.showWindowPopup = true;
 	}
 
 	closePopup() {
 		this.popup.classList.add('hidden');
 		this.popup.classList.remove('minimized', 'maximized');
 		this.isMinimized = false;
+		this.showWindowPopup = false;
 	}
 
 	toggleMinimize() {
@@ -100,35 +102,38 @@ export class PopupWindow extends ViewComponent {
 	}
 
 	setOnMouseMoveContainer() {
+
 		const container = document.getElementById('container-'+this.uniqueId);
+		const self = this;
+
 		container.onmousemove = e => {
-			if (this.isDragging) {
-				this.popup.style.left = (e.clientX - this.dragStart.x) + 'px';
-				this.popup.style.top = (e.clientY - this.dragStart.y) + 'px';
+			if (self.isDragging) {
+				self.popup.style.left = (e.clientX - self.dragStart.x) + 'px';
+				self.popup.style.top = (e.clientY - self.dragStart.y) + 'px';
 			}
 
-			if (this.isResizing) {
+			if (self.isResizing) {
 
-				const dx = e.clientX - this.resizeStart.x, dy = e.clientY - this.resizeStart.y;
-				let newWidth = this.resizeStart.w, newHeight = this.resizeStart.h;
-				let newLeft = this.resizeStart.left, newTop = this.resizeStart.top;
+				const dx = e.clientX - self.resizeStart.x, dy = e.clientY - self.resizeStart.y;
+				let newWidth = self.resizeStart.w, newHeight = self.resizeStart.h;
+				let newLeft = self.resizeStart.left, newTop = self.resizeStart.top;
 
-				if (this.isResizing.includes('e')) newWidth = Math.max(200, this.resizeStart.w + dx);
-				if (this.isResizing.includes('w'))
-					[newWidth, newLeft] = [Math.max(200, this.resizeStart.w - dx), this.resizeStart.left + dx];
+				if (self?.isResizing?.includes('e')) newWidth = Math.max(200, self.resizeStart.w + dx);
+				if (self?.isResizing?.includes('w'))
+					[newWidth, newLeft] = [Math.max(200, self.resizeStart.w - dx), self.resizeStart.left + dx];
 
-				if (this.isResizing.includes('s')) newHeight = Math.max(100, this.resizeStart.h + dy);
-				if (this.isResizing.includes('n'))
-					[newHeight, newTop] = [Math.max(100, this.resizeStart.h - dy), this.resizeStart.top + dy];
+				if (self?.isResizing?.includes('s')) newHeight = Math.max(100, self.resizeStart.h + dy);
+				if (self?.isResizing?.includes('n'))
+					[newHeight, newTop] = [Math.max(100, self.resizeStart.h - dy), self.resizeStart.top + dy];
 
-				[this.popup.style.width, this.popup.style.height] = [newWidth + 'px', newHeight + 'px'];
-				[this.popup.style.left, this.popup.style.top] = [newLeft + 'px', newTop + 'px'];
+				[self.popup.style.width, self.popup.style.height] = [newWidth + 'px', newHeight + 'px'];
+				[self.popup.style.left, self.popup.style.top] = [newLeft + 'px', newTop + 'px'];
 			}
 		};
 
 		container.onmouseup = () => {
-			this.isDragging = false;
-			this.isResizing = false;
+			self.isDragging = false;
+			self.isResizing = false;
 		};
 	}
 

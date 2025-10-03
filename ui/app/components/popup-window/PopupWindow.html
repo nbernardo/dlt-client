@@ -9,7 +9,7 @@
 
 	.popup-mov-window {
 		position: absolute;
-		top: 40%;
+		top: 45%;
 		/* Position the top edge at the vertical center */
 		left: 50%;
 		/* Position the left edge at the horizontal center */
@@ -69,7 +69,6 @@
 	}
 
 	.popup-mov-window-content {
-		padding: 15px;
 		height: calc(100% - 50px);
 		overflow: auto;
 		background: rgba(255, 255, 255, 0.95);
@@ -184,7 +183,7 @@
 	.window-popup-mov-window{
 		position: absolute;
 		width: 100%;
-		z-index: 1;
+		z-index: 10000000000;
 		border: 1px solid;
 		bottom: 0;
 		top: 0;
@@ -198,6 +197,9 @@
 	<!-- <button onclick="component.openPopup()">Open Popup-mov-window</button> -->
 	<div id="container-@uniqueId" class="popup-windows-cmp-container">
 		<div id="@uniqueId" class="popup-mov-window">
+			<span>
+				
+			</span>
 			<div class="resize-handle n"></div>
 			<div class="resize-handle s"></div>
 			<div class="resize-handle w"></div>
@@ -217,16 +219,22 @@
 			</div>
 
 			<div class="popup-mov-window-content">
-				<h3>Hello World!</h3>
-				<p>This is a minimal popup-mov-window with:</p>
-				<ul>
-					<li>Draggable header</li>
-					<li>Resizable (drag bottom/right edges)</li>
-					<li>Minimize/Maximize buttons</li>
-					<li>Semi-transparent background</li>
-					<li>Full opacity content</li>
-				</ul>
-				<p>Try dragging the header or resizing from the edges!</p>
+
+				<!-- 				
+				<span style="display: none;">
+					<h3>Hello World!</h3>
+					<p>This is a minimal popup-mov-window with:</p>
+					<ul>
+						<li>Draggable header</li>
+						<li>Resizable (drag bottom/right edges)</li>
+						<li>Minimize/Maximize buttons</li>
+						<li>Semi-transparent background</li>
+						<li>Full opacity content</li>
+					</ul>
+					<p>Try dragging the header or resizing from the edges!</p>
+				</span>
+				-->
+				
 			</div>
 		</div>
 	</div>
