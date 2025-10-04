@@ -24,3 +24,8 @@ dbs
 z
 ztore
 package-lock.json
+*vanilla.html
+
+backend/destinations/duckdb/*/*.duckdb
+backend/destinations/pipeline/*/*.py
+backend/destinations/code/*/*.json
