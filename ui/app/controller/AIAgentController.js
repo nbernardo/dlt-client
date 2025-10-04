@@ -1,3 +1,4 @@
+import { AIResponseLinterUtil } from "../components/agent/AIResponseLinterUtil.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 
 export class AIAgentController {
@@ -7,14 +8,14 @@ export class AIAgentController {
      * @param { Array<Array> } data
      * @param { Workspace } workspaceComponent 
       */
-    parseDataToTable(fields, data, workspaceComponent){
+    parseDataToTable(fields, data, workspaceComponent, actualQuery) {
 
-        const fieldsHeader = 
-            '<tr>'+fields.split(',')
-                .map(field => `<th class="right">${field.trim()}</th>`).join('').replaceAll('\'','')
-            +'</tr>';
+        const fieldsHeader =
+            '<tr>' + fields.split(',')
+                .map(field => `<th class="right">${field.trim()}</th>`).join('').replaceAll('\'', '')
+            + '</tr>';
 
-        const tableBody = data.map(row => 
+        const tableBody = data.map(row =>
             `<tr>${row.map(fieldVal => `<td class="right">${fieldVal}</td>`).join('')}</tr>`
         ).join('');
 
@@ -34,7 +35,9 @@ export class AIAgentController {
         // Passing data to the controller so it can be accessed by the Workspace component
         workspaceComponent.controller.aiAgentExpandView.data = data;
         workspaceComponent.controller.aiAgentExpandView.fields = fields;
-        workspaceComponent.controller.aiAgentExpandView.query = 'SELECT * FROM ...';
+        setTimeout(() => 
+            workspaceComponent.controller.aiAgentExpandView.query = AIResponseLinterUtil.formatSQL(actualQuery),
+        0);
         workspaceComponent.controller.aiAgentExpandView.initialTable = actualTable;
 
         return actualTable;

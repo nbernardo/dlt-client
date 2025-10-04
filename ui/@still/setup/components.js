@@ -1690,7 +1690,7 @@ export class Components {
     /** 
      * @param { ViewComponent | String } cmp
      * @param { Object | any | null } data */
-    static async new(cmp, data = null, parentId = null) {
+    static async new(cmp, data = {} | null, parentId = null) {
         let cmpName = cmp;
         if (cmp?.__proto__?.name == 'ViewComponent') cmpName = cmp.name;
         const { newInstance: instance } = await Components.produceComponent({ cmp: cmpName });

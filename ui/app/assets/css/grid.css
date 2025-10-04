@@ -49,11 +49,15 @@
         .grid-component-container .table-container {
             overflow-x: auto;
             margin-top: 65px;
+            overflow-y: scroll;
+            position: relative;
+            height: 50vh;
         }
         
         .grid-component-container table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 11px;
         }
         
         .grid-component-container th {
@@ -66,7 +70,7 @@
             user-select: none;
             border-right: 2px solid #555;
             min-width: 80px;
-            padding: 2px 12px;
+            padding: 2px 2px;
         }
         
         .grid-component-container th:hover {

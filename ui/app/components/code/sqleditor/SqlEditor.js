@@ -6,6 +6,8 @@ export class SqlEditor extends ViewComponent {
 
 	isPublic = true;
 
+	/** @Prop */ query;
+
 	async stBeforeInit() {
 		
 		if (window.monaco) return;
@@ -18,10 +20,14 @@ export class SqlEditor extends ViewComponent {
 
 	}
 
+	stOnRender({ query }){
+		this.query = query;
+	}
+
 	stAfterInit() {
 
 		monaco.editor.create(document.querySelector('#extend-view-code-editor'), {
-			value: `SELECT * FROM table`,
+			value: this.query,
 			language: 'sql',
 			theme: 'vs-light',
 			automaticLayout: true,

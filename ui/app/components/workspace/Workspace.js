@@ -78,7 +78,7 @@ export class Workspace extends ViewComponent {
 	drawFlowContainer;
 	/** @Prop @type { Set } */
 	connectedDbs = new Set();
-	
+
 	/**
 	 * This is also the width added
 	 * in the CSS concerning to the left side 
@@ -123,13 +123,13 @@ export class Workspace extends ViewComponent {
 	/** @Prop */ isAnyDiagramActive = false;
 
 	/** @Prop */ wasDiagramSaved = false;
-	
+
 	/** @Prop */ selectedPplineName = false;
 
 	/** @Prop */ openAgent = false;
-	
+
 	selectedLeftTab = 'content-diagram';
-	
+
 	/** @Prop */ schedulePeriodicitySelected;
 
 	schedulePeriodicity;
@@ -151,11 +151,11 @@ export class Workspace extends ViewComponent {
 
 		this.userService.on('load', async () => {
 			let user = (await this.userService.getLoggedUser());
-			
-			if(user?.user)
+
+			if (user?.user)
 				user = user?.user;
-			
-			if(UserUtil.name === null){
+
+			if (UserUtil.name === null) {
 				UserUtil.name = user.name;
 				UserUtil.email = user.email;
 				Object.freeze(UserUtil);
@@ -174,14 +174,14 @@ export class Workspace extends ViewComponent {
 			})*/
 		});
 		this.buildWorkspaceView();
-		
-		setTimeout(() =>  this.showLoading = false, 100);
+
+		setTimeout(() => this.showLoading = false, 100);
 		this.onLeftTabChange();
 		this.handlePplineSchedulePopup();
 		this.resetWorkspace();
 	}
 
-	onLeftTabChange(){
+	onLeftTabChange() {
 		this.selectedLeftTab.onChange(activeTab => {
 			document.getElementsByClassName(activeTab)[0].style.width = '250px';
 			document.getElementsByClassName('separator')[0].style.marginLeft = '150px';
@@ -204,24 +204,24 @@ export class Workspace extends ViewComponent {
 			this.controller.handleListeners(this.editor);
 		});
 	}
-	
-	loadDiagram(content){
+
+	loadDiagram(content) {
 		this.editor.start();
 		this.editor.import(content);
 	}
 
 	async savePipeline() {
 
-		if(!this.controller.isTherePipelineToSave()) return null;
+		if (!this.controller.isTherePipelineToSave()) return null;
 
-		if(this.activeGrid.value === 'Enter pipeline name')
+		if (this.activeGrid.value === 'Enter pipeline name')
 			return AppTemplate.toast.error('Please enter a valid pipeline name');
-		
-		if(this.wasDiagramSaved)
+
+		if (this.wasDiagramSaved)
 			return this.controller.twiceDiagramSaveAlert('save');
 
 		const data = await this.preparePipelineContent();
-		if(data === null) return data;
+		if (data === null) return data;
 		this.logProxy.showLogs = true;
 		const result = await this.pplService.createOrUpdatePipeline(data);
 		this.wasDiagramSaved = true;
@@ -230,9 +230,9 @@ export class Workspace extends ViewComponent {
 
 	async updatePipeline() {
 
-		if(!this.controller.isTherePipelineToSave()) return null;
+		if (!this.controller.isTherePipelineToSave()) return null;
 
-		if(this.wasDiagramSaved)
+		if (this.wasDiagramSaved)
 			return this.controller.twiceDiagramSaveAlert('update');
 
 		const isUpdate = true;
@@ -242,15 +242,15 @@ export class Workspace extends ViewComponent {
 		return result;
 	}
 
-	async preparePipelineContent(update = false){
+	async preparePipelineContent(update = false) {
 
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		let validationResults = formReferences.map(async (r) => {
 			const component = Components.ref(r);
 
-			if(component.getName() === SqlDBComponent.name) component.getTables();
-			if(component.getName() === Transformation.name) {
+			if (component.getName() === SqlDBComponent.name) component.getTables();
+			if (component.getName() === Transformation.name) {
 				component.parseTransformationCode();
 				return true;
 			}
@@ -259,7 +259,7 @@ export class Workspace extends ViewComponent {
 			return await form?.validate();
 		});
 
-		validationResults = await Promise.all(validationResults);	
+		validationResults = await Promise.all(validationResults);
 
 		const anyInvalidForm = validationResults.indexOf(false) >= 0;
 		const isValidSubmission = this.handleSubmissionError(anyInvalidForm);
@@ -271,23 +271,23 @@ export class Workspace extends ViewComponent {
 		data = { ...data, user: this.userEmail, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
 		console.log(data);
 
-		if(update === true) data.update = true;
+		if (update === true) data.update = true;
 
 		return data;
 
 	}
 
-	resetWorkspace(){
+	resetWorkspace() {
 		this.editor.clearModuleSelected();
 		this.controller.resetEdges();
 		document.querySelector('.clear-workspace-btn').style.right = '95px';
 		this.activeGrid = 'Enter pipeline name';
 		document.getElementById('pplineNamePlaceHolder').contentEditable = true;
-		if(this.showSaveButton !== true)
+		if (this.showSaveButton !== true)
 			this.showSaveButton = true;
-        this.wasDiagramSaved = false;
-        this.isAnyDiagramActive = false;
-        this.isAnyDiagramActive = false;
+		this.wasDiagramSaved = false;
+		this.isAnyDiagramActive = false;
+		this.isAnyDiagramActive = false;
 	}
 
 	onPplineNameKeyPress(e) {
@@ -339,20 +339,20 @@ export class Workspace extends ViewComponent {
 		return true;
 	}
 
-	onSplitterMove(params){
+	onSplitterMove(params) {
 		// 65 is the minimun height set on the template (Workspace.html)
-		if(params.bottomHeight <= 65) this.isEditorOpened = false;
+		if (params.bottomHeight <= 65) this.isEditorOpened = false;
 		else this.isEditorOpened = true;
 		const editorHeight = ((params.bottomHeight) * 50) / 100;
 		this.cmProxy.setHeight(editorHeight);
 		this.terminalProxy.resizeHeight(editorHeight);
 	}
 
-	async runCode(){
+	async runCode() {
 		const code = this.cmProxy.codeEditor.getValue();
 		const database = [...this.connectedDbs][0]
-		const payload = { 
-			code, lang: this.editorActiveLang, 
+		const payload = {
+			code, lang: this.editorActiveLang,
 			session: this.socketData.sid, database
 		};
 
@@ -361,22 +361,22 @@ export class Workspace extends ViewComponent {
 		this.terminalProxy.writeTerminal(result.output);
 	}
 
-	selecteLang(lang){
+	selecteLang(lang) {
 		const langs = document.querySelectorAll('.editor-lang');
 		this.cmProxy.changeLanguage(lang);
 		this.editorActiveLang = lang;
 		langs.forEach(elm => {
-			if(elm.classList.contains(lang)){
+			if (elm.classList.contains(lang)) {
 				elm.classList.remove(this.noSelectedLangClass);
 				elm.classList.add(this.selectedLangClass);
-			}else{
+			} else {
 				elm.classList.add(this.noSelectedLangClass);
 				elm.classList.remove(this.selectedLangClass);
 			}
 		})
 	}
 
-	async connectToDatabase(event, dbName){
+	async connectToDatabase(event, dbName) {
 
 		event.preventDefault();
 		const element = event.target;
@@ -384,50 +384,50 @@ export class Workspace extends ViewComponent {
 		const session = this.socketData.sid;
 		const payload = { session, database };
 		let result;
-		
-		if(this.connectedDbs.has(dbName)){
+
+		if (this.connectedDbs.has(dbName)) {
 			result = await (
 				await this.service.handleDuckdbConnect(payload, WorkspaceService.DISCONECT_DB)
 			).json();
 
-			if(result.status){
+			if (result.status) {
 				this.connectedDbs.delete(dbName);
 				element.style.color = 'grey';
 			}
 
-		} else{
+		} else {
 			result = await (await this.service.handleDuckdbConnect(payload)).json();
-			if(result.status){
+			if (result.status) {
 				this.connectedDbs.add(dbName);
 				element.style.color = 'green';
 			}
 		}
 
-		if(!result.status) AppTemplate.toast.error(result.message);
+		if (!result.status) AppTemplate.toast.error(result.message);
 
 	}
 
-	genInitialDBQuery(table, dbfile){
+	genInitialDBQuery(table, dbfile) {
 		this.selecteLang('sql-lang');
 		this.cmProxy.setCode(`use ${dbfile};\n\nSELECT * FROM ${table};`);
 		this.codeEditorSplitter.setMaxHeight();
 		this.isEditorOpened = true;
 	}
 
-	showHideEditor(){
-		if(this.isEditorOpened){
+	showHideEditor() {
+		if (this.isEditorOpened) {
 			// 88 Is because we're taking into account the splitter height itself 
 			this.codeEditorSplitter.setHeight(88);
 			this.isEditorOpened = false;
-		}else{
+		} else {
 			this.codeEditorSplitter.setMaxHeight();
 			this.isEditorOpened = true;
 		}
 	}
 
-	async viewPipelineDiagram(event, pplineName){
+	async viewPipelineDiagram(event, pplineName) {
 		event.preventDefault();
-		if(this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0)
+		if (this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0)
 			return this.controller.moreThanOnePipelineOpenAlert();
 
 		const response = await this.service.readDiagramFile(this.userEmail, pplineName);
@@ -442,29 +442,29 @@ export class Workspace extends ViewComponent {
 		this.selectedPplineName = pplineName;
 	}
 
-	async logout(){
+	async logout() {
 		await this.userService.logOut();
 	}
 
-	verticalResize({ leftWidth }){
+	verticalResize({ leftWidth }) {
 		const selectedTab = this.selectedLeftTab.value;
-		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth+100)+'px';
+		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth + 100) + 'px';
 	}
 
-	async viewScriptOnEditor(){
+	async viewScriptOnEditor() {
 		const fileName = this.leftMenuProxy.scriptListProxy.selectedFile;
 		const code = await this.service.readScriptFile(this.userEmail, fileName);
-		this.noteBookProxy.openFile = {fileName, code};
+		this.noteBookProxy.openFile = { fileName, code };
 		this.noteBookProxy.showNotebook = true;
 		this.showDrawFlow = false;
 	}
 
-	viewFileOnEditor(){
+	viewFileOnEditor() {
 		this.leftMenuProxy.scriptListProxy.selectedFile;
 		//console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
 	}
 
-	handlePplineSchedulePopup(){		
+	handlePplineSchedulePopup() {
 		const btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
 
 		this.schedulePeriodicity.onChange(val => {
@@ -476,26 +476,26 @@ export class Workspace extends ViewComponent {
 		this.scheduleTimeType.onChange(() => handleBtnEnabling(this));
 		this.scheduleTime.onChange(() => handleBtnEnabling(this));
 
-		function handleBtnEnabling(obj = this){
-			if(obj.schedulePeriodicity.value === 'every'){
-				if(['min','hour'].includes(obj.scheduleTimeType.value) && obj.scheduleTime.value !== ""){
+		function handleBtnEnabling(obj = this) {
+			if (obj.schedulePeriodicity.value === 'every') {
+				if (['min', 'hour'].includes(obj.scheduleTimeType.value) && obj.scheduleTime.value !== "") {
 					btnPipelineSchedule.disabled = false;
-				}else btnPipelineSchedule.disabled = true;
-			}else{
-				if(obj.scheduleTime.value !== '') btnPipelineSchedule.disabled = false;
+				} else btnPipelineSchedule.disabled = true;
+			} else {
+				if (obj.scheduleTime.value !== '') btnPipelineSchedule.disabled = false;
 				else btnPipelineSchedule.disabled = true;
 			}
 		}
-		
+
 	}
 
 	changeScheduleTime = (newValue) => this.scheduleTime = newValue;
-	
-	async scheduleJob(){
-		
+
+	async scheduleJob() {
+
 		const btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
 		btnPipelineSchedule.disabled = true;
-		const payload = { 
+		const payload = {
 			ppline_name: this.selectedPplineName,
 			socket_id: this.socketData.sid,
 			settings: {
@@ -506,10 +506,10 @@ export class Workspace extends ViewComponent {
 			}
 		};
 		const result = await this.service.schedulePipeline(JSON.stringify(payload));
-		if([false,'failed'].includes(result))
-			AppTemplate.toast.error('Error while scheduling job for '+this.activeGrid.value);
+		if ([false, 'failed'].includes(result))
+			AppTemplate.toast.error('Error while scheduling job for ' + this.activeGrid.value);
 		else
-			AppTemplate.toast.success('New schedule for '+this.activeGrid.value+' created successfully');
+			AppTemplate.toast.success('New schedule for ' + this.activeGrid.value + ' created successfully');
 
 		const response = await WorkspaceService.getPipelineSchedules();
 		this.headerProxy.scheduledPipelines = response.data;
@@ -522,26 +522,180 @@ export class Workspace extends ViewComponent {
 
 	async expandDataTableView() {
 
-		const { fields, data, query } = this.controller.aiAgentExpandView;
+		//const { fields, data, query } = this.controller.aiAgentExpandView;
+		const { fields, data, query } = mockData();
 		console.log({ fields, data, query });
+		const parsedFields = fields.replaceAll('\n', '').split(',').map(field => field.trim());
+		
+		const { template: gridUI } = await Components.new('Grid', { fields: parsedFields, data }, this.cmpInternalId);
 
-		const { template: gridUI } = await Components.new('Grid', {}, this.cmpInternalId);
-		const { template: sqlEditorUI } = await Components.new('SqlEditor', {}, this.cmpInternalId);
-		
-		console.log(this.template);
-		
+		const { template: sqlEditorUI } = await Components.new('SqlEditor',
+			{ query, fields: parsedFields, data }, this.cmpInternalId
+		);
 
 		const contentContainer = document
 			.getElementById(this.popupWindowProxy.uniqueId)
 			.querySelector('.popup-mov-window-content');
-			
+
 		const table = contentContainer.querySelector('.table-container');
 		const codeEditor = contentContainer.querySelector('.code-editor-container');
-		
+
 		table.innerHTML = gridUI;
 		codeEditor.innerHTML = sqlEditorUI;
 
 		this.popupWindowProxy.openPopup();
 	}
-	
+
+}
+
+
+function mockData() {
+
+	return {
+		"fields": " _dlt_id, _dlt_load_id, industry_aggregation_nzsioc, industry_code_anzsic06, industry_code_nzsioc, industry_name_nzsioc, units, value, variable_category, variable_code, variable_name, year ",
+		"data": [
+			[
+				"60+EtKt5eyv/Vg",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"979594",
+				"Financial performance",
+				"H01",
+				"Total income",
+				2024
+			],
+			[
+				"fAaqq1yvWm4f2Q",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"838626",
+				"Financial performance",
+				"H04",
+				"Sales, government funding, grants and subsidies",
+				2024
+			],
+			[
+				"1A/NBuoygzQ5GQ",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"112188",
+				"Financial performance",
+				"H05",
+				"Interest, dividends and donations",
+				2024
+			],
+			[
+				"gyFWz0QeeN+sPg",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"28781",
+				"Financial performance",
+				"H07",
+				"Non-operating income",
+				2024
+			],
+			[
+				"3FqdtYIhZY1STg",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"856960",
+				"Financial performance",
+				"H08",
+				"Total expenditure",
+				2024
+			],
+			[
+				"2OE/jBRZVGsVbQ",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"71493",
+				"Financial performance",
+				"H09",
+				"Interest and donations",
+				2024
+			],
+			[
+				"FePXd8ygEYwlHQ",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"8540",
+				"Financial performance",
+				"H10",
+				"Indirect taxes",
+				2024
+			],
+			[
+				"WmkgNE6TIUMG5g",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"32896",
+				"Financial performance",
+				"H11",
+				"Depreciation",
+				2024
+			],
+			[
+				"Y//o/z91bSNRPA",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"157616",
+				"Financial performance",
+				"H12",
+				"Salaries and wages paid",
+				2024
+			],
+			[
+				"wNJlpjm1ndsH/Q",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"323",
+				"Financial performance",
+				"H13",
+				"Redundancy and severance",
+				2024
+			]
+		],
+		"query": "SELECT\n_dlt_id, _dlt_load_id, industry_aggregation_nzsioc, industry_code_anzsic06,\nindustry_code_nzsioc, industry_name_nzsioc, units, value,\nvariable_category, variable_code, variable_name, year\nFROM myserveydb.tabelaservey\nLIMIT 10"
+	}
+
 }

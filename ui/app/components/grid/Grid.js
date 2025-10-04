@@ -18,9 +18,13 @@ export class Grid extends ViewComponent {
 
 	/** @Prop */ startWidth = 0;
 
-	/** @Prop */ mainContainer;
+	/** @Prop @type { HTMLDivElement } */ mainContainer;
 
 	/** @Prop */ dataTable;
+
+	/** @Prop */ fields = [];
+
+	/** @Prop */ data = [];
 
 	/** @Prop */ uniqueId = '_'+UUIDUtil.newId();
 
@@ -28,19 +32,26 @@ export class Grid extends ViewComponent {
 		await Assets.import({ path: '/app/assets/css/grid.css' });
 	}
 
-	stAfterInit() {
+	stOnRender({ fields, data }){
+		this.fields = fields;
+		this.data = data;
+	}
+
+	stAfterInit() {			
+		this.mainContainer = document.querySelector('#'+this.uniqueId);		
+		this.loadHeader();
+		this.loadData();
 		this.dataTableHandlingSetup();
 	}
 
 	dataTableHandlingSetup() {
 
-		this.mainContainer = document.querySelector('#'+this.uniqueId);
-		this.dataTable = this.mainContainer.querySelector('#dataTable');
+		this.dataTable = this.mainContainer.querySelector('.dataTable');
 		const selfContainer = this.mainContainer;
 
 		this.mainContainer.querySelector('.search-box').addEventListener('keyup', function () {
 			const searchValue = this.value.toLowerCase();
-			const rows = selfContainer.querySelectorAll(`#dataTable tbody tr`);
+			const rows = selfContainer.querySelectorAll(`.dataTable tbody tr`);
 
 			for (let i = 0; i < rows.length; i++) {
 				const text = rows[i].textContent.toLowerCase();
@@ -99,6 +110,25 @@ export class Grid extends ViewComponent {
 		for (let i = 0; i < rows.length; i++) {
 			tbody.appendChild(rows[i]);
 		}
+	}
+
+	loadHeader(){
+		const headers = this.fields.map(field => `
+			<th draggable="true">${field}<span class="sort-indicator">⇅</span>
+				<div class="resizer"></div>
+			</th>
+		`).join('');
+		this.mainContainer.querySelector('.header-fields').innerHTML = headers;
+	}
+
+	loadData(){
+
+        const tableBody = this.data.map(row =>
+            `<tr>${row.map(fieldVal => `<td class="right">${fieldVal}</td>`).join('')}</tr>`
+        ).join('');
+
+		this.mainContainer.querySelector('tbody').innerHTML = tableBody;
+
 	}
 
 	columnDraggingHandle() {

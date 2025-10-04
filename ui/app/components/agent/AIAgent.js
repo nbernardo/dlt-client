@@ -74,8 +74,11 @@ export class AIAgent extends ViewComponent {
 			if(success === false) response = errMessage;
 			else response = result?.result;
 
-			if(result.fields)
-				dataTable = this.controller.parseDataToTable(result.fields, response, this.$parent);
+			if(result.fields){
+				dataTable = this.controller.parseDataToTable(
+					result.fields, response, this.$parent, result.actual_query
+				);
+			}
 		
 			if((response || []).length === 0)
 				response = 'No data found for the submitted query. Do you want to send another query?';

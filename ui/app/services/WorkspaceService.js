@@ -194,6 +194,7 @@ export class WorkspaceService extends BaseService {
 		return null;
 	}
 
+    /** @returns { { result: { result, fields, actual_query } } } */
 	static async sendAgentMessage(message){
 
         const namespace = StillAppSetup.config.get('anonymousLogin') 
