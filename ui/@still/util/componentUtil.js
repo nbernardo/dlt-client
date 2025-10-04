@@ -67,6 +67,8 @@ export class Assets {
             tag.src = path;
         }
         
+        Assets.imported.add(path);
+
         return new Promise((resolve) => {
             tag.onload = () => resolve('');
             document.body.appendChild(tag);

@@ -93,6 +93,10 @@ export const stillRoutesMap = {
             Grid: {
                 path: "app/components/grid",
                 url: "/grid"
+            },
+            SqlEditor: {
+                path: "app/components/code/sqleditor",
+                url: "/sql-editor"
             }
         },
         lazyInitial: {}

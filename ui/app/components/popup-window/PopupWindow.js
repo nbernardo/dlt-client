@@ -1,36 +1,38 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
+import { PopupUtil } from "./PopupUtil.js";
 
 export class PopupWindow extends ViewComponent {
 
 	isPublic = true;
 
-	/** @Prop */
-	uniqueId = UUIDUtil.newId();
+	/** @Prop */ uniqueId = UUIDUtil.newId();
 
-	/** @Prop */
-	popup;
-	/** @Prop */
-	isDragging = false;
-	/** @Prop */
-	isResizing = false;
-	/** @Prop */
-	dragStart = { x: 0, y: 0 };
-	/** @Prop */
-	resizeStart = { x: 0, y: 0, w: 0, h: 0 };
-	/** @Prop */
-	isMinimized = false;
-	/** @Prop */
-	isMaximized = false;
-	/** @Prop */
-	prevState = { w: 400, h: 300, x: 50, y: 50 };
-	/** @Prop */
-	showWindowPopup = false;
+	/** @Prop */ popup;
+
+	/** @Prop */ isDragging = false;
+
+	/** @Prop */ isResizing = false;
+
+	/** @Prop */ dragStart = { x: 0, y: 0 };
+
+	/** @Prop */ resizeStart = { x: 0, y: 0, w: 0, h: 0 };
+
+	/** @Prop */ isMinimized = false;
+
+	/** @Prop */ isMaximized = false;
+
+	/** @Prop */ prevState = { w: 400, h: 300, x: 50, y: 50 };
+
+	/** @Prop */ showWindowPopup = false;
+
+	/** @Prop */ util = new PopupUtil();
 
 	stAfterInit(){
 		this.popup = document.getElementById(this.uniqueId);
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
+		this.util = new PopupUtil();
 	}
 
 	openPopup() {
@@ -78,8 +80,13 @@ export class PopupWindow extends ViewComponent {
 		// Dragging
 		this.popup.querySelector('.popup-mov-window-header-'+this.uniqueId).onmousedown = e => {
 			if (this.isMaximized) return;
-			this.isDragging = true;
+			this.util.isDragging = true;
 			this.dragStart = { x: e.clientX - this.popup.offsetLeft, y: e.clientY - this.popup.offsetTop };
+		};
+
+		// Dragging
+		this.popup.querySelector('.popup-mov-window-header-'+this.uniqueId).onmouseup = e => {
+			this.util.isDragging = false;			
 		};
 
 		// Resizing
@@ -107,7 +114,7 @@ export class PopupWindow extends ViewComponent {
 		const self = this;
 
 		container.onmousemove = e => {
-			if (self.isDragging) {
+			if (self.util.isDragging) {				
 				self.popup.style.left = (e.clientX - self.dragStart.x) + 'px';
 				self.popup.style.top = (e.clientY - self.dragStart.y) + 'px';
 			}
@@ -132,10 +139,8 @@ export class PopupWindow extends ViewComponent {
 		};
 
 		container.onmouseup = () => {
-			self.isDragging = false;
+			self.util.isDragging = false;
 			self.isResizing = false;
 		};
 	}
-
-
 }

@@ -1,7 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { Assets } from "../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
-import { AIAgentUtil } from "./AIAgentUtil.js";
+import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
 
@@ -31,17 +31,17 @@ export class AIAgent extends ViewComponent {
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
 
-	/** 
-	 * @Prop @type { AIAgentUtil }*/
-	uiUtil;
+	// Because this controller is not shared with other component hence
+	// we're instantiating straight instead of @Inject, this Will also
+	// make the component loading faster, @Prop is required in this scenarios 
+	/** @Prop @type { AIAgentController }*/
+	controller = new AIAgentController();
 
 	async stBeforeInit() {
 		await Assets.import({ path: '/app/assets/css/agent.css' });
 	}
 
 	async stAfterInit() {	
-		
-		this.uiUtil = new AIAgentUtil();
 
 		this.appContainer = document.querySelector('.ai-app-container');
 		this.outputContainer = document.getElementById(this.outputContainerId);
@@ -70,15 +70,12 @@ export class AIAgent extends ViewComponent {
 			this.createMessageBubble(this.loadingContent(), 'agent');
 			const { result, error: errMessage, success } = await WorkspaceService.sendAgentMessage(message);
 
-			console.log(`RESPONSE VALUE IS: `, result);
-			console.log(`FIELDS HERE ARE: `, result.fields);
-
 			let response = null;
 			if(success === false) response = errMessage;
 			else response = result?.result;
 
 			if(result.fields)
-				dataTable = this.uiUtil.parseDataToTable(result.fields, response);
+				dataTable = this.controller.parseDataToTable(result.fields, response, this.$parent);
 		
 			if((response || []).length === 0)
 				response = 'No data found for the submitted query. Do you want to send another query?';

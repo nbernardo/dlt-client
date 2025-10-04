@@ -520,14 +520,27 @@ export class Workspace extends ViewComponent {
 
 	showOrHideAgent = () => this.openAgent = !this.openAgent;
 
-	async showPopWindow() {
+	async expandDataTableView() {
+
+		const { fields, data, query } = this.controller.aiAgentExpandView;
+		console.log({ fields, data, query });
+
+		const { template: gridUI } = await Components.new('Grid', {}, this.cmpInternalId);
+		const { template: sqlEditorUI } = await Components.new('SqlEditor', {}, this.cmpInternalId);
 		
-		const { template } = await Components.new('Grid', {}, this.cmpInternalId);
+		console.log(this.template);
+		
+
 		const contentContainer = document
 			.getElementById(this.popupWindowProxy.uniqueId)
 			.querySelector('.popup-mov-window-content');
+			
+		const table = contentContainer.querySelector('.table-container');
+		const codeEditor = contentContainer.querySelector('.code-editor-container');
 		
-		contentContainer.innerHTML = template;
+		table.innerHTML = gridUI;
+		codeEditor.innerHTML = sqlEditorUI;
+
 		this.popupWindowProxy.openPopup();
 	}
 	

@@ -24,6 +24,14 @@ export const PPLineStatEnum = {
     Failed: 'Failed',
 }
 
+export class AIAgentExpandViewType {
+    fields = '';
+    query = '';
+    /** @type { Array<Array<Object>> } */
+    data;
+    initialTable = '';
+}
+
 export class WorkSpaceController extends BaseController {
 
     editor;
@@ -57,6 +65,11 @@ export class WorkSpaceController extends BaseController {
      * hence we have the bellow map  
      * */
     static importNodeIdMapping;
+
+    /**
+     * @type { AIAgentExpandViewType }
+     */
+    aiAgentExpandView = {}
 
     resetEdges() {
         this.edgeTypeAdded = {};

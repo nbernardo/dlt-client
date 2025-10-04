@@ -717,3 +717,7 @@ header a {
         width: 20px;
         margin-left: 7px;
     }
+
+    #toolbar { padding: 10px; background: #1e1e1e; }
+    #toolbar button { padding: 8px 16px; cursor: pointer; }
+    .code-editor { flex: 1; }
