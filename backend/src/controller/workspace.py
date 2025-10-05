@@ -57,6 +57,16 @@ def connect_duckdb():
     result = Workspace.connect_to_duckdb(database, session)
     return result
 
+
+@workspace.route('/workcpace/sql_query', methods=['POST'])
+def run_sql_query():
+    payload = request.get_json()
+    database = payload['database']
+    query = payload['query']
+    result = Workspace.run_sql_query(database, query)
+    return result
+
+
 @workspace.route('/workcpace/duckdb/disconnect', methods=['POST'])
 def disconnect_duckdb():
     payload = request.get_json()

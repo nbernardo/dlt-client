@@ -264,6 +264,22 @@ class Workspace:
 
             Workspace.duckdb_open_errors[user].append(str(err))
             return { 'error': True, 'error_list': Workspace.duckdb_open_errors[user] }
+
+
+    @staticmethod
+    def run_sql_query(database = None, query = None):
+        try:
+            cnx = DuckdbUtil.get_connection_for(f'{database}')
+            cursor = cnx.cursor()
+            result = cursor.execute(query).fetchall()
+            print(f'Running query: {query}')            
+
+            fields = query.lower().split('from')[0].split('select',1)[1]
+            return { 'result': result, 'fields': fields }
+        except duckdb.IOException as err:
+            print(f'Error while running query: {query}')
+            print(str(err))
+            return { 'error': True, 'result': str(err) }
     
     
     @staticmethod

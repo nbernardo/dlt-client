@@ -231,7 +231,7 @@ class DataQueryAIAssistent:
                             })
                     
                     print("\n2. Sending Tool Output back to LLM for SQL Generation...")                
-                    return { 'answer': 'final', **self.handle_response(client, model, 'Groq') }
+                    return { 'answer': 'final', 'db_file': db_file, **self.handle_response(client, model, 'Groq') }
 
                 else:
                     print(f"Error: Unknown function name requested: {function_name}")
@@ -258,6 +258,9 @@ class DataQueryAIAssistent:
 
         actual_query = nl_to_sql_call.choices[0].message.content
 
+        print('THE QUERY WILL BE:')
+        print(actual_query)
+
         if actual_query.index('%%'):
             actual_query = actual_query.split('%%')[0]
 
@@ -268,7 +271,8 @@ class DataQueryAIAssistent:
             return { 'result': 'Could not run the query. Can you refine it?' }
         return { 
             'result': self.run_query(sql_query), 
-            'fields': actual_query.lower().split('from')[0].split('select',1)[1] 
+            'fields': actual_query.lower().split('from')[0].split('select',1)[1],
+            'actual_query': sql_query
         }
 
 
