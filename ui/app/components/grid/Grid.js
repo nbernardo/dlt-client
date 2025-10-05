@@ -233,7 +233,4 @@ export class Grid extends ViewComponent {
 		this.mainContainer.removeEventListener('mousemove', doResize);
 		this.mainContainer.removeEventListener('mouseup', stopResize);
 	}
-
-	/** @template */
-	runSQLQuery(){}
 }

@@ -12,8 +12,8 @@ export class AIResponseLinterUtil {
             const columnList = columns.split(',').map(col => col.trim());
             if (columnList.length > 1) {
                 const lines = [];
-                for (let i = 0; i < columnList.length; i += 4) {
-                    lines.push(columnList.slice(i, i + 4).join(', '));
+                for (let i = 0; i < columnList.length; i += 6) {
+                    lines.push(columnList.slice(i, i + 6).join(', '));
                 }
                 return 'SELECT\n  ' + lines.join(',\n  ');
             }

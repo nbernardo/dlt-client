@@ -536,6 +536,8 @@ export class Workspace extends ViewComponent {
 
 		const /** @type { Grid } */ gridInstance = gridComponent;
 		const /** @type { SqlEditor } */ editorInstance = editorComponent;
+		editorInstance.queryOutput = gridInstance;
+		editorInstance.database = database;
 
 		const contentContainer = document
 			.getElementById(this.popupWindowProxy.uniqueId)
@@ -544,17 +546,10 @@ export class Workspace extends ViewComponent {
 		const table = contentContainer.querySelector('.table-container');
 		const codeEditor = contentContainer.querySelector('.code-editor-container');
 
-		table.innerHTML = gridUI;
-		codeEditor.innerHTML = sqlEditorUI;
+		table.innerHTML = gridUI, codeEditor.innerHTML = sqlEditorUI;
 
 		this.popupWindowProxy.openPopup();
-
-		gridInstance.runSQLQuery = async function(){
-			const newQuery = editorInstance.editor.getValue();
-			const { result, fields } = await self.service.runSQLQuery(newQuery, database);
-			const parsedFields = fields.replaceAll('\n', '').split(',').map(field => field.trim());
-			gridInstance.setGridData(parsedFields, result).loadGrid();
-		}
+		
 	}
 
 }

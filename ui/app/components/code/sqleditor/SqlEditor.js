@@ -1,6 +1,8 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
+import { Grid } from "../../grid/Grid.js";
+import { Workspace } from "../../workspace/Workspace.js";
 
 export class SqlEditor extends ViewComponent {
 
@@ -9,6 +11,14 @@ export class SqlEditor extends ViewComponent {
 	/** @Prop */ query;
 
 	/** @Prop */ editor;
+
+	/** @Prop */ uniqueId = '_'+UUIDUtil.newId();
+
+	/** @type { Workspace }  */ $parent;
+
+	/** @Prop @type { Grid }  */ queryOutput;
+
+	/** @Prop */ database;
 
 	async stBeforeInit() {
 		
@@ -28,7 +38,7 @@ export class SqlEditor extends ViewComponent {
 
 	stAfterInit() {
 
-		this.editor = monaco.editor.create(document.querySelector('#extend-view-code-editor'), {
+		this.editor = monaco.editor.create(document.getElementById(this.uniqueId), {
 			value: this.query,
 			language: 'sql',
 			theme: 'vs-light',
@@ -38,6 +48,13 @@ export class SqlEditor extends ViewComponent {
 			fontSize: 14
 		})
 		
+	}
+
+	async runSQLQuery(){
+		const newQuery = this.editor.getValue();
+		const { result, fields } = await this.$parent.service.runSQLQuery(newQuery, this.database);
+		const parsedFields = fields.replaceAll('\n', '').split(',').map(field => field.trim());
+		this.queryOutput.setGridData(parsedFields, result).loadGrid();
 	}
 
 }
