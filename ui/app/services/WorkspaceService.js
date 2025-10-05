@@ -194,7 +194,7 @@ export class WorkspaceService extends BaseService {
 		return null;
 	}
 
-    /** @returns { { result: { result, fields, actual_query } } } */
+    /** @returns { { result: { result, fields, actual_query, db_file } } } */
 	static async sendAgentMessage(message){
 
         const namespace = StillAppSetup.config.get('anonymousLogin') 
@@ -208,5 +208,21 @@ export class WorkspaceService extends BaseService {
 			return await response.json();
 		return null;
 	}
+
+    /** @returns { { result, fields } | undefined } */
+    async runSQLQuery(query, database){
+        const payload = { query, database };
+        const url = '/workcpace/sql_query';
+        const response = await $still.HTTPClient.post(url, JSON.stringify(payload), {
+            headers: { 'content-type': 'Application/json' }
+        });
+
+        const result = await response.json();
+
+        if(result.error)
+            return AppTemplate.toast.error('Error while querying the DB: '+result.result);
+        return result
+        
+    }
 
 }

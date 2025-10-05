@@ -8,6 +8,8 @@ export class SqlEditor extends ViewComponent {
 
 	/** @Prop */ query;
 
+	/** @Prop */ editor;
+
 	async stBeforeInit() {
 		
 		if (window.monaco) return;
@@ -26,7 +28,7 @@ export class SqlEditor extends ViewComponent {
 
 	stAfterInit() {
 
-		monaco.editor.create(document.querySelector('#extend-view-code-editor'), {
+		this.editor = monaco.editor.create(document.querySelector('#extend-view-code-editor'), {
 			value: this.query,
 			language: 'sql',
 			theme: 'vs-light',

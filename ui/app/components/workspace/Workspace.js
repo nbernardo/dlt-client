@@ -17,7 +17,8 @@ import { Transformation } from "../node-types/Transformation.js";
 import { LogDisplay } from "../log/LogDisplay.js";
 import { Assets } from "../../../@still/util/componentUtil.js";
 import { Header } from "../parts/Header.js";
-import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
+import { Grid } from "../grid/Grid.js";
+import { SqlEditor } from "../code/sqleditor/SqlEditor.js";
 
 export class Workspace extends ViewComponent {
 
@@ -522,16 +523,19 @@ export class Workspace extends ViewComponent {
 
 	async expandDataTableView() {
 
-		//const { fields, data, query } = this.controller.aiAgentExpandView;
-		const { fields, data, query } = mockData();
-		console.log({ fields, data, query });
-		const parsedFields = fields.replaceAll('\n', '').split(',').map(field => field.trim());
-		
-		const { template: gridUI } = await Components.new('Grid', { fields: parsedFields, data }, this.cmpInternalId);
+		const self = this;
 
-		const { template: sqlEditorUI } = await Components.new('SqlEditor',
+		//const { fields, data, query, database } = this.controller.aiAgentExpandView;
+		const { fields, data, query, database } = mockData();
+		const parsedFields = fields.replaceAll('\n', '').split(',').map(field => field.trim());
+
+		const { template: gridUI, component: gridComponent } = await Components.new('Grid', { fields: parsedFields, data }, this.cmpInternalId);
+		const { template: sqlEditorUI, component: editorComponent } = await Components.new('SqlEditor',
 			{ query, fields: parsedFields, data }, this.cmpInternalId
 		);
+
+		const /** @type { Grid } */ gridInstance = gridComponent;
+		const /** @type { SqlEditor } */ editorInstance = editorComponent;
 
 		const contentContainer = document
 			.getElementById(this.popupWindowProxy.uniqueId)
@@ -544,6 +548,13 @@ export class Workspace extends ViewComponent {
 		codeEditor.innerHTML = sqlEditorUI;
 
 		this.popupWindowProxy.openPopup();
+
+		gridInstance.runSQLQuery = async function(){
+			const newQuery = editorInstance.editor.getValue();
+			const { result, fields } = await self.service.runSQLQuery(newQuery, database);
+			const parsedFields = fields.replaceAll('\n', '').split(',').map(field => field.trim());
+			gridInstance.setGridData(parsedFields, result).loadGrid();
+		}
 	}
 
 }
@@ -695,7 +706,8 @@ function mockData() {
 				2024
 			]
 		],
-		"query": "SELECT\n_dlt_id, _dlt_load_id, industry_aggregation_nzsioc, industry_code_anzsic06,\nindustry_code_nzsioc, industry_name_nzsioc, units, value,\nvariable_category, variable_code, variable_name, year\nFROM myserveydb.tabelaservey\nLIMIT 10"
+		"query": "SELECT\n_dlt_id, _dlt_load_id, industry_aggregation_nzsioc, industry_code_anzsic06,\nindustry_code_nzsioc, industry_name_nzsioc, units, value,\nvariable_category, variable_code, variable_name, year\nFROM myserveydb.tabelaservey\nLIMIT 10",
+		"database": "/Users/nakassony/Desktop/dlt/dlt-client/backend/destinations/duckdb/sonybernardo@gmail.com/my_demo_pipeline.duckdb"
 	}
 
 }

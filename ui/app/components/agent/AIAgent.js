@@ -75,8 +75,9 @@ export class AIAgent extends ViewComponent {
 			else response = result?.result;
 
 			if(result.fields){
+				const { db_file, fields, actual_query } = result;
 				dataTable = this.controller.parseDataToTable(
-					result.fields, response, this.$parent, result.actual_query
+					fields, response, this.$parent, actual_query, db_file
 				);
 			}
 		

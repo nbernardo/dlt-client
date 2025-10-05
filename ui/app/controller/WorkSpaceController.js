@@ -30,6 +30,7 @@ export class AIAgentExpandViewType {
     /** @type { Array<Array<Object>> } */
     data;
     initialTable = '';
+    database = ''
 }
 
 export class WorkSpaceController extends BaseController {

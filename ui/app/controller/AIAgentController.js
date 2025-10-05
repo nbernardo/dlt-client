@@ -8,7 +8,7 @@ export class AIAgentController {
      * @param { Array<Array> } data
      * @param { Workspace } workspaceComponent 
       */
-    parseDataToTable(fields, data, workspaceComponent, actualQuery) {
+    parseDataToTable(fields, data, workspaceComponent, actualQuery, database) {
 
         const fieldsHeader =
             '<tr>' + fields.split(',')
@@ -35,6 +35,7 @@ export class AIAgentController {
         // Passing data to the controller so it can be accessed by the Workspace component
         workspaceComponent.controller.aiAgentExpandView.data = data;
         workspaceComponent.controller.aiAgentExpandView.fields = fields;
+        workspaceComponent.controller.aiAgentExpandView.database = database;
         setTimeout(() => 
             workspaceComponent.controller.aiAgentExpandView.query = AIResponseLinterUtil.formatSQL(actualQuery),
         0);

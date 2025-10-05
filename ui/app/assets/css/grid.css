@@ -23,13 +23,27 @@
             font-size: 1.8em;
         }
         
-        .grid-component-container .search-container {
+        .grid-component-container .tools-container button {
+            padding: 1px 3px;
+            width: 59px;
+            background: #00730038;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            border: 3px solid #00730038;
+        }
+
+        .grid-component-container .tools-container {
             padding: 15px;
             background-color: #fafafa;
             border-bottom: 1px solid #ddd;
             position: fixed;
             z-index: 10;
             width: 100%;
+            display: flex;
+            align-items: center;
         }
         
         .grid-component-container .search-box {

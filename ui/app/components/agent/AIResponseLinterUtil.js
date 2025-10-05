@@ -2,9 +2,8 @@ export class AIResponseLinterUtil {
 
     static formatSQL(sql) {
 
-        sql = sql.trim().replace(/\s+/g, ' ');
+        let formatted = sql.trim().replace(/\s+/g, ' ');
 
-        let formatted = sql;
         formatted = formatted.replace(/\b(FROM|WHERE|GROUP BY|HAVING|ORDER BY|LIMIT|OFFSET)\b/gi, '\n$1');
         formatted = formatted.replace(/\b(INNER JOIN|LEFT JOIN|RIGHT JOIN|FULL JOIN|CROSS JOIN|JOIN)\b/gi, '\n$1');
         formatted = formatted.replace(/\bON\b/gi, '\n  ON');
@@ -25,9 +24,8 @@ export class AIResponseLinterUtil {
         const indented = lines.map((line, index) => {
             if (index === 0) return line;
 
-            if (line.match(/^[a-z_]/i) && !line.match(/^(FROM|WHERE|GROUP|HAVING|ORDER|LIMIT|OFFSET)/i)) {
+            if (line.match(/^[a-z_]/i) && !line.match(/^(FROM|WHERE|GROUP|HAVING|ORDER|LIMIT|OFFSET)/i))
                 return line;
-            }
             return line;
         });
 

@@ -33,14 +33,12 @@ export class Grid extends ViewComponent {
 	}
 
 	stOnRender({ fields, data }){
-		this.fields = fields;
-		this.data = data;
+		this.fields = fields, this.data = data;
 	}
 
 	stAfterInit() {			
 		this.mainContainer = document.querySelector('#'+this.uniqueId);		
-		this.loadHeader();
-		this.loadData();
+		this.loadGrid();
 		this.dataTableHandlingSetup();
 	}
 
@@ -62,7 +60,6 @@ export class Grid extends ViewComponent {
 		this.columnSortingHandle();
 		this.columnDraggingHandle();
 		this.resizeColumnHandle();
-
 	}
 
 	columnSortingHandle() {
@@ -112,6 +109,18 @@ export class Grid extends ViewComponent {
 		}
 	}
 
+	loadGrid(){
+		this.loadHeader();
+		this.loadData();
+	}
+
+	setGridData(fields, data){
+		if(fields != null && fields != undefined)
+			this.fields = fields
+		this.data = data;
+		return this;
+	}
+
 	loadHeader(){
 		const headers = this.fields.map(field => `
 			<th draggable="true">${field}<span class="sort-indicator">⇅</span>
@@ -146,13 +155,9 @@ export class Grid extends ViewComponent {
 				this.classList.add('dragging');
 			});
 
-			headers[i].addEventListener('dragend', function () {
-				this.classList.remove('dragging');
-			});
+			headers[i].addEventListener('dragend', () => this.classList.remove('dragging'));
 
-			headers[i].addEventListener('dragover', function (e) {
-				e.preventDefault();
-			});
+			headers[i].addEventListener('dragover', (e) => e.preventDefault());
 
 			const obj = this;
 			headers[i].addEventListener('drop', function (e) {
@@ -172,19 +177,16 @@ export class Grid extends ViewComponent {
 		const rows = this.dataTable.querySelectorAll('tbody tr');
 
 		const headerRow = this.dataTable.querySelector('thead tr');
-		const draggedHeader = headers[fromIndex];
-		const targetHeader = headers[toIndex];
+		const draggedHeader = headers[fromIndex],  targetHeader = headers[toIndex];
 
 		if (fromIndex < toIndex) {
 			headerRow.insertBefore(draggedHeader, targetHeader.nextSibling);
-		} else {
-			headerRow.insertBefore(draggedHeader, targetHeader);
-		}
+		} else headerRow.insertBefore(draggedHeader, targetHeader);
+		
 
 		for (let i = 0; i < rows.length; i++) {
 			let cells = rows[i].children;
-			let draggedCell = cells[fromIndex];
-			let targetCell = cells[toIndex];
+			let draggedCell = cells[fromIndex], targetCell = cells[toIndex];
 
 			if (fromIndex < toIndex) {
 				rows[i].insertBefore(draggedCell, targetCell.nextSibling);
@@ -231,4 +233,7 @@ export class Grid extends ViewComponent {
 		this.mainContainer.removeEventListener('mousemove', doResize);
 		this.mainContainer.removeEventListener('mouseup', stopResize);
 	}
+
+	/** @template */
+	runSQLQuery(){}
 }

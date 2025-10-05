@@ -25,7 +25,7 @@ export class StillHTTPClient {
     /**
      * @param {string} url 
      * @param {HttpRequestOptions} options 
-     * @returns {Promise} */
+     * @returns {Promise<{text: Function, json: Function}>} */
     async get(path, options = {}) {
         const url = StillHTTPClient.getURL(path);
         const { headers, method } = options;
@@ -38,7 +38,7 @@ export class StillHTTPClient {
     /**
      * @param {string} url 
      * @param {HttpRequestOptions} options 
-     * @returns {Promise} */
+     * @returns {Promise<{text: Function, json: Function}>} */
     async delete(path, body, options = {}) {
         const url = StillHTTPClient.getURL(path);
         //return await this.get(url, { ...options, method: 'DELETE' })
@@ -54,7 +54,7 @@ export class StillHTTPClient {
      * @param {string} url 
      * @param {string|JSON|object} body 
      * @param {HttpRequestOptions} options 
-     * @returns {Promise} */
+     * @returns {Promise<{text: Function, json: Function}>} */
     async post(path, body, options = {}) {
         const url = StillHTTPClient.getURL(path);
         const { headers, method } = options;
@@ -69,7 +69,7 @@ export class StillHTTPClient {
      * @param {string} url 
      * @param {string|JSON|object} body 
      * @param {HttpRequestOptions} options 
-     * @returns {Promise} */
+     * @returns {Promise<{text: Function, json: Function}>} */
     async put(path, body, options = {}) {
         return await this.post(path, body, { ...options, method: 'PUT' });
         // url duplicated
@@ -80,7 +80,7 @@ export class StillHTTPClient {
      * @param {string} url 
      * @param {string|JSON|object} body 
      * @param {HttpRequestOptions} options 
-     * @returns {Promise} */
+     * @returns {Promise<{text: Function, json: Function}>} */
     async patch(path, body, options = {}) {
         return await this.post(path, body, { ...options, method: 'PATCH' });
     }
