@@ -64,7 +64,6 @@ export class LeftTabs extends ViewComponent {
 		this.selectTab('content-outputs');
 		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getDuckDbs(this.$parent.userEmail, this.$parent.socketData.sid);
-		response = await response.json();
 		
 		if(response?.error === true){
 			this.dbTreeviewProxy.showLoader = false;

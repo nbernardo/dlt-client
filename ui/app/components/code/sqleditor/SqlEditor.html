@@ -1,6 +1,14 @@
 <div id="sql-editor-app">
 	<div class="sql-editor-controls">
-		<button class="run-query-btn" onclick="component.runSQLQuery()">Run Query</button>&nbsp;&nbsp;|&nbsp;&nbsp;
+		<button class="run-query-btn play-arrow-btn" onclick="component.runSQLQuery()">
+			&nbsp;Run Query
+		</button>
+		&nbsp;&nbsp;<div class="separator"></div>&nbsp;&nbsp;
+		<form>
+			<select (value)="database" (forEach)="tablesList" placeholder="Select Database">
+				<option each="item" value="{item.database}">{item.table}</option>
+			</select>
+		</form>
 	</div>
 	<div class="editor-wrapper">
 		

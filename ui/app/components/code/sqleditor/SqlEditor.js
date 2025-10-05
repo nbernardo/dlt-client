@@ -20,6 +20,8 @@ export class SqlEditor extends ViewComponent {
 
 	/** @Prop */ database;
 
+	tablesList;
+
 	async stBeforeInit() {
 		
 		if (window.monaco) return;
@@ -30,13 +32,16 @@ export class SqlEditor extends ViewComponent {
 		require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } });
 		require(['vs/editor/editor.main'], () => window.monaco);
 
+
 	}
 
-	stOnRender({ query }){
+	async stOnRender({ query }){
 		this.query = query;
+		const user = this.$parent.userEmail, socketId = this.$parent.socketData.sid;
+		this.tablesList = await this.$parent.service.getParsedTables(user, socketId);
 	}
 
-	stAfterInit() {
+	async stAfterInit() {
 
 		this.editor = monaco.editor.create(document.getElementById(this.uniqueId), {
 			value: this.query,
@@ -46,8 +51,7 @@ export class SqlEditor extends ViewComponent {
 			minimap: { enabled: false },
 			scrollBeyondLastLine: false,
 			fontSize: 14
-		})
-		
+		});
 	}
 
 	async runSQLQuery(){

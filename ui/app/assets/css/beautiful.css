@@ -720,7 +720,9 @@ header a {
 
     /** SQL EDITOR Styling */
 
-	.sql-editor-controls { padding: 5px; }
+	.sql-editor-controls { padding: 5px;display: flex; align-items: center; }
+	.sql-editor-controls select { padding: 1px; border-radius: 3px; font-size: 15px; font-weight: bold; }
+	.sql-editor-controls .separator {     border: .5px solid #c2c1c100; width: 1px; height: 24px; }
 
 	.run-query-btn {
 		padding: 3px 3px;
@@ -732,6 +734,10 @@ header a {
 		font-size: 12px;
 		font-weight: bold;
 		border: 2px solid #00730038;
+        width: 86px !important;
+        margin-left: 9px;
+        display: flex;
+        align-items: center;
     }
 
     /** End of SQL EDITOR Styling */
