@@ -162,6 +162,7 @@ class Workspace:
         result = { 'db_path': files_path } 
         tables = None
         k = None
+        prev_key = None
 
         for _file in file_list:
 
@@ -185,16 +186,12 @@ class Workspace:
                         col_count = t[4]
                         col_name = t[5]
                         col_type = t[6]
+                        k = f'{ppline}-{dbname}-{table}'
 
                         if dbname.endswith('_staging'):
                             continue
 
-                        if(k != None):
-                            result[_file][k]['fields'].append({ 'name': col_name, 'type': col_type })
-
-                        elif(k == None):
-                            k = f'{ppline}-{dbname}-{table}'
-                            
+                        if(k != prev_key):
                             result[_file][k] = { 
                                 'ppline': ppline,
                                 'dbname': dbname,
@@ -203,6 +200,11 @@ class Workspace:
                                 'col_count': col_count,
                                 'fields': [{ 'name': col_name, 'type': col_type }]
                             }
+
+                        else:
+                            result[_file][k]['fields'].append({ 'name': col_name, 'type': col_type })
+                            
+                    prev_key = k
                 k = None
 
         return result
@@ -292,8 +294,6 @@ class Workspace:
     @staticmethod
     def run_sql_query(database = None, query = None):
         try:
-            print(f'Running query: {query}')           
-            print(f'THE DATABASE IS: {database}')           
             cnx = DuckdbUtil.get_connection_for(f'{database}')
             cursor = cnx.cursor()
             result = cursor.execute(query).fetchall()
@@ -321,7 +321,7 @@ class Workspace:
                 FROM duckdb_tables t \
                 JOIN duckdb_columns c ON t.table_name = c.table_name \
                 {where_clause} \
-                ORDER BY t.table_name, column_name"
+                ORDER BY t.schema_name, t.table_name, column_name"
             
             return { 'tables': cursor.execute(query) }
         except duckdb.IOException as err:
