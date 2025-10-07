@@ -6,6 +6,7 @@ import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { UserUtil } from "../auth/UserUtil.js";
+import { handleHideShowSubmenu } from "../workspace/generic-util.js";
 import { Workspace } from "../workspace/Workspace.js";
 
 export class Header extends ViewComponent {
@@ -67,9 +68,7 @@ export class Header extends ViewComponent {
 			this.showScheduleCounter = true;
 		});
 
-		this.workspaceController.on('load', () => {
-			this.workspaceController.activeHeader = this;
-		});
+		this.workspaceController.on('load', () => this.workspaceController.activeHeader = this);
 
 		this.handleScheduledPplineHideShow();
 	}
@@ -90,19 +89,7 @@ export class Header extends ViewComponent {
 		Router.goto(routeName);
 	} 
 
-    handleScheduledPplineHideShow(){
-        const scheduleIcon = document.querySelector('.scheduled-pipeline-context-drop-menu');
-        const dropMenu = scheduleIcon.querySelector('.submenu');
-        scheduleIcon.onmouseover = () => dropMenu.style.display = 'block';
-
-		document.addEventListener('click', (event) => 
-			!dropMenu.contains(event.target) ? dropMenu.style.display = 'none' : ''
-		);
-
-		document.addEventListener('mouseover', (event) => 
-			!dropMenu.contains(event.target) && !scheduleIcon.contains(event.target)  ? dropMenu.style.display = 'none' : ''
-		);
-    }
+    handleScheduledPplineHideShow = () =>  handleHideShowSubmenu('.generic-context-drop-menu', '.submenu');
 
 	showHideLogsDisplay = () => this.$parent.logProxy.showHideLogsDisplay();
 

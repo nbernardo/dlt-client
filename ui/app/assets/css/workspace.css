@@ -96,7 +96,7 @@
 	}
 
 	.tables-icn-container span:nth-child(1) {
-	    margin-left: -28px;
+		margin-left: -38px;
 	}
 
 	.tables-icn-container span:nth-child(2) {
@@ -114,9 +114,12 @@
 	}
 
 	.ppline-treeview img {
-	    width: 30px;
-	    position: relative;
-	    z-index: 1000;
+		width: 33px;
+		position: relative;
+		z-index: 1000;
+		padding-right: 4px;
+		background: white;
+		margin-left: -4px;
 	}
 
 	/** Dialog styling */
@@ -193,13 +196,13 @@
 	/** Active Pipeline Dropdown menu */
 
 	.pipeline-context-drop-menu,
-	.scheduled-pipeline-context-drop-menu {
+	.generic-context-drop-menu {
 	    list-style-type: none;
 	    position: relative;
 	}
 
 	.pipeline-context-drop-menu .submenu,
-	.scheduled-pipeline-context-drop-menu .submenu {
+	.generic-context-drop-menu .submenu {
 	    display: none;
 	    position: absolute;
 	    top: 100%;
@@ -213,23 +216,23 @@
 	}
 
 	.pipeline-context-drop-menu .submenu li,
-	.scheduled-pipeline-context-drop-menu .submenu li {
+	.generic-context-drop-menu .submenu li {
 	    list-style-type: none;
 	}
 
 	.pipeline-context-drop-menu .context-content,
-	.scheduled-pipeline-context-drop-menu .context-content {
+	.generic-context-drop-menu .context-content {
 	    padding-bottom: 12px !important;
 	}
 
 	.pipeline-context-drop-menu .form-label,
-	.scheduled-pipeline-context-drop-menu .form-label {
+	.generic-context-drop-menu .form-label {
 	    margin-bottom: -0.5rem;
 	    font-weight: bold;
 	}
 
 	.pipeline-context-drop-menu .submenu li div,
-	.scheduled-pipeline-context-drop-menu .submenu li div {
+	.generic-context-drop-menu .submenu li div {
 	    display: block;
 	    color: white;
 	    text-decoration: none;
@@ -308,3 +311,119 @@
 
 
 	/** End Mini Loader styling */
+
+
+
+	/** Small Blue Menu Styling  */
+
+	.small-blue-menu-list-wrapper {
+        display: flex;
+        justify-content: center;
+    }
+
+    .small-blue-menu-list-wrapper .tiny-menu {
+        padding: 4px;
+        background-color: #1f2937;
+        border-radius: .5rem;
+        width: max-content;
+        width: 95%;
+        margin-left: -10px;
+    }
+
+    .small-blue-menu-list-wrapper .tiny-menu-item {
+		padding: 6px 5px;
+		background-color: #374151;
+		border-radius: .375rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		transition: background-color .2s ease;
+		position: relative;
+		margin-top: .25rem;
+		height: auto;
+    }
+
+    .small-blue-menu-list-wrapper .tiny-menu-item:hover {
+        background-color: #4b5563;
+    }
+
+
+
+	.small-blue-menu-list-wrapper .tiny-container {
+		position: relative;
+		width: 100%;
+		text-wrap: auto;
+    }
+
+    .small-blue-menu-list-wrapper .tiny-content {
+		font-size: .625rem;
+		color: white;
+		font-family: monospace;
+		flex-shrink: 0;
+		position: relative;
+    	width: 100%;
+    }
+
+    .small-blue-menu-list-wrapper .dots-icon {
+        width: .75rem;
+        height: .75rem;
+        color: #9ca3af;
+        cursor: pointer;
+        transition: color .2s ease;
+    }
+
+    .small-blue-menu-list-wrapper .dots-icon img:hover {
+        content: url('app/assets/imgs/file-list/dots-hover.svg');
+    }
+
+    .small-blue-menu-list-wrapper .popup {
+        position: fixed;
+        z-index: 20;
+        background-color: #374151;
+        border-radius: .5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06);
+        padding: 4px 0;
+        font-size: .75rem;
+        color: #e5e7eb;
+        width: 6rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .2s ease, visibility .2s ease;
+    }
+
+    .small-blue-menu-list-wrapper .popup.is-active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .small-blue-menu-list-wrapper .popup ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .small-blue-menu-list-wrapper .popup li {
+        padding: .5rem;
+        cursor: pointer;
+    }
+
+    .small-blue-menu-list-wrapper .popup li:hover {
+        background-color: #4b5563;
+    }
+
+    .file-list-wrapper .popup {
+        position: fixed;
+        z-index: 20;
+        background-color: #374151;
+        border-radius: .5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -1px rgba(0, 0, 0, .06);
+        padding: 4px 0;
+        font-size: .75rem;
+        color: #e5e7eb;
+        width: 6rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .2s ease, visibility .2s ease;
+    }
+
+	/** End of Small Blue Menu Styling  */

@@ -15,6 +15,10 @@ export class StillHTTPClient {
         StillHTTPClient.#baseUrl = baseUrl;
     }
 
+    static getBaseUrl(){
+        return StillHTTPClient.#baseUrl;
+    }
+
     static getURL(p = '') {
         const env = StillAppSetup.config.env;
         StillHTTPClient.#baseUrl = StillHTTPClient.#baseUrl || StillAppSetup.config.get(`httpClient.baseUrl`);

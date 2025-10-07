@@ -1,5 +1,5 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
-import { ListState } from "../../../../@still/component/type/ComponentType.js";
+import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { StillTreeView } from "../../../../@still/vendors/treeview/StillTreeView.js";
 import { AppTemplate } from "../../../../config/app-template.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
@@ -33,17 +33,23 @@ export class LeftTabs extends ViewComponent {
 
 	selectedTab = null;
 
-	/** @type { Workspace } */
-	$parent;
+	/** @type { Workspace } */ $parent;
 
 	/** @Prop */ fileMenu;
+
+	/** @Prop */ promptSamplesMenu;
 
 	/** @Prop */ activeFileDropdown;
 	
 	/** @Prop */ fetchingPipelineData = false;
 
+	/** @Prop */ uniqPromptMenuId = '_'+UUIDUtil.newId();
+
+	/** @Prop */ selectedPrompt = null;
+
 	stAfterInit() {
 
+		this.setUpPromptMenuEvt();
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
 			this.service.table.onChange(newValue => {
@@ -88,6 +94,7 @@ export class LeftTabs extends ViewComponent {
 			});
 
 			for(const idx in data){
+				
 				const tableData = data[idx];
 				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
 				const table = this.dbTreeviewProxy.addNode({ 
@@ -118,7 +125,11 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	copyToClipboard(content){
-		this.controller.copyToClipboard(content);
+		this.$parent.controller.copyToClipboard(content);
+	}
+
+	queryTable(dbname, dbfile){
+		this.$parent.expandDataTableView(dbname, dbfile)
 	}
 
 	async refreshTree(){
@@ -135,7 +146,7 @@ export class LeftTabs extends ViewComponent {
 							${copyClipboardIcin}
 						</span>
 						<span 
-							onclick="self.genInitialDBQuery('${tableToQuery}','${dbfile}')"
+							onclick="self.queryTable('${tableToQuery}','${dbfile}')"
 							tooltip-x="-130" tooltip="Query ${tableData.table} table"
 						>
 							${tableToTerminaIcon}
@@ -184,7 +195,54 @@ export class LeftTabs extends ViewComponent {
 	viewPipelineDiagram(event, dbfile){}
 
 	async startAIAssistant(){
+		this.selectTab('content-ai'); 
 		await this.$parent.controller.startAgent();
 	}
 
+	setNewPrompt(content){
+		this.$parent.controller.startedAgent.setUserPrompt(content)
+	}
+
+	togglePromptPopup(element) {
+
+		const rect = element.getBoundingClientRect();
+		this.selectedPrompt = element.parentElement.parentElement.querySelector('.tiny-content').innerHTML;
+
+		if (this.activeFileDropdown === element) {
+			this.promptSamplesMenu.classList.remove('is-active');
+			this.activeFileDropdown = null;
+		} else {
+			this.promptSamplesMenu.classList.remove('is-active');
+			this.promptSamplesMenu.style.left = `${rect.left - 8}px`;
+			this.promptSamplesMenu.style.top = `${rect.top}px`;
+			this.promptSamplesMenu.classList.add('is-active');
+			this.activeFileDropdown = element;
+		}
+	}
+
+	setUpPromptMenuEvt(){
+		this.promptSamplesMenu = document.getElementById(this.uniqPromptMenuId);
+
+		const obj = this; //Becuase inside callback this is not available
+        document.addEventListener('click', function(event) {
+			
+            const [isClickInsideMenu, isClickTrigger] = [obj.promptSamplesMenu.contains(event.target), event.target.closest('img')];
+            if (!isClickInsideMenu && !isClickTrigger) {
+                obj.promptSamplesMenu.classList.remove('is-active');
+                obj.activeFileDropdown = null;
+            }
+        });
+	}
+
+	pasteToAgent(){
+		this.$parent.controller.startedAgent.setUserPrompt(this.selectedPrompt);
+		this.hideSelectedPromptMenu();
+	}
+
+	pasteToCBoard(){
+		this.$parent.controller.copyToClipboard(this.selectedPrompt);
+		this.hideSelectedPromptMenu();
+	}
+
+	hideSelectedPromptMenu = () => this.promptSamplesMenu.classList.remove('is-active');
 }

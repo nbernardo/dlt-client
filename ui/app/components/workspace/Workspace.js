@@ -462,7 +462,6 @@ export class Workspace extends ViewComponent {
 
 	viewFileOnEditor() {
 		this.leftMenuProxy.scriptListProxy.selectedFile;
-		//console.log(`WHEN CALLING FROM FILE: `,this.leftMenuProxy.fileListProxy.selectedFile);
 	}
 
 	handlePplineSchedulePopup() {
@@ -521,23 +520,22 @@ export class Workspace extends ViewComponent {
 
 	showOrHideAgent = () => this.openAgent = !this.openAgent;
 
-	async expandDataTableView() {
+	async expandDataTableView(databaseParam = null, dbfile = null) {
+		
+		let { fields, data, query, database } = this.controller.aiAgentExpandView;
+		//const { fields, data, query, database } = mockData();
+		const parsedFields = (fields || '')?.replaceAll('\n', '')?.split(',')?.map(field => field.trim());
+		const parentId = this.cmpInternalId;
+		data = (data || []);
 
-		const self = this;
-
-		//const { fields, data, query, database } = this.controller.aiAgentExpandView;
-		const { fields, data, query, database } = mockData();
-		const parsedFields = fields.replaceAll('\n', '').split(',').map(field => field.trim());
-
-		const { template: gridUI, component: gridComponent } = await Components.new('Grid', { fields: parsedFields, data }, this.cmpInternalId);
-		const { template: sqlEditorUI, component: editorComponent } = await Components.new('SqlEditor',
-			{ query, fields: parsedFields, data }, this.cmpInternalId
-		);
+		const gridInitData = { fields: parsedFields, data };
+		const editorInitData = { query, fields: parsedFields, data, database, databaseParam, dbfile };
+		const { template: gridUI, component: gridComponent } = await Components.new('Grid', gridInitData, parentId);
+		const { template: editorUI, component: editorCmp } = await Components.new('SqlEditor', editorInitData, parentId);
 
 		const /** @type { Grid } */ gridInstance = gridComponent;
-		const /** @type { SqlEditor } */ editorInstance = editorComponent;
+		const /** @type { SqlEditor } */ editorInstance = editorCmp;
 		editorInstance.queryOutput = gridInstance;
-		editorInstance.database = database;
 
 		const contentContainer = document
 			.getElementById(this.popupWindowProxy.uniqueId)
@@ -546,8 +544,7 @@ export class Workspace extends ViewComponent {
 		const table = contentContainer.querySelector('.table-container');
 		const codeEditor = contentContainer.querySelector('.code-editor-container');
 
-		table.innerHTML = gridUI, codeEditor.innerHTML = sqlEditorUI;
-
+		table.innerHTML = gridUI, codeEditor.innerHTML = editorUI;
 		this.popupWindowProxy.openPopup();
 		
 	}

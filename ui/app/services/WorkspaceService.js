@@ -1,5 +1,6 @@
 import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
+import { StillHTTPClient } from "../../@still/helper/http.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
@@ -22,6 +23,8 @@ export class WorkspaceService extends BaseService {
 
     table = new ServiceEvent([]);
     tableListStore = new ServiceEvent(null);
+    fieldsByTableMap = {};
+    dbPath = null;
     parsedTableListStore = new ServiceEvent([]);
     schedulePipelinesStore = new ServiceEvent([]);
 
@@ -56,7 +59,9 @@ export class WorkspaceService extends BaseService {
             for (const [database, ppline] of data) {
                 const tablesDetails = Object.values(ppline);
                 for (const tableDetail of tablesDetails) {
+                    //tables.push({ database, table: tableDetail.table });
                     tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}` });
+                    this.fieldsByTableMap[database] = tableDetail.fields;
                 }
             }
 
@@ -87,10 +92,17 @@ export class WorkspaceService extends BaseService {
             const response = await $still.HTTPClient.post(url, null, {
                 headers: { 'Content-Type': 'application/json' }
             });
-            this.tableListStore = await response.json();
+            const { db_path, ...tables } = await response.json();
+            this.dbPath = db_path;
+            this.tableListStore = tables;
         }
         return this.tableListStore.value;
+        
+    }
 
+    async downloadfile(fileName, downloadType) {
+        const baseUrl = StillHTTPClient.getBaseUrl();
+        window.location.href = `${baseUrl}/download/${downloadType}/${UserUtil.email}/${fileName}`;
     }
 
     async handleDuckdbConnect(payload, action = WorkspaceService.CONNECT_DB) {

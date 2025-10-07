@@ -67,11 +67,11 @@ export class Grid extends ViewComponent {
 		const headers = this.mainContainer.querySelectorAll('th');
 		for (let i = 0; i < headers.length; i++) {
 			headers[i].setAttribute('data-column', i);
-			headers[i].addEventListener('click', function (e) {
+			headers[i].onclick = function (e) {
 				if (e.target.classList.contains('resizer')) return;
 				let columnIndex = parseInt(this.getAttribute('data-column'));
 				obj.sortTable(columnIndex);
-			});
+			};
 		}
 	}
 
@@ -146,28 +146,28 @@ export class Grid extends ViewComponent {
 		const self = this;
 
 		for (let i = 0; i < headers.length; i++) {
-			headers[i].addEventListener('dragstart', function (e) {
+			headers[i].ondragstart = function (e) {
 				if (e.target.classList.contains('resizer')) {
 					e.preventDefault();
 					return;
 				}
 				self.draggedColumn = parseInt(this.getAttribute('data-column'));
 				this.classList.add('dragging');
-			});
+			};
 
-			headers[i].addEventListener('dragend', () => this.classList.remove('dragging'));
-
-			headers[i].addEventListener('dragover', (e) => e.preventDefault());
+			headers[i].ondragend = () => this.classList.remove('dragging');
+			headers[i].ondragover = (e) => e.preventDefault();
 
 			const obj = this;
-			headers[i].addEventListener('drop', function (e) {
+			headers[i].ondrop = function (e) {
 				e.preventDefault();
 				let targetColumn = parseInt(this.getAttribute('data-column'));
 				if (obj.draggedColumn !== null && obj.draggedColumn !== targetColumn) {
 					obj.moveColumn(obj.draggedColumn, targetColumn);
 					obj.updateColumnIndices();
 				}
-			});
+			};
+
 		}
 
 	}
@@ -205,15 +205,16 @@ export class Grid extends ViewComponent {
 
 	resizeColumnHandle() {
 		const resizers = this.mainContainer.querySelectorAll('.resizer');
+		const self = this;
 		for (let i = 0; i < resizers.length; i++) {
 			resizers[i].addEventListener('mousedown', function (e) {
-				this.isResizing = true;
-				this.currentColumn = e.target.parentElement;
-				this.startX = e.clientX;
-				this.startWidth = parseInt(getComputedStyle(this.currentColumn).width, 10);
+				self.isResizing = true;
+				self.currentColumn = e.target.parentElement;
+				self.startX = e.clientX;
+				self.startWidth = parseInt(getComputedStyle(self.currentColumn).width, 10);
 
-				this.mainContainer.addEventListener('mousemove', doResize);
-				this.mainContainer.addEventListener('mouseup', stopResize);
+				self.mainContainer.addEventListener('mousemove', self.doResize);
+				self.mainContainer.addEventListener('mouseup', self.stopResize);
 				e.preventDefault();
 				e.stopPropagation();
 			});
@@ -228,9 +229,10 @@ export class Grid extends ViewComponent {
 	}
 
 	stopResize() {
+		const self = this;
 		this.isResizing = false;
 		this.currentColumn = null;
-		this.mainContainer.removeEventListener('mousemove', doResize);
-		this.mainContainer.removeEventListener('mouseup', stopResize);
+		this.mainContainer.removeEventListener('mousemove', this.doResize);
+		this.mainContainer.removeEventListener('mouseup', this.stopResize);
 	}
 }

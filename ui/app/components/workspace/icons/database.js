@@ -30,13 +30,13 @@ export const tableToTerminaIcon = `
 
 export const pipelineIcon = `
     <img 
-        src="app/assets/imgs/pipeline.png" 
+        src="app/assets/imgs/database.png" 
         class="tbl-to-terminal">
 `;
 
 export const viewpplineIcon = `
     <i class='fas fa-eye' 
-        style='margin-left: -23px; 
+        style='margin-left: -40px; 
                position:absolute; 
                color: grey;
                z-index: 1000'>

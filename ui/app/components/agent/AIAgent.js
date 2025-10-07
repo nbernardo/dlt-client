@@ -31,6 +31,9 @@ export class AIAgent extends ViewComponent {
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
 
+	/** @Prop */
+	unloadNamespaceMsg = 'Could not load details about your namespace.';
+
 	// Because this controller is not shared with other component hence
 	// we're instantiating straight instead of @Inject, this Will also
 	// make the component loading faster, @Prop is required in this scenarios 
@@ -41,13 +44,13 @@ export class AIAgent extends ViewComponent {
 		await Assets.import({ path: '/app/assets/css/agent.css' });
 	}
 
-	async stAfterInit() {	
+	async stAfterInit() {
 
 		this.appContainer = document.querySelector('.ai-app-container');
 		this.outputContainer = document.getElementById(this.outputContainerId);
 		this.resizeHandle = document.querySelector('.ai-agent-height-resize');
 		this.resizeHandle.style.backgroundColor = '#047857'
-		this.setResizeHandling();		
+		this.setResizeHandling();
 		await this.startNewAgent();
 
 	}
@@ -55,12 +58,12 @@ export class AIAgent extends ViewComponent {
 	async startNewAgent() {
 		try {
 			await WorkspaceService.startChatConversation();
-		} catch (error) {}
+		} catch (error) { }
 	}
 
 	async sendChatRequest(event) {
 		if (event.key === 'Enter') {
-			
+
 			let dataTable = null;
 			event.preventDefault();
 			const message = event.target.value;
@@ -71,21 +74,26 @@ export class AIAgent extends ViewComponent {
 			const { result, error: errMessage, success } = await WorkspaceService.sendAgentMessage(message);
 
 			let response = null;
-			if(success === false) response = errMessage;
+			if (success === false) response = errMessage;
 			else response = result?.result;
 
-			if(result.fields){
+			if (result.fields) {
 				const { db_file, fields, actual_query } = result;
 				dataTable = this.controller.parseDataToTable(
 					fields, response, this.$parent, actual_query, db_file
 				);
+			} else {
+				if ((response || []).length === 0)
+					response = 'No data found for the submitted query. Do you want to send another query?';
+				else if (String(response).trim() === this.unloadNamespaceMsg) {
+					// Auto-reconnect to the chats
+					this.$parent.leftMenuProxy.startAIAssistant();
+					response += `<br>However I've updated myself, let's try again, what's your ask?`
+				}
 			}
-		
-			if((response || []).length === 0)
-				response = 'No data found for the submitted query. Do you want to send another query?';
 
-			if(this.isThereAgentMessage === false) this.isThereAgentMessage = true;
-			
+			if (this.isThereAgentMessage === false) this.isThereAgentMessage = true;
+
 			AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph')
 			AIAgent.lastAgentParagraph.innerHTML = dataTable === null ? response : dataTable;
 		}
@@ -106,8 +114,8 @@ export class AIAgent extends ViewComponent {
 		const textP = document.createElement('p');
 		textP.innerHTML = text;
 
-		if(role === 'agent') AIAgent.lastAgentParagraph = textP;
-		if(role === 'user') textP.classList.add('bubble-message-paragraph');
+		if (role === 'agent') AIAgent.lastAgentParagraph = textP;
+		if (role === 'user') textP.classList.add('bubble-message-paragraph');
 
 		bubble.appendChild(textP);
 		row.appendChild(bubble);
@@ -146,7 +154,7 @@ export class AIAgent extends ViewComponent {
 
 		const deltaY = obj.startY - e.clientY;
 		let newHeight = obj.startHeight + deltaY;
-		
+
 		const MIN_HEIGHT = 400;
 		if (newHeight < MIN_HEIGHT) newHeight = MIN_HEIGHT;
 		// Comment to prevent resize for now
@@ -165,7 +173,7 @@ export class AIAgent extends ViewComponent {
 		obj.resizeHandle.style.backgroundColor = '#d1d5db';
 	}
 
-	loadingContent(){
+	loadingContent() {
 		return `
 			<div class="mini-loader-container">
 				<div class="mini-loader-dot" style="background: black;"></div>
@@ -176,6 +184,7 @@ export class AIAgent extends ViewComponent {
 	}
 
 	hideAgentUI = () => this.$parent.showOrHideAgent();
-	
+
+	setUserPrompt = (content) => document.getElementById('ai-chat-user-input').value = content;
 
 }

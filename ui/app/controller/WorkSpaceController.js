@@ -30,7 +30,7 @@ export class AIAgentExpandViewType {
     /** @type { Array<Array<Object>> } */
     data;
     initialTable = '';
-    database = ''
+    database = null
 }
 
 export class WorkSpaceController extends BaseController {
@@ -672,20 +672,20 @@ export class WorkSpaceController extends BaseController {
     }
 
     /** @type { AIAgent } */
-    startedAgend = null;
+    startedAgent = null;
 
     async startAgent(){  
-        if(!this.startedAgend){
+        if(!this.startedAgent){
             const parentId = this.wSpaceComponent.cmpInternalId;
             const { template, component } = await Components.new('AIAgent', {}, parentId);
-            this.startedAgend = component;      
+            this.startedAgent = component;      
             document.querySelector('.ai-agent-placeholder').insertAdjacentHTML('beforeend', template);
             this.wSpaceComponent.showOrHideAgent();
         }else{
             if(!this.wSpaceComponent.openAgent)
                 this.wSpaceComponent.showOrHideAgent();
 
-            this.startedAgend.startNewAgent();
+            this.startedAgent.startNewAgent();
         }
     }
 

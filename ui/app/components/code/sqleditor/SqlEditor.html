@@ -5,13 +5,34 @@
 		</button>
 		&nbsp;&nbsp;<div class="separator"></div>&nbsp;&nbsp;
 		<form>
-			<select (value)="database" (forEach)="tablesList" placeholder="Select Database">
+			<select alias="editorSelectedTable" (value)="databasename" (forEach)="tablesList" placeholder="Select Database">
 				<option each="item" value="{item.database}">{item.table}</option>
 			</select>
 		</form>
+		&nbsp;&nbsp;
+		<div class="action-icon counter-icon generic-context-drop-menu data-base-fields-submenu" 
+			 style="cursor: pointer; border: none; display: flex; font-size: 13px; font-weight: bold;">
+			:: Fields <span class="menu-added-arrow" style="padding-top: 3px; margin-top: -11px;">⌄</span>
+			<ul class="submenu">
+				<li style="background: #f8f8f8 !important; cursor:auto;">
+					&nbsp;Fields in the table
+				</li>
+				@for(field in this.selectedTableFields)
+					<li>
+						<div class="list-item-header">
+							<span class="field-type">
+								{field.type}
+							</span> 
+							{field.name}
+						</div>
+					</li>
+				@endfor
+			</ul>
+		</div>
+
 	</div>
 	<div class="editor-wrapper">
-		
+
 		<div id="@uniqueId" class="code-base" style="height: 150px;"></div>
 
 	</div>
