@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { FormHelper } from "../../../@still/helper/form.js";
+import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 
 export class SqlDBComponent extends ViewComponent {
@@ -29,16 +30,62 @@ export class SqlDBComponent extends ViewComponent {
 	tableName;
 	selectedDbEngine;
 
+	/** @Prop */ isImport = false;
+	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
+
 	/** @Prop @type { STForm } */
 	anotherForm;
 	databaseC;
 	tableNameC;
 
-	stOnRender(nodeId){
+	// tables hold all tables name when importing/reading
+	// An existing pipeline by calling the API
+	/** @Prop @type { Map } */ tables;
+
+	/**
+	 * @Inject @Path services/
+	 * @type { WorkSpaceController } */
+	wSpaceController;
+
+	/**
+	 * The id will be passed when instantiating SqlDBComponent dinamically
+	 * through the Component.new(type, param) where for para nodeId 
+	 * will be passed
+	 * */
+	stOnRender({ nodeId, isImport, tables }){
 		this.nodeId = nodeId;
+		this.isImport = isImport;
+		this.tables = tables;		
 	}
 
 	stAfterInit(){
+
+		// When importing, it might take some time for things to be ready, the the subcrib to on change
+		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
+		//if(this.isImport !== false){
+		//	this.setupOnChangeListen();
+		//}
+
+		if(this.isImport === true){	
+			// At this point the WorkSpaceController was loaded by WorkSpace component
+			// hance no this.wSpaceController.on('load') subscrtiption is needed
+			this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+
+			const disable = true;
+			const allTables = Object.values(this.tables);
+			// Assign the first table
+			this.tableName = this.tables['tableName'];
+			// Assign remaining tables if more than one in the pipeline
+			allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
+			this.dbInputCounter = allTables.length;
+		}
+
+		this.setupOnChangeListen();
+
+	}
+
+	setupOnChangeListen(){
+
 		this.database.onChange(newValue => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['database'] = newValue;
@@ -48,19 +95,22 @@ export class SqlDBComponent extends ViewComponent {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['dbengine'] = value;
 		});
+
 	}
 
 	addField(){
 		this.dbInputCounter = this.dbInputCounter + 1;
 		const tableId = this.dbInputCounter;
-		const fieldName = 'tableName' + tableId;
-		const placeholder = 'Enter table '+tableId+' name';
+		this.newTableField(tableId);
+	}
 
+	newTableField(tableId, value = '', disabled = false){
+		const fieldName = 'tableName' + tableId, placeholder = 'Enter table '+tableId+' name';
 		FormHelper
-			.newField(this, this.formRef, fieldName)
-			.getInput({ required: true, placeholder, validator: 'alphanumeric' })
+			.newField(this, this.formRef, fieldName, value)
+			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled })
 			//Add will add in the form which reference was specified (2nd param of newField)
-			.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);	
+			.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);
 	}
 
 	getTables(){

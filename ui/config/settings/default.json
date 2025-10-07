@@ -15,6 +15,6 @@
         "domain": "dev-rmnn416pju788hwl.us.auth0.com",
         "clientId": "ZQn76wUMrXrBobMXJY5TONXlxXYVkVVF"
     },
-    "websockerAddr": "wss://dlt-client.onrender.com/pipeline"
-
+    "websockerAddr": "wss://dlt-client.onrender.com/pipeline",
+    "anonymousLogin": false
 }

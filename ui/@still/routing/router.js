@@ -61,11 +61,7 @@ export class Router {
         Router.goto(cmp, { data, url, evt: { containerId } });
     }
 
-    /**
-     * 
-
-     * @param {String} data 
-     */
+    /** @param {String} data  */
     static aliasGoto1(cmp, url = false, containerId = null) {
         if (!url) Router.clearUrlPath();
         Router.goto(cmp, { data: {}, url, evt: { containerId } });
@@ -81,10 +77,8 @@ export class Router {
     }
 
     /**
-     *
      * @param {*} cmp 
-     * @param {{data, path}} param1
-     */
+     * @param {{data, path}} param1 */
     static goto(cmp, params = GotoParams) {
 
         const { data, evt, url } = params;
@@ -271,15 +265,17 @@ export class Router {
             soleRouting = true;
         }
         const cmpId = cmp.getUUID(), cmpName = cmp.constructor.name;
-        if (isReRender || isLoneCmp) {
+        //TODO: Refactor for component fast reloading mechanisms, for now 1 == 0 is to deactivating it
+        if (1 == 0 && (isReRender || isLoneCmp)) {
             Components
                 .unloadLoadedComponent(soleRouting && appPlaceholder)
                 .then(async () => {
                     Router.handleUnauthorizeIfPresent();
                     if (Router.noPermAccessProcess(isPrivate, appPlaceholder, cmp)) return;
                     if (cmp.subImported) {
+                        //TODO: make adjustements to this flow
                         const pageContent = `
-                        <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName}" style="display:contents;">
+                        <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName} ${cmp.cmpInternalId}" style="display:contents;">
                             ${cmp.getTemplate()}
                         </output>`;
                         appPlaceholder.insertAdjacentHTML('afterbegin', pageContent);
@@ -305,7 +301,7 @@ export class Router {
                     }
 
                     const pageContent = `
-                        <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName}" style="display:contents;">
+                        <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName} ${cmp.cmpInternalId}" style="display:contents;">
                             ${cmp.getTemplate()}
                         </output>`;
 
@@ -580,5 +576,7 @@ export class Router {
         window.location.href = location.origin + '/#/' + Router.preView.getName();
         window.location.reload();
     }
+
+    static getCurrentViewName = () => $still.context.currentView.getName()
 
 }

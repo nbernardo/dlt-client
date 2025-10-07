@@ -18,7 +18,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
             this.localEnv();
         }
 
-        this.addPrefetch({
+        /* this.addPrefetch({
             component: '@codemirror/CodeMiror',
             assets: [
                 "v5.65.19/lib/codemirror.js",
@@ -27,7 +27,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
                 "v5.65.19/lib/codemirror.css",
                 "v5.65.19/theme/monokai.css"
             ]
-        });
+        }); */
 
         this.addPrefetch({
             component: '@treeview/StillTreeView',

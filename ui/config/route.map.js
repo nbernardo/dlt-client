@@ -65,6 +65,38 @@ export const stillRoutesMap = {
             NoteBook: {
                 path: "app/components/code",
                 url: "/note-book"
+            },
+            Transformation: {
+                path: "app/components/node-types",
+                url: "/transformation"
+            },
+            TransformRow: {
+                path: "app/components/node-types/transform",
+                url: "/transform-row"
+            },
+            LogDisplay: {
+                path: "app/components/log",
+                url: "/log-display"
+            },
+            Config: {
+                path: "app/components/config",
+                url: "/config"
+            },
+            Header: {
+                path: "app/components/parts",
+                url: "/header"
+            },
+            AIAgent: {
+                path: "app/components/agent",
+                url: "/aia-gent"
+            },
+            Grid: {
+                path: "app/components/grid",
+                url: "/grid"
+            },
+            SqlEditor: {
+                path: "app/components/code/sqleditor",
+                url: "/sql-editor"
             }
         },
         lazyInitial: {}

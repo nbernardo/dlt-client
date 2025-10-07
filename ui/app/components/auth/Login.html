@@ -17,12 +17,24 @@
 		<div style="text-align: center;">
 			<img src="app/assets/imgs/dlt-client-logo-white.png" width="50%" alt="">
 		</div>
-		<h2>Sign In</h2>
-		<a href="#" (click)="login('facebook')" class="oauth-btn facebook">Continue with Facebook</a>
-		<a href="#" (click)="login('twitter-oauth2')" class="oauth-btn twitter">Continue with Twitter</a>
-		<a href="#" (click)="login('google-oauth2')" class="oauth-btn google">Continue with Google</a>
-		<a href="#" (click)="login('github')" class="oauth-btn github">Continue with GitHub</a>
-		<a href="#" (click)="login('windowslive')" class="oauth-btn windowslive">Continue with Microsoft</a>
+		<h2>Login</h2>
+		<!-- In case anonymous login is false, hence negating the flag. Show social login -->
+		@if(this.isAnonumousLogin == false)
+		<span>
+			<a href="#" (click)="login('facebook')" class="oauth-btn facebook">Continue with Facebook</a>
+			<a href="#" (click)="login('twitter-oauth2')" class="oauth-btn twitter">Continue with Twitter</a>
+			<a href="#" (click)="login('google-oauth2')" class="oauth-btn google">Continue with Google</a>
+			<a href="#" (click)="login('github')" class="oauth-btn github">Continue with GitHub</a>
+			<a href="#" (click)="login('windowslive')" class="oauth-btn windowslive">Continue with Microsoft</a>
+		</span>
+		@endif
+
+		<!-- In case anonymous login is true, Show only a login button -->
+		@if(this.isAnonumousLogin)
+		<span>
+			<a href="#" (click)="login('anonymous')" class="oauth-btn anonymous">Anonymous Login</a>
+		</span>
+		@endif
 	</div>
 </section>
 
@@ -88,7 +100,7 @@ h2 {
 	background-color: #333;
 }
 
-.windowslive {
+.windowslive, .anonymous {
 	background-color: #0078d4;
 }
 

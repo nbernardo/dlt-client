@@ -4,6 +4,7 @@ from node_mapper.NodeFactory import NodeFactory
 from .RequestContext import RequestContext
 from node_mapper.TemplateNodeType import TemplateNodeType
 import os
+import pandas as pd
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -12,45 +13,75 @@ class BasePipeline:
     folder = None
 
 
-@pipeline.route('/pipeline/create', methods=['POST'])
+@pipeline.route('/pipeline/create', methods=['POST','PUT'])
 def create():
     """
     This is pipeline creation request handler
     """
-    from .file_upload import BaseUpload
     
     payload = request.get_json()
-    pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
+    print('THIS IS THE CONTENT')
+    print(payload)
     
-    duckdb_path = BasePipeline.folder+'/duckdb/'+payload['user']
-    os.makedirs(duckdb_path, exist_ok=True)
-    
-    ppline_path = BasePipeline.folder+'/pipeline/'+payload['user']
-    os.makedirs(ppline_path, exist_ok=True)
-    
+    pipeline_name, pipeline_lbl = set_pipeline_name(payload)
     context = RequestContext(pipeline_name, payload['socketSid'])
-    context.user = payload['user']
-    
-    grid = payload['drawflow'] if 'drawflow' in payload else ''
-    start_id = payload['startNode'] if 'startNode' in payload else ''
-    node_params = grid['Home']['data']
+    context.action_type = 'UPDATE' if request.method == 'PUT' else None
 
-    start_node = node_params.get(f'{start_id}')
+    duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
+    start_node_id, node_params = pepeline_init_param(payload)
+    node_params = parse_transformation_task(node_params, context)
+
+    start_node = node_params.get(f'{start_node_id}')
     connections = start_node.get('outputs').get('output_1').values()
     first_connection_id = list(connections)[0][0]['node']
     fst_connection = node_params.get(first_connection_id)
-    template = NodeFactory.new_node(fst_connection.get('name',None)).template
-    data_place, node_list = {}, []
-    all_nodes: list[TemplateNodeType] = None
 
-    all_nodes = parse_node(connections, node_params, data_place, context, node_list)
-    
-    template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
-    template = template.replace('%Dbfile_name%', pipeline_name)
+    context.ppline_path = ppline_path
+    context.diagrm_path = diagrm_path
+    context.pipeline_lbl = pipeline_lbl
+    context.connections = connections
+    context.node_params = node_params
+
+    if(context.action_type == 'UPDATE'):
+        result =  create_new_version_ppline(fst_connection, 
+                        pipeline_name, 
+                        payload, 
+                        duckdb_path, 
+                        context)
+        
+        if not context.success_emitted:
+            context.emit_ppsuccess()
+        return result
+    else:
+        return create_new_ppline(fst_connection, 
+                        pipeline_name, 
+                        payload, 
+                        duckdb_path, 
+                        context)
+
+
+
+def create_new_ppline(fst_connection, 
+                      pipeline_name, 
+                      payload, 
+                      duckdb_path, 
+                      context: RequestContext):
+
+    template = NodeFactory.new_node(fst_connection.get('name',None), None, context).template
+    data_place, node_list = {}, []
+
+    connections = context.connections 
+    node_params = context.node_params
+
+    all_nodes: list[TemplateNodeType] = parse_node(connections, node_params, data_place, context, node_list)
+    template = template_final_parsing(template, pipeline_name, payload, duckdb_path, context)
 
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
         template = template.replace(data[0], str(value))
+
+    print('TEMPLATE FINAL IS')
+    print(template)
 
     if len(context.exceptions) > 0:
         message = list(context.exceptions[0].values())[0]['message']
@@ -58,24 +89,157 @@ def create():
         print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
         return 'Error on creating the pipeline'
 
-    pipeline_instance = DltPipeline()
+    pipeline_instance, success = DltPipeline(), True
+
+    ppline_path = context.ppline_path
+    diagrm_path = context.diagrm_path
+    pipeline_lbl = context.pipeline_lbl
 
     try:
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
-        success = True
+
+        if(result['status'] == True):
+            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl)
+        
         if result['status'] is False: 
             success, message = False, result['message'] 
 
     except Exception as err:
-        result = { 'message': err.stderr }
+        result = { 'message': err }
         success, message = False, result['message']
 
     finally:
-
         if success is False:
             revert_and_notify_failure(pipeline_instance, all_nodes, message)
 
         return result['message']
+
+
+def create_new_version_ppline(fst_connection, 
+                      pipeline_name, 
+                      payload, 
+                      duckdb_path, 
+                      context: RequestContext):
+
+    import re
+
+    template = NodeFactory.new_node(fst_connection.get('name',None), None, context).template
+
+    connections = context.connections 
+    node_params = context.node_params
+    ppline_path = context.ppline_path
+    diagrm_path = context.diagrm_path
+    pipeline_lbl = context.pipeline_lbl
+
+    data_place, node_list = {}, []
+    all_nodes: list[TemplateNodeType] = parse_node(connections, node_params, data_place, context, node_list)
+
+    file_path = f'{ppline_path}/{pipeline_name}.py'
+    pipeline_instance = DltPipeline()
+    template = pipeline_instance.get_template_from_existin_ppline(file_path)
+
+    pattern = r"# <transformation>.*?# </transformation>"
+    replacement = "# <transformation>\n            %transformation%\n            # </transformation>"
+    template = re.sub(pattern, replacement, template, flags=re.DOTALL)
+
+    parse_transformation_task(node_params, context)
+    transformation = context.transformation
+
+    if(transformation is not None):
+        template = template.replace('%transformation%',transformation)
+
+    try:
+        success = True
+        result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
+        if(result['status'] == True):
+            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl, True, False)
+        
+        if result['status'] is False: 
+            success, message = False, result['message'] 
+
+    except Exception as err:
+        result = { 'message': err }
+        success, message = False, result['message']
+
+    finally:
+        if success is False:
+            revert_and_notify_failure(pipeline_instance, all_nodes, message)
+
+        return result['message']
+
+
+
+
+def pepeline_init_param(payload):
+    grid = payload['drawflow'] if 'drawflow' in payload else ''
+    start_id = payload['startNode'] if 'startNode' in payload else ''
+    node_params = grid['Home']['data']
+    
+    return start_id, node_params
+
+
+def parse_transformation_task(node_params, context: RequestContext):
+    
+    """
+    This code will be added to the pipeline as a transformation step
+    and the pipeline will run in a separate process/subprocess, then
+    the print statement is for it the send progress to main process
+    """
+    
+    code = ''
+    transformation_count = 0
+    for id in node_params:
+        if node_params[id]['name'] == 'Transformation':
+            transformation_count = transformation_count + 1
+            node_data = node_params[id]['data']
+            code_lines = node_data['code'].split('\n')
+            # Generate the transformation code line 
+            # by line and assign to code variable
+            line_counter = 0
+            for line in code_lines:
+                line_counter = line_counter + 1
+                # Adds 12 spaces (3 tabs) in each line
+                if line_counter == 1:
+                    code += ' ' * 12  +line.replace('\n','').expandtabs(8)
+                else:
+                    code += '\n'+ ' ' * 12  +line.expandtabs(8)
+            
+            code += '\n'+ ' ' * 12 + f"# Bellow line is to notify the UI/Frontend that transformation step has completed"
+            code += '\n'+ ' ' * 12 + f"print('{node_data['componentId']}', flush=True)"
+            code += '\n'+ ' ' * 12 + f"print('Transformation #{transformation_count} process completed', flush=True)"
+    
+    context.transformation = None if code == '' else code
+    return node_params
+
+
+def handle_user_tenancy_folders(payload, context: RequestContext):
+    duckdb_path = BasePipeline.folder+'/duckdb/'+payload['user']
+    os.makedirs(duckdb_path, exist_ok=True)
+    
+    ppline_path = BasePipeline.folder+'/pipeline/'+payload['user']
+    os.makedirs(ppline_path, exist_ok=True)
+    
+    diagrm_path = BasePipeline.folder+'/code/'+payload['user']
+    os.makedirs(diagrm_path, exist_ok=True)
+    
+    context.user = payload['user']
+    return duckdb_path, ppline_path, diagrm_path
+    
+
+def set_pipeline_name(payload):
+    pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
+    pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
+    return pipeline_name, pipeline_lbl
+    
+
+def template_final_parsing(template, pipeline_name, payload, duckdb_path, context: RequestContext = None):
+    template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
+    template = template.replace('%Dbfile_name%', pipeline_name)
+    template = template.replace('%User_folder%', payload['user'])
+    if(context.transformation):
+        template = template.replace('%transformation%', context.transformation)
+    
+    return template
 
 
 def parse_node(connections, node_params, data_place, context: RequestContext, node_list: list):
@@ -93,6 +257,7 @@ def parse_node(connections, node_params, data_place, context: RequestContext, no
                 init_params = node['data']
                 inner_cnx = node.get('outputs', {}).get(
                     'output_1', {}).values()
+                    
                 node = NodeFactory.new_node(node_type, init_params, context)
                 node_list.append(node)
 
@@ -176,20 +341,44 @@ def read_scriptfiles(user, filename):
 def update_ppline(user, filename):
 
     payload = request.get_data()
-    #pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
-    
-    duckdb_path = BasePipeline.folder+'/duckdb/'+user
+    pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
+    pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
     ppline_path = BasePipeline.folder+'/pipeline/'+user
+
+    _, node_params = pepeline_init_param(payload)
+    context = RequestContext(pipeline_name, payload['socketSid'])
     
-    DltPipeline().update_ppline(ppline_path, filename, payload, None)
+    pipeline_instance = DltPipeline()
+    pipeline_instance.update_ppline(ppline_path, filename, payload, None)
+    
+    node_params = parse_transformation_task(node_params, context)
+
+    diagrm_path = BasePipeline.folder+'/code/'+user
+    pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl)
     
     return ''
-   #try:
-   #     file_path = BasePipeline.folder+'/pipeline/'+user+'/'+filename
-   #     code = ''
-   #     with open(file_path, 'r') as file:
-   #         code = file.read()
 
-   #     return code
-   #except FileNotFoundError as err:
-   #    return jsonify({'error': 'Pipeline not found'}), 404
+
+   
+@pipeline.route('/ppline/diagram/<user>/<filename>', methods=['GET'])
+def read_diagram_content(user, filename):
+
+   try:
+        file_path = BasePipeline.folder+'/code/'+user+'/'+filename+'.json'
+        code = ''
+        with open(file_path, 'r') as file:
+            code = file.read()
+
+        return code
+   except FileNotFoundError as err:
+       return jsonify({'error': 'Pipeline not found'}), 404
+   
+   
+@pipeline.route('/ppline/data/csv/<user>/<filename>')
+def read_csv_file_fields(user, filename):
+    from .file_upload import BaseUpload
+    file_path = BaseUpload.upload_folder+'/'+user+'/'+filename
+    
+    df = pd.read_csv(file_path, nrows=1)
+    return str(df.columns)
+    

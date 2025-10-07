@@ -49,6 +49,11 @@ class AssetType {
 export class Assets {
 
     static imported = new Set(); 
+    /**
+     * 
+     * @param {AssetType} param 
+     * @returns 
+     */
     static async import({ path = '', type = null }){
         
         if(Assets.imported.has(path)) return;
@@ -62,6 +67,8 @@ export class Assets {
             tag.src = path;
         }
         
+        Assets.imported.add(path);
+
         return new Promise((resolve) => {
             tag.onload = () => resolve('');
             document.body.appendChild(tag);

@@ -1,0 +1,21 @@
+<div class="ai-agent-wrapper">
+	<div class="app-container ai-app-container">
+		<div class="ai-agent-height-resize" style="margin-top: -16px;"></div>
+		<span style="display: flex;">
+			<div class="agent-minimize-icon" onclick="component.hideAgentUI()">_</div>
+			<h1 class="main-heading">
+				AI Agent
+				<span class="add-info">Talk to your loded data</span>
+			</h1>
+			<p class="description-text">
+				Type your query regarding your data and pipelines to get the results according <br>(e.g. <i>Show me all data from company.employee table which gender field is Male</i>)
+			</p>
+		</span>
+
+		<textarea
+			onkeypress="component.sendChatRequest(event)" 
+			id="ai-chat-user-input" class="user-input" placeholder="Type your query here..."></textarea>
+
+		<div id="@outputContainerId" class="output-container"></div>
+	</div>
+</div>

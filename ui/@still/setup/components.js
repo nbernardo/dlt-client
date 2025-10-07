@@ -186,7 +186,6 @@ export class Components {
                 StillError.handleStComponentNotFound(error, parentCmp, clsName);
             return false;
         }
-
     }
 
     static parseTemlpateCssToScope(template) {
@@ -307,7 +306,7 @@ export class Components {
 
             setTimeout(async () => await cmp.onRender());
             this.template = `
-            <output class="${$stillconst.ANY_COMPONT_LOADED}" style="display:contents;">
+            <output class="${$stillconst.ANY_COMPONT_LOADED} ${cmp.cmpInternalId}" style="display:contents;">
                 ${cmp.getBoundTemplate()}
             </output>
             `;
@@ -344,7 +343,7 @@ export class Components {
 
         return `<st-wrap 
                     id="${TOP_LEVEL_CMP}"
-                    class="${loadCmpClass} ${TOP_LEVEL_CMP} ${ST_HOME_CMP1}">
+                    class="${loadCmpClass} ${TOP_LEVEL_CMP} ${ST_HOME_CMP1} ${cmp.cmpInternalId}">
                     ${template}
                 </st-wrap>`;
     }
@@ -439,13 +438,13 @@ export class Components {
             ) {
 
                 if (inspectField?.sTForm) {
-                    cmp[field].validate = function () {
+                    cmp[field].validate = async function () {
                         const formRef = field;
-                        return BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field]);
+                        return await BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field]);
                     }
-                    cmp[field].reset = () => {
+                    cmp[field].reset = async () => {
                         const formRef = field;
-                        BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field], true);
+                        await BehaviorComponent.validateForm(`${cmp.cmpInternalId}-${formRef}`, cmp, cmp[field], true);
                         document.getElementById(`fId_${cmp.cmpInternalId}`).reset();
                     }
                     return;
@@ -454,7 +453,7 @@ export class Components {
                 let listenerFlag = inspectField?.listenerFlag, inVal = inspectField?.inVal;
                 cmp[field] = cmp[field]?.value || cmp[field];
                 if (typeof inspectField == 'boolean') {
-                    listenerFlag = `_stFlag${field}_${cmp.constructor.name}_change`;
+                    listenerFlag = `_stFlag${field}_${cmp.cmpInternalId.replace(/\@|\//g,'')}_change`;
                     cmp[field] = { inVal: inspectField }, inVal = inspectField;
                 }
 
@@ -524,7 +523,7 @@ export class Components {
                     o.defineSetter(cmp, field);
                     setTimeout(async () => await cmp.stOnUpdate());
 
-                    if (cmp[`$still${field}Subscribers`].length > 0) {
+                    if (cmp[`$still${field}Subscribers`].length > 0) { 
                         setTimeout(() => cmp[`$still${field}Subscribers`].forEach(
                             subscriber => subscriber(cmp['$still_' + field])
                         ));
@@ -555,7 +554,6 @@ export class Components {
                 }, 200);
             }
         }
-
         return this;
     }
 
@@ -655,9 +653,8 @@ export class Components {
      * @param { HTMLElement } elm
      * @param { ViewComponent } cmp
      */
-    propageteToInput(elm, field, cmp) {
-        elm.value = cmp['$still_' + field];
-    }
+    propageteToInput = (elm, field, cmp) => elm.value = cmp['$still_' + field];
+    
 
     /**
      * @param { HTMLElement } elm
@@ -874,7 +871,6 @@ export class Components {
                 });
             }
         }
-
         return { result: childCmp?.stElement ? childResult : result, fullRerender };
     }
 
@@ -1037,7 +1033,6 @@ export class Components {
         let cmpName = cmp.constructor.name, template;
 
         if ((!cmp.isPublic && isUnAuthn) && !Components.obj().isInWhiteList(cmp)) {
-
             if (document.querySelector(`.${$stillconst.ST_FIXE_CLS}`)) {
 
                 return document.getElementById($stillconst.UI_PLACEHOLDER)
@@ -1362,31 +1357,34 @@ export class Components {
     }
 
     static handleMarkedToRemoveParts() {
-
         setTimeout(() => {
             const markedToRemoveElm = document
                 .getElementsByClassName($stillconst.PART_REMOVE_CSS);
             for (const elm of markedToRemoveElm) elm.innerHTML = '';
         }, 500);
-
     }
 
     static removeVersionId;
-    static setRemovingPartsVersionId(versionId) {
+    static setRemovingPartsVersionId = (versionId) =>
         Components.removeVersionId = versionId;
-    }
 
     static removeOldParts() {
 
         (async () => {
 
-            const registror = $still.context.componentRegistror.componentList;
+            const [registror, versionId] = [$still.context.componentRegistror.componentList, Components.removeVersionId];
             await registror[Router.preView?.cmpInternalId]?.instance?.stOnUnload();
             await registror[Router.preView?.constructor?.name]?.instance?.stOnUnload();
 
             delete registror[Router.preView?.cmpInternalId];
             delete registror[Router.preView?.constructor?.name];
-            const versionId = Components.removeVersionId;
+            //Clear the HTML Content of the previous view            
+            const prevCmp = document.querySelector('.'+Router.preView?.cmpInternalId);
+            if(prevCmp){
+                if(prevCmp?.id === 'still-toplevel-and-root-app')
+                    document.querySelector('.'+Router.preView?.cmpInternalId+' div').innerHTML = '';
+                else prevCmp.firstChild.innerHTML = '';
+            }
 
             setTimeout(() => {
                 if (versionId) {
@@ -1396,7 +1394,7 @@ export class Components {
 
                     const list = Object
                         .entries(registror)
-                        .filter(r => r[1].instance.parentVersionId == versionId)
+                        .filter(r => r[1]?.instance?.parentVersionId == versionId)
                         .map(r => r[0]);
 
                     list.forEach(
@@ -1410,7 +1408,7 @@ export class Components {
                 Object
                     .entries($still.context.componentRegistror.componentList)
                     .forEach(async r => {
-                        if (r[1].instance.navigationId < Router.navCounter) {
+                        if (r[1]?.instance?.navigationId < Router.navCounter) {
                             await registror[r[0]]?.instance?.stOnUnload();
                             delete $still.context.componentRegistror.componentList[r[0]]
                         }
@@ -1448,10 +1446,8 @@ export class Components {
     }
 
     /**  @returns { boolean } */
-    static checkStInit(cpmName) {
-        return cpmName in Components.afterIniSubscriptions;
-    }
-
+    static checkStInit = (cpmName) => cpmName in Components.afterIniSubscriptions
+    
     static subscribeAction(actonName, action) {
 
         if (actonName in Components.subscriptions) {
@@ -1505,9 +1501,8 @@ export class Components {
         let inject, proxy, prop, propParsing, type, servicePath, svcPath, controller, propValue = null;
         if (propertyName != '') {
 
-            inject = mt.includes('@Inject'), servicePath = mt.includes('@Path');
-            proxy = mt.includes('@Proxy'), prop = mt.includes('@Prop');
-            controller = mt.includes('@Controller');
+            inject = mt.includes('@Inject'), servicePath = mt.includes('@Path'), prop = mt.includes('@Prop');
+            proxy = mt.includes('@Proxy'), controller = mt.includes('@Controller');
             const value = Components.propValue(mt.split(/@Path|@Prop/)[1]?.split(' ')[1]?.replace('\n', ''));
             svcPath = !servicePath ? '' : value;
 
@@ -1574,15 +1569,11 @@ export class Components {
     ];
     /** @param { { name, prototype } } cmp */
     static register(cmp) {
-        /** Will register base and supper classe of the framewor
-         * as well as any component class of the Application */
+        /** Will register base and supper classe of the framewor as well as any component class of the Application */
         if (
-            cmp.prototype instanceof Components
-            || cmp.prototype instanceof BaseComponent
-            || cmp.prototype instanceof ViewComponent
-            || cmp.__proto__ instanceof BaseComponent
-            || cmp.__proto__ instanceof ViewComponent
-            || Components.knownClasses.includes(cmp?.name)
+            cmp.prototype instanceof Components || cmp.prototype instanceof BaseComponent 
+            || cmp.prototype instanceof ViewComponent || cmp.__proto__ instanceof BaseComponent 
+            || cmp.__proto__ instanceof ViewComponent || Components.knownClasses.includes(cmp?.name)
         ) window[cmp.name || cmp.stName] = cmp;
 
         else if (typeof cmp == 'function') window[cmp.name] = cmp;
@@ -1699,10 +1690,13 @@ export class Components {
     /** 
      * @param { ViewComponent | String } cmp
      * @param { Object | any | null } data */
-    static async new(cmp, data = null) {
+    static async new(cmp, data = {} | null, parentId = null) {
         let cmpName = cmp;
         if (cmp?.__proto__?.name == 'ViewComponent') cmpName = cmp.name;
         const { newInstance: instance } = await Components.produceComponent({ cmp: cmpName });
+        
+        if(parentId !== null) instance.$parent = Components.ref(parentId);
+        
         (async () => await instance.stOnRender(data))();
         instance.cmpInternalId = `dynamic-${instance.getUUID()}${instance.getName()}`;
         const template = instance.getBoundTemplate();
@@ -1711,7 +1705,11 @@ export class Components {
             instance.setAndGetsParsed = true;
             (new Components).parseGetsAndSets(instance)
         }, 10);
+         
         ComponentRegistror.add(instance.cmpInternalId, instance);
+        const cmpParts = Components.componentPartsMap[instance.cmpInternalId];
+        if(cmpParts) Components.handleInPartsImpl(instance, instance.cmpInternalId, cmpParts);
+        
         setTimeout(() => Components.runAfterInit(instance), 500);
         return { template, component: instance };
     }
@@ -1755,7 +1753,6 @@ export class Components {
                 document.body.style.cursor = 'ew-resize';
                 separator.classList.add('resizing'); // Add class to style handle during resize
             });
-
 
             document.addEventListener('mousemove', (e) => {
                 if (!isResizing) return;
@@ -1855,14 +1852,22 @@ export class Components {
             if (!cmp['stillAdjastableCmp']) cmp['stillAdjastableCmp'] = [];
             cmp['stillAdjastableCmp'].push(adjtbleId);
             return tmpl.replace('{{$stContPlaceholder}}', mt2).replace('{{$stId}}', adjtbleId);
-        }
-        );
+        });
     }
 
     parseLocalLoader(template) {
-        return template.replace(/<st-loader[\s\(\)a-z0-9\!\.\=\"]{0,}[\s]{0,}[\/]{0,}>/i, (mt) => {
+        let size = '', speed = '', topStyle = '', cleanMatch = '',
+            clrStyle = 'style="border-top-color: #444; border-left-color: #444;"';
+        const keyFrame = `{0% {transform:rotate(0deg);} 100% {transform:rotate(360deg);}}`;
+
+        return template.replace(/<st-loader[\n\t\s\(\)a-z0-9\!\.\=\"]{0,}[\t\n\s]{0,}[\/]{0,}>/i, (mt) => {
+
             let sheet = document.styleSheets[0], complement = mt.replace('<st-loader','').replace('>',''), lbl = '';
-            
+            let color = mt.match(/color="([\#0-9A-Z]{0,}?)"/i), topPad = mt.match(/topPadding="([\#0-9A-Z]{0,}?)"/i);
+            clrStyle = color !== null ? clrStyle.replaceAll('#444',color[1]) : '';
+            topStyle = topPad !== null ? `padding-top:${topPad[1]}px;` : '';
+
+            cleanMatch = mt.replace(/\t|\s/g,' ');
             if(!sheet['has-still-cmp-loader']){
                 sheet['has-still-cmp-loader'] = true;
                 sheet.insertRule(`
@@ -1872,25 +1877,24 @@ export class Components {
                         height: 120px; animation: still-cmp-loaderspin 2s linear infinite;
                     }`,sheet.cssRules.length);
 
-                sheet.insertRule(`
-                    @keyframes still-cmp-loaderspin {0% {transform:rotate(0deg);} 100% {transform:rotate(360deg);}
-                    }`,sheet.cssRules.length);
-
+                sheet.insertRule(`@keyframes still-cmp-loaderspin ${keyFrame}`,sheet.cssRules.length);
                 sheet.insertRule(`st-loader-cntr{ display: flex;  }`, sheet.cssRules.length)
 
-                if(mt.indexOf(' center ') > 0)
-                    sheet.insertRule(`st-loader-cntr{ 
-                        position: absolute;  left: 50%; top: 50%; transform: translate(-50%, -50%); }`, sheet.cssRules.length)
+                if(cleanMatch.indexOf(' center ') > 0)
+                    sheet.insertRule(`st-loader-cntr{ position:absolute;left:50%;top:50%;transform:translate(-50%, -50%);}`, sheet.cssRules.length)
             }
             const lblStartPos = complement.indexOf('(label)="');
+            if(cleanMatch.indexOf(' small ') > 0) size = 'still-cmp-loaderspin-small';
+            if(cleanMatch.indexOf(' tiny ') > 0) size = 'still-cmp-loaderspin-tiny';
+            if(cleanMatch.indexOf(' slow ') > 0) speed = 'still-cmp-loaderspin-slow';
             if(lblStartPos > 0){
                 lbl = complement.slice(lblStartPos+9).slice(0,complement.slice(lblStartPos+9).indexOf('"'));            
                 complement = complement.replace(`(label)="${lbl}"`,'')
             }
 
             return `
-            <st-loader-cntr style="flex-direction:column;align-items:center;" ${complement}>
-                <div class="still-cmp-loader"></div>${lbl}
+            <st-loader-cntr style="flex-direction:column;align-items:center;text-align: center; ${topStyle}" ${complement}>
+                <div ${clrStyle} class="still-cmp-loader ${size} ${speed}"></div><span class="still-cmp-loader-lbl">${lbl}</span>
             </st-loader-cntr>
             `;
         });

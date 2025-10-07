@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { ListState } from "../../../@still/component/type/ComponentType.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
+import { Workspace } from "../workspace/Workspace.js";
 
 export class FileList extends ViewComponent {
 
@@ -9,16 +10,17 @@ export class FileList extends ViewComponent {
 	/** @type { ListState<Array<{}>> } */
 	filesList = [];
 
-	/** @Prop */
-	fileMenu;
+	/** @Prop */ fileMenu;
 
-	/** @Prop */
-	fileExt = 'png';
+	/** @Prop */ fileExt = 'png';
 
-	/** @Prop */
-	selectedFile;
+	/** @Prop */ selectedFile;
 
 	noFilesMessage = 'No file found';
+
+	/** @Prop */ isOpenInEditor = true;
+
+	/** @type { Workspace } */ $parent;
 
 	// The bellow uniqId is bound to the template as well
 	// so to allow DOM (getElementById) to work properly
@@ -44,7 +46,7 @@ export class FileList extends ViewComponent {
 	setUpFileMenuEvt(){
 		this.fileMenu = document.getElementById(this.uniqId);
 
-		const obj = this; //Becuase inside callbakc this is not available
+		const obj = this; //Becuase inside callback this is not available
         document.addEventListener('click', function(event) {
 			
             const [isClickInsideMenu, isClickTrigger] = [obj.fileMenu.contains(event.target), event.target.closest('img')];
@@ -59,4 +61,10 @@ export class FileList extends ViewComponent {
 
 	/** @template */
 	openInEditor(){}
+
+	downloadfile(){
+		const type = this.isOpenInEditor ? 'pipeline' : 'data';
+		this.$parent.service.downloadfile(this.selectedFile, type);
+		this.closeDropdown();
+	}
 }

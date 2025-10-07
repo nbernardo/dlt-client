@@ -1,5 +1,5 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
-import { ListState } from "../../../../@still/component/type/ComponentType.js";
+import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { StillTreeView } from "../../../../@still/vendors/treeview/StillTreeView.js";
 import { AppTemplate } from "../../../../config/app-template.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
@@ -13,8 +13,7 @@ export class LeftTabs extends ViewComponent {
 	isPublic = true;
 
 	/**
-	 * @Inject
-	 * @Path services/
+	 * @Inject @Path services/
 	 * @type { WorkspaceService } */
 	service;
 
@@ -34,17 +33,27 @@ export class LeftTabs extends ViewComponent {
 
 	selectedTab = null;
 
-	/** @type { Workspace } */
-	$parent;
+	/** @type { Workspace } */ $parent;
 
-	/** @Prop */
-	fileMenu;
+	/** @Prop */ fileMenu;
 
-	/** @Prop */
-	activeFileDropdown;
+	/** @Prop */ promptSamplesMenu;
+
+	/** @Prop */ activeFileDropdown;
+	
+	/** @Prop */ fetchingPipelineData = false;
+
+	/** @Prop */ uniqPromptMenuId = '_'+UUIDUtil.newId();
+
+	/** @Prop */ selectedPrompt = null;
+
+	/** @Prop */ underContructionImg = '/app/assets/imgs/bricks.gif';
+
+	dataFetchilgLabel = 'Fetching Data';
 
 	stAfterInit() {
 
+		this.setUpPromptMenuEvt();
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
 			this.service.table.onChange(newValue => {
@@ -54,12 +63,32 @@ export class LeftTabs extends ViewComponent {
 
 	}
 
+	/** @param { HTMLElement | null } target */
 	async showHideDatabase(){
+		
+		if(this.fetchingPipelineData == false){
+			this.fetchingPipelineData = true;
+		}else
+			return; //This will prevent the button to be clicked multiple times
+
 		this.selectTab('content-outputs');
 		this.dbTreeviewProxy.clearTreeData();
-		let response = await this.service.getDuckDbs(this.$parent.userEmail);
-		response = await response.json();
+		let response = await this.service.getDuckDbs(this.$parent.userEmail, this.$parent.socketData.sid);
+		
+		if(response?.no_data){
+			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
+			return;
+		}
 
+		if(response?.error === true){
+			this.dbTreeviewProxy.showLoader = false;
+			for(const err of response.trace) {
+				this.$parent.logProxy.appendLogEntry('error', err, Date.now());
+			}
+			this.$parent.logProxy.lastLogTime = null;
+			return AppTemplate.toast.error(response.message);
+		}
+		
 		for(const [_file, tables] of Object.entries(response)){
 			const data = Object.values(tables);
 			const dbfile = _file.replace('.duckdb','');
@@ -74,6 +103,7 @@ export class LeftTabs extends ViewComponent {
 			});
 
 			for(const idx in data){
+				
 				const tableData = data[idx];
 				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
 				const table = this.dbTreeviewProxy.addNode({ 
@@ -85,6 +115,8 @@ export class LeftTabs extends ViewComponent {
 		}
 		
 		this.dbTreeviewProxy.renderTree();
+		this.fetchingPipelineData = false;
+		this.dataFetchilgLabel = '';
 	}
 
 	pipelineTreeViewTemplate(dbfile){
@@ -103,7 +135,11 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	copyToClipboard(content){
-		this.controller.copyToClipboard(content);
+		this.$parent.controller.copyToClipboard(content);
+	}
+
+	queryTable(dbname, dbfile){
+		this.$parent.expandDataTableView(null, dbname, dbfile)
 	}
 
 	async refreshTree(){
@@ -120,7 +156,7 @@ export class LeftTabs extends ViewComponent {
 							${copyClipboardIcin}
 						</span>
 						<span 
-							onclick="self.genInitialDBQuery('${tableToQuery}','${dbfile}')"
+							onclick="self.queryTable('${dbfile}.duckdb.${tableToQuery}','${dbfile}')"
 							tooltip-x="-130" tooltip="Query ${tableData.table} table"
 						>
 							${tableToTerminaIcon}
@@ -132,9 +168,6 @@ export class LeftTabs extends ViewComponent {
 	genInitialDBQuery(table, dbfile){
 		this.$parent.genInitialDBQuery(table, dbfile)
 	}
-
-	/** @template */
-	viewPipelineDiagram(event, dbfile){}
 
 	async selectTab(tab){
 		if(tab === 'content-data-files'){
@@ -162,12 +195,65 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.popupWindowProxy.showWindowPopup = true;
 	}
 
-	// console.log(`FROM LIST TAB OPEN: `,this.scriptListProxy.selectedFile);
 	/** @template */
 	async openScriptOnEditor(){}
 
-	// console.log(`DATA FILE OPENING: `,this.fileListProxy.selectedFile);
 	/** @template */
 	async openDataFileOnEditor(){}
 
+	/** @template */
+	viewPipelineDiagram(event, dbfile){}
+
+	async startAIAssistant(retry = false){
+		this.selectTab('content-ai'); 
+		await this.$parent.controller.startAgent(retry);
+	}
+
+	setNewPrompt(content){
+		this.$parent.controller.startedAgent.setUserPrompt(content)
+	}
+
+	togglePromptPopup(element,isContent = false) {		
+		const rect = element.getBoundingClientRect();
+		
+		if(isContent) this.pasteToAgent(element.innerHTML);
+		else this.selectedPrompt = element.parentElement.parentElement.querySelector('.tiny-content').innerHTML;
+		
+		if (this.activeFileDropdown === element) {
+			this.promptSamplesMenu.classList.remove('is-active');
+			this.activeFileDropdown = null;
+		} else {
+			this.promptSamplesMenu.classList.remove('is-active');
+			this.promptSamplesMenu.style.left = `${rect.left - 8}px`;
+			this.promptSamplesMenu.style.top = `${rect.top}px`;
+			this.promptSamplesMenu.classList.add('is-active');
+			this.activeFileDropdown = element;
+		}
+	}
+
+	setUpPromptMenuEvt(){
+		this.promptSamplesMenu = document.getElementById(this.uniqPromptMenuId);
+
+		const obj = this; //Becuase inside callback this is not available
+        document.addEventListener('click', function(event) {
+			
+            const [isClickInsideMenu, isClickTrigger] = [obj.promptSamplesMenu.contains(event.target), event.target.closest('img')];
+            if (!isClickInsideMenu && !isClickTrigger) {
+                obj.promptSamplesMenu.classList.remove('is-active');
+                obj.activeFileDropdown = null;
+            }
+        });
+	}
+
+	pasteToAgent(content = null){
+		this.$parent.controller.startedAgent.setUserPrompt(content || this.selectedPrompt);
+		this.hideSelectedPromptMenu();
+	}
+
+	pasteToCBoard(){
+		this.$parent.controller.copyToClipboard(this.selectedPrompt);
+		this.hideSelectedPromptMenu();
+	}
+
+	hideSelectedPromptMenu = () => this.promptSamplesMenu.classList.remove('is-active');
 }

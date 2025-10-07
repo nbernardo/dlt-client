@@ -1,7 +1,10 @@
 import { $still } from "../../../@still/component/manager/registror.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
+import { StillAppSetup } from "../../../config/app-setup.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { UserService } from "../../services/UserService.js";
+import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { UserUtil } from "../auth/UserUtil.js";
 
 export class FileUpload extends ViewComponent {
 
@@ -17,11 +20,10 @@ export class FileUpload extends ViewComponent {
 	selectedFiles = [];
 
 	/**
-	 * @Inject
-	 * @Path services/
-	 * @type { UserService }
+	 * @Inject  @Path services/
+	 * @type { WorkspaceService }
 	 */
-	userService;
+	wSpaceService;
 
 	/** @Delayed 1s */
 	constructor(){
@@ -142,16 +144,16 @@ export class FileUpload extends ViewComponent {
 				formData.append('files', file);
 			}
 
-			formData.append('user', (await this.userService.getLoggedUser()).email);
+			formData.append('user', UserUtil.email);
 
 			try {
 				const response = await $still.HTTPClient.post('/upload', formData);
-				//const result = await response.json();
 
 				if (response.ok)  {
 					AppTemplate.toast.success('File(s) uploaded successfully');
 					this.clearAllFiles();
-					this.$parent.filesList = await this.listFiles();
+					// Auto-click the to force fetching the updated list of file
+					document.getElementById('dataFilesLeftMenu').click();
 					document.getElementById('collapse').checked = true;
 				}
 				else AppTemplate.toast.error('Error while uploading the file(s)');
@@ -163,16 +165,7 @@ export class FileUpload extends ViewComponent {
 	}
 
 	async listFiles(){
-		let filesList = null;
-		const user = (await this.userService.getLoggedUser()).email;
-		const response = await $still.HTTPClient.get('/files/'+user);
-		if(response.status === 404){
-            AppTemplate.toast.error('No data file found under '+user);
-        } else if(response.ok){
-			filesList = await response.json();
-		}
-		return filesList;
+		return this.wSpaceService.listFiles();
 	}
 
 }
-

@@ -15,6 +15,6 @@
         "domain": "",
         "clientId": ""
     },
-    "websockerAddr": "ws://127.0.0.1:8000/pipeline"
-
+    "websockerAddr": "ws://127.0.0.1:8000/pipeline",
+    "anonymousLogin": false
 }
