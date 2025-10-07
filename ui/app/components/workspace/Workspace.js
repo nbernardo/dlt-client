@@ -5,23 +5,27 @@ import { AppTemplate } from "../../../config/app-template.js";
 import { NodeTypeEnum, PPLineStatEnum, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
 import { ObjectDataTypes, WorkspaceService } from "../../services/WorkspaceService.js";
-import { CodeMiror } from "../../../@still/vendors/codemirror/CodeMiror.js";
-import { Terminal } from "./terminal/Terminal.js";
 import { SqlDBComponent } from "../node-types/SqlDBComponent.js";
 import { EditorLanguageType } from "../../types/editor.js";
-import { StillTreeView } from "../../../@still/vendors/still-treeview/StillTreeView.js";
-import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "./icons/database.js";
 import { StillDivider } from "../../../@still/component/type/ComponentType.js";
+import { UserService } from "../../services/UserService.js";
+import { PopupWindow } from "../popup-window/PopupWindow.js";
+import { LeftTabs } from "../navigation/left/LeftTabs.js";
+import { NoteBook } from "../code/NoteBook.js";
+import { UserUtil } from "../auth/UserUtil.js";
+import { Transformation } from "../node-types/Transformation.js";
+import { LogDisplay } from "../log/LogDisplay.js";
+import { Assets } from "../../../@still/util/componentUtil.js";
+import { Header } from "../parts/Header.js";
+import { Grid } from "../grid/Grid.js";
+import { SqlEditor } from "../code/sqleditor/SqlEditor.js";
 
 export class Workspace extends ViewComponent {
 
-	isPublic = true;
+	isPublic = false;
 
 	/** @Prop */
 	editor;
-
-	/** @Proxy @type { StillTreeView } */
-	dbTreeviewProxy;
 
 	/**
 	 * @Inject
@@ -47,17 +51,19 @@ export class Workspace extends ViewComponent {
 	/** @Prop */
 	socketData = { sid: null };
 
-	activeGrid = "pipeline_name";
+	activeGrid = "Enter pipeline name";
+
+	/** @Proxy @type { LogDisplay }*/
+	logProxy;
+
+	/** @Proxy @type { Header }*/
+	headerProxy;
 
 	/** 
-	 * @Proxy 
-	 * @type { CodeMiror }*/
-	cmProxy;
-
-	/** 
-	 * @Proxy 
-	 * @type { Terminal }*/
-	terminalProxy;
+	 * @Inject 
+	 * @Path services/ 
+	 * @type { UserService }*/
+	userService;
 
 	/** 
 	 * @Prop 
@@ -73,7 +79,7 @@ export class Workspace extends ViewComponent {
 	drawFlowContainer;
 	/** @Prop @type { Set } */
 	connectedDbs = new Set();
-	
+
 	/**
 	 * This is also the width added
 	 * in the CSS concerning to the left side 
@@ -89,29 +95,98 @@ export class Workspace extends ViewComponent {
 	/** @Proxy @type { StillDivider } */
 	codeEditorSplitter;
 
-	/** @Proxy */
+	/** @Proxy @type { PopupWindow } */
+	popupWindowProxy;
+
+	/** @Proxy @type { NoteBook } */
+	noteBookProxy;
+
+	/** @Proxy @type { LeftTabs } */
+	leftMenuProxy;
+
+	/** @Prop */
 	isEditorOpened = false;
 
+	/** @Prop */
+	showLoading = true;
+
+	/** @Prop */
+	anyPropTest = 0;
+
+	loggedUser = null;
+
+	/** @Prop */ userEmail = null;
+
+	/** @Prop */ showDrawFlow = true;
+
+	/** @Prop */ showSaveButton = true;
+
+	/** @Prop */ isAnyDiagramActive = false;
+
+	/** @Prop */ wasDiagramSaved = false;
+
+	/** @Prop */ selectedPplineName = false;
+
+	/** @Prop */ openAgent = false;
+
+	selectedLeftTab = 'content-diagram';
+
+	/** @Prop */ schedulePeriodicitySelected;
+
+	schedulePeriodicity;
+	scheduleTimeType = 'min';
+	scheduleTime;
+
 	stOnRender() {
+		AppTemplate.hideLoading();
+		setTimeout(async () => {
+			await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/chart.js', type: 'js' });
+		});
+
 		this.service.on('load', () => {
 			this.objectTypes = this.service.objectTypes;
 			this.service.table.onChange(newValue => {
 				console.log(`Workspace was update about changed and new value is: `, newValue);
 			});
 		});
+
+		this.userService.on('load', async () => {
+			let user = (await this.userService.getLoggedUser());
+
+			if (user?.user)
+				user = user?.user;
+
+			if (UserUtil.name === null) {
+				UserUtil.name = user.name;
+				UserUtil.email = user.email;
+				Object.freeze(UserUtil);
+			}
+			this.loggedUser = user.name;
+			this.userEmail = user.email;
+		});
 	}
 
 	async stAfterInit() {
 		this.drawFlowContainer = document.getElementById('drawflow');
 		this.pplService.on('load', () => {
-			console.log(`Service loaded with: `, this.pplService);
+			console.log(`Service loaded with updated: `, this.pplService);
 			/* this.service.createPipeline().then(res => {
 				console.log(`Pipeline created successfully: `, res);
-			}) */
+			})*/
 		});
 		this.buildWorkspaceView();
-		//this.cmProxy.codeEditor.setSize(null, 100);
 
+		setTimeout(() => this.showLoading = false, 100);
+		this.onLeftTabChange();
+		this.handlePplineSchedulePopup();
+		this.resetWorkspace();
+	}
+
+	onLeftTabChange() {
+		this.selectedLeftTab.onChange(activeTab => {
+			document.getElementsByClassName(activeTab)[0].style.width = '250px';
+			document.getElementsByClassName('separator')[0].style.marginLeft = '150px';
+		});
 	}
 
 	buildWorkspaceView() {
@@ -124,35 +199,95 @@ export class Workspace extends ViewComponent {
 			var id = document.getElementById("drawflow");
 			this.editor = new Drawflow(id);
 			this.controller.editor = this.editor;
+			this.controller.wSpaceComponent = this;
 			this.editor.reroute = true;
-			//const dataToImport = { "drawflow": { "Home": { "data": { "1": { "id": 1, "name": "welcome", "data": {}, "class": "welcome", "html": "\n    <div>\n      <div class=\"title-box\">👏 Welcome!!</div>\n      <div class=\"box\">\n        <p>Simple flow library <b>demo</b>\n        <a href=\"https://github.com/jerosoler/Drawflow\" target=\"_blank\">Drawflow</a> by <b>Jero Soler</b></p><br>\n\n        <p>Multiple input / outputs<br>\n           Data sync nodes<br>\n           Import / export<br>\n           Modules support<br>\n           Simple use<br>\n           Type: Fixed or Edit<br>\n           Events: view console<br>\n           Pure Javascript<br>\n        </p>\n        <br>\n        <p><b><u>Shortkeys:</u></b></p>\n        <p>🎹 <b>Delete</b> for remove selected<br>\n        💠 Mouse Left Click == Move<br>\n        ❌ Mouse Right == Delete Option<br>\n        🔍 Ctrl + Wheel == Zoom<br>\n        📱 Mobile support<br>\n        ...</p>\n      </div>\n    </div>\n    ", "typenode": false, "inputs": {}, "outputs": {}, "pos_x": 50, "pos_y": 50 }, "2": { "id": 2, "name": "slack", "data": {}, "class": "slack", "html": "\n          <div>\n            <div class=\"title-box\"><i class=\"fab fa-slack\"></i> Slack chat message</div>\n          </div>\n          ", "typenode": false, "inputs": { "input_1": { "connections": [{ "node": "7", "input": "output_1" }] } }, "outputs": {}, "pos_x": 1028, "pos_y": 87 }, "3": { "id": 3, "name": "telegram", "data": { "channel": "channel_2" }, "class": "telegram", "html": "\n          <div>\n            <div class=\"title-box\"><i class=\"fab fa-telegram-plane\"></i> Telegram bot</div>\n            <div class=\"box\">\n              <p>Send to telegram</p>\n              <p>select channel</p>\n              <select df-channel>\n                <option value=\"channel_1\">Channel 1</option>\n                <option value=\"channel_2\">Channel 2</option>\n                <option value=\"channel_3\">Channel 3</option>\n                <option value=\"channel_4\">Channel 4</option>\n              </select>\n            </div>\n          </div>\n          ", "typenode": false, "inputs": { "input_1": { "connections": [{ "node": "7", "input": "output_1" }] } }, "outputs": {}, "pos_x": 1032, "pos_y": 184 }, "4": { "id": 4, "name": "email", "data": {}, "class": "email", "html": "\n            <div>\n              <div class=\"title-box\"><i class=\"fas fa-at\"></i> Send Email </div>\n            </div>\n            ", "typenode": false, "inputs": { "input_1": { "connections": [{ "node": "5", "input": "output_1" }] } }, "outputs": {}, "pos_x": 1033, "pos_y": 439 }, "5": { "id": 5, "name": "template", "data": { "template": "Write your template" }, "class": "template", "html": "\n            <div>\n              <div class=\"title-box\"><i class=\"fas fa-code\"></i> Template</div>\n              <div class=\"box\">\n                Ger Vars\n                <textarea df-template></textarea>\n                Output template with vars\n              </div>\n            </div>\n            ", "typenode": false, "inputs": { "input_1": { "connections": [{ "node": "6", "input": "output_1" }] } }, "outputs": { "output_1": { "connections": [{ "node": "4", "output": "input_1" }, { "node": "11", "output": "input_1" }] } }, "pos_x": 607, "pos_y": 304 }, "6": { "id": 6, "name": "github", "data": { "name": "https://github.com/jerosoler/Drawflow" }, "class": "github", "html": "\n          <div>\n            <div class=\"title-box\"><i class=\"fab fa-github \"></i> Github Stars</div>\n            <div class=\"box\">\n              <p>Enter repository url</p>\n            <input type=\"text\" df-name>\n            </div>\n          </div>\n          ", "typenode": false, "inputs": {}, "outputs": { "output_1": { "connections": [{ "node": "5", "output": "input_1" }] } }, "pos_x": 341, "pos_y": 191 }, "7": { "id": 7, "name": "facebook", "data": {}, "class": "facebook", "html": "\n        <div>\n          <div class=\"title-box\"><i class=\"fab fa-facebook\"></i> Facebook Message</div>\n        </div>\n        ", "typenode": false, "inputs": {}, "outputs": { "output_1": { "connections": [{ "node": "2", "output": "input_1" }, { "node": "3", "output": "input_1" }, { "node": "11", "output": "input_1" }] } }, "pos_x": 347, "pos_y": 87 }, "11": { "id": 11, "name": "log", "data": {}, "class": "log", "html": "\n            <div>\n              <div class=\"title-box\"><i class=\"fas fa-file-signature\"></i> Save log file </div>\n            </div>\n            ", "typenode": false, "inputs": { "input_1": { "connections": [{ "node": "5", "input": "output_1" }, { "node": "7", "input": "output_1" }] } }, "outputs": {}, "pos_x": 1031, "pos_y": 363 } } }, "Other": { "data": { "8": { "id": 8, "name": "personalized", "data": {}, "class": "personalized", "html": "\n            <div>\n              Personalized\n            </div>\n            ", "typenode": false, "inputs": { "input_1": { "connections": [{ "node": "12", "input": "output_1" }, { "node": "12", "input": "output_2" }, { "node": "12", "input": "output_3" }, { "node": "12", "input": "output_4" }] } }, "outputs": { "output_1": { "connections": [{ "node": "9", "output": "input_1" }] } }, "pos_x": 764, "pos_y": 227 }, "9": { "id": 9, "name": "dbclick", "data": { "name": "Hello World!!" }, "class": "dbclick", "html": "\n            <div>\n            <div class=\"title-box\"><i class=\"fas fa-mouse\"></i> Db Click</div>\n              <div class=\"box dbclickbox\" ondblclick=\"showpopup(event)\">\n                Db Click here\n                <div class=\"modal\" style=\"display:none\">\n                  <div class=\"modal-content\">\n                    <span class=\"close\" onclick=\"closemodal(event)\">&times;</span>\n                    Change your variable {name} !\n                    <input type=\"text\" df-name>\n                  </div>\n\n                </div>\n              </div>\n            </div>\n            ", "typenode": false, "inputs": { "input_1": { "connections": [{ "node": "8", "input": "output_1" }] } }, "outputs": { "output_1": { "connections": [{ "node": "12", "output": "input_2" }] } }, "pos_x": 209, "pos_y": 38 }, "12": { "id": 12, "name": "multiple", "data": {}, "class": "multiple", "html": "\n            <div>\n              <div class=\"box\">\n                Multiple!\n              </div>\n            </div>\n            ", "typenode": false, "inputs": { "input_1": { "connections": [] }, "input_2": { "connections": [{ "node": "9", "input": "output_1" }] }, "input_3": { "connections": [] } }, "outputs": { "output_1": { "connections": [{ "node": "8", "output": "input_1" }] }, "output_2": { "connections": [{ "node": "8", "output": "input_1" }] }, "output_3": { "connections": [{ "node": "8", "output": "input_1" }] }, "output_4": { "connections": [{ "node": "8", "output": "input_1" }] } }, "pos_x": 179, "pos_y": 272 } } } } }
 			this.editor.start();
-			//editor.import(dataToImport);
 			this.controller.handleListeners(this.editor);
 		});
 	}
 
+	loadDiagram(content) {
+		this.editor.start();
+		this.editor.import(content);
+	}
+
 	async savePipeline() {
+
+		if (!this.controller.isTherePipelineToSave()) return null;
+
+		if (this.activeGrid.value === 'Enter pipeline name')
+			return AppTemplate.toast.error('Please enter a valid pipeline name');
+
+		if (this.wasDiagramSaved)
+			return this.controller.twiceDiagramSaveAlert('save');
+
+		const data = await this.preparePipelineContent();
+		if (data === null) return data;
+		this.logProxy.showLogs = true;
+		const result = await this.pplService.createOrUpdatePipeline(data);
+		this.wasDiagramSaved = true;
+		return result;
+	}
+
+	async updatePipeline() {
+
+		if (!this.controller.isTherePipelineToSave()) return null;
+
+		if (this.wasDiagramSaved)
+			return this.controller.twiceDiagramSaveAlert('update');
+
+		const isUpdate = true;
+		const data = await this.preparePipelineContent(isUpdate);
+		const result = await this.pplService.createOrUpdatePipeline(data, isUpdate);
+		this.wasDiagramSaved = true;
+		return result;
+	}
+
+	async preparePipelineContent(update = false) {
 
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
-		const validationResults = formReferences.map((r) => {
+		let validationResults = formReferences.map(async (r) => {
 			const component = Components.ref(r);
-			if(component.getName() === SqlDBComponent.name) component.getTables();
+
+			if (component.getName() === SqlDBComponent.name) component.getTables();
+			if (component.getName() === Transformation.name) {
+				component.parseTransformationCode();
+				return true;
+			}
+
 			const form = component.formRef;
-			return form?.validate();
+			return await form?.validate();
 		});
+
+		validationResults = await Promise.all(validationResults);
 
 		const anyInvalidForm = validationResults.indexOf(false) >= 0;
 		const isValidSubmission = this.handleSubmissionError(anyInvalidForm);
-		if (!isValidSubmission) return;
+		if (!isValidSubmission) return null;
 
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
-		data = { ...data, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
+		data = { ...data, user: this.userEmail, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
 		console.log(data);
-		const result = await this.pplService.createPipeline(data);
+
+		if (update === true) data.update = true;
+		return data;
+
+	}
+
+	resetWorkspace() {
+		this.editor.clearModuleSelected();
+		this.controller.resetEdges();
+		document.querySelector('.clear-workspace-btn').style.right = '95px';
+		this.activeGrid = 'Enter pipeline name';
+		document.getElementById('pplineNamePlaceHolder').contentEditable = true;
+		if (this.showSaveButton !== true)
+			this.showSaveButton = true;
+		this.wasDiagramSaved = false;
+		this.isAnyDiagramActive = false;
+		this.isAnyDiagramActive = false;
 	}
 
 	onPplineNameKeyPress(e) {
@@ -204,76 +339,44 @@ export class Workspace extends ViewComponent {
 		return true;
 	}
 
-	onSplitterMove(params){
+	onSplitterMove(params) {
 		// 65 is the minimun height set on the template (Workspace.html)
-		if(params.bottomHeight <= 65) this.isEditorOpened = false;
+		if (params.bottomHeight <= 65) this.isEditorOpened = false;
 		else this.isEditorOpened = true;
 		const editorHeight = ((params.bottomHeight) * 50) / 100;
 		this.cmProxy.setHeight(editorHeight);
 		this.terminalProxy.resizeHeight(editorHeight);
 	}
 
-	async showHideDatabase(){
-
-		let response = await this.service.getDuckDbs();
-		response = await response.json();
-
-		for(const [_file, tables] of Object.entries(response)){
-			const data = Object.values(tables);
-			const dbfile = _file.replace('.duckdb','');
-			const pipeline = this.dbTreeviewProxy.addNode(
-				{
-					content: this.pipelineTreeViewTemplate(dbfile),
-					isTopLevel: true,
-			});
-
-			const dbSchema = this.dbTreeviewProxy.addNode({
-				content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
-			});
-
-			for(const idx in data){
-				const tableData = data[idx];
-				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
-				const table = this.dbTreeviewProxy.addNode({ 
-					content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
-				});
-				dbSchema.addChild(table);
-			}
-			pipeline.addChild(dbSchema);
-		}
-		this.dbTreeviewProxy.showLoader = false;
-		this.dbTreeviewProxy.renderTree();
-	}
-
-	async runCode(){
+	async runCode() {
 		const code = this.cmProxy.codeEditor.getValue();
 		const database = [...this.connectedDbs][0]
-		const payload = { 
-			code, lang: this.editorActiveLang, 
+		const payload = {
+			code, lang: this.editorActiveLang,
 			session: this.socketData.sid, database
 		};
 
-		let result = await this.service.runCode(payload);
+		let result = await this.service.runCode(payload, this.userEmail);
 		result = await result.json();
 		this.terminalProxy.writeTerminal(result.output);
 	}
 
-	selecteLang(lang){
+	selecteLang(lang) {
 		const langs = document.querySelectorAll('.editor-lang');
 		this.cmProxy.changeLanguage(lang);
 		this.editorActiveLang = lang;
 		langs.forEach(elm => {
-			if(elm.classList.contains(lang)){
+			if (elm.classList.contains(lang)) {
 				elm.classList.remove(this.noSelectedLangClass);
 				elm.classList.add(this.selectedLangClass);
-			}else{
+			} else {
 				elm.classList.add(this.noSelectedLangClass);
 				elm.classList.remove(this.selectedLangClass);
 			}
 		})
 	}
 
-	async connectToDatabase(event, dbName){
+	async connectToDatabase(event, dbName) {
 
 		event.preventDefault();
 		const element = event.target;
@@ -281,92 +384,319 @@ export class Workspace extends ViewComponent {
 		const session = this.socketData.sid;
 		const payload = { session, database };
 		let result;
-		
-		if(this.connectedDbs.has(dbName)){
+
+		if (this.connectedDbs.has(dbName)) {
 			result = await (
 				await this.service.handleDuckdbConnect(payload, WorkspaceService.DISCONECT_DB)
 			).json();
 
-			if(result.status){
+			if (result.status) {
 				this.connectedDbs.delete(dbName);
 				element.style.color = 'grey';
 			}
 
-		} else{
+		} else {
 			result = await (await this.service.handleDuckdbConnect(payload)).json();
-			if(result.status){
+			if (result.status) {
 				this.connectedDbs.add(dbName);
 				element.style.color = 'green';
 			}
 		}
 
-		if(!result.status) AppTemplate.toast.error(result.message);
+		if (!result.status) AppTemplate.toast.error(result.message);
 
 	}
 
-	genInitialDBQuery(table, dbfile){
+	genInitialDBQuery(table, dbfile) {
 		this.selecteLang('sql-lang');
 		this.cmProxy.setCode(`use ${dbfile};\n\nSELECT * FROM ${table};`);
 		this.codeEditorSplitter.setMaxHeight();
 		this.isEditorOpened = true;
 	}
 
-	showHideEditor(){
-		if(this.isEditorOpened){
+	showHideEditor() {
+		if (this.isEditorOpened) {
 			// 88 Is because we're taking into account the splitter height itself 
 			this.codeEditorSplitter.setHeight(88);
 			this.isEditorOpened = false;
-		}else{
+		} else {
 			this.codeEditorSplitter.setMaxHeight();
 			this.isEditorOpened = true;
 		}
 	}
 
-	viewPipelineDiagram(event, data){
+	async viewPipelineDiagram(event, pplineName) {
 		event.preventDefault();
-		console.log(data);
+		if (this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0)
+			return this.controller.moreThanOnePipelineOpenAlert();
+
+		const response = await this.service.readDiagramFile(this.userEmail, pplineName);
+		const result = JSON.parse(response);
+		this.activeGrid = result.pipeline_lbl;
+		document.querySelector('.clear-workspace-btn').style.right = '110px';
+		this.showSaveButton = false;
+		this.isAnyDiagramActive = true;
+		document.getElementById('pplineNamePlaceHolder').contentEditable = false;
+		await this.controller.processImportingNodes(result.content['Home'].data);
+		this.wasDiagramSaved = false;
+		this.selectedPplineName = pplineName;
 	}
 
-	databaseTreeViewTemplate(tableData, tableToQuery, dbfile){
-		return `<div class="table-in-treeview">
-					<span>${tableIcon} ${tableData.table}</span>
-					<span class="tables-icn-container">
-						<span tooltip-x="-140" tooltip="Copy table path to clipboard"
-							  onclick="self.copyToClipboard('${tableToQuery}')"
-						>
-							${copyClipboardIcin}
-						</span>
-						<span 
-							onclick="self.genInitialDBQuery('${tableToQuery}','${dbfile}')"
-							tooltip-x="-130" tooltip="Query ${tableData.table} table"
-						>
-							${tableToTerminaIcon}
-						</span>
-					</span>
-				</div>`;
+	logout = async () => await this.userService.logOut();
+
+	verticalResize({ leftWidth }) {
+		const selectedTab = this.selectedLeftTab.value;
+		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth + 100) + 'px';
 	}
 
-	pipelineTreeViewTemplate(dbfile){
-		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label"> ${pipelineIcon} ${dbfile} </span>
-					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
-						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
-				</div>`;
+	async viewScriptOnEditor() {
+		const fileName = this.leftMenuProxy.scriptListProxy.selectedFile;
+		const code = await this.service.readScriptFile(this.userEmail, fileName);
+		this.noteBookProxy.openFile = { fileName, code };
+		this.noteBookProxy.showNotebook = true;
+		this.showDrawFlow = false;
 	}
 
-	dbSchemaTreeViewTemplate(dbname, dbfile){
-		return `<div class="table-in-treeview">
-					<span> ${dbIcon} <b>${dbname}</b></span>
-					<!-- <span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span> -->
-				</div>`;
+	viewFileOnEditor = () => this.leftMenuProxy.scriptListProxy.selectedFile;
+
+	handlePplineSchedulePopup() {
+		const btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
+
+		this.schedulePeriodicity.onChange(val => {
+			btnPipelineSchedule.disabled = true;
+			this.schedulePeriodicitySelected = val, this.scheduleTime = '';
+			handleBtnEnabling(this);
+		});
+
+		this.scheduleTimeType.onChange(() => handleBtnEnabling(this));
+		this.scheduleTime.onChange(() => handleBtnEnabling(this));
+
+		function handleBtnEnabling(obj = this) {
+			if (obj.schedulePeriodicity.value === 'every') {
+				if (['min', 'hour'].includes(obj.scheduleTimeType.value) && obj.scheduleTime.value !== "") {
+					btnPipelineSchedule.disabled = false;
+				} else btnPipelineSchedule.disabled = true;
+			} else {
+				if (obj.scheduleTime.value !== '') btnPipelineSchedule.disabled = false;
+				else btnPipelineSchedule.disabled = true;
+			}
+		}
+
 	}
 
-	copyToClipboard(content){
-		this.controller.copyToClipboard(content);
+	changeScheduleTime = (newValue) => this.scheduleTime = newValue;
+
+	async scheduleJob() {
+
+		const btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
+		btnPipelineSchedule.disabled = true;
+		const payload = {
+			ppline_name: this.selectedPplineName,
+			socket_id: this.socketData.sid,
+			settings: {
+				type: this.scheduleTimeType.value,
+				periodicity: this.schedulePeriodicity.value,
+				time: this.scheduleTime.value,
+				ppline_label: this.activeGrid.value,
+			}
+		};
+		const result = await this.service.schedulePipeline(JSON.stringify(payload));
+		if ([false, 'failed'].includes(result))
+			AppTemplate.toast.error('Error while scheduling job for ' + this.activeGrid.value);
+		else
+			AppTemplate.toast.success('New schedule for ' + this.activeGrid.value + ' created successfully');
+
+		const response = await WorkspaceService.getPipelineSchedules();
+		this.headerProxy.scheduledPipelines = response.data;
+		this.schedulePeriodicity = '';
+		this.scheduleTime = '';
+		btnPipelineSchedule.disabled = false;
 	}
 
-	async refreshTree(){
-		await this.showHideDatabase();
+	showOrHideAgent = () => this.openAgent = !this.openAgent;
+
+	async expandDataTableView(tableId, databaseParam = null, dbfile = null, queryTable = null) {		
+		let { fields, data, query, database } = this.controller.getAIAgentGridExpand(tableId);
+		//let { fields, data, query, database } = mockData();
+		const parsedFields = (fields || '')?.replaceAll('\n', '')?.split(',')?.map(field => field.trim());
+		const parentId = this.cmpInternalId;
+		data = (data || []);
+
+		if(query)
+			queryTable = query.toLowerCase().split(/ from |\nfrom /)[1].split(/\s|\n/)[0];
+
+		const gridInitData = { fields: parsedFields, data };
+		const editorInitData = { query, fields: parsedFields, data, database, databaseParam, dbfile, queryTable };
+		const { template: gridUI, component: gridComponent } = await Components.new('Grid', gridInitData, parentId);
+		const { template: editorUI, component: editorCmp } = await Components.new('SqlEditor', editorInitData, parentId);
+
+		const /** @type { Grid } */ gridInstance = gridComponent;
+		const /** @type { SqlEditor } */ editorInstance = editorCmp;
+		editorInstance.queryOutput = gridInstance;
+
+		const contentContainer = document
+			.getElementById(this.popupWindowProxy.uniqueId)
+			.querySelector('.popup-mov-window-content');
+
+		const table = contentContainer.querySelector('.table-container');
+		const codeEditor = contentContainer.querySelector('.code-editor-container');
+
+		table.innerHTML = gridUI, codeEditor.innerHTML = editorUI;
+		this.popupWindowProxy.openPopup();
+		this.controller.aiAgentExpandView = {};
+		
+	}
+}
+
+
+function mockData() {
+
+	return {
+		"fields": " _dlt_id, _dlt_load_id, industry_aggregation_nzsioc, industry_code_anzsic06, industry_code_nzsioc, industry_name_nzsioc, units, value, variable_category, variable_code, variable_name, year ",
+		"data": [
+			[
+				"60+EtKt5eyv/Vg",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"979594",
+				"Financial performance",
+				"H01",
+				"Total income",
+				2024
+			],
+			[
+				"fAaqq1yvWm4f2Q",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"838626",
+				"Financial performance",
+				"H04",
+				"Sales, government funding, grants and subsidies",
+				2024
+			],
+			[
+				"1A/NBuoygzQ5GQ",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"112188",
+				"Financial performance",
+				"H05",
+				"Interest, dividends and donations",
+				2024
+			],
+			[
+				"gyFWz0QeeN+sPg",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"28781",
+				"Financial performance",
+				"H07",
+				"Non-operating income",
+				2024
+			],
+			[
+				"3FqdtYIhZY1STg",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"856960",
+				"Financial performance",
+				"H08",
+				"Total expenditure",
+				2024
+			],
+			[
+				"2OE/jBRZVGsVbQ",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"71493",
+				"Financial performance",
+				"H09",
+				"Interest and donations",
+				2024
+			],
+			[
+				"FePXd8ygEYwlHQ",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"8540",
+				"Financial performance",
+				"H10",
+				"Indirect taxes",
+				2024
+			],
+			[
+				"WmkgNE6TIUMG5g",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"32896",
+				"Financial performance",
+				"H11",
+				"Depreciation",
+				2024
+			],
+			[
+				"Y//o/z91bSNRPA",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"157616",
+				"Financial performance",
+				"H12",
+				"Salaries and wages paid",
+				2024
+			],
+			[
+				"wNJlpjm1ndsH/Q",
+				"1759444516.252254",
+				"LEVEL 1",
+				"ANZSIC06 divisions A-S (excluding classes K6330, L6711, O7552, O760, O771, O772, S9540, S9601, S9602, and S9603)",
+				"99999",
+				"All industries",
+				"Dollars (millions)",
+				"323",
+				"Financial performance",
+				"H13",
+				"Redundancy and severance",
+				2024
+			]
+		],
+		"query": "SELECT\n_dlt_id, _dlt_load_id, industry_aggregation_nzsioc, industry_code_anzsic06,\nindustry_code_nzsioc, industry_name_nzsioc, units, value,\nvariable_category, variable_code, variable_name, year\nFROM myserveydb.tabelaservey\nLIMIT 10",
+		"database": "/Users/nakassony/Desktop/dlt/dlt-client/backend/destinations/duckdb/sonybernardo@gmail.com/my_demo_pipeline.duckdb"
 	}
 
 }

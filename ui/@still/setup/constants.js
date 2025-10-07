@@ -1,14 +1,14 @@
 export let $stillconst = { MSG: { CUSTOM_PRIVATE_CMP: null } };
 
-export const authErrorMessage = () => `
+export const authErrorMessage = (place = '') => `
         <div class="st-unauthorized-access" id="${ST_UNAUTHOR_ID}">
             ${!$stillconst.MSG.CUSTOM_PRIVATE_CMP
         ? `<h3 style='color:red;'>
-                    <b>Unauthorized Access:</b> You're trying to access a  a private component or View/Page, 
+                    <b>${place}Unauthorized Access:</b> You're trying to access a  a private component or View/Page, 
                     <br>in case you need to access it without making log-in please make isPublic flag true
                 </h3>`
         : $stillconst.MSG.CUSTOM_PRIVATE_CMP}
-            <a href="#" onclick="Router.escape()">Go back<button>
+            <a href="#" onclick="Router.escape()">Go back<a>
         </div>
     `;
 
@@ -47,8 +47,6 @@ $stillconst = {
         DONE: 'done'
     },
 
-
-
     /**
      * Bellow constants for error messages are assigned
      */
@@ -76,12 +74,25 @@ $stillconst = {
     EVT: {
         LONE_LOADED: 'LONE_LOADED'
     },
+    NEGATE_FLAG: 'negate-flag',
+    FLAG: 'flag-',
+    LOOP_PREV_LOAD: 'loop-prev-loaded',
 
+
+}
+
+export const WORKER_EVT = {
+    OFFLOAD: 'offloadCmpParsing'
+}
+
+export const STATUS = {
+    START: 'start', PROGRESS: 'progress', DONE: 'done', PAUSE: 'pause'
 }
 
 export const ST_RE = {
-    st_element: /\<st-element[\> \@ \/ \. \" \, \w \s \= \- \ \( \)]{0,}/g,
+    st_element: /\<st-element[\>\@\/\.\"\,\w\s\=\-\( \)\[\]\{\}\:\;\'\*\&\^\%\#\!\+\_\%\$\`\~]{0,}]{0,}/g,
     st_fixed: /\<st-fixed[\> \. \" \, \w \s \= \- \ \( \)]{0,}[\/\>]{0,}/g,
-    bind_css: /(style\=\"(.*)\")/
+    bind_css: /(style\=\"(.*)\")/,
+    at_delay_annot: /\/[\*\s\t\n]*?\@Delayed[\s]{0,}([0-9]{0,}[smh]{0,1})[\*\s\t\n]*?\/([A-Z\$\#\_\t\s\n]*?)\(/ig,
+    at_delay_annot_constr: /\/[\*\s\t\n]*?\@Delayed[\s]{0,}([0-9]{0,}[smh]{0,1})[\*\s\t\n]*?\/[\s\t\n]{0,}(constructor|stAfterInit)/
 }
-

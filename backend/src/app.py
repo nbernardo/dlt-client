@@ -7,15 +7,21 @@ from flask_cors import CORS
 from flask_socketio import emit
 from controller.RequestContext import socketio
 
-from controller.pipeline import pipeline
-from controller.workspace import workspace
+from controller.pipeline import pipeline, BasePipeline
+from controller.workspace import workspace, call_scheduled_job
+from controller.file_upload import upload, BaseUpload
+from utils.duckdb_util import DuckdbUtil
 
 proj_folder = Path(__file__).parent
+BaseUpload.upload_folder = str(Path(__file__).parent.parent)+'/dbs/files'
+BasePipeline.folder = str(Path(__file__).parent.parent)+'/destinations'
+DuckdbUtil.workspacedb_path = str(Path(__file__).parent.parent)+'/dbs/files'
 sys.path.insert(0, proj_folder/'node_mapper/')
 set_env(proj_folder)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'hash#123098'
+
 CORS(app)
 socketio.init_app(app)
 
@@ -24,7 +30,11 @@ def on_connect():
     emit('connected', {'sid': request.sid}, to=request.sid)
     socketio.sleep(0)
 
+    
 
 app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
-socketio.run(app, host="0.0.0.0", port=5000)
+app.register_blueprint(upload)
+call_scheduled_job()
+# allow_unsafe_werkzeug=True - Because of Docker
+socketio.run(app, host="0.0.0.0", port=8000, allow_unsafe_werkzeug=True)

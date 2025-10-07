@@ -1,1 +1,1 @@
-This folder will contain the generated duckdb files (.duckdb or .db) 
+This folder holds the .duckdb file, do not remove

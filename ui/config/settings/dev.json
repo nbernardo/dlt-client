@@ -1,0 +1,20 @@
+{
+    "httpClient": {
+        "baseUrl": ""
+    },
+    "logs": {
+        "default": true,
+        "error": false,
+        "warning": false
+    },
+    "path": {
+        "service": "",
+        "controller": ""
+    },
+    "auth0": {
+        "domain": "",
+        "clientId": ""
+    },
+    "websockerAddr": "ws://127.0.0.1:8000/pipeline",
+    "anonymousLogin": false
+}

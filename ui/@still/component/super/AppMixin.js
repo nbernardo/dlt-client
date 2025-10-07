@@ -16,23 +16,32 @@ export const StillAppMixin = (Component) =>
 
     class extends Component {
 
+        /** @type { Worker } */ loadWorker = null;
+        offloadContainers = {};
         entryComponentPath;
         entryComponentName;
         servicePath;
+        static configFile = null;
+        static config = { get: (propPath) => StillAppSetup.get().#getProp(propPath), props: {} };
+        setConfigFile = (/** @type { String } */fileName) => StillAppSetup.configFile = fileName;
+        #getProp = (path) => {
+            try {
+                return eval(`StillAppSetup.config.props.${path}`);
+            } catch (error) {
+                new ReferenceError(`Configuration property with path ${path} is not set`);
+            }
+        }
 
         /** @type { Array<ComponentType> } */
         #componentAOTList = [];
-
         /** @type { Array<ViewComponent> } */
         #componentWhiteList = [];
-
         /** @type { Array<ViewComponent> } */
         #componentBlackList = [];
 
         /** 
          * @param { ComponentType | ViewComponent } cmp
-         * @returns { StillAppSetup }
-         * */
+         * @returns { StillAppSetup }*/
         addPrefetch(cmp) {
 
             /* if (
@@ -59,20 +68,12 @@ export const StillAppMixin = (Component) =>
         }
 
         getPrefetchList() { return this.#componentAOTList; }
-
         static register = (piece) => cmp.register(piece);
-
         register = (piece) => cmp.register(piece);
-
         setHomeComponent = (cmp) => super.setHomeComponent(cmp);
-
         setServicePath = (path) => super.setServicePath(path);
-
         componentAOTLoad = () => super.setupImportWorker()
-
         runPrefetch = () => super.setupImportWorker();
-
-        configurePrefetch() { }
 
         /** @returns { ViewComponent } */
         static getComponentFromRef = (name) => super.getComponentFromRef(name);
@@ -89,6 +90,7 @@ export const StillAppMixin = (Component) =>
             }
         }
 
+        isAuthN = () => StillAppSetup.authFlag['authn'];
         setAnauthorizedWarning = (content) => super.injectAnauthorizedMsg(content);
 
         /** @param { Array<ViewComponent> } whiteList */

@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../util/UUIDUtil.js";
 export class TreeNodeType { 
 	//This are the properties
 	content; childs = []; isTopLevel;
-
+	/** @param { TreeNodeType } child */
 	addChild = (child) => this.childs.push(child);
 
 	constructor({ content, isTopLevel }){ 
@@ -24,7 +24,7 @@ export class StillTreeView extends ViewComponent {
 	treeContainerId = `_${UUIDUtil.newId()}`;
 
 	/** @Prop @type { {} } */
-	#treeNodes;
+	#treeNodes = {};
 	/** @Prop */
 	#treeData = null;
 	/** @Prop */
@@ -73,9 +73,7 @@ export class StillTreeView extends ViewComponent {
 						margin-top: -20px;
 					}
 
-					.tree-view-blank-space{
-						height: 20px;
-					}
+					.tree-view-blank-space{ height: 20px; }
 				</style>
 
 				`;
@@ -84,32 +82,43 @@ export class StillTreeView extends ViewComponent {
 
 		this.#treeNodes = {};
 		const self = this;
-		let treeStructure = '';
 		this.#nodeCounter = 0;
 		
 		this.dataSource.onChange(treeMapping => {
-
 			const treeData = Object.values(treeMapping);
-			for(const node of treeData){
-				const topNode = self.parseNode(node);
-				treeStructure += `<li>${topNode}</li>`;
-			}
-			
+			self.parseAndPresentTreeData(treeData);
+		});
+
+		this.emit('load');
+
+	}
+
+	parseAndPresentTreeData(data){
+
+		this.showLoader = true;
+		let treeStructure = '';
+		const treeData = Object.values(data);
+		for(const node of treeData){
+			const topNode = this.parseNode(node);
+			treeStructure += `<li class="still-treeview-node">${topNode}</li>`;
+		}
+		
+		this.stWhenReady(() => {
 			const container = document
 				.getElementById(this.dynCmpGeneratedId);
-			
+
 			if(!this.showBullets){				
 				container.style.setProperty('--child-circle','none');
 				container.style.setProperty('--parent-circle','none');
 			}
-
 			container.insertAdjacentHTML('beforeend',treeStructure);
+			this.showLoader = false;		
 		});
-
+		
 	}
 
 	/** @param { TreeNodeType } param */
-	parseNode(param = {}, returnValue = false){
+	parseNode(param = { childs: [] }, returnValue = false){
 		
 		const self = this;
 
@@ -146,21 +155,31 @@ export class StillTreeView extends ViewComponent {
 		return details.outerHTML;
 
 	}
-
+	/** @param {TreeNodeType} data  */
 	addData(data){
 		this.#treeData = data;
 		return this;
 	}
 
 	renderTree(){
+		let data = this.#treeData;
+		if(!data) data = this.#treeNodes;
+		
 		if(!this.#wasTreeLoaded){
-			if(this.#treeData) this.dataSource = this.#treeData;
-			else this.dataSource = this.#treeNodes;
+			this.parseAndPresentTreeData(data);
 			this.#wasTreeLoaded = true;
+		}else{
+			//this.dataSource = data;
+			const treeData = Object.values(data);
+			this.parseAndPresentTreeData(treeData);
 		}
+
 	}
 
-	/** @param { TreeNodeType } node */
+	/** 
+	 * @param { TreeNodeType } node 
+	 * @returns { TreeNodeType }
+	 * */
 	addNode(node){
 		node = new TreeNodeType(node);
 		if(node.isTopLevel){
@@ -183,6 +202,12 @@ export class StillTreeView extends ViewComponent {
 
 	clearTreeData(){
 		this.#treeNodes = {};
+		this.#treeData = null;
+		this.dataSource = {};
+		const treeContainer = document.getElementById(this.dynCmpGeneratedId);
+		if(treeContainer){
+			treeContainer.querySelectorAll('.still-treeview-node').forEach(elm => treeContainer.removeChild(elm));
+		}
 	}
 
 	removeBullets(){

@@ -1,13 +1,15 @@
 import { StillAppSetup } from "../../../config/app-setup.js";
 import { stillRoutesMap as DefaultstillRoutesMap } from "../../../config/route.map.js";
+import { genInputsClasses } from "../../helper/form.js";
+import { TemplateLogicHandler } from "../../helper/template.js";
 import { Router as DefaultRouter } from "../../routing/router.js";
 import { Components } from "../../setup/components.js";
-import { $stillconst, ST_RE as RE } from "../../setup/constants.js";
+import { $stillconst, ST_RE as RE, STATUS, WORKER_EVT } from "../../setup/constants.js";
 import { UUIDUtil } from "../../util/UUIDUtil.js";
-import { getBasePath, getRouter, getRoutesFile } from "../../util/route.js";
-import { $still, ComponentNotFoundException, ComponentRegistror } from "../manager/registror.js";
-import { sleepForSec } from "../manager/timer.js";
-import { STForm } from "../type/STForm.js";
+import { WorkerHelper } from "../../util/componentUtil.js";
+import {  getRouter, getRoutesFile, getServicePath } from "../../util/route.js";
+import { $still, ComponentRegistror } from "../manager/registror.js";
+import { STForm } from "../type/ComponentType.js";
 import { BehaviorComponent } from "./BehaviorComponent.js";
 import { ViewComponent } from "./ViewComponent.js";
 import { BaseController } from "./service/BaseController.js";
@@ -26,14 +28,6 @@ class SettingType {
     scripts = [];
 }
 
-class StEvent {
-    value;
-    onChange(callback) { }
-    constructor(value) {
-        this.value = value;
-    }
-}
-
 class ComponentPart {
     template;
     proxy;
@@ -42,28 +36,24 @@ class ComponentPart {
     annotations;
     /** @type { ViewComponent } */
     component;
+    loopPrnt;
+    itm;
 
-    constructor({ template, component, proxy, props, annotations }) {
+    constructor({ template, component, proxy, props, annotations, loopPrnt, itm }) {
         this.template = template;
         this.component = component;
         this.proxy = proxy;
         this.props = props;
         this.annotations = annotations;
-    }
-
-    render() {
-        const { template, component } = this;
-        const cntr = document.getElementById(component.dynCmpGeneratedId);
-        //cntr.innerHTML
+        this.loopPrnt = loopPrnt;
+        this.itm = itm;
     }
 
 }
 
 export class BaseComponent extends BehaviorComponent {
 
-    /**
-     * @type {SettingType}
-     */
+    /** @type {SettingType} */
     settings = null;
     componentName;
     componentId;
@@ -90,11 +80,6 @@ export class BaseComponent extends BehaviorComponent {
     baseUrl = window.location.href;
     #stateChangeSubsribers = [];
     bindStatus;
-    /** @type { ViewComponent } */$parent;
-    routesMap = {
-        ...stillRoutesMap.viewRoutes.lazyInitial,
-        ...stillRoutesMap.viewRoutes.regular
-    };
     dynLoopObject = false;
     lone = false;
     loneCntrId = null;
@@ -102,12 +87,17 @@ export class BaseComponent extends BehaviorComponent {
     navigationId = Router.navCounter;
     $cmpStController;
     #dynFields = [];
+    $parent = null;
+    #prntCls = null;
+    #stOffloadInit = new Set();
     
 
     async load() { }
     async onRender() { this.stOnRender(); }
     async stOnUpdate() { }
-    async stAfterInit() { }
+    async stOnDOMUpdate(){ }
+    async stBeforeInit() { }
+    async stAfterInit({nodeUpdate} = {nodeUpdate: false}) { }
     async stOnUnload() { }
     async stOnRender() { }
     reRender() { }
@@ -126,17 +116,18 @@ export class BaseComponent extends BehaviorComponent {
     };
     static importScripts() { }
     static importAssets() { }
-    parseEvents = (obj) => {
-        obj.content = obj?.content
-            ?.replace(/parent.|self./g,`$still.component.ref('${this.$parent.cmpInternalId}').`)
-            ?.replace(/inner./g,`$still.component.ref('${this.cmpInternalId}').`)?.replace(/\$event/g,`event`)
-        return obj;
+    parseEvents = (content) => {
+        //This is for treeview component edge
+        if(content?.content){
+            content.content = content.content
+                ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
+                ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+            return content;
+        }
+        return content
+            ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
+            ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
     };
-
-    props(props = {}) {
-        this.cmpProps = props;
-        return this;
-    }
 
     /** @param { BaseController } controller */
     setController(controller) { this.$cmpStController = controller.name; }
@@ -153,17 +144,14 @@ export class BaseComponent extends BehaviorComponent {
 
         const fields = Object.getOwnPropertyNames(this);
         const excludingFields = [
-            'settings', 'componentName', 'template','routesMap',
-            'cmpProps', 'htmlRefId', 'new', 'cmpInternalId',
-            'routableCmp', '$stillLoadCounter', 'subscribers',
-            '$stillIsThereForm', '$stillpfx', 'subImported',
-            'onChangeEventsList', 'isPublic', '$stillExternComponentParts',
-            'dynCmpGeneratedId', 'stillElement', 'proxyName',
-            'parentVersionId', 'versionId', 'behaviorEvtSubscriptions',
-            'wasAnnotParsed', 'stateChangeSubsribers', 'bindStatus',
-            'templateUrl', '$parent', 'dynLoopObject', 'lone', 'loneCntrId',
-            'setAndGetsParsed', 'navigationId', '$cmpStController', 'stillDevidersCmp',
-            'stillAdjastableCmp', '_const','lang','afterInitEventToParse','baseUrl'
+            'settings', 'componentName', 'template', 'cmpProps', 'htmlRefId', '#stLpChild','#stLpId','#stLpIdDesc',
+            '#stLpStat','new', 'cmpInternalId', 'routableCmp', '$stillLoadCounter', 'subscribers', '#stAppndId',
+            '$stillIsThereForm', '$stillpfx', 'subImported', 'onChangeEventsList', 'isPublic','#stLoopFields','stRunTime','stAtForInitLoad', 
+            '$stillExternComponentParts', 'dynCmpGeneratedId', 'stillElement', 'proxyName','nstngCount','stEmbededAtFor', 'stAtIfContent',
+            'parentVersionId', 'versionId', 'behaviorEvtSubscriptions', 'wasAnnotParsed', 'stateChangeSubsribers', 'stOnChangeAtIf',
+            'bindStatus', 'templateUrl', '$parent', 'dynLoopObject', 'lone', 'loneCntrId', 'stComboStat', 'loopTmplt','#stOffloadInit',
+            'setAndGetsParsed', 'navigationId', '$cmpStController', 'stillDevidersCmp', 'stOptListFieldMap','stSetDelay','#stIsTopLvlCmp',
+            'stillAdjastableCmp', '_const','lang','afterInitEventToParse','baseUrl','isStFixed','loopPrnt','#stLonePartsParsed'
         ];
         return fields.filter(
             field => {
@@ -225,8 +213,7 @@ export class BaseComponent extends BehaviorComponent {
         else {
 
             if (
-                this.cmpInternalId && !this.isRoutable
-                && !this.getRoutableCmp()
+                this.cmpInternalId && !this.isRoutable && !this.getRoutableCmp()
                 /* && this.cmpInternalId.indexOf(dynamic) == 0 */
             ) {
                 /** If component was generated dynamically in a loop */
@@ -242,36 +229,42 @@ export class BaseComponent extends BehaviorComponent {
     }
 
     isThereAForm() {
-        if (!this.$stillIsThereForm) {
-            const form = $stillconst.CMP_FORM_PREFIX
-            this.$stillIsThereForm = this.template.indexOf(form) >= 0;
-        }
+        if (!this.$stillIsThereForm) 
+            this.$stillIsThereForm = this.template.indexOf($stillconst.CMP_FORM_PREFIX) >= 0;
         return this.$stillIsThereForm;
     }
 
-    getBoundState(isReloading = false) {
+    getBoundState(template, isReloading = false) {
 
         const allowfProp = true, currentClass = this, clsName = this.cmpInternalId;
         const fields = this.getProperties(allowfProp);
 
-        if (this.template instanceof Array) this.template = this.template.join('');
-
-        let tamplateWithState = this.template, formsRef = [];
-        tamplateWithState = tamplateWithState.replace(/<!--[\s\S]*?-->/g, ''); //Remove comments
+        if (template instanceof Array) template = template.join('');
+        
+        let tmpltWthState = template, formsRef = [];
+        if(this['#stLpChild']){
+            const cls = ` child-${this.$parent.cmpInternalId}-${this['#stLpId']}` 
+            const complt = `stinternalid="${this.cmpInternalId}" stLpStat='${this['#stLpStat']}' id=${this['#stLpIdDesc']}`;
+            if(tmpltWthState.indexOf('class="') > 0) {
+                tmpltWthState = '<st-wrap>'+tmpltWthState.replace('class="', `${complt} class="${cls} `)+'</st-wrap>';
+            }
+            else tmpltWthState = `<st-wrap>${tmpltWthState.replace(/\>/,` class="${cls}"" ${complt}>`)}</st-wrap>`;
+        }
 
         /** Bind @dynCmpGeneratedId which takes place in special situation that 
          * a component is created to be reference as a tag <st-extern> */
-        tamplateWithState = tamplateWithState.replace(`@dynCmpGeneratedId`, currentClass[`dynCmpGeneratedId`]);
+        tmpltWthState = tmpltWthState.replace(`@dynCmpGeneratedId`, currentClass[`dynCmpGeneratedId`]);
 
         //To bind the internal id to any thing or property
-        tamplateWithState = tamplateWithState.replace(/\@cmpInternalId/g, this.cmpInternalId);
+        tmpltWthState = tmpltWthState.replace(/\@cmpInternalId/g, this.cmpInternalId);
 
         if (this.isThereAForm()) {
-            formsRef = this.#getFormReference(tamplateWithState);
+            formsRef = this.#getFormReference(tmpltWthState);
             if (formsRef?.length){
                 for(const r of formsRef) {
-                    currentClass[r.formRef] = new STForm(r.formRef, `fId_${r.formRef}`);
-                    tamplateWithState = tamplateWithState.replace(`(formRef)="${r.formRef}"`,`id="fId_${r.formRef}"`);
+                    currentClass[r.formRef] = new STForm(r.formRef, `fId_${this.cmpInternalId}`);
+                    const rplacer = `onsubmit="javascript: return false;" id="fId_${this.cmpInternalId}" data-form="${r.formRef}"`
+                    tmpltWthState = tmpltWthState.replace(`(formRef)="${r.formRef}"`,`${rplacer}`);
                 }
             }
         }
@@ -280,12 +273,12 @@ export class BaseComponent extends BehaviorComponent {
         fields.forEach(field => {
 
             const fieldRE = new RegExp(`@${field}`), finalRE = /\^/.source + fieldRE.source + /\$/;
-            tamplateWithState = tamplateWithState.replaceAll(
+            tmpltWthState = tmpltWthState.replaceAll(
                 `@${field}`,
                 (mt, pos) => {
 
                     /** Extract next 40 chars to handle conflict */
-                    const nextChar = tamplateWithState.slice(pos, pos + field.length + 41);
+                    const nextChar = tmpltWthState.slice(pos, pos + field.length + 41);
 
                     /** Check if the match isn't only coencidence 
                      * (e.g. number and number1 are similir in the begining) */
@@ -296,10 +289,10 @@ export class BaseComponent extends BehaviorComponent {
                             if ('value' in data) data = currentClass[field]?.value
                         
                         if (this.#annotations.has(field)) return data
-                        if(tamplateWithState.substr(pos - 2,2).startsWith('="') && tamplateWithState.substr(pos + field.length + 1,1) == '"'){
+                        const bfrBind = tmpltWthState.substr(pos - 2,2), aftBind = tmpltWthState.substr(pos + field.length + 1,3);
+                        if((bfrBind.startsWith('="') || bfrBind.startsWith('(\'')) && (aftBind[0] == '"' || aftBind == '\')"')){
                             return data;
                         }
-
                         //this.#stateChangeSubsribers.push(`subrcibe-${clsName}-${field}`);
                         return `<state class="state-change-${clsName}-${field}">${data}</state>`;
 
@@ -308,10 +301,10 @@ export class BaseComponent extends BehaviorComponent {
                     }
                 }
             );
-            tamplateWithState = this.getBoundInputForm(tamplateWithState, formsRef);
+            tmpltWthState = this.getBoundInputForm(tmpltWthState, formsRef);
         });
 
-        return tamplateWithState;
+        return tmpltWthState;
     }
 
     getBoundLoop(template) {
@@ -319,49 +312,63 @@ export class BaseComponent extends BehaviorComponent {
         const cmpName = this.dynLoopObject || this.lone
             ? this.cmpInternalId
             : this.getProperInstanceName()
-        const extremRe = /[\n \r \< \$ \( \) \. \- \s A-Za-z \= \"]{0,}/.source;
-        const matchForEach = /(\(forEach\))\=\"(\w*){0,}\"/.source;
-        const forEach = '(forEach)="';
 
-        const re = new RegExp(extremRe + matchForEach + extremRe, 'gi');
-        let cmd = this.getClassPath();
+        const extremRe = /[\n \r \<\> \$ \( \) \. \;\: \-\_ \s A-Za-z0-9 \= \"]{0,}/.source;
+        const matchForEach = /<[a-zA-Z0-9\s\n\t\r\"\=\-\_\(\)\.\$ \;\:]{0,}(\(forEach\))\=\"(\w*){0,}\"/.source;
 
-        template = template.replace(re, (mt) => {
-            let ds = '';
-            const loopPos = mt.indexOf(forEach);
-            if (loopPos >= 0) ds = mt.substr(loopPos).split('"')[1].trim();
+        const re = new RegExp(matchForEach + extremRe, 'gi');
+        this['#stLoopFields'] = new Set();
 
-            let subscriptionCls = '';
+        template = template.replace(re, (mt, drctv, ds) => {
 
-            const subsCls = `listenChangeOn-${this.cmpInternalId.replace('/','').replace('@','')}-${ds}`;
+            let subscriptionCls = '', internalId = this.cmpInternalId.replace('/','').replace('@','');
+            const endPos = mt.indexOf('>') + 1, stLstGp = mt.slice(endPos).startsWith('<st-lstgp>');
+            // This is to hide the template of the foreach wrapper, and it'll be shown when parsing each element of the list
+            if(stLstGp) mt = mt.replace('<st-lstgp>','<st-lstgp style="display:none;">')
+
+            const subCls = `listenChangeOn-${internalId}-${ds}`;
             const hashValue = `hash_${this.getUUID()}`;
-            const hash = `hash="${hashValue}"`;
-            const newClassName = `newCls="${subsCls}"`;
-            const finalAttrs = `${newClassName} ${hash} class="${subsCls}`;
+            const hash = `hash="${hashValue}"`, newCls = `newCls="${subCls}"`;
+            const justId = `jstId="${this.getUUID()}"`;
+            const prnt = this.#prntCls ? `st-parent-cmp=${this.#prntCls}` : '';
+            const finalAttrs = `${newCls} ${prnt} ${justId} ${hash} class="${this.#prntCls ? this.#prntCls+' parent_class' : ''} ${subCls}`;
 
-            if (mt.indexOf(`class="`) >= 0)
+            if (mt.slice(0,endPos).indexOf(`class="`) >= 0)
                 mt = mt.replace(`class="`, `${finalAttrs} `);
-            else
-                subscriptionCls = `${finalAttrs}" `;
+            else subscriptionCls = `${finalAttrs}" `;
+            this['#stLoopFields'].add(ds);
+            mt = mt.replace(`${drctv}="${ds}"`, subscriptionCls);
 
-            mt = mt.replace(`(forEach)="${ds}"`, subscriptionCls);
+            return `<output class="${hashValue} ${internalId}"></output>${mt}`;
 
-            return `<output class="${hashValue}"></output>${mt}`;
-
-        }).replaceAll('each="item"', 'style="display:none;"');
-
+        })
+        // This is to hide the template of the foreach wrapper, and it'll be shown when parsing each element of the list
+        .replaceAll('each="item"', 'style="display:none;"');
+        if(this['#stLoopFields'].size === 0) delete this['#stLoopFields'];
         return template;
     }
 
+    parseAtForachLogic(){
+
+        let template = this.template;
+        template = template.replace(/<!--[\s\S]*?-->/g, ''); //Remove comments
+
+        let counterName = {}, loopVar = {}, dataSrc = {}, iterVar = {};
+        template = template.replace(/\t{0,}/,'');
+        // Parse @for and @if (in case it exists inside for loop)
+        template = TemplateLogicHandler.parseAtForAndIfStatement(this, template, loopVar, counterName, dataSrc, iterVar);
+        template = TemplateLogicHandler.runTopLevelAtIf(this, template, counterName, dataSrc);
+        template = TemplateLogicHandler.runAtForAndIfStatement(this, template, loopVar, counterName, dataSrc, iterVar);
+        template = template.replace(/\${([\!\+\(\)\-\s\.\[\]\=\>\<\'\"\@\:\;\?A-Z0-9]*?)}/gi, (_, exp) => eval(`${exp}`));
+        return template;
+        
+    }
+
     getBoundProps(template) {
-        /**
-         * Inject/Bind the component props/params to the
-         * referenced place
-         */
+        /** Inject/Bind the component props/params to the referenced place */
         Object.entries(this.cmpProps).forEach(([key, value]) => {
             template = template.replace(`{{${key}}}`, value);
         });
-
         return template;
     }
 
@@ -415,42 +422,50 @@ export class BaseComponent extends BehaviorComponent {
         this.onChangeEventsList.forEach(elm => {
 
             const evtComposition = elm.evt.split('="')[1].split('(');
-            const evt = evtComposition[0];
-            const paramVal = evtComposition[1].replace(')', '');
-            const uiElm = elm._className;
-            document.querySelector(`.${uiElm}`).onchange = async (event) => {
-                const inpt = event.target;
-                const { value, dataset: { formref, field, cls } } = inpt;
-                const fieldPath = `${cls}${formref ? `-${formref}` : ''}`;
+            const [evt, uiElm] = [evtComposition[0], elm._className];
+            const paramVal = evtComposition[1].replace(')', ''), actualUiCmp = document.querySelector(`.${uiElm}`);
 
-                let isValid = true;
-                if (value == '') isValid = false;
+            if(actualUiCmp){
 
-                if (!isValid) inpt.classList.add('still-validation-failed-style');
-                else inpt.classList.remove('still-validation-failed-style');
-
-                if (fieldPath && field)
-                    BehaviorComponent.currentFormsValidators[this.cmpInternalId+'-'+formref][field]['isValid'] = isValid;
-
-                setTimeout(() => {
-                    const param = paramVal.indexOf('$event') == 0 ? event : paramVal;
-                    const instance = eval(this.getClassPath());
-
-                    if (field != undefined) {
-                        if (!(field in instance)) {
-                            throw new Error(`Field with name ${field} is not define in ${this.getName()}`);
-                        }
-                        instance[field] = value;
+                document.querySelector(`.${uiElm}`).onchange = async (event) => {
+                    const inpt = event.target, oldValues = [];
+                    const { value, dataset: { formref, field, cls } } = inpt;
+                    const fieldPath = `${cls}${formref ? `-${formref}` : ''}`;
+                    const { multpl } = (this['stOptListFieldMap'].get(field) || {});
+    
+                    if(multpl){
+                        event.target.querySelectorAll('option').forEach(r => {
+                            if(r.selected && r.value != '') oldValues.push(r.value);
+                        });
+                        this[field] = oldValues, this['stClk' + field] = true;
                     }
-
-                    if (evt != 'Components.void') {
-                        if (!(evt in instance)) {
-                            throw new Error(`Method with name ${evt}() is not define in ${this.getName()}`);
+    
+                    let isValid = value == '' ? false : true;
+    
+                    if (!isValid) inpt.classList.add('still-validation-failed-style');
+                    else inpt.classList.remove('still-validation-failed-style');
+    
+                    if (fieldPath && field && (formref && !!(formref)))
+                        BehaviorComponent.currentFormsValidators[this.cmpInternalId+'-'+formref][field]['isValid'] = isValid;
+    
+                    setTimeout(() => {
+                        const param = paramVal.indexOf('$event') == 0 ? event : paramVal;
+                        const instance = eval(this.getClassPath());
+    
+                        if (field != undefined) {
+                            if (!(field in instance)) 
+                                throw new Error(`Field with name ${field} is not define in ${this.getName()}`);
+                            if(!multpl) instance[field] = value;
                         }
-                        instance[evt](param);
-                    }
+    
+                        if (evt != 'Components.void') {
+                            if (!(evt in instance)) 
+                                throw new Error(`Method with name ${evt}() is not define in ${this.getName()}`);
+                            instance[evt](param);
+                        }
+                    })
+                }
 
-                })
             }
         });
     }
@@ -472,12 +487,10 @@ export class BaseComponent extends BehaviorComponent {
 
                 const _className = ` onChange_${Math.random().toString().substring(2)}`.trim();
                 this.onChangeEventsList.push({ evt: `(change)="${changeEvt}"`, _className });
-                if (mtch.indexOf('class="') >= 0) {
-                    mtch = mtch
-                        .replace(`class="`, `class="${_className} `);
-                } else {
+                if (mtch.indexOf('class="') >= 0)
+                    mtch = mtch.replace(`class="`, `class="${_className} `);
+                else
                     mtch += `class="${_className} " `;
-                }
             }
             mtch = mtch.replace(mathIfChangeEvt, '');
             return mtch;
@@ -489,7 +502,7 @@ export class BaseComponent extends BehaviorComponent {
         const type = this.$cmpStController;
         template = template.replace(/component\.|controller\.|controller\(\'/ig, (mt) => {
             if (mt.includes("component.")) return `$still.component.ref('${this.cmpInternalId}').`;
-            if (mt.includes("controller('")) return `$still.controller('`
+            if (mt.includes("controller('")) return `$still.controller('`;
             return `$still.controller('${type}').`;
         });
         return template;
@@ -499,15 +512,26 @@ export class BaseComponent extends BehaviorComponent {
         //Bind (value) on the input form
         if (this.isThereAForm()) {
 
-            const extremRe = /[\n \r \< \$ \( \) \- \s A-Za-z0-9 \{ \} \[ \] \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
-            const matchValueBind = /\(value\)\=\"\w*\"\s?/.source;
-            const matchForEachRE = '(forEach)=\"', matchValue = '(value)="', matchChange = '(change)="';
-            const valueBindRE = new RegExp(extremRe + matchValueBind + extremRe, "gi");
-
+            const extremRe = /[ \r \@ \_\< \$ \( \) \-\+\\ \s A-Za-z0-9 \/\:\;\* \{ \} \[ \] \. \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
+            const matchValueBind = /\(value\)\=\"[\w.{}]*\"\s?/.source, matchClose = /[\s]{0,}>/.source;
+            const matchForEachRE = '(forEach)=\"', mtchValue = '(value)="', matchChange = '(change)="';
+            const valueBindRE = new RegExp(extremRe + matchValueBind + extremRe + matchClose , "gi");
+            
             template = template.replace(valueBindRE, (mt, matchPos) => {
 
-                const isThereComboBox = mt.indexOf('<select') >= 0;
-                const value = mt.indexOf(matchValue), changeEvt = mt.indexOf(matchChange);
+                let isThereComboBox = mt.indexOf('<select') >= 0, optLstField, optValue;
+                const chkBox = mt.indexOf('type="checkbox"') > 0, rdoBtn = mt.indexOf('type="radio"') > 0
+                const isOptList = chkBox || rdoBtn;
+                const value = mt.indexOf(mtchValue), changeEvt = mt.indexOf(matchChange);
+
+                if((isOptList || isThereComboBox) && !this['stOptListFieldMap']) this['stOptListFieldMap'] = new Map();
+
+                if(isOptList) {
+                    const {
+                        mt: newMt, optLstField: field, actualValue
+                    } = this.#parseRadioOrChkBox(mt, mtchValue, value, chkBox, rdoBtn);
+                    mt = newMt, optLstField = field, optValue = actualValue;
+                }
 
                 const onChangeId = this.dynLoopObject
                     ? this.cmpInternalId
@@ -516,34 +540,53 @@ export class BaseComponent extends BehaviorComponent {
                     const _className = ` onChange_${onChangeId}`.trim();
                     this.onChangeEventsList.push({ evt: '`(change)="Components.void()"`', _className });
 
-                    if (mt.indexOf('class="') >= 0) {
-                        mt = mt
-                            .replace(`class="`, `class="${_className} `);
-                    } else
-                        mt += `class="${_className} " `;
+                    if (mt.indexOf('class="') >= 0)  mt = mt.replace(`class="`, `class="${_className} `);
+                    else mt = mt.replace('>',`class="${_className} ">`);
                 }
 
-                const matchForEach = mt.indexOf(matchForEachRE);
-                let forEachValue = '';
-                if (matchForEach >= 0)
-                    forEachValue = mt.substr(matchForEach, mt.indexOf('"'));
+                const mtForEach = mt.indexOf(matchForEachRE);
+                let forEachValue = mtForEach >= 0 ? mt.substr(mtForEach, mt.indexOf('"')) : '';
 
                 if (mt.length > 0) {
 
                     const checkPos = value + 9;
-                    const field = mt.slice(checkPos, mt.indexOf('"', checkPos));
+                    const field = optLstField || mt.slice(checkPos, mt.indexOf('"', checkPos));
                     const formRef = formsRef?.find(r => matchPos > r.pos) || '';
 
                     const { replacer, mt: updatedMt } = this.#getFormInputReplacer(
-                        mt, field, isThereComboBox, forEachValue, formRef
+                        mt, { field, isOptList, isThereComboBox, optValue }, forEachValue, formRef
                     );
-
-                    mt = updatedMt.replace(`(value)="${field}"`, replacer);
+                    const rplcing = isOptList ? `name="${field}"` : `(value)="${field}"`;
+                    mt = updatedMt.replace(rplcing, replacer);
                 }
                 return mt;
             });
         }
         return template;
+    }
+
+    #parseRadioOrChkBox(mt, mtchValue, value, chkBox = false, rdoBtn = false, actualValue = null,){
+        let lbfrDrectv = '(labelBefore)', laftDrectv = '(labelAfter)', fDrectv = '(field)', field = null;
+        if(mt.indexOf(fDrectv) > 0) {
+            field = mt.split(fDrectv)[1]?.split('"')[1];
+            mt = mt.replace(`${fDrectv}="${field}"`,`name="${field}"`);
+        }
+        if(value > 0) {
+            actualValue = mt.split('(value)')[1].split('"')[1]
+            if(actualValue.startsWith('{item.')) this[field] = '';
+            mt = mt?.replace(mtchValue, 'value="');
+        }
+
+        if(mt.indexOf(lbfrDrectv) > 0) {
+            const lbl = `${mt.split(lbfrDrectv)[1].split('"')[1]}`;
+            mt = `<st-lstgp><label>${lbl}</label> ${mt.replace(`${lbfrDrectv}="${lbl}"`,'')}</st-lstgp>`;
+        }
+        else if(mt.indexOf(laftDrectv) > 0) {
+            const lbl = `${mt.split(laftDrectv)[1].split('"')[1]}`;
+            mt = `<st-lstgp>${mt.replace(`${laftDrectv}="${lbl}"`,'')} <label>${lbl}</label></st-lstgp>`;
+        }
+        if(field) this['stOptListFieldMap'].set(field, { radio: rdoBtn, chkBox });
+        return {mt, optLstField: field, actualValue};
     }
 
     /**
@@ -555,7 +598,7 @@ export class BaseComponent extends BehaviorComponent {
 
         const extremRe = /[\n \r \t \< \$ \( \) \- \s A-Za-z0-9 \@ \= \" \.]{0,}/.source;
         const matchRenderIfRE = /\(renderIf\)\="[A-Za-z0-9 \. \( \)]{0,}\"/;
-        const matchShowIfRE = /\(showIf\)\="[A-Za-z0-9 \. \( \)]{0,}\"/;
+        const matchShowIfRE = /\(showIf\)\="[A-Za-z0-9 \=\.\!\' \( \)]{0,}\"/;
         const reSIf = new RegExp(extremRe + matchShowIfRE.source + extremRe, 'gi');
         const reRIf = new RegExp(extremRe + matchRenderIfRE.source + extremRe, 'gi');
         const handleError = this.#handleErrorMessage;
@@ -566,12 +609,19 @@ export class BaseComponent extends BehaviorComponent {
         return template;
     }
 
+    #parseRndrIfFlag(showFlag, negateFlag, litValFlag, flagVal = undefined){
+        if(showFlag.startsWith('!')) [showFlag, negateFlag] = [showFlag.slice(1),true];
+        else if(showFlag.indexOf('==') > 0){
+            [showFlag, flagVal] = showFlag.split('==');
+            litValFlag = `flag-${flagVal?.trim()?.replace(/\'/g,'')?.replace(/\s/g,'-')} context-${this.cmpInternalId}`;
+        }
+
+        return [showFlag, negateFlag, litValFlag, flagVal];
+    }
 
     parseShowIf(template, reSIf, matchShowIfRE, handleErrorMessage) {
 
-        const clsName = this.dynLoopObject || this.lone
-            ? this.cmpInternalId
-            : this.constructor.name;
+        const clsName = this.cmpInternalId;
         const cls = this;
 
         return template.replace(reSIf, (mt) => {
@@ -580,28 +630,40 @@ export class BaseComponent extends BehaviorComponent {
             const cleanMatching = mt.replace(/[\n\t]{0,}/, '').replace(/\s{0,}/, '');
             if (cleanMatching.charAt(0) == '<' || cleanMatching.indexOf('(showIf)=') > cleanMatching.indexOf('<')) {
                 const matchInstance = mt.match(matchShowIfRE)[0];
-                const showFlag = matchInstance.split('"')[1].replace('"', "");
+                let showFlag = matchInstance.split('"')[1].replace('"', ""), negateFlag = false, litValFlag = null, initVal;
+                [showFlag, negateFlag, litValFlag, initVal] = this.#parseRndrIfFlag(showFlag, negateFlag, litValFlag);
 
                 let showFlagValue, listenerFlag;
                 if (showFlag.indexOf('self.') == 0) {
                     const classFlag = `${showFlag.replace('self.', '').trim()}`;
+                    if(!cls.isStFixed){
+                        try {
+                            const value = eval(`cls.${classFlag}`);
+                            showFlagValue = { value: value?.parsed ? value.value : value, onlyPropSignature: true };
+                            
+                            listenerFlag = `_stFlag${classFlag}_${(clsName.indexOf('/')) ? clsName.replace(/\@|\//g,'') : clsName}_change`;
+                            Object.assign(showFlagValue, { listenerFlag, inVal: showFlagValue.value, parsed: true });
+                            // In some cases the getsAndSets of flag is parse prior (in components.js) the template
+                            if(!this.st_flag_ini_val)
+                                this[classFlag] = showFlagValue;
 
-                    try {
-                        const value = eval(`cls.${classFlag}`);
-                        showFlagValue = { value: value?.parsed ? value.value : value, onlyPropSignature: true };
-                        listenerFlag = '_stFlag' + classFlag + '_' + clsName + '_change';
-                        Object.assign(showFlagValue, { listenerFlag, inVal: showFlagValue.value, parsed: true });
-                        this[classFlag] = showFlagValue;
-                    } catch (e) {
-                        handleErrorMessage(classFlag, matchInstance);
-                    }
+                        } catch (e) {
+                            handleErrorMessage(classFlag, matchInstance);
+                        }
+                    }else showFlagValue = { value: cls[classFlag] };
                 }
 
                 // Validate the if the flag value is false, in case it's false then hide
                 let hide = '';
-                if (!showFlagValue?.value) hide = $stillconst.PART_HIDE_CSS;
+                if(initVal !== undefined){
+                    if(!isNaN(initVal) && initVal.indexOf("'") < 0) initVal = parseFloat(initVal);
+                    if(showFlagValue?.value !== initVal) hide = $stillconst.PART_HIDE_CSS;
+                }
+                else if (!showFlagValue?.value && !negateFlag) hide = $stillconst.PART_HIDE_CSS;
+                else if (showFlagValue?.value && negateFlag) hide = $stillconst.PART_HIDE_CSS;
                 else hide = '';
 
+                const complementFlag = `${negateFlag ? $stillconst.NEGATE_FLAG : ''} ${litValFlag ? litValFlag : ''}`;
                 if (mt.indexOf('class="') > 0) {
                     /** .replace('class="', `class="${hide} `) 
                      *      Add the framework hide classso that component gets hidden
@@ -609,12 +671,17 @@ export class BaseComponent extends BehaviorComponent {
                      *  .replace(matchInstance, '');
                      *      Remove the (renderIf) dorectove so it does not shows-up on the final HTML code */
                     result = mt
-                        .replace('class="', `class="${hide} ${listenerFlag} `)
+                        .replace('class="', `class="${hide} ${listenerFlag} ${complementFlag}`)
                         .replace(matchInstance, '');
                 } else {
-                    /**  .replace(matchInstance, `class="${hide}"`) 
-                     *      Replace the (renderIf)="anything" directive and value with hide classe */
-                    result = mt.replace(matchInstance, `class="${hide} ${listenerFlag}"`);
+                    /**  .replace(matchInstance, `class="${hide}"`) Replaces the (renderIf)="anything" directive and value with hide classe */
+                    result = mt.replace(matchInstance, `class="${hide} ${listenerFlag} ${complementFlag}"`);
+                }
+                if(window.STILL_HOME && result.indexOf($stillconst.PART_HIDE_CSS) > 0){
+                    if(mt.indexOf('style="') > 0) 
+                        result = result.replace('style="','style="display: none;');
+                    else
+                        result = result.replace('class="','style="display: none;" class="');
                 }
             }
             return result;
@@ -676,6 +743,13 @@ export class BaseComponent extends BehaviorComponent {
                 } else {
                     result = mt.replace(matchInstance, '');
                 }
+                if(window.STILL_HOME && result.indexOf($stillconst.PART_HIDE_CSS) > 0){
+                    if(mt.indexOf('style="') > 0) {
+                        result = result.replace('style="','style="display: none;');
+                    }else{
+                        result = result.replace('class="','style="display: none;" class="');
+                    }
+                }
             }
             return result;
         });
@@ -688,20 +762,21 @@ export class BaseComponent extends BehaviorComponent {
     }
 
     // Parse the template, inject the components 'props' and 'state' if defined in the component
-    getBoundTemplate(containerId = null, isReloading = false) {
-
+    getBoundTemplate(containerId = null, isReloading = false, prntId = null) {
+        
         console.time('tamplateBindFor' + this.getName());
-
+        
         if (!this.cmpInternalId) this.cmpInternalId = this.getUUID();
         this.#parseAnnotations();
         /** Bind the component state and return it (template)
          * NOTE: Needs to be always the first to be called */
-        let template = this.getBoundState(isReloading);
+        let template = this.parseAtForachLogic();
+        template = this.getBoundState(template, isReloading);
         template = Components.obj().parseAdjustable(template, this);
         template = Components.obj().parseLocalLoader(template, this);
         template = this.getBoundRender(template);
         /** Parse still tags */
-        template = this.parseStSideComponent(template),
+        template = this.parseStSideComponent(template,null,null,prntId),
             /** Bind the props to the template and return */
             template = this.getBoundProps(template);
         /** Bind the click to the template and return */
@@ -718,52 +793,11 @@ export class BaseComponent extends BehaviorComponent {
         return template;
     }
 
-    render() {
-        this.incrementLoadCounter();
-        document.write(this.getBoundTemplate());
-    }
 
     getTemplate(count = true) {
         this.incrementLoadCounter();
         return this.getBoundTemplate();
     }
-
-    prepareRender() {
-
-        const [fields, currentClass] = [this.getProperties(), this];
-        fields.forEach(field => {
-            this.template = this.template.replace(`@${field}`, currentClass[field].value);
-        });
-
-        Object.entries(this.cmpProps).forEach(([key, value]) => {
-            this.template = this.template.replace(`{{${key}}}`, value);
-        });
-
-    }
-
-    /**
-     * @param {SettingType} settings 
-     */
-    setup(settings) {
-        this.componentName = this.constructor.name;
-        this.settings = settings;
-
-        if (settings.scripts) settings.scripts.forEach(BaseComponent.importScript);
-        $still.context.componentRegistror.export({ ...settings, instance: this });
-    }
-
-    setPath(path) {
-        this.settings.path = path;
-        return this;
-    }
-
-    setComponentName(name) {
-        this.settings.componentName = name;
-        return this;
-    }
-
-    register = () =>
-        $still.context.componentRegistror.export(settings);
 
     static importScript(scriptPath, module = false, cls = null) {
 
@@ -825,45 +859,7 @@ export class BaseComponent extends BehaviorComponent {
     wasItLoadedBefor = () =>
         ComponentRegistror.previousLoaded(this);
 
-    stRunOnFirstLoad(cb = () => { }) {
-        if (this.wasItLoadedBefor() && this.$stillLoadCounter) return false;
-        cb();
-    }
-
-    async stLazyExecution(cb = () => { }) {
-
-        const multiplier = 1000;
-        let retryCounter = 2;
-
-        const timer = setInterval(async () => {
-
-            try {
-                await cb();
-                clearInterval(timer);
-            } catch (error) {
-                if (error instanceof ComponentNotFoundException) {
-
-                    if (retryCounter < 8) retryCounter++
-                    const content = JSON.parse(error.message);
-                    const { path } = this.routesMap[content.component];
-
-                    const script = $stillLoadScript(path, content.component);
-                    document.head.insertAdjacentElement('beforeend', script);
-                    script.onload = function () {
-                        const registror = $still.context.componentRegistror.componentList;
-                        const instance = eval(`new ${content.component}()`);
-                        instance.subImported = true;
-                        if (!(instance in registror))
-                            registror[content.component] = { instance, subImported: true };
-                    }
-                    await sleepForSec(multiplier * retryCounter);
-                }
-            }
-        }, 500);
-
-    }
-
-    stWhenReady(cb = () => { }) {
+    stWhenReady(cb = () => { }, waitForSec = .5) {
         const timer = setTimeout(async () => {
 
             try {
@@ -872,10 +868,10 @@ export class BaseComponent extends BehaviorComponent {
             } catch (error) {
                 console.log(`Error on when ready: `, error);
             }
-        }, 1000);
+        }, 1000 * waitForSec);
     }
 
-    parseStSideComponent(template, cmpInternalId = null, cmpUUID = null) {
+    parseStSideComponent(template, cmpInternalId = null, cmpUUID = null, loopPrnt = null) {
 
         const uuid = cmpUUID || this.getUUID(), parentCmp = this;
         if (cmpInternalId) this.cmpInternalId = cmpInternalId;
@@ -885,22 +881,28 @@ export class BaseComponent extends BehaviorComponent {
 
         this.versionId = UUIDUtil.newId();
         template = template.replace(re, (mt) => {
-
             if (matchCounter == 0) {
                 if (this.cmpInternalId in Components.componentPartsMap)
                     delete Components.componentPartsMap[this.cmpInternalId];
                 matchCounter++;
             }
 
-            const propMap = this.parseStTag(mt, cmpInternalId);
+            let propMap = this.parseStTag(mt, cmpInternalId);
+            if(propMap?.spot){
+                const replacerCmp = propMap.spot.replace('app.','');
+                if(propMap.spot.startsWith('app.') && replacerCmp in StillAppSetup.get()){
+                    propMap['component'] = StillAppSetup.get()[replacerCmp].type.name;
+                    propMap = { ...propMap, ...StillAppSetup.get()[replacerCmp].props }
+                }
+            }
             let checkStyle = mt.match(styleRe), foundStyle = false;
             if (checkStyle?.length == 3) foundStyle = mt.match(styleRe)[2];
-
-            this.setTempProxy(parentCmp, propMap);
-
+            
+            this.setTempProxy(parentCmp, propMap);            
             const { component, ref, proxy: p, each, ...tagProps } = propMap;
+            
             const foundProps = Object.values(tagProps);
-            const isThereProp = foundProps.some(r => !r.startsWith('item.'))
+            const isThereProp = foundProps.some(r => !r?.startsWith('item.'))
                 || foundProps.length == 0;
 
             if (!(this.cmpInternalId in Components.componentPartsMap))
@@ -912,19 +914,24 @@ export class BaseComponent extends BehaviorComponent {
                 Components.componentPartsMap[this.cmpInternalId].push(
                     new ComponentPart({
                         template: null, component: propMap['component'], props: propMap,
-                        proxy: propMap['proxy'], annotations: this.#annotations
+                        proxy: propMap['proxy'], annotations: this.#annotations, loopPrnt, itm: propMap.item
                     })
                 );
             }
 
+            this.#prntCls = this?.$parent?.$parent 
+                ? this?.$parent?.$parent.cmpInternalId
+                : this?.$parent ? this?.$parent.cmpInternalId : null;
+
             const addCls = `${cmpInternalId == 'fixed-part' ? $stillconst.ST_FIXE_CLS : ''}`;
-            const display = propMap?.each == 'item' ? 'none' : 'contents';
+            const display = propMap?.each == 'item' ? 'none' : 'contents'; 
+            const prntId = `${this.#prntCls ? `prntId=${this.#prntCls}` : ``}`;
             /**  The attributes componentRef, prop and loopDSource (data source of the forEach)
              * all of them serve as a Metadata for in case the <st-element> is wrapped by a
              * container with (forEach) notation/directive, hence being passed as loopAttrs */
             const loopAttrs = (!isThereProp && propMap?.each != 'item')
                 ? ''
-                : ` componentRef="${propMap['component']}" loopDSource="${propMap?.each == 'item'}"
+                : ` componentRef="${propMap['component']}" ${prntId} loopDSource="${propMap?.each == 'item'}"
                     props=${Object.values(tagProps).length > 0 ? JSON.stringify(tagProps) : '{}'}`;
 
             return `<still-placeholder 
@@ -958,15 +965,32 @@ export class BaseComponent extends BehaviorComponent {
     /** @param { ViewComponent } assigneToCmp */
     parseStTag(mt, type, assigneToCmp = null) {
 
-        const props = mt
+        let item = null, delay = null;
+        const content = mt.replace(/item="({.*})"|item="([\s\S]*)|@delayed="([0-9hms]*)"/ig, (_, value, str) => {
+            
+            if(_.trim().startsWith('@delayed')){
+                delay = _.split('"')[1];
+                return '';
+            }
+
+            if(value) {
+                item = value;
+                return ''
+            }
+            return _.replaceAll('""','"');      
+        });
+
+        const props = content
             .replace(type == 'fixed-part' ? '<st-fixed' : '<st-element', '')
             .replaceAll('\t', '')
             .replaceAll('\n', '')
             //.replaceAll(' ', '')
             .replaceAll('=', '')
             .replace('>', '').split('"');
-
+            
         const result = {};
+        item != null ? result['item'] = item : '';
+        delay != null ? result['@delayed'] = delay : '';
         if (props.length >= 3) props.pop();
 
         let idx = 0
@@ -980,12 +1004,10 @@ export class BaseComponent extends BehaviorComponent {
                     if (r.toLowerCase() == field) assigneToCmp[r] = value;
                 });
 
-            } else {
+            } else 
                 result[field] = typeof value == 'string' ? value : value;
-            }
             ++idx;
         }
-
         return result;
     }
 
@@ -994,13 +1016,13 @@ export class BaseComponent extends BehaviorComponent {
         if (classFlag.at(-1) == ')') {
             console.error(`
                 Method with name ${classFlag} does not exists for 
-                ${cls.constructor.name} as referenced on ${matchInstance}
+                ${cls?.constructor?.name} as referenced on ${matchInstance}
             `);
         }
         else {
             console.error(`
                 Property with name ${classFlag} does not exists for 
-                ${cls.constructor.name} as referenced on ${matchInstance}
+                ${cls?.constructor?.name} as referenced on ${matchInstance}
             `);
         }
     }
@@ -1021,43 +1043,42 @@ export class BaseComponent extends BehaviorComponent {
 
     }
 
-    #getFormInputReplacer(mt, field, isThereComboBox, forEachValue, formRef) {
-
-        let val = ''
-        if (!(this[field] instanceof Object) && !!(this[field]))
-            val = this[field];
+    #getFormInputReplacer(mt, fieldConfg, forEachValue, formRef) {
+        const { field, isOptList, isThereComboBox, optValue } = fieldConfg;
+        let val = '', subscrtionCls = '', evt = '', comboSfix = '';
+        if (!(this[field] instanceof Object) && !!(this[field])) val = this[field];
         else if (this[field] instanceof Object) {
             if ('value' in this[field]) val = this[field].value;
         }
 
-        const onChangeId = this.dynLoopObject || this.lone
-            ? this.cmpInternalId
-            : this.getProperInstanceName();
+        if(isThereComboBox){
+            comboSfix = '-combobox';
+            if(mt.indexOf(' multiple ') > 0) this['stOptListFieldMap'].set(field, { multpl: true });
+        }
+
         const validatorClass = BehaviorComponent.setOnValueInput(mt, this, field, (formRef?.formRef || null));
         const cmpId = this.cmpInternalId.replace('/','').replace('@','');
-        const classList = `${validatorClass} listenChangeOn-${cmpId}-${field}`;
+        const clsList = `${genInputsClasses(validatorClass, cmpId, field, optValue, isOptList, isThereComboBox)}`;
+        const clsPath = `$still.c.ref('${this.cmpInternalId}')`, clsName = this.constructor.name;
 
-        const clsPath = this.getClassPath();
-
-        let subscriptionCls = '';
-        const clsName = this.constructor.name;
-        const comboSuffix = isThereComboBox ? '-combobox' : '';
-        const dataFields = `${isThereComboBox
+        const /*dataField*/ dtFields = `${isThereComboBox
             ? `data-formRef="${formRef?.formRef || ''}" data-field="${field}" data-cls="${clsName}"`
             : ''
             }`;
 
         if (mt.indexOf(`class="`) >= 0)
-            mt = mt.replace(`class="`, `${dataFields} class="${classList}${comboSuffix} ${this.cmpInternalId}-${field} `);
+            mt = mt.replace(`class="`, `${dtFields} class="${clsList}${comboSfix} ${this.cmpInternalId}-${field} `);
         else
-            subscriptionCls = `${dataFields} class="${classList}${comboSuffix} ${this.cmpInternalId}-${field}" `;
+            subscrtionCls = `${dtFields} class="${clsList}${comboSfix} ${this.cmpInternalId}-${field}" `;
 
-        let replacer = `${subscriptionCls} `;
-        if (!(isThereComboBox))
-            replacer = `${forEachValue} 
-                        value="${val}" ${subscriptionCls} 
-                        onkeyup="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
+        let replacer = `${subscrtionCls} `, complmnt = isOptList ? `name="${field}"` : `value="${val}"`;
+        if(isOptList){
+            if(mt.toLowerCase().indexOf('onclick="') > 0) mt = mt.replace('onclick="', '');
+            else evt = `onclick="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
+        }else
+            evt = `onkeyup="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')" onkeydown="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
 
+        if (!(isThereComboBox)) replacer = `${forEachValue} ${complmnt} ${subscrtionCls} ${evt}`;
         return { mt, replacer };
 
     }
@@ -1085,29 +1106,81 @@ export class BaseComponent extends BehaviorComponent {
         } else {
 
             const classDefinition = this.constructor.toString();
+            if(!this.cmpInternalId?.startsWith('dynamic-_')) cmp['#stIsTopLvlCmp'] = true;
+
+            if(![null,undefined].includes(StillAppSetup.get().loadWorker)){
+
+                WorkerHelper.traceCmp[this.cmpInternalId] = cmp;            
+                StillAppSetup.get().loadWorker.postMessage({
+                    type: WORKER_EVT.OFFLOAD, content: classDefinition, cmpId: this.cmpInternalId, cmpName,
+                    isTopLvlCpm: !this.cmpInternalId?.startsWith('dynamic-_')
+                });
+    
+                if(!(this.cmpInternalId in WorkerHelper.processedCpm)){
+                    
+                    StillAppSetup.get().loadWorker.addEventListener('message', (evt) => {
+                        
+                        const { data: { mtdName, cmpName, ref, prop, cmpId } } = evt;
+                        const key = mtdName+'-'+ref+'-'+cmpId;
+                        const cmp = WorkerHelper.traceCmp[cmpId];
+    
+                        if(cmp['#stIsTopLvlCmp'] === true && mtdName === 'stAfterInit') WorkerHelper.parseDelaySetup(cmp.toString(), cmp, true, cmpName);
+                        
+                        if(!(ref in WorkerHelper.methodOffloadContainer)) 
+                            WorkerHelper.methodOffloadContainer[ref] = { subscrbrs: new Set() };
+                        
+                        if(!(key in WorkerHelper.processedKeys)){
+                            WorkerHelper.processedKeys[key] = true;
+                            
+                            if(!(cmpId in WorkerHelper.processedCpm)) WorkerHelper.processedCpm[cmpId] = { };
+    
+                            WorkerHelper.methodOffloadContainer[ref].subscrbrs.add(cmpId);
+    
+                            if(!(`tmp${mtdName}` in WorkerHelper.processedCpm[cmpId])){
+                                const scope = cmp[mtdName].toString().trim().replace(new RegExp(`${mtdName}[\\s\\S]*?\\)\\{`),'').slice(0,-1);
+                                WorkerHelper.processedCpm[cmpId][`tmp${mtdName}`] = cmp[mtdName]
+                                WorkerHelper.processedCpm[cmpId][`tmp${mtdName}`] = {  count: 0, method: () =>  {
+                                    try { eval(scope) } 
+                                    catch (error) {
+                                        console.error(`RuntimeError: Error while trynig to run ${mtdName} in ${cmpName}\n\t`,error.message); 
+                                    }
+                                } };
+                            }
+                            cmp[mtdName] = () => {};
+                            WorkerHelper.processedCpm[cmpId][`tmp${mtdName}`].count++;
+                        }
+    
+                    });
+                }
+                
+            }
+
+
             const re = Components.parseAnnottationRE();
 
             classDefinition.replace(new RegExp(re, 'g'), async (mt) => {
 
                 /** If statement is in place to not parse skip method 
                  * parsing when it finds a comment annotation */
-                if (!mt.includes('(')) {
+                const listState = mt.match(/\@type[\s\S]{0,}ListState<[\s\S]{0,}>/);
+                if ((!mt.includes('(') && mt.indexOf('State<') < 0) || listState) {
                     const commentEndPos = mt.indexOf('*/') + 2;
                     const propertyName = mt.slice(commentEndPos).replace('\n', '').trim();
 
-                    let inject, proxy, prop, propParsing, type, svcPath, controller;
+                    let inject, proxy, prop, propParsing, type, svcPath, controller, propValue;
                     if (propertyName != '') {
 
-                        const result = Components.processAnnotation(mt, propertyName);
+                        const result = Components.processAnnotation(mt, propertyName, cmpName);
                         inject = result.inject;
                         prop = result.prop;
                         proxy = result.proxy;
                         type = result.type;
                         propParsing = result.propParsing;
                         controller = result.controller;
-                        svcPath = result.svcPath.replace(/\t/g, '').replace(/\n/g, '').replace(/\s/g, '').trim();
+                        if(result.propValue) cmp[propertyName] = result.propValue;
+                        svcPath = result?.svcPath?.replace(/\t/g, '').replace(/\n/g, '').replace(/\s/g, '').trim();
                         svcPath = svcPath?.endsWith('/') ? svcPath.slice(0, -1) : svcPath;
-
+                        
                         if (inject || controller) {
                             // Service it covering both Services and Controllers Injection
                             if (controller) cmp.$cmpStController = type; //If controller set the Class name
@@ -1115,7 +1188,7 @@ export class BaseComponent extends BehaviorComponent {
                             cmp.#handleServiceInjection(cmp, propertyName, type, service, svcPath, controller);
                         }
                     }
-                    cmp.#annotations.set(propertyName, { type, inject, proxy, prop, propParsing, svcPath });
+                    cmp.#annotations.set(propertyName, { type, inject, proxy, prop, propParsing, svcPath, listState: !!listState });
 
                 }
             });
@@ -1143,23 +1216,17 @@ export class BaseComponent extends BehaviorComponent {
                     (cmp[propertyName]?.ready
                         && cmp[propertyName]?.status == $stillconst.A_STATUS.DONE)
                     || svcInstance
-                ) {
-                    await action(svcInstance);
-                    return;
-                }
+                ) return await action(svcInstance);
 
-                if (!('subscribers' in tempObj)) {
+                if (!('subscribers' in tempObj)) 
                     Object.assign(tempObj, { subscribers: [], status: $stillconst.A_STATUS.PENDING })
-                }
                 tempObj.subscribers.push(action);
             },
 
             load: async () => {
 
-                if (!('status' in tempObj)) {
-                    Object.assign(tempObj, { status: $stillconst.A_STATUS.DONE, subscribers: [] });
-                    return;
-                }
+                if (!('status' in tempObj)) 
+                    return Object.assign(tempObj, { status: $stillconst.A_STATUS.DONE, subscribers: [] });
 
                 tempObj.status = $stillconst.A_STATUS.PENDING;
                 tempObj.subscribers?.forEach(async (action) => {
@@ -1168,17 +1235,16 @@ export class BaseComponent extends BehaviorComponent {
                     tempObj.subscribers?.shift();
                 });
             },
-            assigned: true
+            assigned: true, injectable: true
         }
 
         cmp[propertyName] = tempObj;
         if (service) {
             cmp[propertyName] = service;
-            tempObj.load();
-            return
+            return tempObj.load();
         }
-
-        const servicePath = this.#getServicePath(type, svcPath);
+        
+        const servicePath = getServicePath(type, svcPath, cmp.getName());
         if (!StillAppSetup.get()?.services?.get(type)) {
 
             (async () => {
@@ -1188,8 +1254,7 @@ export class BaseComponent extends BehaviorComponent {
                     throw new Error($stillconst.MSG.INVALID_INJECTION.replace('{type}', type).replace('{cmp}', cmp.constructor.name));
 
                 if (service instanceof BaseService) service.parseServiceEvents();
-                else console.log(`It's about controller with ${service.versionId}`);
-
+                
                 StillAppSetup.get()?.services?.set(type, service);
                 handleServiceAssignement(service);
                 Components.emitAction(type);
@@ -1199,7 +1264,7 @@ export class BaseComponent extends BehaviorComponent {
             Components.subscribeAction(
                 type,
                 () => {
-                    const service = this.#getServicePath(type, svcPath, type);
+                    const service = getServicePath(type, svcPath, type);
                     handleServiceAssignement(service);
                 }
             );
@@ -1209,20 +1274,14 @@ export class BaseComponent extends BehaviorComponent {
             service['ready'] = true;
             service['status'] = cmp[propertyName].status;
             service['subscribers'] = cmp[propertyName].subscribers;
-            service['load'] = cmp[propertyName].load;
+            service['load'] = cmp[propertyName]?.load;
             service['on'] = cmp[propertyName].on;
             cmp[propertyName] = service;
             cmp[propertyName].load(service);
         }
-
     }
 
-    #getServicePath(type, svcPath) {
-        let path = svcPath == '' ? StillAppSetup.get().servicePath : '';
-        if (path?.startsWith('/')) path = path.slice(1);
-        if (path?.endsWith('/')) path = path.slice(0, -1);
-        path = getBasePath('service', svcPath) + '' + path;
-        return path + '/' + type + '.js';
+    unload(){
+        ComponentRegistror.desrtroyCmpInstance(this.cmpInternalId);
     }
-
 }

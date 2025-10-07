@@ -22,7 +22,6 @@ export class Template {
         const clsName = 'AppTemplate';
         if (!(clsName in Template.instance))
             Template.instance[clsName] = this;
-
     }
 
     /** @param { DefaultViewComponent } cmp */
@@ -126,7 +125,7 @@ export class Template {
                 <div class="page-loader-wrapper">
                     <div class="loader">
                         <div class="m-t-30"></div>
-                        <p>Por favor, aguarde...</p>
+                        <!-- <p>Por favor, aguarde...</p> -->
                     </div>
                 </div>
                 <div class="still-lds-spinner">
