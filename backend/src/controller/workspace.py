@@ -157,6 +157,11 @@ def message_ai_agent(namespace):
     try:
         payload = request.get_json()
         message = payload['message']
+
+        if(os.path.exists(namespace)):
+            result = 'No agent was started since no data found in the Namespace.'
+            return { 'error': False, 'result': { 'result': result } }
+        
         return send_message_to_agent_wit_groq(message, namespace)
     except Exception as error:
         print(f'AI Agent error while processing your request {str(error)}')
@@ -243,6 +248,12 @@ def setup_agent(user, namespace = None):
         if(not(user in agents_list)):
             selected_namespace = namespace if namespace != None else user
             namespace_folder = BasePipeline.folder+f'/duckdb/{selected_namespace}'
+            if(not os.path.exists(namespace_folder)):
+                return { 
+                    'success': False, 
+                    'error': f'Could not start the Agent, as no data about the namespace exists.', 
+                    'start': False
+                }
             agents_list[user] = Agent(namespace_folder)
 
         return { 'error': False, 'success': True }
@@ -262,8 +273,17 @@ def send_message_to_agent(message, namespace, user_id = None):
 
 def send_message_to_agent_wit_groq(message, namespace, user_id = None):
     user = user_id if user_id != None else namespace
+    if(not(user in agents_list)):
+        return { 
+            'success': False, 
+            'result': "No agent was initiated since you don't have data in the namespace.",
+            'started': False
+        }
+    
     agent: Agent = agents_list[user]
 
+    if(not os.path.exists(agent.db_path)):
+        return { 'success': False, 'result': 'No data, pipeline found in your name space.' }
     return { 'success': True, 'result': agent.cloud_groq_call(message) }
 
 

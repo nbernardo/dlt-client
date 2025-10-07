@@ -155,9 +155,12 @@ class Workspace:
     @staticmethod
     def list_duck_dbs(files_path, user):
 
+        if(not os.path.exists(files_path)):
+            return {'no_data': True }
+        
         skip_tables = ['_dlt_loads','_dlt_pipeline_state','_dlt_pipeline_state','_dlt_version']
 
-        #folder = Workspace.get_duckdb_path_on_ppline()
+        #folder = Workspace.get_duckdb_path_on_ppline()        
         file_list = os.listdir(files_path)
         result = { 'db_path': files_path } 
         tables = None
@@ -203,7 +206,7 @@ class Workspace:
 
                         else:
                             result[_file][k]['fields'].append({ 'name': col_name, 'type': col_type })
-                            
+
                     prev_key = k
                 k = None
 
