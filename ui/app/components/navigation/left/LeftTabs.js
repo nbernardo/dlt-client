@@ -146,7 +146,7 @@ export class LeftTabs extends ViewComponent {
 							${copyClipboardIcin}
 						</span>
 						<span 
-							onclick="self.queryTable('${tableToQuery}','${dbfile}')"
+							onclick="self.queryTable('${dbfile}.duckdb.${tableToQuery}','${dbfile}')"
 							tooltip-x="-130" tooltip="Query ${tableData.table} table"
 						>
 							${tableToTerminaIcon}
@@ -203,11 +203,12 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.controller.startedAgent.setUserPrompt(content)
 	}
 
-	togglePromptPopup(element) {
-
+	togglePromptPopup(element,isContent = false) {		
 		const rect = element.getBoundingClientRect();
-		this.selectedPrompt = element.parentElement.parentElement.querySelector('.tiny-content').innerHTML;
-
+		
+		if(isContent) this.pasteToAgent(element.innerHTML);
+		else this.selectedPrompt = element.parentElement.parentElement.querySelector('.tiny-content').innerHTML;
+		
 		if (this.activeFileDropdown === element) {
 			this.promptSamplesMenu.classList.remove('is-active');
 			this.activeFileDropdown = null;
@@ -234,8 +235,8 @@ export class LeftTabs extends ViewComponent {
         });
 	}
 
-	pasteToAgent(){
-		this.$parent.controller.startedAgent.setUserPrompt(this.selectedPrompt);
+	pasteToAgent(content = null){
+		this.$parent.controller.startedAgent.setUserPrompt(content || this.selectedPrompt);
 		this.hideSelectedPromptMenu();
 	}
 

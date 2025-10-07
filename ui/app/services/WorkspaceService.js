@@ -59,9 +59,9 @@ export class WorkspaceService extends BaseService {
             for (const [database, ppline] of data) {
                 const tablesDetails = Object.values(ppline);
                 for (const tableDetail of tablesDetails) {
-                    //tables.push({ database, table: tableDetail.table });
-                    tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}` });
-                    this.fieldsByTableMap[database] = tableDetail.fields;
+                    const tablePath = `${database}.${tableDetail.dbname}.${tableDetail.table}`
+                    tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}`, tablePath});
+                    this.fieldsByTableMap[tablePath] = tableDetail.fields;
                 }
             }
 

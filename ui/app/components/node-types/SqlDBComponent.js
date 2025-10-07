@@ -62,9 +62,9 @@ export class SqlDBComponent extends ViewComponent {
 
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
-		if(this.isImport !== false){
-			this.setupOnChangeListen();
-		}
+		//if(this.isImport !== false){
+		//	this.setupOnChangeListen();
+		//}
 
 		if(this.isImport === true){	
 			// At this point the WorkSpaceController was loaded by WorkSpace component
@@ -79,6 +79,8 @@ export class SqlDBComponent extends ViewComponent {
 			allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
 			this.dbInputCounter = allTables.length;
 		}
+
+		this.setupOnChangeListen();
 
 	}
 

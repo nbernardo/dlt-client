@@ -6,7 +6,7 @@
 		&nbsp;&nbsp;<div class="separator"></div>&nbsp;&nbsp;
 		<form>
 			<select alias="editorSelectedTable" (value)="databasename" (forEach)="tablesList" placeholder="Select Database">
-				<option each="item" value="{item.database}">{item.table}</option>
+				<option each="item" value="{item.tablePath}">{item.table}</option>
 			</select>
 		</form>
 		&nbsp;&nbsp;

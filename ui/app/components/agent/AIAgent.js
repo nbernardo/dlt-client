@@ -154,7 +154,6 @@ export class AIAgent extends ViewComponent {
 
 		const deltaY = obj.startY - e.clientY;
 		let newHeight = obj.startHeight + deltaY;
-
 		const MIN_HEIGHT = 400;
 		if (newHeight < MIN_HEIGHT) newHeight = MIN_HEIGHT;
 		// Comment to prevent resize for now
@@ -185,6 +184,9 @@ export class AIAgent extends ViewComponent {
 
 	hideAgentUI = () => this.$parent.showOrHideAgent();
 
-	setUserPrompt = (content) => document.getElementById('ai-chat-user-input').value = content;
+	setUserPrompt = (content) => {
+		document.getElementById('ai-chat-user-input').value = content;
+		document.getElementById('ai-chat-user-input').focus();
+	}
 
 }

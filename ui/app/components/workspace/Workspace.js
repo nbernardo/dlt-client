@@ -273,7 +273,6 @@ export class Workspace extends ViewComponent {
 		console.log(data);
 
 		if (update === true) data.update = true;
-
 		return data;
 
 	}
@@ -443,9 +442,7 @@ export class Workspace extends ViewComponent {
 		this.selectedPplineName = pplineName;
 	}
 
-	async logout() {
-		await this.userService.logOut();
-	}
+	logout = async () => await this.userService.logOut();
 
 	verticalResize({ leftWidth }) {
 		const selectedTab = this.selectedLeftTab.value;
@@ -460,9 +457,7 @@ export class Workspace extends ViewComponent {
 		this.showDrawFlow = false;
 	}
 
-	viewFileOnEditor() {
-		this.leftMenuProxy.scriptListProxy.selectedFile;
-	}
+	viewFileOnEditor = () => this.leftMenuProxy.scriptListProxy.selectedFile;
 
 	handlePplineSchedulePopup() {
 		const btnPipelineSchedule = document.getElementById('btnPipelineSchedule');
@@ -520,16 +515,18 @@ export class Workspace extends ViewComponent {
 
 	showOrHideAgent = () => this.openAgent = !this.openAgent;
 
-	async expandDataTableView(databaseParam = null, dbfile = null) {
-		
+	async expandDataTableView(databaseParam = null, dbfile = null, queryTable = null) {		
 		let { fields, data, query, database } = this.controller.aiAgentExpandView;
-		//const { fields, data, query, database } = mockData();
+		//let { fields, data, query, database } = mockData();
 		const parsedFields = (fields || '')?.replaceAll('\n', '')?.split(',')?.map(field => field.trim());
 		const parentId = this.cmpInternalId;
 		data = (data || []);
 
+		if(query)
+			queryTable = query.toLowerCase().split(/ from |\nfrom /)[1].split(/\s|\n/)[0];
+
 		const gridInitData = { fields: parsedFields, data };
-		const editorInitData = { query, fields: parsedFields, data, database, databaseParam, dbfile };
+		const editorInitData = { query, fields: parsedFields, data, database, databaseParam, dbfile, queryTable };
 		const { template: gridUI, component: gridComponent } = await Components.new('Grid', gridInitData, parentId);
 		const { template: editorUI, component: editorCmp } = await Components.new('SqlEditor', editorInitData, parentId);
 
@@ -546,9 +543,9 @@ export class Workspace extends ViewComponent {
 
 		table.innerHTML = gridUI, codeEditor.innerHTML = editorUI;
 		this.popupWindowProxy.openPopup();
+		this.controller.aiAgentExpandView = {};
 		
 	}
-
 }
 
 

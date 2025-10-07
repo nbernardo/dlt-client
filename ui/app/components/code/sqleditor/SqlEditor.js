@@ -48,26 +48,26 @@ export class SqlEditor extends ViewComponent {
 	/** 
 	 * @param {Object} param0 
 	 * @param {String} param0.database  */
-	async stOnRender({ query, database, databaseParam, dbfile }){
-		
+	async stOnRender({ query, database, databaseParam, queryTable }){
+
 		let dbPath = null, databasename = '';
 		if(database){
 			dbPath = database.split('/')
-			databasename = dbPath.pop();
+			databasename = dbPath.pop()+'.'+queryTable;
 		}else if(databaseParam)
-			databasename = `${dbfile}.duckdb`;
+			databasename = databaseParam;
 		
 		this.query = query;
 		const user = this.$parent.userEmail, socketId = this.$parent.socketData.sid;
 		this.tablesList = await this.$parent.service.getParsedTables(user, socketId);
-
-		if(dbPath === null) this.dbpath = this.$parent.service.dbPath.slice(0,-1);
+		this.dbpath = this.$parent.service.dbPath.slice(0,-1);
 		
 		if(this.$parent.service.fieldsByTableMap[databasename.trim()])
 			this.selectedTableFields = this.$parent.service.fieldsByTableMap[databasename.trim()];
 
-		this.database = `${this.dbpath}/${databasename}`;
-		this.databasename = `${dbfile}.duckdb`;
+		const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
+		this.database = `${this.dbpath}/${parseDbFilename}`;
+		this.databasename = databasename;
 	}
 
 	async stAfterInit() {
@@ -92,7 +92,8 @@ export class SqlEditor extends ViewComponent {
 		const query = `SELECT ${fieldsString} FROM ${this.selectedTable} LIMIT 100`
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 
-		this.database = `${this.dbpath}/${databaseName}`;
+		const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
+		this.database = `${this.dbpath}/${parseDbFilename}`;
 	}
 
 	handleHideShowFieldMenu = () => handleHideShowSubmenu('.data-base-fields-submenu', '.submenu');
