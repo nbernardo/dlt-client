@@ -116,17 +116,19 @@ class DuckdbUtil:
 
     db_connections: list[DuckDBPyConnection] = {}
     @staticmethod
-    def get_connection_for(db_filename) -> DuckDBPyConnection:
+    def get_connection_for(_db_filename) -> DuckDBPyConnection:
+        db_filename = _db_filename.replace('//','/')
         if(not(db_filename in DuckdbUtil.db_connections)):
             DuckdbUtil.db_connections[db_filename] = duckdb.connect(f'{db_filename}')
         
         try:
             DuckdbUtil.db_connections[db_filename].query('SELECT 1')
-        except duckdb.InvalidInputException as err:
+            return DuckdbUtil.db_connections[db_filename]
+        except Exception as err:
             print(f'Reconnecting to DB {db_filename}')
             DuckdbUtil.db_connections[db_filename] = duckdb.connect(f'{db_filename}')
-        finally:
             return DuckdbUtil.db_connections[db_filename]
+            
     
     
     @staticmethod

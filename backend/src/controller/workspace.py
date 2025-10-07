@@ -8,9 +8,12 @@ import requests
 import time
 from services.DataQueryAIAssistent import DataQueryAIAssistent as Agent
 from typing import List
+import traceback
+from flask import abort, send_file
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
+file_folder_map = { 'data':'dbs/files', 'pipeline': 'destinations/pipeline'}
 
 @workspace.route('/workcpace/code/run/<user>', methods=['POST'])
 def run_code(user):
@@ -158,6 +161,7 @@ def message_ai_agent(namespace):
     except Exception as error:
         print(f'AI Agent error while processing your request {str(error)}')
         print(error)
+        traceback.print_exc()
         result = 'No medatata was loaded about your namespace.'\
               if str(error).strip() == namespace else 'Could not load details about your namespace.'
         return { 'error': True, 'result': { 'result': result } }
@@ -182,6 +186,23 @@ def message_ai_agent_with_username(namespace, username):
 def setup_job_schedules():
     Workspace.schedule_pipeline_job()
     return ''
+
+
+@workspace.route('/download/<type>/<namespace>/<filename>')
+def download(type, namespace, filename):
+
+    base_path = str(BasePipeline.folder).replace('/destinations','')
+    ppline_path = f'{base_path}/{file_folder_map[type]}/{namespace}/'
+
+    file_path = os.path.join(ppline_path, filename)
+    if not os.path.exists(file_path):
+        abort(404)
+    
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=filename
+    )
 
     
 import os
@@ -226,7 +247,9 @@ def setup_agent(user, namespace = None):
 
         return { 'error': False, 'success': True }
     except Exception as err:
-        print(f'Error while staring the AI agent: {err}')
+        print(f'Error while staring the AI agent: {str(err)}')
+        print(err.with_traceback)
+        traceback.print_exc()
         return { 'error': f'Error while staring AI Agent: {str(err)}', 'success': False }
     
 
@@ -242,3 +265,5 @@ def send_message_to_agent_wit_groq(message, namespace, user_id = None):
     agent: Agent = agents_list[user]
 
     return { 'success': True, 'result': agent.cloud_groq_call(message) }
+
+

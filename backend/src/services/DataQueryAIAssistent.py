@@ -5,7 +5,7 @@ from mistralai import Mistral
 from os import getenv as env
 from utils.duckdb_util import DuckdbUtil
 from services.workspace.Workspace import Workspace
-from groq import Groq
+from groq import Groq, RateLimitError, BadRequestError
 
 class DataQueryAIAssistent:
 
@@ -29,15 +29,15 @@ class DataQueryAIAssistent:
         
 
     SYSTEM_INSTRUCTION = (
-        f"You are a SQL query generator. When a user asks about data."
-        f" Always call this tool before doing anything else." \
-        f" For update the Database metadata/Database/metadata you MUST ALWAYS call 'get_database_update' even if you've answered before." \
-        f" If the query envolves function calling you'll always run the function calling even if it's a previous answered questions."
-        f" If you're asked about tables or metadata or DB/DATABASE SCHEMA, just use the DATABASE SCHEMA loaded, don't query the Database. "
+        f"You are a SQL query generator which will get initial data from DATABASE SCHEMA, and also you might be able to update the schema when asked for it."
         f" At the end of each table columns there is two more metadata, the DB-File and the Schema for table seen above. "
-        f" If asked to query a specific table, you'll do {generate_sql_query} call, and you MAST generate the query enclosed in sql``` and you'll also add the DB-File enclosed in %% of that same table . "
         f" When generating the query, you MUST only output the query, nothing else. Query MUST use all needes fields from table separated by comma, do use *. "
-        f" If for some reason, you're unable to call the function and answering with previous answer, just prefix it with {prev_answered}."
+        f" You'll STRICTLY act according to the following points:"
+        f" 1. You'll function call 'get_database_update' only when asked about update or to update yoursel." \
+        f" 2. If asked to query a specific table, you'll do {generate_sql_query} call, and you MUST generate the query enclosed in sql``` and you'll also add the DB-File enclosed in %% of that same table."
+        f" 3. If your answer involves function calling you'll always run the function calling according to point 1 and 2 even if it's a previous answered questions."
+        f" 4. If you're asked about tables or metadata or DB/DATABASE SCHEMA, just use the loaded DATABASE SCHEMA, don't query the Database. "
+        f" 5. If for some reason, you're unable to call the function and answering with previous answer, just prefix it with {prev_answered}."
         f"\n\n--- DATABASE SCHEMA ---\n%db_schema%\n-----------------------."
     )
 
@@ -165,7 +165,11 @@ class DataQueryAIAssistent:
                 return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
 
         except Exception as e:
+            error = str(e) 
             print(f"\nInternal error occurred: {e}")
+            if error.lower().index('error code:') >= 0 and error.lower().index('400') >= 0:
+                error = "Could not process your request, let's try again, what's your ask?"
+                return { 'answer': 'intermediate', 'result': error }
             return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
             
 
@@ -243,7 +247,17 @@ class DataQueryAIAssistent:
                 #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
                 return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
 
+        except RateLimitError as e:
+            print(f"\nInternal error occurred: {e}")
+            return { 'answer': 'final', 'result': 'AI agent today\'s API call limit reached' }
+        
+        except BadRequestError as e:
+            print(f"\nInternal error occurred: {e}")
+            error = "Could not process your request, let's try again, what's your ask?"
+            return { 'answer': 'final', 'result': error }
+        
         except Exception as e:
+            error = str(e) 
             print(f"\nInternal error occurred: {e}")
             return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
             
@@ -261,7 +275,7 @@ class DataQueryAIAssistent:
         print('THE QUERY WILL BE:')
         print(actual_query)
 
-        if actual_query.index('%%'):
+        if actual_query.index('%%') >= 0:
             actual_query = actual_query.split('%%')[0]
 
         self.messages.append({ 'role': 'assistant', 'content': nl_to_sql_call.choices[0].message.content })
@@ -269,6 +283,7 @@ class DataQueryAIAssistent:
         sql_query = AIDataContentParser.parse_sql(sql_query)
         if sql_query == None:
             return { 'result': 'Could not run the query. Can you refine it?' }
+        print('Going to run the query')
         return { 
             'result': self.run_query(sql_query), 
             'fields': actual_query.lower().split('from')[0].split('select',1)[1],

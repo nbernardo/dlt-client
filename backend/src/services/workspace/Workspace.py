@@ -159,7 +159,9 @@ class Workspace:
 
         #folder = Workspace.get_duckdb_path_on_ppline()
         file_list = os.listdir(files_path)
-        result, tables = {}, None
+        result = { 'db_path': files_path } 
+        tables = None
+        k = None
 
         for _file in file_list:
 
@@ -181,16 +183,27 @@ class Workspace:
                         table = t[2]
                         db_size = t[3]
                         col_count = t[4]
+                        col_name = t[5]
+                        col_type = t[6]
 
-                        k = f'{ppline}-{dbname}-{table}'
+                        if dbname.endswith('_staging'):
+                            continue
 
-                        result[_file][k] = { 
-                            'ppline': ppline,
-                            'dbname': dbname,
-                            'table': table, 
-                            'db_size': db_size,
-                            'col_count': col_count
-                        }
+                        if(k != None):
+                            result[_file][k]['fields'].append({ 'name': col_name, 'type': col_type })
+
+                        elif(k == None):
+                            k = f'{ppline}-{dbname}-{table}'
+                            
+                            result[_file][k] = { 
+                                'ppline': ppline,
+                                'dbname': dbname,
+                                'table': table, 
+                                'db_size': db_size,
+                                'col_count': col_count,
+                                'fields': [{ 'name': col_name, 'type': col_type }]
+                            }
+                k = None
 
         return result
 
@@ -255,9 +268,19 @@ class Workspace:
                         database_name, schema_name, table_name, \
                         estimated_size, column_count FROM \
                         duckdb_tables {where_clause}"
-            print(f'Fetching DuckDb tables: {query}')
+
+            new_query = f'SELECT DISTINCT\
+                        t.database_name, t.schema_name, t.table_name,\
+                        t.estimated_size, t.column_count,\
+                        column_name, data_type \
+                    FROM duckdb_tables t \
+                    JOIN duckdb_columns c ON t.table_name = c.table_name \
+                        {where_clause} \
+                    ORDER BY t.table_name, column_name'
             
-            return { 'tables': cursor.execute(query) }
+            print(f'Fetching DuckDb tables: {new_query}')
+            
+            return { 'tables': cursor.execute(new_query) }
         except duckdb.IOException as err:
             if not(user in Workspace.duckdb_open_errors):
                 Workspace.duckdb_open_errors[user] = []
@@ -269,10 +292,11 @@ class Workspace:
     @staticmethod
     def run_sql_query(database = None, query = None):
         try:
+            print(f'Running query: {query}')           
+            print(f'THE DATABASE IS: {database}')           
             cnx = DuckdbUtil.get_connection_for(f'{database}')
             cursor = cnx.cursor()
             result = cursor.execute(query).fetchall()
-            print(f'Running query: {query}')            
 
             fields = query.lower().split('from')[0].split('select',1)[1]
             return { 'result': result, 'fields': fields }
