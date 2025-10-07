@@ -320,4 +320,19 @@
             font-style: italic;
         }
 
+        .agent-no-start-error, .agent-no-start-msg{
+			padding: 3px;
+			border-radius: 6px;
+			display: flex;
+			font-size: 16px;
+			line-height: 1;
+			font-weight: bold;
+            color:#c60808; padding-top: 10px; padding-bottom: 10px;
+        }
+
+        .agent-no-start-msg{
+			font-size: 14px !important;
+            color:#e89543;
+        }
+
 /** End of AIAgent Output table Styling */

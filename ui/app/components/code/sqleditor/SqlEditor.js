@@ -78,15 +78,14 @@ export class SqlEditor extends ViewComponent {
 			minimap: { enabled: false }, scrollBeyondLastLine: false,
 			fontSize: 14
 		});
-
+		
 		this.handleHideShowFieldMenu();
 		this.databasename.onChange((databaseName) => this.setupEditorQuery(databaseName));
 		if(this.databasename !== null) this.setupEditorQuery(this.databasename.value.trim());
 	}
 
 	setupEditorQuery(databaseName){
-		
-		this.selectedTable = document.querySelector('select[alias=editorSelectedTable]').selectedOptions[0].innerHTML;
+		this.selectedTable = databaseName.split('.duckdb.')[1];
 		this.selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
 		const fieldsString = this.selectedTableFields.value.map(({ name }) => name).join(',');
 		const query = `SELECT ${fieldsString} FROM ${this.selectedTable} LIMIT 100`

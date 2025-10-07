@@ -47,6 +47,10 @@ export class LeftTabs extends ViewComponent {
 
 	/** @Prop */ selectedPrompt = null;
 
+	/** @Prop */ underContructionImg = '/app/assets/imgs/bricks.gif';
+
+	dataFetchilgLabel = 'Fetching Data';
+
 	stAfterInit() {
 
 		this.setUpPromptMenuEvt();
@@ -71,6 +75,11 @@ export class LeftTabs extends ViewComponent {
 		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getDuckDbs(this.$parent.userEmail, this.$parent.socketData.sid);
 		
+		if(response?.no_data){
+			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
+			return;
+		}
+
 		if(response?.error === true){
 			this.dbTreeviewProxy.showLoader = false;
 			for(const err of response.trace) {
@@ -107,6 +116,7 @@ export class LeftTabs extends ViewComponent {
 		
 		this.dbTreeviewProxy.renderTree();
 		this.fetchingPipelineData = false;
+		this.dataFetchilgLabel = '';
 	}
 
 	pipelineTreeViewTemplate(dbfile){
@@ -129,7 +139,7 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	queryTable(dbname, dbfile){
-		this.$parent.expandDataTableView(dbname, dbfile)
+		this.$parent.expandDataTableView(null, dbname, dbfile)
 	}
 
 	async refreshTree(){
@@ -194,9 +204,9 @@ export class LeftTabs extends ViewComponent {
 	/** @template */
 	viewPipelineDiagram(event, dbfile){}
 
-	async startAIAssistant(){
+	async startAIAssistant(retry = false){
 		this.selectTab('content-ai'); 
-		await this.$parent.controller.startAgent();
+		await this.$parent.controller.startAgent(retry);
 	}
 
 	setNewPrompt(content){

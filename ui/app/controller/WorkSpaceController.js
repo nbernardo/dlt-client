@@ -67,10 +67,13 @@ export class WorkSpaceController extends BaseController {
      * */
     static importNodeIdMapping;
 
-    /**
-     * @type { AIAgentExpandViewType }
-     */
-    aiAgentExpandView = {}
+    /** @type { AIAgentExpandViewType } */
+    aiAgentExpandView = {};
+
+    /** @type { Map<Number, AIAgentExpandViewType> } */
+    aiAgentExpandViewMap = new Map();
+
+    aiAgentExpandViewCount = 0;
 
     resetEdges() {
         this.edgeTypeAdded = {};
@@ -80,6 +83,20 @@ export class WorkSpaceController extends BaseController {
         this.cmpIdToNodeIdMap = {};
         this.pplineStatus = {};
         this.editor.nodeId = 1;
+    }
+
+    /** @param { AIAgentExpandViewType } aiAgentExpandView */
+    addAIAgentGridExpand(id){
+        const obj = JSON.parse(JSON.stringify(this.aiAgentExpandView));
+        this.aiAgentExpandViewMap.set(id, obj);
+    }
+
+    /** @returns { AIAgentExpandViewType } */
+    getAIAgentGridExpand(id){
+        const result = this.aiAgentExpandViewMap.get(id);
+        if(!result)
+            return { fields: undefined, data: undefined, query: undefined, database: undefined };
+        return result;
     }
 
     registerEvents() {
@@ -674,7 +691,7 @@ export class WorkSpaceController extends BaseController {
     /** @type { AIAgent } */
     startedAgent = null;
 
-    async startAgent(){  
+    async startAgent(retry = false){  
         if(!this.startedAgent){
             const parentId = this.wSpaceComponent.cmpInternalId;
             const { template, component } = await Components.new('AIAgent', {}, parentId);
@@ -685,7 +702,7 @@ export class WorkSpaceController extends BaseController {
             if(!this.wSpaceComponent.openAgent)
                 this.wSpaceComponent.showOrHideAgent();
 
-            this.startedAgent.startNewAgent();
+            this.startedAgent.startNewAgent(retry);
         }
     }
 

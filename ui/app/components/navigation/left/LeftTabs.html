@@ -95,6 +95,9 @@
             <div class="content-panel content-outputs">
                 <h3>Pipeline Loaded data</h3>
                 <section id="data-panel" class="tab-panel data-panel">
+                    <div style="text-align: center; font-size: 1.3em; width: 96%; color: #da5353;">
+                        @dataFetchilgLabel
+                    </div>
                     <st-element showBullets="false" component="@treeview/StillTreeView" tooltipXPos="10"
                         (onRefreshClick)="refreshTree()" showRefresh="false" tooltipText="Update tree data"
                         proxy="dbTreeviewProxy">
@@ -104,6 +107,13 @@
 
             <div class="content-panel content-data-source">
                 <h3>Your Data sources</h3>
+                <div class="under-contruction-feature">
+                    <img src="@underContructionImg">
+                    Feature under construction
+                    <div class="feature-about">
+                        (DB connections to serve as DLT source)
+                    </div>
+                </div>
             </div>
 
             <div class="content-panel content-diagram">
@@ -128,6 +138,13 @@
 
             <div class="content-panel content-api-catalog">
                 <h3>API Catalog</h3>
+                <div class="under-contruction-feature">
+                    <img src="@underContructionImg">
+                    Feature under construction
+                    <div class="feature-about">
+                        (To hold your APIs to serve as DLT source)
+                    </div>
+                </div>
             </div>
 
             <div class="content-panel content-logs">
@@ -216,6 +233,20 @@
 
 
 <style>
+
+    .under-contruction-feature{
+        padding-bottom: 32px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        img{
+            width: 8em; padding-bottom: 70px; padding-top: 50px;
+        };
+        .feature-about{
+            font-size: 13px; letter-spacing: -.5px;  
+        }
+    }
+
     * {
         margin: 0;
         padding: 0;

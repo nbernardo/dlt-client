@@ -28,6 +28,8 @@ export class AIAgent extends ViewComponent {
 
     /** @Prop */ isThereAgentMessage = false;
 
+    /** @Prop */ startedInstance = null;
+
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
 
@@ -55,9 +57,14 @@ export class AIAgent extends ViewComponent {
 
 	}
 
-	async startNewAgent() {
+	async startNewAgent(retry = false) {
 		try {
-			await WorkspaceService.startChatConversation();
+			this.startedInstance = await WorkspaceService.startChatConversation();
+			
+			if(this.startedInstance.start === false && retry === false){
+				this.createMessageBubble(`<div class="agent-no-start-error">${this.startedInstance.error}</div>`, 'agent', 'DLT Workspace');
+				this.startedInstance = null;
+			}
 		} catch (error) { }
 	}
 
@@ -70,6 +77,17 @@ export class AIAgent extends ViewComponent {
 			event.target.value = '';
 			this.createMessageBubble(message, 'user');
 			this.scrollToBottom();
+						
+			if(this.startedInstance === null){
+				this.startNewAgent(true); /** This will retry to connect with the Agent Backend */
+
+				/** Because retry took place once, if it successfull connects, then the startedInstance won't be null */
+				if(this.startedInstance === null){
+					const result = "No agent was initiated since you don't have data in the namespace.";
+					return this.createMessageBubble(`<div class="agent-no-start-msg">${result}</div>`, 'agent', 'DLT Workspace');
+				}
+			}
+
 			this.createMessageBubble(this.loadingContent(), 'agent');
 			const { result, error: errMessage, success } = await WorkspaceService.sendAgentMessage(message);
 
@@ -87,7 +105,7 @@ export class AIAgent extends ViewComponent {
 					response = 'No data found for the submitted query. Do you want to send another query?';
 				else if (String(response).trim() === this.unloadNamespaceMsg) {
 					// Auto-reconnect to the chats
-					this.$parent.leftMenuProxy.startAIAssistant();
+					this.$parent.leftMenuProxy.startAIAssistant(true);
 					response += `<br>However I've updated myself, let's try again, what's your ask?`
 				}
 			}
@@ -99,7 +117,7 @@ export class AIAgent extends ViewComponent {
 		}
 	}
 
-	createMessageBubble(text, role) {
+	createMessageBubble(text, role, alternateRole = null) {
 		const row = document.createElement('div');
 		row.className = role === 'user' ? 'user-message-row' : 'agent-message-row';
 
@@ -108,7 +126,7 @@ export class AIAgent extends ViewComponent {
 
 		const senderLabel = document.createElement('div');
 		senderLabel.className = 'sender-label';
-		senderLabel.textContent = role === 'user' ? 'You' : 'Agent';
+		senderLabel.textContent = role === 'user' ? 'You' : (alternateRole || 'Agent');
 		bubble.appendChild(senderLabel);
 
 		const textP = document.createElement('p');

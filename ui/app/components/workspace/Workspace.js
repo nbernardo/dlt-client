@@ -515,8 +515,8 @@ export class Workspace extends ViewComponent {
 
 	showOrHideAgent = () => this.openAgent = !this.openAgent;
 
-	async expandDataTableView(databaseParam = null, dbfile = null, queryTable = null) {		
-		let { fields, data, query, database } = this.controller.aiAgentExpandView;
+	async expandDataTableView(tableId, databaseParam = null, dbfile = null, queryTable = null) {		
+		let { fields, data, query, database } = this.controller.getAIAgentGridExpand(tableId);
 		//let { fields, data, query, database } = mockData();
 		const parsedFields = (fields || '')?.replaceAll('\n', '')?.split(',')?.map(field => field.trim());
 		const parentId = this.cmpInternalId;

@@ -20,10 +20,11 @@ export class AIAgentController {
         ).join('');
 
         const scrolingLbl = `<b style="display: block;">Scoll to right if more content is hidden</b>`;
+        const resultId = ++workspaceComponent.controller.aiAgentExpandViewCount;
 
         // Workspace component will parse the event, then inner.expandDataTableView() points to
         // a method that is implemented within itself, hence inner
-        let expandViewLink = `<a href="#" onclick="inner.expandDataTableView()">Expand View</a>`;
+        let expandViewLink = `<a href="#" onclick="inner.expandDataTableView(${resultId})">Expand View</a>`;
         expandViewLink = workspaceComponent.parseEvents(expandViewLink);
 
         const actualTable = `${scrolingLbl}<br>${expandViewLink}
@@ -33,13 +34,14 @@ export class AIAgentController {
                 </table>`;
 
         // Passing data to the controller so it can be accessed by the Workspace component
-        workspaceComponent.controller.aiAgentExpandView.data = data;
-        workspaceComponent.controller.aiAgentExpandView.fields = fields;
-        workspaceComponent.controller.aiAgentExpandView.database = database;
-        setTimeout(() => 
+        setTimeout(() => {
+            workspaceComponent.controller.aiAgentExpandView.data = data;
+            workspaceComponent.controller.aiAgentExpandView.fields = fields;
+            workspaceComponent.controller.aiAgentExpandView.database = database;
             workspaceComponent.controller.aiAgentExpandView.query = AIResponseLinterUtil.formatSQL(actualQuery),
-        0);
-        workspaceComponent.controller.aiAgentExpandView.initialTable = actualTable;
+            workspaceComponent.controller.aiAgentExpandView.initialTable = actualTable;
+            workspaceComponent.controller.addAIAgentGridExpand(resultId);
+        },0);
 
         return actualTable;
 
