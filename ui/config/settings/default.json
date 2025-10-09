@@ -15,7 +15,7 @@
         "domain": "dev-rmnn416pju788hwl.us.auth0.com",
         "clientId": "ZQn76wUMrXrBobMXJY5TONXlxXYVkVVF"
     },
-    "websockerAddr": "wss://dlt-c.cloud:8443/socket.io",
+    "websockerAddr": "wss://dlt-c.cloud:8443/pipeline",
     "baseUrl": "https://dlt-c.cloud:8443",
     "anonymousLogin": false 
 }
