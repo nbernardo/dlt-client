@@ -1,7 +1,8 @@
 {
     "httpClient": {
-        "baseUrl": ""
+        "baseUrl": "http://localhost:8000"
     },
+    "websockerAddr": "ws://127.0.0.1:8000/pipeline",
     "logs": {
         "default": true,
         "error": false,
@@ -15,7 +16,5 @@
         "domain": "dev-rmnn416pju788hwl.us.auth0.com",
         "clientId": "lwfP9CGSSXC3Fvo1vVhHv21Pmm4oLdBG"
     },
-    "websockerAddr": "ws://127.0.0.1:8000/pipeline",
-    "baseUrl": "http://localhost:8000",
     "anonymousLogin": false
 }

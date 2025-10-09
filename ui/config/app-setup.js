@@ -39,12 +39,9 @@ export class StillAppSetup extends StillAppMixin(Components) {
 
     localEnv(){
         this.setConfigFile('dev-https.json');        
-        StillHTTPClient.setBaseUrl(StillAppSetup.config.props.baseUrl);
     }
 
-    cloudEnv(){
-        StillHTTPClient.setBaseUrl('https://dlt-client.onrender.com');
-    }
+    cloudEnv(){ /* Will use the default.json condigurations file */ }
 
     async init() {
         if((await UserService.isAuthenticated()))
