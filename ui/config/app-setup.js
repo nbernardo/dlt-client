@@ -38,8 +38,8 @@ export class StillAppSetup extends StillAppMixin(Components) {
     }
 
     localEnv(){
-        StillHTTPClient.setBaseUrl('http://localhost:8000');
-        this.setConfigFile('dev.json');
+        this.setConfigFile('dev-https.json');        
+        StillHTTPClient.setBaseUrl(StillAppSetup.config.props.baseUrl);
     }
 
     cloudEnv(){
