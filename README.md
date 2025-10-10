@@ -1,5 +1,5 @@
 
-<img src="/dlt-client/ui/app/assets/imgs/dlt-client-logo-white.png" width="150">
+<img src="assets/dlt-client-logo-white.png" width="150">
 
 <br>
 
@@ -71,8 +71,10 @@ After cloning/downloading the repository follow the steps a bellow:
 4. python src/app.py <span style="color: lightgray;">//running the application</span>
 
 Expected output:
+
 <img src="assets/image.png">
 
+<br>
 
 **NOTE (Environment variables):** 
 > **APP_SRV_ADDR** is the address of the application itself, this is used by task schedule which is used to schedule DLT pipeline.
@@ -96,6 +98,7 @@ Expected output:
 3. st serve <span style="color: lightgray;">//running the frontend</span>
 
 Expected output:
+
 <img src="assets/ui-run.png" style="width:580px;">
 
 
@@ -123,8 +126,7 @@ Expected output:
 
 Follow bellow the result with anonymous login:
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/kuWiyqPkfY4" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
+<img src="assets/anon-login.png" style="width:580px;">
 
 <br>
 <br>
