@@ -129,7 +129,13 @@ export class WorkSpaceController extends BaseController {
         this.editor.editor_mode = "edit";
     }
 
-    drag(ev) {
+    drag(ev, disabled) {
+        if(disabled === 'yes'){
+            return this.showDialog(
+                'This node type is not yet available', 
+                { type: 'ok', title: 'Unavailable feature' }
+            );
+        }
         if (ev.type === "touchstart") {
             this.mobileItemSelec = ev.target.closest(".drag-drawflow").getAttribute('data-node');
         } else {

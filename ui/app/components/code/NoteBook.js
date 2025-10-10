@@ -75,6 +75,10 @@ export class NoteBook extends ViewComponent {
 			} else if (e.target.classList.contains('add-cell-below-btn')) {
 				this.controller.addCell(window.monaco, cellId, 'below');
 			} else if (e.target.classList.contains('play-arrow-btn')) {
+				return this.$parent.controller.showDialog(
+					'Pipeline modification needs to be done through the diagram, not through code.',
+					{ title: 'Pipeline alteration', type: 'ok' }
+				);
 				this.controller.runCell(cellId, e.target.getAttribute('filename'));
 			} else if (e.target.classList.contains('delete-cell-btn')) {
 				this.controller.deleteCell(cellId);
