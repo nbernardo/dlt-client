@@ -10,19 +10,15 @@ export class FileUpload extends ViewComponent {
 
 	isPublic = true;
 
-	/** @Prop */
-	fileInfo;
-	/** @Prop */
-	filesList;
-	/** @Prop */
-	fileCount;
-	/** @Prop */
-	selectedFiles = [];
+	/** @Prop */ fileInfo;
+	/** @Prop */ filesList;
+	/** @Prop */ fileCount;
+	/** @Prop */ selectedFiles = [];
+	/** @Prop */ isUploading = false;
 
 	/**
 	 * @Inject  @Path services/
-	 * @type { WorkspaceService }
-	 */
+	 * @type { WorkspaceService } */
 	wSpaceService;
 
 	/** @Delayed 1s */
@@ -82,9 +78,7 @@ export class FileUpload extends ViewComponent {
         function addFiles(files) {
             files.forEach(file => {
                 const duplicate = obj.selectedFiles.find(f => f.name === file.name && f.size === file.size);
-                if (!duplicate) {
-                    obj.selectedFiles.push(file);
-                }
+                if (!duplicate) obj.selectedFiles.push(file);
             });
             obj.updateFilesDisplay();
         }
@@ -136,7 +130,7 @@ export class FileUpload extends ViewComponent {
 	}
 
 	async uploadFiles() {
-		
+		this.isUploading = true;
 		if (this.selectedFiles.length > 0) {
 
 			const formData = new FormData();
@@ -160,6 +154,8 @@ export class FileUpload extends ViewComponent {
 				
 			} catch (error) {
 				AppTemplate.toast.error(`File(s) upload failed: ${error.message}`);
+			}finally{
+				this.isUploading = false;
 			}
 		}
 	}

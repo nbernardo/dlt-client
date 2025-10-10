@@ -260,6 +260,22 @@
         margin-bottom: 10px;
         font-weight: bold;
     }
+
+    .upload-triggered-info{
+        height: 55vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-top: -10px;
+        .uploading-file-loader{
+            width: 32px; height: 21px; margin: 0 auto; margin-top: 20px;
+            .mini-loader-dot{
+                width: 19px; height: 13px; background-color: #2c3e50;
+            }
+        }
+    }
+
 </style>
 
 <div class="upload-wrapper">
@@ -282,12 +298,25 @@
 
     <input type="file" id="fileInput" class="file-input" multiple>
 
-    <div class="file-info" style="position: absolute; top: 0; width: 91%; z-index: 2;" id="fileInfo">
-        <div class="file-count" id="fileCount"></div>
-        <div class="files-list" id="filesList"></div>
-        <div class="file-actions">
-            <button type="button" class="clear-all-btn" onclick="component.clearAllFiles()">Clear All</button>
-            <button type="button" class="upload-all-btn" onclick="component.uploadFiles()">Upload Files</button>
-        </div>
+    <div class="file-info" style="position: absolute; top: 0; width: 91%; z-index: 2; min-height:100px;" id="fileInfo">
+        <span (showIf)="self.isUploading">
+            <div style="height: 55vh; " class="upload-triggered-info">
+                <div class="mini-loader-container uploading-file-loader">
+                    <div class="mini-loader-dot"></div>
+                    <div class="mini-loader-dot"></div>
+                    <div class="mini-loader-dot"></div>
+                </div>
+                Upload in progress...
+            </div>
+        </span>
+
+        <span (showIf)="!self.isUploading">
+            <div class="file-count" id="fileCount"></div>
+            <div class="files-list" id="filesList"></div>
+            <div class="file-actions">
+                <button type="button" class="clear-all-btn" onclick="component.clearAllFiles()">Clear All</button>
+                <button type="button" class="upload-all-btn" onclick="component.uploadFiles()">Upload Files</button>
+            </div>
+        </span>
     </div>
 </div>
