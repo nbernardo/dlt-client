@@ -11,12 +11,14 @@ export class StillAppSetup extends StillAppMixin(Components) {
         super();
         this.setHomeComponent(Workspace);
 
-        if(window.location.href.includes('.onrender')){
-            this.cloudEnv();
-        }else{
-            this.localEnv();
-        }
+        const isCloud = window.location.href.toString().startsWith('dlt-c.cloud') 
+            || window.location.hostname.toString().startsWith('dlt-client-ui.onrender.com');
 
+        if(isCloud) 
+            this.cloudEnv();
+        else 
+            this.localEnv();
+        
         this.prefetchComponent();
     }
 
