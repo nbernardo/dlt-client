@@ -65,9 +65,9 @@ After cloning/downloading the repository follow the steps a bellow:
 1. cd backend/ <span style="color: lightgray;">//From the root of project</span>
 2. pip install -r requirements.txt <span style="color: lightgray;">//Dependencies installation</span>
 3. change the ***src/.env*** accordingly or leave it as default:
-    ALLOW_ORIGINS=http://127.0.0.1:8080, http://localhost:8080
-    APP_SRV_ADDR=http://localhost:8000
-    GROQ_API_KEY=    
+    - ALLOW_ORIGINS=http://127.0.0.1:8080, http://localhost:8080
+    - APP_SRV_ADDR=http://localhost:8000
+    - GROQ_API_KEY=    
 4. python src/app.py <span style="color: lightgray;">//running the application</span>
 
 Expected output:
