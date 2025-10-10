@@ -1,13 +1,15 @@
 from flask_socketio import SocketIO, emit, Namespace
 from datetime import datetime
 from utils.FileVersionManager import FileVersionManager
+from os import getenv as env
+
+origins = [str(origin).strip() for origin in env('ALLOW_ORIGINS').split(',')]
 
 class PiplineNamespace(Namespace):
     def on_connect(self): pass
     def on_disconnect(self, reason): pass
 
-socketio = SocketIO(cors_allowed_origins=["https://dlt-client-ui.onrender.com", "http://127.0.0.1:8080", "http://localhost:8080"],
-                    logger=True, engineio_logger=True, async_mode='threading')
+socketio = SocketIO(cors_allowed_origins=origins,logger=True, engineio_logger=True, async_mode='threading')
 
 socketio.on_namespace(PiplineNamespace('/pipeline'))
 
@@ -24,7 +26,7 @@ class RequestContext:
     def __init__(self, ppline_name=None, socket_sid=None, file_manager: FileVersionManager  = None):
         self.ppline_name = ppline_name
         self.exceptions = []
-        self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
+        #self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
         self.socket_sid = socket_sid
         self.user = None
         self.transformation = None

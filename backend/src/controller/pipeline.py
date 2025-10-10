@@ -15,13 +15,9 @@ class BasePipeline:
 
 @pipeline.route('/pipeline/create', methods=['POST','PUT'])
 def create():
-    """
-    This is pipeline creation request handler
-    """
+    """ This is pipeline creation request handler """
     
     payload = request.get_json()
-    print('THIS IS THE CONTENT')
-    print(payload)
     
     pipeline_name, pipeline_lbl = set_pipeline_name(payload)
     context = RequestContext(pipeline_name, payload['socketSid'])
@@ -79,9 +75,6 @@ def create_new_ppline(fst_connection,
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
         template = template.replace(data[0], str(value))
-
-    print('TEMPLATE FINAL IS')
-    print(template)
 
     if len(context.exceptions) > 0:
         message = list(context.exceptions[0].values())[0]['message']

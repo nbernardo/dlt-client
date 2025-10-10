@@ -40,7 +40,7 @@ class DuckDBOutput(TemplateNodeType):
         """
         Check if the table already exists
         """
-        path = self.context.ppline_files_path
+        path = self.context.ppline_path
         cnx, error = None, None
 
         if os.path.exists(f'{path}/{self.context.ppline_name}.duckdb'):
