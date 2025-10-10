@@ -4,30 +4,25 @@ export class ObjectType extends ViewComponent {
 
 	isPublic = true;
 
-	/** @Prop */
-	typeName;
+	/** @Prop */ typeName;
 
-	/** @Prop */
-	icon;
+	/** @Prop */ icon;
 
-	/** @Prop */
-	label;
+	/** @Prop */ label;
 
-	/** @Prop */
-	imgIcon;
+	/** @Prop */ imgIcon;
 
-	/** @Prop */
-	source = true;
+	/** @Prop */ source = true;
 
-	/** @Prop */
-	dest = true;
+	/** @Prop */ dest = true;
 
+	/** @Prop */ disable = 'no';
 
 	template = `
 		<div 
 			class="drag-drawflow" 
 			draggable="true" 
-			ondragstart="controller('WorkSpaceController').drag(event)" 
+			ondragstart="controller('WorkSpaceController').drag(event, '@disable')" 
 			data-node="@typeName"
 			data-lbl="@label"
 			data-icon="@icon"

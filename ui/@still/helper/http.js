@@ -33,10 +33,17 @@ export class StillHTTPClient {
     async get(path, options = {}) {
         const url = StillHTTPClient.getURL(path);
         const { headers, method } = options;
-        return (await fetch(url, {
-            method: method || 'GET',
-            headers: headers || {},
-        }))
+
+        try {            
+            const response = (await fetch(url, {
+                method: method || 'GET',
+                headers: headers || {},
+            }))
+            return response;
+        } catch (error) {
+            return error;
+        }
+
     }
 
     /**
@@ -47,11 +54,16 @@ export class StillHTTPClient {
         const url = StillHTTPClient.getURL(path);
         //return await this.get(url, { ...options, method: 'DELETE' })
         const { headers } = options;
-        return (await fetch(url, {
-            method: 'DELETE',
-            body,
-            headers: headers || {},
-        }));
+        try {            
+            const response = (await fetch(url, {
+                method: 'DELETE',
+                body,
+                headers: headers || {},
+            }));
+            return response;
+        } catch (error) {
+            return error;
+        }
     }
 
     /**
@@ -62,11 +74,16 @@ export class StillHTTPClient {
     async post(path, body, options = {}) {
         const url = StillHTTPClient.getURL(path);
         const { headers, method } = options;
-        return (await fetch(url, {
-            method: method || 'POST',
-            body,
-            headers: headers || {},
-        }));
+        try {            
+            const response = (await fetch(url, {
+                method: method || 'POST',
+                body,
+                headers: headers || {},
+            }));
+            return response;
+        } catch (error) {
+            return error
+        }
     }
 
     /**
