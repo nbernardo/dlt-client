@@ -75,8 +75,9 @@ export class LeftTabs extends ViewComponent {
 		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getDuckDbs(this.$parent.userEmail, this.$parent.socketData.sid);
 		
-		if(response?.no_data){
+		if(response?.no_data || Object.keys(response).length === 0){
 			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
+			this.fetchingPipelineData = false;
 			return;
 		}
 
@@ -86,6 +87,7 @@ export class LeftTabs extends ViewComponent {
 				this.$parent.logProxy.appendLogEntry('error', err, Date.now());
 			}
 			this.$parent.logProxy.lastLogTime = null;
+			this.fetchingPipelineData = false;
 			return AppTemplate.toast.error(response.message);
 		}
 		
@@ -177,7 +179,7 @@ export class LeftTabs extends ViewComponent {
 		}
 
 		if(tab === 'content-ppline-script'){
-			this.scriptListProxy.noFilesMessage = 'No pipeline found';
+			this.scriptListProxy.noFilesMessage = 'No pipeline script found';
 			this.scriptListProxy.filesList = await this.getPplineFiles();
 			this.scriptListProxy.setUpFileMenuEvt();
 		}

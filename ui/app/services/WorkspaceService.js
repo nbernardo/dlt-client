@@ -87,7 +87,7 @@ export class WorkspaceService extends BaseService {
 
     async getDuckDbs(user, socketId) {
 
-        if (this.tableListStore.value == null) {
+        //if (this.tableListStore.value == null) {
             const url = '/workcpace/duckdb/list/' + user + '/' + socketId;
             const response = await $still.HTTPClient.post(url, null, {
                 headers: { 'Content-Type': 'application/json' }
@@ -95,7 +95,7 @@ export class WorkspaceService extends BaseService {
             const { db_path, ...tables } = await response.json();
             this.dbPath = db_path;
             this.tableListStore = tables;
-        }
+        //}
         return this.tableListStore.value;
         
     }

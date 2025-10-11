@@ -52,6 +52,7 @@ Either run straight in the machine or create virtual environment and point it to
 Install Still-cli or just serve with a Webserver like Nginx/Apache
 
 &nbsp;&nbsp;&nbsp;&nbsp;Option1 (Stilljs): npm install @stilljs/cli <span style="color: lightgray;">//Requires Nodejs and NPM</span>
+
 &nbsp;&nbsp;&nbsp;&nbsp;Option2 (Nginx): [Linux/Mac](https://nginx.org/en/docs/install.html), [Windows](https://nginx.org/en/docs/windows.html)
 
 

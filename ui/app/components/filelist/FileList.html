@@ -1,6 +1,6 @@
 <div class="file-list-wrapper">
 	<ol class="tiny-menu">
-        @if(this.filesList === null)
+        @if(this.filesList === null || Object.keys(this.filesList).length === 0)
             <div style="color: #ffffffbd !important; text-align: center;">@noFilesMessage</div>
         @endif
 
