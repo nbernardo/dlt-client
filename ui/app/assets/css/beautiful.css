@@ -780,3 +780,27 @@ button[disabled]:hover {
 }
 
 /** End of SQL EDITOR Styling */
+
+
+
+/** PPline name validation */
+
+#pplineNamePlaceHolder{
+    height: 30px;
+    margin-top: 5px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 9px;
+}
+
+.invalida-ppline-name {
+     animation: invalidapplinename 1s infinite;
+}
+
+@keyframes invalidapplinename {
+    0%, 100% { background-color: white; }
+    50% { background-color: #e85a5a9a; }
+}
+
+/** End PPline name validation */

@@ -215,8 +215,10 @@ export class Workspace extends ViewComponent {
 
 		if (!this.controller.isTherePipelineToSave()) return null;
 
-		if (this.activeGrid.value === 'Enter pipeline name')
+		if (this.activeGrid.value === 'Enter pipeline name'){
+			document.getElementById('pplineNamePlaceHolder').classList.add('invalida-ppline-name');
 			return AppTemplate.toast.error('Please enter a valid pipeline name');
+		}
 
 		if (this.wasDiagramSaved)
 			return this.controller.twiceDiagramSaveAlert('save');
@@ -291,8 +293,16 @@ export class Workspace extends ViewComponent {
 	}
 
 	onPplineNameKeyPress(e) {
+		document.getElementById('pplineNamePlaceHolder').classList.remove('invalida-ppline-name');
 		if (e.key === 'Enter') {
 			e.preventDefault();
+			if(e.target.innerText.replace(/\n|\s/g,'') === ''){
+				document.getElementById('pplineNamePlaceHolder').classList.add('invalida-ppline-name');
+				AppTemplate.toast.error('Please enter valid/not empty pipeline name');
+				this.activeGrid = 'Enter pipeline name';
+				e.target.innerText = 'Enter pipeline name';
+				return;
+			}
 			this.activeGrid = e.target.innerText;
 			e.target.blur();
 			e.target.style.fontWeight = 'bold';
