@@ -19,5 +19,5 @@ dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
 # Bellow mapping: schema = DuckDBOutput.duckdb_dest
 pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%, destination=dest)
 
-info = pipeline.run(reader)
+info = pipeline.run(reader,write_disposition="merge")
 print(info, flush=True)
