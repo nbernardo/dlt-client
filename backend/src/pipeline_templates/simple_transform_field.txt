@@ -31,6 +31,10 @@ try:
     # Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
     transformed_source = (files | read_csv_and_transform_fields()).with_name(%duck_dest_table%)
 
+if %primary_key% != 'UNDEFINED':
+    # Bellow mapping: primary_key = Bucket.primary_key
+    transformed_source.apply_hints(primary_key=%primary_key%)
+
     # Usr_folder: The user name sent in the request
     # Dbfile_name: This is also mapped to the pipeline_name
     dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");

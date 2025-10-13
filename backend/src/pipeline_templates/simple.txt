@@ -8,6 +8,10 @@ print('Files/Bucket loaded', flush=True)
 # Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
 reader = (files | read_csv()).with_name(%duck_dest_table%)
 
+if %primary_key% != 'UNDEFINED':
+    # Bellow mapping: primary_key = Bucket.primary_key
+    reader.apply_hints(primary_key=%primary_key%)
+
 # Usr_folder: The user name sent in the request
 # Dbfile_name: This is also mapped to the pipeline_name
 dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");

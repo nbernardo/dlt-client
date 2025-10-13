@@ -31,12 +31,18 @@ class Bucket(TemplateNodeType):
             self.context.emit_start(self, '')
             # bucket_url is mapped in /pipeline_templates/simple.txt
             self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
+
             # file_pattern is mapped in /pipeline_templates/simple.txt
-            self.file_pattern = data['filePattern']
+            file_path = data['filePattern'].split('.')
+            file_pattern_name = ''.join(file_path[0:-1])+'*.'+file_path[-1]
+            self.file_pattern = file_pattern_name
+
             # To point to the 
             self.bucket_file_source = data['bucketFileSource']
             if(str(data['bucketFileSource']).endswith('.csv') and not str(data['bucketFileSource']).endswith('*.csv')):
                 self.bucket_file_source = data['bucketFileSource'].replace('.csv','*.csv')
+            # primary_key is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
+            self.primary_key = data.get('primaryKey', 'UNDEFINED')
             
         except Exception as error:
             self.notify_failure_to_ui('Bucket',error)
