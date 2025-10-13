@@ -59,8 +59,10 @@
 							</div>
 						</div>
 					</div>
-	
 				</span>
+
+				<p>Resource Primary key:</p>
+				<input type="text" (value)="sourcePrimaryKey" (required)="true" placeholder="Ex: transactions_id">
 	
 				<span (showIf)="self.showBucketUrlInput == 2">
 					<input type="text" (value)="filePattern" class="file-pattern-inpt-@formWrapClass" placeholder="Ex: transactions*.csv">

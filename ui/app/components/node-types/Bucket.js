@@ -20,6 +20,7 @@ export class Bucket extends ViewComponent {
 	filePattern;
 	bucketFileSource;
 	selectedFilePattern;
+	sourcePrimaryKey;
 
 	/** @Prop */
 	showBucketUrlInput = 1;
@@ -114,17 +115,18 @@ export class Bucket extends ViewComponent {
 			this.bucketUrl = 'user_folder';
 		});
 
-		this.filePattern.onChange(async (newValue) => {
-			const data = WorkSpaceController.getNode(this.nodeId).data;
-			data['filePattern'] = newValue;
-		});
+		this.filePattern.onChange(async (newValue) => this.setNodeData('filePattern', newValue));
 
 		this.provider.onChange((newValue) => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['provider'] = newValue;
 		});
+
+		this.sourcePrimaryKey.onChange(newValue => this.setNodeData('primaryKey', newValue));
 	}
 
+	setNodeData = (field, value) => WorkSpaceController.getNode(this.nodeId).data[field] = value;
+	
 	getMyData() {
 		const data = WorkSpaceController.getNode(this.nodeId);
 		WorkSpaceController.getNode(this.nodeId).html = '';
