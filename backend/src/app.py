@@ -15,6 +15,7 @@ from controller.workspace import workspace, call_scheduled_job
 from controller.file_upload import upload, BaseUpload
 from utils.duckdb_util import DuckdbUtil
 from os import getenv as env
+from utils.cache_util import DuckDBCache
 
 BaseUpload.upload_folder = str(Path(__file__).parent.parent)+'/dbs/files'
 BasePipeline.folder = str(Path(__file__).parent.parent)+'/destinations'
@@ -38,6 +39,7 @@ app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
 app.register_blueprint(upload)
 call_scheduled_job()
+DuckDBCache.connect()
 # allow_unsafe_werkzeug=True - Because of Docker
 port=env('APP_SRV_ADDR').split(':')[-1]
 socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)

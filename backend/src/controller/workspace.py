@@ -10,6 +10,7 @@ from services.DataQueryAIAssistent import DataQueryAIAssistent as Agent
 from typing import List
 import traceback
 from flask import abort, send_file
+from utils.cache_util import DuckDBCache
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -66,6 +67,9 @@ def run_sql_query():
     payload = request.get_json()
     database = payload['database']
     query = payload['query']
+    if DuckDBCache.get(database) != None:
+        message = 'The database selected to query is in use by a pipeline JOB, pleas wait until it gets completed.'
+        return { 'error': True, 'result': message }
     result = Workspace.run_sql_query(database, query)
     return result
 

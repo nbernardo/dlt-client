@@ -60,6 +60,17 @@ class DuckdbUtil:
 
 
     @staticmethod
+    def create_cache_table():
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = "CREATE TABLE IF NOT EXISTS cache (\
+                key VARCHAR PRIMARY KEY,\
+                value VARCHAR,\
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP\
+                )"
+        cnx.execute(query)
+
+
+    @staticmethod
     def create_namespace_user_table():
         cnx = DuckdbUtil.get_workspace_db_instance()
         query = "CREATE TABLE IF NOT EXISTS users (\

@@ -8,6 +8,7 @@ from typing import Dict
 from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
 from utils.duckdb_util import DuckdbUtil
+from utils.cache_util import DuckDBCache
 import uuid
 from datetime import datetime
 
@@ -282,9 +283,10 @@ class DltPipeline:
         job_execution_id = uuid.uuid4()
 
         try:
-
             ppline_file = f'{destinations_dir}/{file_path}.py'
             db_root_path = destinations_dir.replace('pipeline','duckdb')
+            # DB Lock in the pplication level
+            DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{file_path}.duckdb')
             print('####### WILL RUN JOB FOR '+file_path)
 
@@ -343,8 +345,12 @@ class DltPipeline:
             ppline_name = str(file_path).replace(f'{namespace}/','')
             DltPipeline.update_pipline_runtime(namespace,ppline_name,dt)
 
+            # DB Lock release in the pplication level
+            DuckDBCache.remove(f'{db_root_path}/{file_path}.duckdb')
         
         except Exception as err:
+            # DB Lock release in the pplication level
+            DuckDBCache.remove(f'{db_root_path}/{file_path}.duckdb')
             message = f'Error while running job for {file_path.split('/')[1]} pipeline'
             context.emit_ppline_job_trace(message,error=True)
             context.emit_ppline_job_trace(err.with_traceback,error=True)
