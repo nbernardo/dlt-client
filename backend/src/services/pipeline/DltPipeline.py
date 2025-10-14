@@ -277,16 +277,17 @@ class DltPipeline:
     processed_job = { 'start': {}, 'end': {} }
     @staticmethod
     def run_pipeline_job(file_path, namespace):
-        
+        ppline_file = f'{destinations_dir}/{file_path}.py'
+        db_root_path = destinations_dir.replace('pipeline','duckdb')
+        # DB Lock in the pplication level
+        DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
+
         socket_id = DuckdbUtil.get_socket_id(namespace)
         context = RequestContext(None, socket_id)
         job_execution_id = uuid.uuid4()
 
         try:
-            ppline_file = f'{destinations_dir}/{file_path}.py'
-            db_root_path = destinations_dir.replace('pipeline','duckdb')
-            # DB Lock in the pplication level
-            DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
+            
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{file_path}.duckdb')
             print('####### WILL RUN JOB FOR '+file_path)
 

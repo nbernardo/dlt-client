@@ -10,6 +10,7 @@ from controller.pipeline import BasePipeline
 from services.pipeline.DltPipeline import DltPipeline
 import schedule
 import time as timelib
+from utils.cache_util import DuckDBCache
 
 pattern = r'^use.*$'
 
@@ -173,6 +174,14 @@ class Workspace:
                 if _file not in result:
                     result[_file] = {}
 
+                if DuckDBCache.get(f'{files_path}{_file}') != None:
+                    result[_file][k] = { 
+                        'ppline': str(_file).replace('.duckdb',''),
+                        'dbname': None, 'table': [], 'db_size': None, 'col_count': 0, 'fields': [],
+                        'flag': 'Pipeline tables in use by another process/Job'
+                    }
+                    continue
+
                 tables_list = Workspace.get_tables(f'{files_path}/{_file}',None, user)
 
                 if 'error' in tables_list: 
@@ -303,10 +312,17 @@ class Workspace:
 
             fields = query.lower().split('from')[0].split('select',1)[1]
             return { 'result': result, 'fields': fields }
-        except duckdb.IOException as err:
+        
+        except duckdb.ParserException as err:
+
             print(f'Error while running query: {query}')
             print(str(err))
-            return { 'error': True, 'result': str(err) }
+            return { 'error': True, 'result': str(err), 'code': 'err' }
+        except duckdb.IOException as err:
+
+            print(f'Error while accessing the DB: query: {query}')
+            print(str(err))
+            return { 'error': True, 'result': str(err), 'code': 'err' }
     
     
     @staticmethod
