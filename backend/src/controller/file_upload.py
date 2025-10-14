@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from pathlib import Path
-from services.workspace.Workspace import Workspace
+from utils.duckdb_util import DuckdbUtil
+from os import getenv as env
 import os
 
 upload = Blueprint('upload', __name__)
@@ -19,6 +19,17 @@ def upload_files():
     uploaded_files = []
     user = request.form['user']
     files_path = BaseUpload.upload_folder+'/'+user
+
+    total_files = len(os.listdir(files_path))
+    upload_limit = int(env('TOTAL_ALLOWED_UPLOADS'))
+
+    if(total_files >= upload_limit and not(upload_limit == -1)):
+        return jsonify({
+            'error': f"You've reached the limit of amount of {upload_limit} file uploads", 
+            'exceed_limit': True,
+            'limit_size': upload_limit
+        }), 400
+    
     os.makedirs(files_path, exist_ok=True)
     if 'files' not in request.files:
         return jsonify({'error': 'No files selected'}), 400
