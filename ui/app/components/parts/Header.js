@@ -64,7 +64,7 @@ export class Header extends ViewComponent {
 		this.scheduledPipelines.onChange(val => this.scheduledPipelinesCount = val.length || 0);
 
 		this.workspaceService.on('load', async () => {
-			await this.getScheduleList();
+			await this.getInitData();
 			this.showScheduleCounter = true;
 		});
 
@@ -73,10 +73,12 @@ export class Header extends ViewComponent {
 		this.handleScheduledPplineHideShow();
 	}
 
-	async getScheduleList(){
+	async getInitData(){
 
-		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
-		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.data;			
+		const namespaceInitData = await WorkspaceService.getPipelineInitialData();
+		
+		this.workspaceService.aiAgentNamespaceDetails = namespaceInitData.ai_agent_namespace_details;
+		this.workspaceService.schedulePipelinesStore = namespaceInitData.schedules.data;			
 		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value;			
 		this.scheduledPipelinesCount = this.workspaceService.schedulePipelinesStore.value.length;
 

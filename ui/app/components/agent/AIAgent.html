@@ -10,6 +10,15 @@
 			<p class="description-text">
 				Type your query regarding your data and pipelines to get the results according <br>(e.g. <i>Show me all data from company.employee table which gender field is Male</i>)
 			</p>
+			<div class="ai-agent-sent-messages-count">
+				<div style="display: flex;">
+					<div style="width: 100%; font-size: 13px;">Total messages:&nbsp;</div><div>@sentMessagesCount</div>
+				</div>
+				<div (showIf)="self.showLimitReachedWarn" class="ai-agent-chat-limit-reached">
+					<img width="20" src="/app/assets/imgs/exclamation-triangle-svgrepo-com.svg"/> 
+					Today's limit reached
+				</div>
+			</div>
 		</span>
 
 		<textarea

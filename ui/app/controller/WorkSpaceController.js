@@ -699,11 +699,15 @@ export class WorkSpaceController extends BaseController {
     /** @type { AIAgent } */
     startedAgent = null;
 
-    async startAgent(retry = false){  
+    async startAgent(retry = false){ 
         if(!this.startedAgent){
+            
+            const totalMessages = this.wSpaceComponent.service.aiAgentNamespaceDetails.conversation_count;
+            const messageCountLimit = this.wSpaceComponent.service.aiAgentNamespaceDetails.user_message_count_limit;
+
             const parentId = this.wSpaceComponent.cmpInternalId;
-            const { template, component } = await Components.new('AIAgent', {}, parentId);
-            this.startedAgent = component;      
+            const { template, component } = await Components.new('AIAgent', {totalMessages, messageCountLimit}, parentId);
+            this.startedAgent = component;   
             document.querySelector('.ai-agent-placeholder').insertAdjacentHTML('beforeend', template);
             this.wSpaceComponent.showOrHideAgent();
         }else{

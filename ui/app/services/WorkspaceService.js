@@ -24,6 +24,7 @@ export class WorkspaceService extends BaseService {
     table = new ServiceEvent([]);
     tableListStore = new ServiceEvent(null);
     fieldsByTableMap = {};
+    aiAgentNamespaceDetails = {};
     dbPath = null;
     parsedTableListStore = new ServiceEvent([]);
     schedulePipelinesStore = new ServiceEvent([]);
@@ -212,6 +213,17 @@ export class WorkspaceService extends BaseService {
         const namespace = await UserService.getNamespace();
         const url = '/workcpace/ppline/schedule/' + namespace;
         const response = await $still.HTTPClient.get(url);
+        
+        if (response.ok && !response.error)
+            return await response.json();
+        return null;
+    }
+
+    static async getPipelineInitialData() {
+        const namespace = await UserService.getNamespace();
+        const url = '/workcpace/init/' + namespace;
+        const response = await $still.HTTPClient.get(url);
+        
         if (response.ok && !response.error)
             return await response.json();
         return null;
