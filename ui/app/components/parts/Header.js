@@ -81,6 +81,7 @@ export class Header extends ViewComponent {
 		this.workspaceService.schedulePipelinesStore = namespaceInitData.schedules.data;			
 		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value;			
 		this.scheduledPipelinesCount = this.workspaceService.schedulePipelinesStore.value.length;
+		this.workspaceService.totalPipelines = namespaceInitData.total_pipelines;
 
 	}
 

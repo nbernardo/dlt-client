@@ -25,6 +25,7 @@ export class WorkspaceService extends BaseService {
     tableListStore = new ServiceEvent(null);
     fieldsByTableMap = {};
     aiAgentNamespaceDetails = {};
+    totalPipelines = 0;
     dbPath = null;
     parsedTableListStore = new ServiceEvent([]);
     schedulePipelinesStore = new ServiceEvent([]);
