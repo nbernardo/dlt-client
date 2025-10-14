@@ -11,6 +11,7 @@ from typing import List
 import traceback
 from flask import abort, send_file
 from utils.cache_util import DuckDBCache
+from datetime import datetime
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -135,6 +136,29 @@ def get_ppline_schedule(namespace):
         return 'failed'
 
 
+@workspace.route('/workcpace/init/<namespace>', methods=['GET'])
+def get_initial_data(namespace):
+
+    today_date = datetime.now().strftime('%d/%m/%Y')
+    k = f'{today_date}/{namespace}'
+    user_message_count_limit = env('CONVERSATION_TURN_LIMIT')
+    ai_agent_namespace_details = {
+        'conversation_count': DuckDBCache.get(k),
+        'user_message_count_limit': user_message_count_limit
+    }
+
+    try:
+        return {
+            'schedules': Workspace.get_ppline_schedule(namespace),
+            'ai_agent_namespace_details': ai_agent_namespace_details
+        }
+    
+    except Exception as error:
+        print(f'Error while trying to connect with AI agent')
+        print(error)
+        return 'failed'
+
+
 @workspace.route('/workcpace/agent/<namespace>', methods=['GET'])
 def start_ai_agent(namespace):
     try:
@@ -159,13 +183,17 @@ def start_ai_agent_with_username(namespace, username):
 def message_ai_agent(namespace):
 
     try:
+        today_date = datetime.now().strftime('%d/%m/%Y')
         ip = get_request_ip(request)
-        total_conversation_turns = DuckDBCache.get(f'{ip}/{namespace}')
-        total_conversation_turns1 = DuckDBCache.get(namespace)
+        k_plus_ip = f'{today_date}/{ip}/{namespace}'
+        k = f'{today_date}/{namespace}'
 
-        if DuckDBCache.get(f'{ip}/{namespace}') == None:
-            DuckDBCache.set(f'{ip}/{namespace}',1)
-            DuckDBCache.set(namespace,1)
+        total_conversation_turns = DuckDBCache.get(k_plus_ip)
+        total_conversation_turns1 = DuckDBCache.get(k)
+
+        if DuckDBCache.get(k_plus_ip) == None:
+            DuckDBCache.set(k_plus_ip,1)
+            DuckDBCache.set(k,1)
 
         else:
             total_conversation_turns = int(total_conversation_turns)
@@ -176,8 +204,8 @@ def message_ai_agent(namespace):
                 and not(daily_limit == -1)):
                 return { 'error': True, 'result': { 'result': 'Exceeded the free Daily limit' }, 'exceed_limit': True }
             
-            DuckDBCache.set(f'{ip}/{namespace}',total_conversation_turns + 1)
-            DuckDBCache.set(namespace,total_conversation_turns1 + 1)
+            DuckDBCache.set(k_plus_ip,total_conversation_turns + 1)
+            DuckDBCache.set(k,total_conversation_turns1 + 1)
 
         payload = request.get_json()
         message = payload['message']
