@@ -13,6 +13,7 @@ from flask import abort, send_file
 from utils.cache_util import DuckDBCache
 from datetime import datetime
 
+
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
 file_folder_map = { 'data':'dbs/files', 'pipeline': 'destinations/pipeline'}
@@ -150,7 +151,8 @@ def get_initial_data(namespace):
     try:
         return {
             'schedules': Workspace.get_ppline_schedule(namespace),
-            'ai_agent_namespace_details': ai_agent_namespace_details
+            'ai_agent_namespace_details': ai_agent_namespace_details,
+            'total_pipelines': len(os.listdir(f'{BasePipeline.folder}/pipeline/{namespace}'))
         }
     
     except Exception as error:
