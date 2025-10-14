@@ -17,5 +17,6 @@
         "clientId": ""
     },
     "anonymousLogin": false,
-    "fileUploadSizeLimit": "5m"
+    "fileUploadSizeLimit": "5m",
+    "maxAgentConversationTurns": 10
 }
