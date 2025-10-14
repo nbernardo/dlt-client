@@ -159,6 +159,26 @@ def start_ai_agent_with_username(namespace, username):
 def message_ai_agent(namespace):
 
     try:
+        ip = get_request_ip(request)
+        total_conversation_turns = DuckDBCache.get(f'{ip}/{namespace}')
+        total_conversation_turns1 = DuckDBCache.get(namespace)
+
+        if DuckDBCache.get(f'{ip}/{namespace}') == None:
+            DuckDBCache.set(f'{ip}/{namespace}',1)
+            DuckDBCache.set(namespace,1)
+
+        else:
+            total_conversation_turns = int(total_conversation_turns)
+            total_conversation_turns1 = int(total_conversation_turns1)
+            daily_limit = int(env('CONVERSATION_TURN_LIMIT'))
+            
+            if(((total_conversation_turns >= daily_limit) or (total_conversation_turns1 >= daily_limit))\
+                and not(daily_limit == -1)):
+                return { 'error': True, 'result': { 'result': 'Exceeded the free Daily limit' }, 'exceed_limit': True }
+            
+            DuckDBCache.set(f'{ip}/{namespace}',total_conversation_turns + 1)
+            DuckDBCache.set(namespace,total_conversation_turns1 + 1)
+
         payload = request.get_json()
         message = payload['message']
 
@@ -289,5 +309,13 @@ def send_message_to_agent_wit_groq(message, namespace, user_id = None):
     if(not os.path.exists(agent.db_path)):
         return { 'success': False, 'result': 'No data, pipeline found in your name space.' }
     return { 'success': True, 'result': agent.cloud_groq_call(message) }
+
+
+def get_request_ip(request):
+
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if ',' in ip:
+        ip = ip.split(',')[0].strip()
+    return ip
 
 

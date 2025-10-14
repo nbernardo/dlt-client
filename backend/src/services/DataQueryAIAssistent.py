@@ -1,4 +1,3 @@
-import duckdb
 import json
 import re
 from mistralai import Mistral
@@ -6,6 +5,7 @@ from os import getenv as env
 from utils.duckdb_util import DuckdbUtil
 from services.workspace.Workspace import Workspace
 from groq import Groq, RateLimitError, BadRequestError
+import traceback
 
 class DataQueryAIAssistent:
 
@@ -167,6 +167,7 @@ class DataQueryAIAssistent:
         except Exception as e:
             error = str(e) 
             print(f"\nInternal error occurred: {e}")
+            traceback.print_exc()
             if error.lower().index('error code:') >= 0 and error.lower().index('400') >= 0:
                 error = "Could not process your request, let's try again, what's your ask?"
                 return { 'answer': 'intermediate', 'result': error }
@@ -252,9 +253,9 @@ class DataQueryAIAssistent:
             return { 'answer': 'final', 'result': 'AI agent today\'s API call limit reached' }
         
         except BadRequestError as e:
-            print(f"\nInternal error occurred: {e}")
-            error = "Could not process your request, let's try again, what's your ask?"
-            return { 'answer': 'final', 'result': error }
+                print(f"\nInternal error occurred: {e}")
+                error = "Could not process your request, let's try again, what's your ask?"
+                return { 'answer': 'final', 'result': error }
         
         except Exception as e:
             error = str(e) 
