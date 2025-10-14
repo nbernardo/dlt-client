@@ -15,6 +15,7 @@ export class FileUpload extends ViewComponent {
 	/** @Prop */ fileCount;
 	/** @Prop */ selectedFiles = [];
 	/** @Prop */ isUploading = false;
+	/** @Prop */ uploadErrorIcon = `<i style="font-size:16px;color:white;" class="fas fa-exclamation-triangle"></i>`;
 	/** @Prop @type { HTMLElement } */ uploadError = false;
 
 	/**
@@ -29,12 +30,14 @@ export class FileUpload extends ViewComponent {
 
 	stAfterInit(){
 	
-        const uploadArea = document.querySelector('.upload-area');
-        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.querySelector('.upload-area'), fileInput = document.getElementById('fileInput');
         this.fileInfo = document.getElementById('fileInfo');
         this.filesList = document.getElementById('filesList');
         this.fileCount = document.getElementById('fileCount');
 		this.uploadError = document.querySelector('.file-upload-error');
+
+        const highlight = () => uploadArea.classList.add('dragover');
+        const unhighlight = () => uploadArea.classList.remove('dragover');
 
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             uploadArea.addEventListener(eventName, preventDefaults, false);
@@ -52,9 +55,7 @@ export class FileUpload extends ViewComponent {
         uploadArea.addEventListener('drop', handleDrop, false);
 
         fileInput.addEventListener('change', function(e) {
-            if (e.target.files.length > 0) {
-                addFiles(Array.from(e.target.files));
-            }
+            if (e.target.files.length > 0)  addFiles(Array.from(e.target.files));
         });
 
         function preventDefaults(e) {
@@ -62,14 +63,9 @@ export class FileUpload extends ViewComponent {
             e.stopPropagation();
         }
 
-        highlight = () => uploadArea.classList.add('dragover');
-
-        unhighlight = () => uploadArea.classList.remove('dragover');
-
         function handleDrop(e) {
             const dt = e.dataTransfer;
-            const files = Array.from(dt.files);
-            addFiles(files);
+            addFiles(Array.from(dt.files));
         }
 
 		const obj = this;
@@ -80,7 +76,6 @@ export class FileUpload extends ViewComponent {
             });
             obj.updateFilesDisplay();
         }
-	
 	}
 
 	removeFile(index) {
@@ -89,14 +84,25 @@ export class FileUpload extends ViewComponent {
 	}
 
 	updateFilesDisplay() {
-		if (this.selectedFiles.length === 0)
-			return this.fileInfo.style.display = 'none';
-			
+		if (this.selectedFiles.length === 0) return this.fileInfo.style.display = 'none';
+		
+		const self = this 
+		this.uploadError.style.display = 'none';
+		
 		function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+			const actualFileSize = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
+			const fileSize = parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+			const sizeLimit = StillAppSetup.config.get('fileUploadSizeLimit');
+
+			if(self.checkFileSizeLimit(actualFileSize, fileSize, sizeLimit) === false){
+				self.uploadError.innerHTML = `${self.uploadErrorIcon} Each file size limit can't be more than ${sizeLimit}`;
+				self.uploadError.style.display = '';
+			}
+			
+            return fileSize;
         }
 
 		this.fileCount.textContent = `${this.selectedFiles.length} file${this.selectedFiles.length > 1 ? 's' : ''} selected`;
@@ -137,7 +143,6 @@ export class FileUpload extends ViewComponent {
 
 			try {
 				let response = await $still.HTTPClient.post('/upload', formData);
-
 				if (response.ok)  {
 					AppTemplate.toast.success('File(s) uploaded successfully');
 					this.clearAllFiles();
@@ -148,7 +153,7 @@ export class FileUpload extends ViewComponent {
 				else {
 					response = await response.json();
 					if(response?.exceed_limit){
-						const content = `<i style="font-size:16px;color:white;" class="fas fa-exclamation-triangle"></i> File upload limit of ${response?.limit_size} reached`
+						const content = `${this.uploadErrorIcon} File upload limit of ${response?.limit_size} reached`
 						this.uploadError.innerHTML = content, 
 						this.uploadError.style.display = '';
 					}
@@ -161,6 +166,23 @@ export class FileUpload extends ViewComponent {
 				this.isUploading = false;
 			}
 		}
+	}
+	/** This only implements file limit size in the Frontend, backend is implemented in the Proxy layer (e.g. Nginx) */
+	checkFileSizeLimit(actualFileSize, fileSize /** contains the unity (e.g. MB, KB) */, sizeLimit){
+		
+		const fileSizeSymbol = String(fileSize).slice(-2)[0].toLowerCase(), sizeLimitSymbol = String(sizeLimit).slice(-1).toLowerCase();
+		const actualSizeLimit = Number(sizeLimit.slice(0,-1));
+		
+		if(fileSizeSymbol === 's')
+			if(sizeLimitSymbol !== fileSizeSymbol || (actualFileSize > actualSizeLimit)) return false;
+		
+		if(fileSizeSymbol === 'k')
+			if(['m','g'].includes(sizeLimitSymbol) || (actualFileSize > actualSizeLimit)) return false;
+		
+		if(fileSizeSymbol === 'm')
+			if(['g'].includes(sizeLimitSymbol) || (actualFileSize > actualSizeLimit)) return false;
+			
+        return true;
 	}
 
 	listFiles = async () => this.wSpaceService.listFiles();
