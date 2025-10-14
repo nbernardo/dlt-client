@@ -15,6 +15,7 @@ export class FileUpload extends ViewComponent {
 	/** @Prop */ fileCount;
 	/** @Prop */ selectedFiles = [];
 	/** @Prop */ isUploading = false;
+	/** @Prop @type { HTMLElement } */ uploadError = false;
 
 	/**
 	 * @Inject  @Path services/
@@ -33,6 +34,7 @@ export class FileUpload extends ViewComponent {
         this.fileInfo = document.getElementById('fileInfo');
         this.filesList = document.getElementById('filesList');
         this.fileCount = document.getElementById('fileCount');
+		this.uploadError = document.querySelector('.file-upload-error');
 
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             uploadArea.addEventListener(eventName, preventDefaults, false);
@@ -60,13 +62,9 @@ export class FileUpload extends ViewComponent {
             e.stopPropagation();
         }
 
-        function highlight() {
-            uploadArea.classList.add('dragover');
-        }
+        highlight = () => uploadArea.classList.add('dragover');
 
-        function unhighlight() {
-            uploadArea.classList.remove('dragover');
-        }
+        unhighlight = () => uploadArea.classList.remove('dragover');
 
         function handleDrop(e) {
             const dt = e.dataTransfer;
@@ -91,15 +89,12 @@ export class FileUpload extends ViewComponent {
 	}
 
 	updateFilesDisplay() {
-		if (this.selectedFiles.length === 0) {
-			this.fileInfo.style.display = 'none';
-			return;
-		}
-
+		if (this.selectedFiles.length === 0)
+			return this.fileInfo.style.display = 'none';
+			
 		function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
@@ -117,10 +112,8 @@ export class FileUpload extends ViewComponent {
 				</div>
 				<button type="button" class="remove-btn" onclick="inner.removeFile(${index})">Remove</button>
 			`);
-			
 			this.filesList.appendChild(fileItem);
 		});
-		
 		fileInfo.style.display = 'block';
 	}
 
@@ -130,7 +123,9 @@ export class FileUpload extends ViewComponent {
 	}
 
 	async uploadFiles() {
-		this.isUploading = true;
+		this.isUploading = true 
+		this.uploadError.innerHTML = '';
+		this.uploadError.style.display = 'none';
 		if (this.selectedFiles.length > 0) {
 
 			const formData = new FormData();
@@ -141,7 +136,7 @@ export class FileUpload extends ViewComponent {
 			formData.append('user', UserUtil.email);
 
 			try {
-				const response = await $still.HTTPClient.post('/upload', formData);
+				let response = await $still.HTTPClient.post('/upload', formData);
 
 				if (response.ok)  {
 					AppTemplate.toast.success('File(s) uploaded successfully');
@@ -150,7 +145,15 @@ export class FileUpload extends ViewComponent {
 					document.getElementById('dataFilesLeftMenu').click();
 					document.getElementById('collapse').checked = true;
 				}
-				else AppTemplate.toast.error('Error while uploading the file(s)');
+				else {
+					response = await response.json();
+					if(response?.exceed_limit){
+						const content = `<i style="font-size:16px;color:white;" class="fas fa-exclamation-triangle"></i> File upload limit of ${response?.limit_size} reached`
+						this.uploadError.innerHTML = content, 
+						this.uploadError.style.display = '';
+					}
+					AppTemplate.toast.error('Error while uploading the file(s)');
+				}
 				
 			} catch (error) {
 				AppTemplate.toast.error(`File(s) upload failed: ${error.message}`);
@@ -160,8 +163,5 @@ export class FileUpload extends ViewComponent {
 		}
 	}
 
-	async listFiles(){
-		return this.wSpaceService.listFiles();
-	}
-
+	listFiles = async () => this.wSpaceService.listFiles();
 }
