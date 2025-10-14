@@ -101,9 +101,9 @@ export class SqlEditor extends ViewComponent {
 
 	async runSQLQuery(){
 		const newQuery = this.editor.getValue();
-		const { result, fields } = await this.$parent.service.runSQLQuery(newQuery, this.database);
-		const parsedFields = fields.replaceAll('\n', '').split(',').map(field => field.trim());
-		this.queryOutput.setGridData(parsedFields, result).stAfterInit();
+		const { result, fields, error } = await this.$parent.service.runSQLQuery(newQuery, this.database);
+		const parsedFields = (fields || '').replaceAll('\n', '')?.split(',')?.map(field => field.trim());
+		this.queryOutput.setGridData(parsedFields, result).stAfterInit(error);
 	}
 
 }

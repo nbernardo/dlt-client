@@ -114,7 +114,7 @@
 	}
 
 	.ppline-treeview img {
-		width: 33px;
+		width: 33px; height: 33px;
 		position: relative;
 		z-index: 1000;
 		padding-right: 4px;

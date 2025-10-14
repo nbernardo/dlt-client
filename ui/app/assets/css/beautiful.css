@@ -475,13 +475,9 @@ header a {
     animation: sk-scaleout .5s infinite ease-in-out;
 }
 
-.drawflow-node .title-box div.failed-status {
-    background-color: red;
-}
+.drawflow-node .title-box div.failed-status { background-color: red; }
 
-.drawflow-node .title-box div.success-status {
-    background-color: green;
-}
+.drawflow-node .title-box div.success-status { background-color: green; }
 
 .drawflow-node .title-box div.pre-success-status {
     background-color: rgba(0, 128, 0, 0.266);
@@ -742,11 +738,7 @@ button[disabled]:hover {
     font-weight: bold;
 }
 
-.sql-editor-controls .separator {
-    border: .5px solid #c2c1c100;
-    width: 1px;
-    height: 24px;
-}
+.sql-editor-controls .separator { border: .5px solid #c2c1c100; width: 1px; height: 24px; }
 
 .run-query-btn {
     padding: 3px 3px;
@@ -770,14 +762,9 @@ button[disabled]:hover {
     overflow: auto;
 }
 
-.data-base-fields-submenu .list-item-header {
-    font-weight: normal !important;
-}
+.data-base-fields-submenu .list-item-header { font-weight: normal !important; }
 
-.data-base-fields-submenu .field-type {
-    font-size: 8px;
-    padding-right: 10px;
-}
+.data-base-fields-submenu .field-type { font-size: 8px; padding-right: 10px; }
 
 /** End of SQL EDITOR Styling */
 
@@ -802,5 +789,20 @@ button[disabled]:hover {
     0%, 100% { background-color: white; }
     50% { background-color: #e85a5a9a; }
 }
+
+.still-toast .close{ width: 22px; border-radius: 6px; }
+
+.sql-nodata, .sql-error{ font-size: 1.5em; text-align: center; }
+.sql-error{ color: red; }
+
+.pipeline-locked{ 
+    color: red;
+    padding-left: 5px;
+    display: block;
+    margin-top: -11px;
+    line-height: 1;
+    margin-left: 10px;
+    font-size: 13px;
+ }
 
 /** End PPline name validation */

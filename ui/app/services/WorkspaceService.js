@@ -258,9 +258,13 @@ export class WorkspaceService extends BaseService {
 
         const result = await response.json();
 
-        if (result.error)
-            return AppTemplate.toast.error('Error while querying the DB: ' + result.result);
-        return result
+        if (result.error){
+            if(result.code === 'err')
+                AppTemplate.toast.error('Error while querying the DB: ' + result.result, 10000);
+            AppTemplate.toast.warn('Exception while querying the DB: ' + result.result);
+            return { error: result.result };
+        }
+        return { ...result, error: null };
 
     }
 

@@ -93,12 +93,14 @@ export class LeftTabs extends ViewComponent {
 		
 		for(const [_file, tables] of Object.entries(response)){
 			const data = Object.values(tables);
-			const dbfile = _file.replace('.duckdb','');
+			const dbfile = _file.replace('.duckdb',''), flag = data[0]?.flag;
 			const pipeline = this.dbTreeviewProxy.addNode(
 				{
-					content: this.pipelineTreeViewTemplate(dbfile),
+					content: this.pipelineTreeViewTemplate(dbfile, flag),
 					isTopLevel: true,
 			});
+
+			if(flag) continue;
 
 			const dbSchema = this.dbTreeviewProxy.addNode({
 				content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
@@ -121,12 +123,14 @@ export class LeftTabs extends ViewComponent {
 		this.dataFetchilgLabel = '';
 	}
 
-	pipelineTreeViewTemplate(dbfile){
+	pipelineTreeViewTemplate(dbfile, flag){
 		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label"> ${pipelineIcon} ${dbfile} </span>
+					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} ${dbfile}</span>
 					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
 						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
-				</div>`;
+				</div>
+				${flag != undefined ? '<span class="pipeline-locked">In use by another proces/job, try after completion.<span>': ''}
+				`;
 	}
 
 	dbSchemaTreeViewTemplate(dbname, dbfile){
