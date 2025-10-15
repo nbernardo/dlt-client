@@ -318,8 +318,8 @@ class DltPipeline:
 
             result.wait()
             
-            if result.returncode == 0 and context is not None and pipeline_exception == False:
-                context.emit_ppsuccess()
+            #if result.returncode == 0 and context is not None and pipeline_exception == False:
+            #    context.emit_ppsuccess()
 
             if pipeline_exception == True:
                 message = 'Runtime Pipeline error, check the logs for details'

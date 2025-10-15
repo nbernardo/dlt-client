@@ -2,6 +2,7 @@ from os import getenv as env
 from flask import Blueprint, request
 from services.workspace.Workspace import Workspace
 from controller.pipeline import BasePipeline
+from controller.file_upload import BaseUpload
 from flask_cors import cross_origin
 import threading
 import requests
@@ -262,6 +263,23 @@ def download(type, namespace, filename):
         as_attachment=True,
         download_name=filename
     )
+
+    
+@workspace.route('/file/<namespace>/<filename>', methods=['DELETE'])
+def delete_data_file(namespace, filename):
+
+    ppline_path = f'{BaseUpload.upload_folder}/{namespace}/'
+    file_to_remove = f'{ppline_path}/{filename}'
+
+    try:
+        os.remove(file_to_remove) if os.path.exists(file_to_remove) else None
+        return { 'error': False, 'result': f'Files {filename} removed sucessfully.' }
+    
+    except Exception as err:
+        print('Error while removing data file: ')
+        print(err)
+        traceback.print_exc()
+        return { 'error': True, 'result': f'Error while removing data file: {str(err)}' }
 
     
 import os
