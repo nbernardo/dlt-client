@@ -1,6 +1,6 @@
 import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
-from dlt.sources.sql_database import sql_database
+from dlt.sources.sql_database import sql_database, sql_table
 from os import getenv as env
 from pathlib import Path
 import sys
@@ -41,7 +41,16 @@ def load_select_tables_from_db():
     )
 
     # Bellow mapping: schema = SqlDBComponent.source_tables
-    source = sql_database(table_names=%source_tables%, credentials=credentials)
+    tables = %source_tables%
+
+    # Bellow mapping: schema = SqlDBComponent.primary_keys
+    tables_pk = %primary_keys%
+
+    source = sql_database(table_names=tables, credentials=credentials)
+
+    for idx in range(len(tables)):
+        getattr(source, tables[idx])\
+            .apply_hints(primary_key=tables_pk[idx])
 
     info = pipeline.run(source)
     print(info)

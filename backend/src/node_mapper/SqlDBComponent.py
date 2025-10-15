@@ -24,8 +24,13 @@ class SqlDBComponent(TemplateNodeType):
 
         # source_tables fields is mapped in /pipeline_templates/sql_db.txt
         self.source_tables = list(data['tables'].values())
+
+        # primary_keys fields is mapped in /pipeline_templates/sql_db.txt
+        self.primary_keys = list(data['primaryKeys'].values())
+
         # source_database fields is mapped in /pipeline_templates/sql_db.txt
         self.source_database = data['database']
+        
         # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
         self.source_dbengine = data['dbengine']
 
@@ -52,6 +57,8 @@ class SqlDBComponent(TemplateNodeType):
             for tbl in tables[1:]:
                 final_query += ' UNION '
                 final_query += query_template.replace('@tblName', tbl)
+
+            print('FILAN QUERY IS: '+final_query)
 
             #If specified DB does not exists it'll throw an exception
             db_connection = get_mysql_connection(self.source_database)
