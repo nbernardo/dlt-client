@@ -39,9 +39,10 @@ export class SqlDBComponent extends ViewComponent {
 	databaseC;
 	tableNameC;
 
-	// tables hold all tables name when importing/reading
+	// tables and primaryKeys hold all tables name when importing/reading
 	// An existing pipeline by calling the API
 	/** @Prop @type { Map } */ tables;
+	/** @Prop @type { Map } */ primaryKeys;
 
 	/**
 	 * @Inject @Path services/
@@ -53,10 +54,11 @@ export class SqlDBComponent extends ViewComponent {
 	 * through the Component.new(type, param) where for para nodeId 
 	 * will be passed
 	 * */
-	stOnRender({ nodeId, isImport, tables }){
+	stOnRender({ nodeId, isImport, tables, primaryKeys }){
 		this.nodeId = nodeId;
 		this.isImport = isImport;
-		this.tables = tables;		
+		this.tables = tables;
+		this.primaryKeys = primaryKeys;		
 	}
 
 	stAfterInit(){
@@ -74,8 +76,11 @@ export class SqlDBComponent extends ViewComponent {
 
 			const disable = true;
 			const allTables = Object.values(this.tables);
+			const allKeys = Object.values(this.primaryKeys);
+
 			// Assign the first table
 			this.tableName = this.tables['tableName'];
+			this.primaryKey = allKeys[0];
 			// Assign remaining tables if more than one in the pipeline
 			allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
 			this.dbInputCounter = allTables.length;

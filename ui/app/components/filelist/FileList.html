@@ -5,9 +5,9 @@
         @endif
 
 		@for(file in this.filesList; idx = $count)
-		<li class="tiny-menu-item">
+		<li id="{file.id}" class="tiny-menu-item current-file-{file.id}">
 			<div class="dots-container">
-				<span class="dots-icon" onclick="component.togglePopup(this, '{file.name}')" fill="currentColor">
+				<span class="dots-icon" onclick="component.togglePopup(this, '{file.name}', '{file.id}')" fill="currentColor">
 					<img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
 				</span>
 			</div>
@@ -26,6 +26,9 @@
                 <li onclick="component.openInEditor(); component.closeDropdown()">Open in editor</li>
             </span>
             <li onclick="component.downloadfile()">Download</li>
+            <span (renderIf)="self.isDataFile">
+                <li onclick="component.deletefile()">Delete</li>
+            </span>
 		</ul>
 	</div>
 </div>

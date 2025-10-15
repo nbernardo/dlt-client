@@ -8,14 +8,17 @@
 	</div>
 	<div class="box @formWrapClass">
 		<form (formRef)="formRef" onsubmit="return false;">
-			<select (required)="true" 
+			<select
+					(required)="true" 
 					(forEach)="databaseEngines" 
 					(value)="selectedDbEngine"
-					placeholder="Database Engine">
+					placeholder="Database Engine"
+					style="width: 100%;"
+					>
 				<option each="item" value="{item.dialect}">{item.name}</option>
 			</select>
 			<p>Database:</p>
-			<input type="text" (required)="true" (value)="database">
+			<input type="text" style="width: 100%;" (required)="true" (value)="database">
 			<p>Tables list:</p>
 			<div>
 				<input type="text" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
@@ -23,7 +26,6 @@
 			</div>
 		</form>
 		<button onclick="component.addField()" class="add-table-buttons">Add Table field</button>
-		<button onclick="component.showTable()" class="add-table-buttons">Mastr</button>
 		<!--
 			<form (formRef)="anotherForm" onsubmit="return false;">
 				<p>Another Database:</p>

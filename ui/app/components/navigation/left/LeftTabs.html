@@ -132,7 +132,11 @@
                     <st-element component="FileUpload" proxy="fileUploadProxy"></st-element>
                 </section>
                 
-                <st-element component="FileList" isOpenInEditor="false" (openInEditor)="openDataFileOnEditor()" proxy="fileListProxy"></st-element>
+                <st-element 
+                    component="FileList" 
+                    isOpenInEditor="false"
+                    (openInEditor)="openDataFileOnEditor()" 
+                    proxy="fileListProxy"></st-element>
 
             </div>
 
@@ -223,6 +227,7 @@
                     <st-element 
                         (openInEditor)="openScriptOnEditor()"
                         component="FileList" 
+                        isDataFile="false"
                         proxy="scriptListProxy"></st-element>
                 </section>
             </div>

@@ -107,6 +107,14 @@ export class WorkspaceService extends BaseService {
         window.location.href = `${baseUrl}/download/${downloadType}/${UserUtil.email}/${fileName}`;
     }
 
+    async deletefile(fileName) {
+        const user = UserUtil.email;
+        const response = await $still.HTTPClient.delete('/file/' + user + '/' + fileName);
+        if (response.ok)
+            return await response.json();
+        return null;
+    }
+
     async handleDuckdbConnect(payload, action = WorkspaceService.CONNECT_DB) {
 
         let url = '/workcpace/duckdb/connect';

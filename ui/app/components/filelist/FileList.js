@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { ListState } from "../../../@still/component/type/ComponentType.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
+import { AppTemplate } from "../../../config/app-template.js";
 import { Workspace } from "../workspace/Workspace.js";
 
 export class FileList extends ViewComponent {
@@ -11,14 +12,14 @@ export class FileList extends ViewComponent {
 	filesList = [];
 
 	/** @Prop */ fileMenu;
-
 	/** @Prop */ fileExt = 'png';
-
 	/** @Prop */ selectedFile;
+	/** @Prop */ fileId;
 
 	noFilesMessage = 'No file found';
 
 	/** @Prop */ isOpenInEditor = true;
+	/** @Prop */ isDataFile = true;
 
 	/** @type { Workspace } */ $parent;
 
@@ -27,9 +28,10 @@ export class FileList extends ViewComponent {
 	/** @Prop */
 	uniqId = '_'+UUIDUtil.newId();
 
-	togglePopup(element, filename) {
+	togglePopup(element, filename, fileId = null) {
 		const rect = element.getBoundingClientRect();
 		this.selectedFile = filename;
+		this.fileId = fileId;
 
 		if (this.activeFileDropdown === element) {
 			this.fileMenu.classList.remove('is-active');
@@ -67,4 +69,14 @@ export class FileList extends ViewComponent {
 		this.$parent.service.downloadfile(this.selectedFile, type);
 		this.closeDropdown();
 	}
+
+	async deletefile(){
+		const result = await this.$parent.service.deletefile(this.selectedFile);
+		if(!result.error){
+			AppTemplate.toast.success(result.result);
+			document.querySelector(`.current-file-${this.fileId}`).remove();
+		}
+		this.closeDropdown();
+	}
+	
 }
