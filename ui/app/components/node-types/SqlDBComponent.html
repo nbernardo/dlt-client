@@ -17,11 +17,13 @@
 			<p>Database:</p>
 			<input type="text" (required)="true" (value)="database">
 			<p>Tables list:</p>
-			<input type="text" 
-					(required)="true" 
-					(value)="tableName" placeholder="Enter table 1 name">
+			<div>
+				<input type="text" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
+				<input type="text" (value)="primaryKey" placeholder="PK Field">
+			</div>
 		</form>
 		<button onclick="component.addField()" class="add-table-buttons">Add Table field</button>
+		<button onclick="component.showTable()" class="add-table-buttons">Mastr</button>
 		<!--
 			<form (formRef)="anotherForm" onsubmit="return false;">
 				<p>Another Database:</p>
@@ -35,7 +37,8 @@
 	</div>
 </div>
 <style>
-	.add-table-buttons {
-		margin-top: 5px;;
-	}
+	.add-table-buttons { margin-top: 5px; }
+	.parent-node .SqlDBComponent { width: 275px; }
+	input:not([placeholder="PK Field"]){ width: 129px; font-size: 12px; }
+	input[placeholder="PK Field"]{ width: 100px; font-size: 12px; }
 </style>

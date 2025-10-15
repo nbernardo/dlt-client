@@ -29,6 +29,7 @@ export class SqlDBComponent extends ViewComponent {
 	database;
 	tableName;
 	selectedDbEngine;
+	primaryKey;
 
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
@@ -105,23 +106,48 @@ export class SqlDBComponent extends ViewComponent {
 	}
 
 	newTableField(tableId, value = '', disabled = false){
-		const fieldName = 'tableName' + tableId, placeholder = 'Enter table '+tableId+' name';
-		FormHelper
+		let fieldName = 'tableName' + tableId, placeholder = 'Enter table '+tableId+' name';
+		const table = FormHelper
 			.newField(this, this.formRef, fieldName, value)
 			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled })
 			//Add will add in the form which reference was specified (2nd param of newField)
-			.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);
+			//.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);
+			.element;
+		
+		fieldName = 'primaryKey' + tableId, placeholder = 'PK Field';
+		const pkField = FormHelper
+			.newField(this, this.formRef, fieldName, value)
+			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled })
+			.element;
+
+		const div = document.createElement('div');
+		div.style.marginTop = '3px';
+		div.className = 'table-detailes';
+		div.innerHTML = `${table}${pkField}`;		
+		document.querySelector(`.${this.formWrapClass} form`).appendChild(div);
+
 	}
 
 	getTables(){
 		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 
 		const data = WorkSpaceController.getNode(this.nodeId).data;
-		const dynFields = this.getDynamicFields();
-		const tables = { tableName: this.tableName.value, ...dynFields };
+		const /** @type Array<String> */ dynFields = this.getDynamicFields();
+
+		const tables = { tableName: this.tableName.value };
+		const pkFields = { pkName: this.primaryKey.value };
+		
+		for(const [field, val] of Object.entries(dynFields)){
+			if(field.trim().startsWith('tableName'))
+				tables[field.trim()] = val;
+			else
+				pkFields[field.trim()] = val;
+		}
+		
 		data['tables'] = tables;
+		data['primaryKeys'] = pkFields;
 	}
 
 	showTable(){
-		console.log(this.getTables());
+		console.log(this.getDynamicFields());
 	}
 }

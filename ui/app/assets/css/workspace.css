@@ -103,6 +103,12 @@
 	    margin-left: 5px;
 	}
 
+	.ppline-treeview-label {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		width: 90%; 
+	}
+	
 	.ppline-treeview .ppline-treeview-label {
 	    margin-left: -25px;
 	    display: flex;
