@@ -35,8 +35,6 @@ export class TransformRow extends ViewComponent {
 		if (importFields)
 			this.configData = importFields;
 
-		console.log(`NEW ROW CREATED: `, importFields);
-
 	}
 
 	async stAfterInit() {
@@ -44,7 +42,7 @@ export class TransformRow extends ViewComponent {
 		this.$parent.transformPieces.set(this.rowId, {})
 
 		this.selectedSource.onChange(async (newValue) => {
-			const dataSource = newValue.trim(); //If it's file will be filename, id DB it'll be table name
+			const dataSource = newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
 			await this.wspaceService.handleCsvSourceFields(dataSource)
 			const fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
 			this.fieldList = fieldList;

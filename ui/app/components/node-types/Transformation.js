@@ -109,8 +109,9 @@ export class Transformation extends ViewComponent {
 		let finalCode = "";
 		const rowsConfig = [];		
 		for (const [_, code] of [...this.transformPieces]) {
-
+			
 			let { type, field, transform } = code;
+			
 			rowsConfig.push(code);
 			field = `df['${field}']`;
 
@@ -126,8 +127,11 @@ export class Transformation extends ViewComponent {
 			if (type === 'SPLIT')
 				finalCode += `\n${this.parseSplit(field, code.sep, transform)}`;
 
+			if (type === 'DEDUP')
+				finalCode += `\ndf.drop_duplicates(subset=['${code.field}'], inplace=True)`;
+
 			if (type === 'CONVERT') {
-				if (transform === 'date') finalCode += `\n${field} = pd.to_datetime(df['${field}'])`;
+				if (transform === 'date') finalCode += `\n${field} = pd.to_datetime(${field})`;
 				else finalCode += `\n${field} = ${field}.astype(${transform})`;
 			}
 
@@ -201,7 +205,7 @@ export class Transformation extends ViewComponent {
 			return parsePieces(wrd, pos, rightSide, 'right');
 		});
 
-		const condition = `condition = ${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ')}`;
+		const condition = `condition = ${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`,`'`)}`;
 		return `${condition}\ndf.loc[condition, '${field}'] = ${rightSide}`;
 	}
 
