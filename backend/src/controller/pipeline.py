@@ -29,6 +29,10 @@ def create():
 
     start_node = node_params.get(f'{start_node_id}')
     connections = start_node.get('outputs').get('output_1').values()
+    
+    if(len(list(connections)[0]) == 0):
+        return { 'error': True, 'result': 'Please connect all nodes accordingly.' }
+    
     first_connection_id = list(connections)[0][0]['node']
     fst_connection = node_params.get(first_connection_id)
 
