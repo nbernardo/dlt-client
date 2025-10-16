@@ -2,6 +2,7 @@ import { ViewComponent } from "../../../@still/component/super/ViewComponent.js"
 import { ListState } from "../../../@still/component/type/ComponentType.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
+import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { Workspace } from "../workspace/Workspace.js";
 
 export class FileList extends ViewComponent {
@@ -71,11 +72,19 @@ export class FileList extends ViewComponent {
 	}
 
 	async deletefile(){
-		const result = await this.$parent.service.deletefile(this.selectedFile);
-		if(!result.error){
-			AppTemplate.toast.success(result.result, 5000);
-			document.querySelector(`.current-file-${this.fileId}`).remove();
-		}
+		/** @type { WorkSpaceController } */
+		const parentController = WorkSpaceController.get();
+		parentController.showDialog(`Are you sure you want to remove <br><b>${this.selectedFile}</b>`, 
+			{
+				title: 'Deleting File', type: 'confirm', 
+				onConfirm: async () => {
+					const result = await this.$parent.service.deletefile(this.selectedFile);
+					if(!result.error){
+						AppTemplate.toast.success(result.result, 5000);
+						document.querySelector(`.current-file-${this.fileId}`).remove();
+					}
+				}
+		});
 		this.closeDropdown();
 	}
 	
