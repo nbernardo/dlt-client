@@ -13,12 +13,11 @@
 					(forEach)="databaseEngines" 
 					(value)="selectedDbEngine"
 					placeholder="Database Engine"
-					style="width: 100%;"
 					>
 				<option each="item" value="{item.dialect}">{item.name}</option>
 			</select>
 			<p>Database:</p>
-			<input type="text" style="width: 100%;" (required)="true" (value)="database">
+			<input type="text" placeholder="Database Name" (required)="true" (value)="database">
 			<p>Tables list:</p>
 			<div>
 				<input type="text" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
@@ -43,4 +42,6 @@
 	.parent-node .SqlDBComponent { width: 275px; }
 	input:not([placeholder="PK Field"]){ width: 129px; font-size: 12px; }
 	input[placeholder="PK Field"]{ width: 100px; font-size: 12px; }
+	select[placeholder="Database Engine"]{ width: 100%; }
+	input[placeholder="Database Name"]{ width: 100%; }
 </style>
