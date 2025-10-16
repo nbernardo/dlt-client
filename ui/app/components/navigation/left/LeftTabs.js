@@ -102,20 +102,25 @@ export class LeftTabs extends ViewComponent {
 
 			if(flag) continue;
 
-			const dbSchema = this.dbTreeviewProxy.addNode({
-				content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
-			});
+			let dbSchema = null;
+			if(data[0]){
+				dbSchema = this.dbTreeviewProxy.addNode({
+					content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
+				});
+			}
 
 			for(const idx in data){
 				
 				const tableData = data[idx];
-				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
-				const table = this.dbTreeviewProxy.addNode({ 
-					content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
-				});
-				dbSchema.addChild(table);
+				if(tableData){
+					const tableToQuery = `${tableData.dbname}.${tableData.table}`;
+					const table = this.dbTreeviewProxy.addNode({ 
+						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
+					});
+					dbSchema.addChild(table);
+				}
 			}
-			pipeline.addChild(dbSchema);
+			if(dbSchema !== null) pipeline.addChild(dbSchema);
 		}
 		
 		this.dbTreeviewProxy.renderTree();
@@ -179,7 +184,7 @@ export class LeftTabs extends ViewComponent {
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
 			const data = await this.fileUploadProxy.listFiles()
-			this.fileListProxy.filesList = data.length > 0 ? data.map((file, idx) => ({...file, id: 'file'+idx})) : [];			
+			this.fileListProxy.filesList = data?.length > 0 ? data.map((file, idx) => ({...file, id: 'file'+idx})) : [];			
 			this.fileListProxy.setUpFileMenuEvt();
 		}
 

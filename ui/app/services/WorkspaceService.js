@@ -132,7 +132,7 @@ export class WorkspaceService extends BaseService {
     async listPplineFiles(user) {
         const response = await $still.HTTPClient.get('/scriptfiles/' + user + '/');
         if (response.status === 404) {
-            AppTemplate.toast.error('No pipeline(s) found under ' + user);
+            AppTemplate.toast.warn('No pipeline(s) found under ' + user);
         } else if (response.ok)
             return await response.json();
 
@@ -164,7 +164,7 @@ export class WorkspaceService extends BaseService {
         let filesList = null;
         const response = await $still.HTTPClient.get('/files/' + UserUtil.email);
         if (response.status === 404) {
-            AppTemplate.toast.error('No data file found under ' + UserUtil.email);
+            AppTemplate.toast.warn('No data file found under ' + UserUtil.email);
         } else if (response.ok) {
             filesList = await response.json();
         }
@@ -175,7 +175,7 @@ export class WorkspaceService extends BaseService {
         let filesList = null;
         const response = await $still.HTTPClient.get(`/ppline/data/csv/${UserUtil.email}/${filename}`);
         if (response.status === 404)
-            AppTemplate.toast.error('No data file found under ' + UserUtil.email);
+            AppTemplate.toast.warn('No data file found under ' + UserUtil.email);
         else if (response.ok)
             filesList = (await response.text());
 

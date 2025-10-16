@@ -128,7 +128,7 @@ export class Template {
 
     static toast = {
         error: /** @param { Number } timeout Time in mileseconds to remove toast */ (message, timeout = 5000) => Template.launchToast({ status: 'Error', message, timeout }),
-        success: /** @param { Number } timeout Time in mileseconds to remove toast */ (message, timeout = 500) => Template.launchToast({ status: 'Success', message, timeout }),
+        success: /** @param { Number } timeout Time in mileseconds to remove toast */ (message, timeout = 5000) => Template.launchToast({ status: 'Success', message, timeout }),
         warn: /** @param { Number } timeout Time in mileseconds to remove toast */ (message, timeout = 5000) => Template.launchToast({ status: 'Warn', message, timeout })
     }
 

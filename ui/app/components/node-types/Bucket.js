@@ -51,10 +51,14 @@ export class Bucket extends ViewComponent {
 
 	/* The id will be passed when instantiating Bucket dinamically through the
 	 * Component.new(type, param) where for para nodeId will be passed  */
-	stOnRender({ nodeId, isImport }) {
+	stOnRender({ nodeId, isImport, bucketUrl, filePattern, primaryKey, bucketFileSource }) {
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		if(isImport) this.showLoading = true;
+		if(bucketUrl) this.bucketUrl = bucketUrl;
+		if(filePattern) this.filePattern = filePattern;
+		if(primaryKey) this.sourcePrimaryKey = primaryKey;
+		if(bucketFileSource) this.bucketFileSource = bucketFileSource;
 	}
 
 	async stAfterInit() {
@@ -62,7 +66,7 @@ export class Bucket extends ViewComponent {
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 		const result = await this.wspaceService.listFiles();
-		this.filesFromList = result.map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
+		this.filesFromList = (result || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
 		
 		if(this.isImport){
 			// This is mainly because WorkSpaceController will setup reactive notification from source component to 
@@ -76,24 +80,37 @@ export class Bucket extends ViewComponent {
 		if ([false, undefined].includes(this.isImport))
 			this.setupOnChangeListen();
 
+		// At this point the WorkSpaceController was loaded by WorkSpace component
+		// hance no this.wSpaceController.on('load') subscrtiption is needed
 		if (this.isImport) {
-			// At this point the WorkSpaceController was loaded by WorkSpace component
-			// hance no this.wSpaceController.on('load') subscrtiption is needed
-			if (this.isImport) {
-				this.selectedFilePattern = this.filePattern.value;
-				this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+			this.selectedFilePattern = this.filePattern.value;
+			if(this.bucketFileSource.value === '2'){
+				this.bucketFileSource = 1;
+				this.setupOnChangeListen();
+				setTimeout(() => {
+					this.bucketFileSource = 2;
+					this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+					this.showLoading = false;
+				}, 100);
+			}else{
 				this.showLoading = false;
-				data['filePattern'] = this.filePattern.value;
 			}
+			data['filePattern'] = this.filePattern.value;
 		}
+		
 
 	}
 
 	setupOnChangeListen() {
-
+		const mainContnr = document.querySelector('.'+this.cmpInternalId);
 		this.bucketFileSource.onChange(async (newValue) => {
-			this.showBucketUrlInput = newValue;
-			this.setNodeData('bucketFileSource', newValue)
+			this.showBucketUrlInput = Number(newValue);
+			if(this.showBucketUrlInput == 2){
+				mainContnr.querySelector('.input-file-bucket').removeAttribute('(required)');
+			}else{
+				mainContnr.querySelector('.input-file-bucket').setAttribute('(required)',true);
+			}
+			this.setNodeData('bucketFileSource', newValue);
 		});
 
 		this.bucketUrl.onChange((newValue) => this.setNodeData('bucketUrl', newValue));

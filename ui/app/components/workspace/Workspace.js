@@ -226,8 +226,10 @@ export class Workspace extends ViewComponent {
 		const data = await this.preparePipelineContent();
 		if (data === null) return data;
 		this.logProxy.showLogs = true;
-		const result = await this.pplService.createOrUpdatePipeline(data);
-		this.wasDiagramSaved = true;
+		let result = await this.pplService.createOrUpdatePipeline(data);
+		result = await result.json();
+
+		if(!result.error) this.wasDiagramSaved = true;
 		return result;
 	}
 

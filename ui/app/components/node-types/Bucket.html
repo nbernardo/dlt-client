@@ -29,7 +29,7 @@
 				<p>File pattern:</p>
 				<span (showIf)="self.showBucketUrlInput == 1">
 					<div style="display: flex;">
-						<select (forEach)="filesFromList" (required)="true" (value)="selectedFilePattern" class="selected-file-pattern-inpt-@formWrapClass" placeholder="Select a file">
+						<select (forEach)="filesFromList" (required)="true" (value)="selectedFilePattern" class="selected-file-pattern-inpt-@formWrapClass input-file-bucket" placeholder="Select a file">
 							<option each="item" value="{item.file}">{item.name}</option>
 						</select>
 	
@@ -54,19 +54,20 @@
 									</div>
 									<button class="add-btn"
 										onclick="component.addFieldInDataSource('fields-@formWrapClass')">+ Add
-										Field</button>
+										Field
+									</button>
 								</div>
 							</div>
 						</div>
 					</div>
 				</span>
 
-				<p>Resource Primary key:</p>
-				<input type="text" (value)="sourcePrimaryKey" (required)="true" placeholder="Ex: transactions_id">
-	
 				<span (showIf)="self.showBucketUrlInput == 2">
 					<input type="text" (value)="filePattern" class="file-pattern-inpt-@formWrapClass" placeholder="Ex: transactions*.csv">
 				</span>
+
+				<p>Resource Primary key:</p>
+				<input type="text" (value)="sourcePrimaryKey" (required)="true" placeholder="Ex: transactions_id">
 	
 			</form>
 		</span>

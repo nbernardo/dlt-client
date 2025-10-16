@@ -73,7 +73,7 @@ export class FileList extends ViewComponent {
 	async deletefile(){
 		const result = await this.$parent.service.deletefile(this.selectedFile);
 		if(!result.error){
-			AppTemplate.toast.success(result.result);
+			AppTemplate.toast.success(result.result, 5000);
 			document.querySelector(`.current-file-${this.fileId}`).remove();
 		}
 		this.closeDropdown();
