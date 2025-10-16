@@ -73,6 +73,7 @@ def create_new_ppline(fst_connection,
 
     connections = context.connections 
     node_params = context.node_params
+    message = ''
 
     all_nodes: list[TemplateNodeType] = parse_node(connections, node_params, data_place, context, node_list)
     template = template_final_parsing(template, pipeline_name, payload, duckdb_path, context)

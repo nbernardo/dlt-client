@@ -23,15 +23,22 @@ def stream_s3():
     # Bellow mapping: Prefix = Bucket.bucket_path_prefix
     pages = paginator.paginate(Bucket=bucket_url, Prefix=%bucket_path_prefix%)
 
+    total_match = 0
+
     for page in pages:
         for obj in page.get('Contents', []):
             file_name = obj['Key'].split('/')[-1]
             # Match pattern
             if fnmatch.fnmatch(file_name, pattern):
+                total_match = total_match + 1
                 s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
                 
+                print(f'Ingesting data from {file_name}', flush=True)
                 for chunk in pd.read_csv(s3_object['Body'], chunksize=10000):
                     yield chunk.to_dict('records')
+    
+    if total_match == 0:
+        print(f'RUNTIME_WARNING:No file matching pattern {pattern} was found. No data will be loaded.', flush=True)
 
 dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
 

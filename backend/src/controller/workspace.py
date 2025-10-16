@@ -153,7 +153,7 @@ def get_initial_data(namespace):
         total_pipelines = 0
         if os.path.exists(f'{BasePipeline.folder}/pipeline/{namespace}'):
             total_pipelines = len(os.listdir(f'{BasePipeline.folder}/pipeline/{namespace}'))
-            
+
         return {
             'schedules': Workspace.get_ppline_schedule(namespace),
             'ai_agent_namespace_details': ai_agent_namespace_details,
@@ -352,7 +352,7 @@ def send_message_to_agent_wit_groq(message, namespace, user_id = None):
     if(not(user in agents_list)):
         return { 
             'success': False, 
-            'result': "No agent was initiated since you don't have data in the namespace.",
+            'result': "No agent was initiated since you don't/didn't have data in the namespace. I can update myself if you ask.",
             'started': False
         }
     

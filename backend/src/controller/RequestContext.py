@@ -115,14 +115,14 @@ class RequestContext:
         socketio.sleep(0)
 
 
-    def emit_ppline_trace(self, data, error = False, job = False):
+    def emit_ppline_trace(self, data, error = False, job = False, warn = False):
         """
         This emit trace to UI so it can be used to print accordingly 
         (e.g. logs)
         """
         emit(
             RequestContext.ppline_trace,
-            { 'data': data, 'sid': self.socket_sid, 'time': self.get_time(), 'error': error, 'job': job },
+            { 'data': data, 'sid': self.socket_sid, 'time': self.get_time(), 'error': error, 'job': job, 'warn': warn },
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
