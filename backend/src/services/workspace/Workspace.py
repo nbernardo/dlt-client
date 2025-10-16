@@ -313,14 +313,20 @@ class Workspace:
             fields = query.lower().split('from')[0].split('select',1)[1]
             return { 'result': result, 'fields': fields }
         
-        except duckdb.ParserException as err:
-
+        except duckdb.duckdb.BinderException as err:
             print(f'Error while running query: {query}')
             print(str(err))
             return { 'error': True, 'result': str(err), 'code': 'err' }
+                    
         except duckdb.IOException as err:
 
             print(f'Error while accessing the DB: query: {query}')
+            print(str(err))
+            return { 'error': True, 'result': str(err), 'code': 'err' }
+        
+        except Exception as err:
+
+            print(f'Error while running query: {query}')
             print(str(err))
             return { 'error': True, 'result': str(err), 'code': 'err' }
     
