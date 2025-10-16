@@ -1,4 +1,4 @@
-<st-element component="Header" showLogsIcon="false"></st-element>
+<st-element component="Header" proxy="headerProxy" showLogsIcon="false"></st-element>
 
 <div class="config-comp-panel-container">
 	<header class="header">
@@ -17,8 +17,8 @@
 							placeholder="e.g., Marketing-Team-Files" required>
 					</div>
 					<div class="form-group">
-						<button type="submit" class="btn btn-primary">
-							Rename Namespace
+						<button type="submit" disabled class="btn btn-primary">
+							Add Namespace alias
 						</button>
 					</div>
 				</form>
@@ -49,10 +49,10 @@
 							placeholder="Add a personal note to the invitation..."></textarea>
 					</div>
 					<div class="btn-container">
-						<button type="submit" class="btn btn-primary">
+						<button type="submit" disabled class="btn btn-primary">
 							Send Invitation
 						</button>
-						<button type="reset" class="btn btn-secondary">
+						<button type="reset" disabled class="btn btn-secondary">
 							Clear Form
 						</button>
 					</div>
@@ -66,13 +66,13 @@
 			</p>
 			<div style="display: flex; flex-direction: row; gap: 1.5rem;">
 				<div>
-					<h3 class="chart-title">User Role Distribution</h3>
+					<h3 class="chart-title">Schedule vs Created Pipelines</h3>
 					<canvas id="pipelineChart" class="chart-canvas"></canvas>
 				</div>
-				<div>
-					<h3 class="chart-title">Monthly File Uploads</h3>
-					<canvas id="recordsIngestion" class="chart-canvas"></canvas>
-				</div>
+				<!-- <div>
+					<h3 class="chart-title">Total ingested records</h3>
+					<canvas id="recordsIngestion" class="chart-canvas">Will hold the chart with ingested records</canvas>
+				</div> -->
 			</div>
 		</div>
 	</div>

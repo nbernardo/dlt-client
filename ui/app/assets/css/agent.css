@@ -335,4 +335,25 @@
             color:#e89543;
         }
 
+        .ai-agent-sent-messages-count{
+            align-items: center;
+            justify-content: center;
+            width: 19%;
+            padding-left: 14px;
+            font-size: 14px;
+            border-left: 1px solid lightgray;
+            margin-left: 13px;
+            height: 50px;
+            margin-top: 9px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-agent-chat-limit-reached{
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            padding-top: 5px;
+            color: red;
+        }
 /** End of AIAgent Output table Styling */

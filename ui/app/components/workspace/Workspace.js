@@ -174,6 +174,7 @@ export class Workspace extends ViewComponent {
 				console.log(`Pipeline created successfully: `, res);
 			})*/
 		});
+		
 		this.buildWorkspaceView();
 
 		setTimeout(() => this.showLoading = false, 100);
@@ -215,17 +216,24 @@ export class Workspace extends ViewComponent {
 
 		if (!this.controller.isTherePipelineToSave()) return null;
 
-		if (this.activeGrid.value === 'Enter pipeline name')
+		if (this.activeGrid.value === 'Enter pipeline name'){
+			document.getElementById('pplineNamePlaceHolder').classList.add('invalida-ppline-name');
 			return AppTemplate.toast.error('Please enter a valid pipeline name');
+		}
 
-		if (this.wasDiagramSaved)
-			return this.controller.twiceDiagramSaveAlert('save');
+		if (this.wasDiagramSaved) return this.controller.twiceDiagramSaveAlert('save');
 
 		const data = await this.preparePipelineContent();
 		if (data === null) return data;
 		this.logProxy.showLogs = true;
-		const result = await this.pplService.createOrUpdatePipeline(data);
-		this.wasDiagramSaved = true;
+		let result = await this.pplService.createOrUpdatePipeline(data);
+		result = await result.json();
+
+		if(!result.error) this.wasDiagramSaved = true;
+		else {
+			this.logProxy.appendLogEntry('error', result.result, Date.now());
+			return AppTemplate.toast.error(result.result);
+		}
 		return result;
 	}
 
@@ -291,8 +299,16 @@ export class Workspace extends ViewComponent {
 	}
 
 	onPplineNameKeyPress(e) {
+		document.getElementById('pplineNamePlaceHolder').classList.remove('invalida-ppline-name');
 		if (e.key === 'Enter') {
 			e.preventDefault();
+			if(e.target.innerText.replace(/\n|\s/g,'') === ''){
+				document.getElementById('pplineNamePlaceHolder').classList.add('invalida-ppline-name');
+				AppTemplate.toast.error('Please enter valid/not empty pipeline name');
+				this.activeGrid = 'Enter pipeline name';
+				e.target.innerText = 'Enter pipeline name';
+				return;
+			}
 			this.activeGrid = e.target.innerText;
 			e.target.blur();
 			e.target.style.fontWeight = 'bold';
@@ -427,19 +443,24 @@ export class Workspace extends ViewComponent {
 
 	async viewPipelineDiagram(event, pplineName) {
 		event.preventDefault();
+		const self = this;
 		if (this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0)
-			return this.controller.moreThanOnePipelineOpenAlert();
+			return this.controller.moreThanOnePipelineOpenAlert(openDiagram);
 
-		const response = await this.service.readDiagramFile(this.userEmail, pplineName);
-		const result = JSON.parse(response);
-		this.activeGrid = result.pipeline_lbl;
-		document.querySelector('.clear-workspace-btn').style.right = '110px';
-		this.showSaveButton = false;
-		this.isAnyDiagramActive = true;
-		document.getElementById('pplineNamePlaceHolder').contentEditable = false;
-		await this.controller.processImportingNodes(result.content['Home'].data);
-		this.wasDiagramSaved = false;
-		this.selectedPplineName = pplineName;
+		async function openDiagram(reset = null){
+			if(reset) self.resetWorkspace();
+			const response = await self.service.readDiagramFile(self.userEmail, pplineName);
+			const result = JSON.parse(response);
+			self.activeGrid = result.pipeline_lbl;
+			document.querySelector('.clear-workspace-btn').style.right = '110px';
+			self.showSaveButton = false;
+			self.isAnyDiagramActive = true;
+			document.getElementById('pplineNamePlaceHolder').contentEditable = false;
+			await self.controller.processImportingNodes(result.content['Home'].data);
+			self.wasDiagramSaved = false;
+			self.selectedPplineName = pplineName;
+		}
+		await openDiagram();
 	}
 
 	logout = async () => await this.userService.logOut();
@@ -513,7 +534,7 @@ export class Workspace extends ViewComponent {
 		btnPipelineSchedule.disabled = false;
 	}
 
-	showOrHideAgent = () => this.openAgent = !this.openAgent;
+	showOrHideAgent = (flag = null) => this.openAgent = flag != null ? flag : !this.openAgent;
 
 	async expandDataTableView(tableId, databaseParam = null, dbfile = null, queryTable = null) {		
 		let { fields, data, query, database } = this.controller.getAIAgentGridExpand(tableId);

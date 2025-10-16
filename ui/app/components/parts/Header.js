@@ -64,7 +64,7 @@ export class Header extends ViewComponent {
 		this.scheduledPipelines.onChange(val => this.scheduledPipelinesCount = val.length || 0);
 
 		this.workspaceService.on('load', async () => {
-			await this.getScheduleList();
+			await this.getInitData();
 			this.showScheduleCounter = true;
 		});
 
@@ -74,20 +74,30 @@ export class Header extends ViewComponent {
 	}
 
 	async getScheduleList(){
-
-		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
 		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.data;			
+		this.scheduledPipelines = scheduledPipelinesInitList.data || [];			
+		this.scheduledPipelinesCount = scheduledPipelinesInitList.data.length || 0;
+	}
+
+	async getInitData(){
+
+		const namespaceInitData = await WorkspaceService.getPipelineInitialData();
+
+		this.workspaceService.aiAgentNamespaceDetails = namespaceInitData.ai_agent_namespace_details;
+		this.workspaceService.schedulePipelinesStore = namespaceInitData.schedules.data;			
 		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value;			
 		this.scheduledPipelinesCount = this.workspaceService.schedulePipelinesStore.value.length;
+		this.workspaceService.totalPipelines = namespaceInitData.total_pipelines;
 
 	}
 
 	navigateTo = (routeName) => {
 		if(routeName == Router.getCurrentViewName())
 			return
+		this.workspaceController.startedAgent = null;
 		AppTemplate.showLoading();
 		Router.goto(routeName);
-	} 
+	}
 
     handleScheduledPplineHideShow = () =>  handleHideShowSubmenu('.generic-context-drop-menu', '.submenu');
 

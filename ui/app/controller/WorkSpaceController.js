@@ -442,8 +442,8 @@ export class WorkSpaceController extends BaseController {
                 [...tasks].forEach(WorkSpaceController.addSuccessStatus);
         });
 
-        socket.on('pplineTrace', ({ data: trace, time, error, job }) => {
-            const logType = (error ? 'error' : 'info');
+        socket.on('pplineTrace', ({ data: trace, time, error, job, warn }) => {
+            const logType = warn ? 'warn' : (error ? 'error' : 'info');
 
             // Because the backend is running in multithreading, sometimes multiple thread are trying to access 
             // the database file (.duckdb), which does not harm the normal proces, anyway an exceptio can be thrown
@@ -652,10 +652,10 @@ export class WorkSpaceController extends BaseController {
 		return this.showDialog(message, { type: 'ok', title });
     }
     
-    moreThanOnePipelineOpenAlert(){
-        const message = 'You cannot load more than one pipelin at time, please clear the workspace to load another pipeline';
+    moreThanOnePipelineOpenAlert(cb = () => {}){
+        const message = 'You cannot load more than one pipelin at time, <br><b>Do you want to discard the existing diagram to render the clicked one?</b>';
 		const title = 'Cannot load multiple pipeline.';
-		return this.showDialog(message, { type: 'ok', title });	
+		return this.showDialog(message, { type: 'confirm', title, onConfirm: async () => await cb(true)  });	
     }
     
     noPipelineToSaveAlert(){
@@ -699,11 +699,15 @@ export class WorkSpaceController extends BaseController {
     /** @type { AIAgent } */
     startedAgent = null;
 
-    async startAgent(retry = false){  
+    async startAgent(retry = false){ 
         if(!this.startedAgent){
+            
+            const totalMessages = this.wSpaceComponent.service.aiAgentNamespaceDetails.conversation_count;
+            const messageCountLimit = this.wSpaceComponent.service.aiAgentNamespaceDetails.user_message_count_limit;
+
             const parentId = this.wSpaceComponent.cmpInternalId;
-            const { template, component } = await Components.new('AIAgent', {}, parentId);
-            this.startedAgent = component;      
+            const { template, component } = await Components.new('AIAgent', {totalMessages, messageCountLimit}, parentId);
+            this.startedAgent = component;   
             document.querySelector('.ai-agent-placeholder').insertAdjacentHTML('beforeend', template);
             this.wSpaceComponent.showOrHideAgent();
         }else{

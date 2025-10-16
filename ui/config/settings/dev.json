@@ -16,5 +16,7 @@
         "domain": "dev-rmnn416pju788hwl.us.auth0.com",
         "clientId": "lwfP9CGSSXC3Fvo1vVhHv21Pmm4oLdBG"
     },
-    "anonymousLogin": false
+    "anonymousLogin": false,
+    "fileUploadSizeLimit": "10m",
+    "maxAgentConversationTurns": 10
 }

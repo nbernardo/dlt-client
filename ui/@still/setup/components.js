@@ -1508,7 +1508,7 @@ export class Components {
 
             if (prop && mt.includes('@config.')) propValue = value;
             if (mt.includes("@type")) {
-                type = mt.split('{')[1].split('}')[0].trim().replace(/\s/g, '');
+                type = mt?.split('{')[1]?.split('}')[0]?.trim()?.replace(/\s/g, '');
                 if (svcPath == undefined) StillError.undefinedPathInjectionError(type, cmpName);
             }
         }

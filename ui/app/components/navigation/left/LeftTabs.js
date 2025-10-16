@@ -75,8 +75,9 @@ export class LeftTabs extends ViewComponent {
 		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getDuckDbs(this.$parent.userEmail, this.$parent.socketData.sid);
 		
-		if(response?.no_data){
+		if(response?.no_data || Object.keys(response).length === 0){
 			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
+			this.fetchingPipelineData = false;
 			return;
 		}
 
@@ -86,32 +87,40 @@ export class LeftTabs extends ViewComponent {
 				this.$parent.logProxy.appendLogEntry('error', err, Date.now());
 			}
 			this.$parent.logProxy.lastLogTime = null;
+			this.fetchingPipelineData = false;
 			return AppTemplate.toast.error(response.message);
 		}
 		
 		for(const [_file, tables] of Object.entries(response)){
 			const data = Object.values(tables);
-			const dbfile = _file.replace('.duckdb','');
+			const dbfile = _file.replace('.duckdb',''), flag = data[0]?.flag;
 			const pipeline = this.dbTreeviewProxy.addNode(
 				{
-					content: this.pipelineTreeViewTemplate(dbfile),
+					content: this.pipelineTreeViewTemplate(dbfile, flag),
 					isTopLevel: true,
 			});
 
-			const dbSchema = this.dbTreeviewProxy.addNode({
-				content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
-			});
+			if(flag) continue;
+
+			let dbSchema = null;
+			if(data[0]){
+				dbSchema = this.dbTreeviewProxy.addNode({
+					content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
+				});
+			}
 
 			for(const idx in data){
 				
 				const tableData = data[idx];
-				const tableToQuery = `${tableData.dbname}.${tableData.table}`;
-				const table = this.dbTreeviewProxy.addNode({ 
-					content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
-				});
-				dbSchema.addChild(table);
+				if(tableData){
+					const tableToQuery = `${tableData.dbname}.${tableData.table}`;
+					const table = this.dbTreeviewProxy.addNode({ 
+						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
+					});
+					dbSchema.addChild(table);
+				}
 			}
-			pipeline.addChild(dbSchema);
+			if(dbSchema !== null) pipeline.addChild(dbSchema);
 		}
 		
 		this.dbTreeviewProxy.renderTree();
@@ -119,12 +128,14 @@ export class LeftTabs extends ViewComponent {
 		this.dataFetchilgLabel = '';
 	}
 
-	pipelineTreeViewTemplate(dbfile){
+	pipelineTreeViewTemplate(dbfile, flag){
 		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label"> ${pipelineIcon} ${dbfile} </span>
+					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} ${dbfile}</span>
 					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
 						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
-				</div>`;
+				</div>
+				${flag != undefined ? '<span class="pipeline-locked">In use by another proces/job, try after completion.<span>': ''}
+				`;
 	}
 
 	dbSchemaTreeViewTemplate(dbname, dbfile){
@@ -172,16 +183,16 @@ export class LeftTabs extends ViewComponent {
 	async selectTab(tab){
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
-			this.fileListProxy.filesList = await this.fileUploadProxy.listFiles();			
+			const data = await this.fileUploadProxy.listFiles()
+			this.fileListProxy.filesList = data?.length > 0 ? data.map((file, idx) => ({...file, id: 'file'+idx})) : [];			
 			this.fileListProxy.setUpFileMenuEvt();
 		}
 
 		if(tab === 'content-ppline-script'){
-			this.scriptListProxy.noFilesMessage = 'No pipeline found';
+			this.scriptListProxy.noFilesMessage = 'No pipeline script found';
 			this.scriptListProxy.filesList = await this.getPplineFiles();
 			this.scriptListProxy.setUpFileMenuEvt();
 		}
-
 		this.$parent.selectedLeftTab = tab;
 	}
 

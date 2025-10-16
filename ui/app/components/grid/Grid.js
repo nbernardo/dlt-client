@@ -36,15 +36,21 @@ export class Grid extends ViewComponent {
 		this.fields = fields, this.data = data;
 	}
 
-	stAfterInit() {			
-		this.mainContainer = document.querySelector('#'+this.uniqueId);		
+	stAfterInit(error) {			
+		this.mainContainer = document.querySelector('#'+this.uniqueId);
+		this.dataTable = this.mainContainer.querySelector('.dataTable');
+		if(error){
+			const msg = JSON.stringify(error) === '{}' 
+				? '<tr><td colspan="150"><div class="sql-nodata">No data selected</div></td></tr>' : 
+				'<tr><td colspan="150"><div class="sql-error">'+error+'</div></td></tr>';
+			return this.mainContainer.querySelector(`tbody`).innerHTML = msg;
+		}
 		this.loadGrid();
 		this.dataTableHandlingSetup();
 	}
 
 	dataTableHandlingSetup() {
 
-		this.dataTable = this.mainContainer.querySelector('.dataTable');
 		const selfContainer = this.mainContainer;
 
 		this.mainContainer.querySelector('.search-box').addEventListener('keyup', function () {
@@ -135,22 +141,20 @@ export class Grid extends ViewComponent {
         const tableBody = this.data.map(row =>
             `<tr>${row.map(fieldVal => `<td class="right">${fieldVal}</td>`).join('')}</tr>`
         ).join('');
-
+		
 		this.mainContainer.querySelector('tbody').innerHTML = tableBody;
 
 	}
 
 	columnDraggingHandle() {
 
-		const headers = this.dataTable.querySelectorAll('th');
-		const self = this;
+		const headers = this.dataTable.querySelectorAll('th'), self = this;
 
 		for (let i = 0; i < headers.length; i++) {
 			headers[i].ondragstart = function (e) {
-				if (e.target.classList.contains('resizer')) {
-					e.preventDefault();
-					return;
-				}
+				if (e.target.classList.contains('resizer')) 
+					return e.preventDefault();
+
 				self.draggedColumn = parseInt(this.getAttribute('data-column'));
 				this.classList.add('dragging');
 			};
@@ -173,9 +177,7 @@ export class Grid extends ViewComponent {
 	}
 
 	moveColumn(fromIndex, toIndex) {
-		const headers = this.dataTable.querySelectorAll('th');
-		const rows = this.dataTable.querySelectorAll('tbody tr');
-
+		const headers = this.dataTable.querySelectorAll('th'), rows = this.dataTable.querySelectorAll('tbody tr');
 		const headerRow = this.dataTable.querySelector('thead tr');
 		const draggedHeader = headers[fromIndex],  targetHeader = headers[toIndex];
 
@@ -183,16 +185,14 @@ export class Grid extends ViewComponent {
 			headerRow.insertBefore(draggedHeader, targetHeader.nextSibling);
 		} else headerRow.insertBefore(draggedHeader, targetHeader);
 		
-
 		for (let i = 0; i < rows.length; i++) {
 			let cells = rows[i].children;
 			let draggedCell = cells[fromIndex], targetCell = cells[toIndex];
 
-			if (fromIndex < toIndex) {
+			if (fromIndex < toIndex) 
 				rows[i].insertBefore(draggedCell, targetCell.nextSibling);
-			} else {
+			else 
 				rows[i].insertBefore(draggedCell, targetCell);
-			}
 		}
 	}
 
@@ -204,8 +204,7 @@ export class Grid extends ViewComponent {
 	}
 
 	resizeColumnHandle() {
-		const resizers = this.mainContainer.querySelectorAll('.resizer');
-		const self = this;
+		const resizers = this.mainContainer.querySelectorAll('.resizer'), self = this;
 		for (let i = 0; i < resizers.length; i++) {
 			resizers[i].addEventListener('mousedown', function (e) {
 				self.isResizing = true;
@@ -229,7 +228,6 @@ export class Grid extends ViewComponent {
 	}
 
 	stopResize() {
-		const self = this;
 		this.isResizing = false;
 		this.currentColumn = null;
 		this.mainContainer.removeEventListener('mousemove', this.doResize);

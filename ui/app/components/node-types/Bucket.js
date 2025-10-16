@@ -20,6 +20,7 @@ export class Bucket extends ViewComponent {
 	filePattern;
 	bucketFileSource;
 	selectedFilePattern;
+	sourcePrimaryKey;
 
 	/** @Prop */
 	showBucketUrlInput = 1;
@@ -50,18 +51,23 @@ export class Bucket extends ViewComponent {
 
 	/* The id will be passed when instantiating Bucket dinamically through the
 	 * Component.new(type, param) where for para nodeId will be passed  */
-	stOnRender({ nodeId, isImport }) {
+	stOnRender({ nodeId, isImport, bucketUrl, filePattern, primaryKey, bucketFileSource }) {
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		if(isImport) this.showLoading = true;
+		if(bucketUrl) this.bucketUrl = bucketUrl;
+		if(filePattern) this.filePattern = filePattern;
+		if(primaryKey) this.sourcePrimaryKey = primaryKey;
+		if(bucketFileSource) this.bucketFileSource = bucketFileSource;
 	}
 
 	async stAfterInit() {
 
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
-		this.filesFromList = await this.wspaceService.listFiles();
-
+		const result = await this.wspaceService.listFiles();
+		this.filesFromList = (result || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
+		
 		if(this.isImport){
 			// This is mainly because WorkSpaceController will setup reactive notification from source component to 
 			// terget component if connection is being created, regular targets of Backet are Transformation and 
@@ -74,31 +80,41 @@ export class Bucket extends ViewComponent {
 		if ([false, undefined].includes(this.isImport))
 			this.setupOnChangeListen();
 
+		// At this point the WorkSpaceController was loaded by WorkSpace component
+		// hance no this.wSpaceController.on('load') subscrtiption is needed
 		if (this.isImport) {
-			// At this point the WorkSpaceController was loaded by WorkSpace component
-			// hance no this.wSpaceController.on('load') subscrtiption is needed
-			if (this.isImport) {
-				this.selectedFilePattern = this.filePattern.value;
+			this.selectedFilePattern = this.filePattern.value;
+			if(this.bucketFileSource.value === '2'){
+				this.bucketFileSource = 1;
+				this.setupOnChangeListen();
+				setTimeout(() => {
+					this.bucketFileSource = 2;
+					this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+					this.showLoading = false;
+				}, 100);
+			}else{
 				this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 				this.showLoading = false;
-				data['filePattern'] = this.filePattern.value;
 			}
+			data['filePattern'] = this.filePattern.value;
 		}
+		
 
 	}
 
 	setupOnChangeListen() {
-
+		const mainContnr = document.querySelector('.'+this.cmpInternalId);
 		this.bucketFileSource.onChange(async (newValue) => {
-			this.showBucketUrlInput = newValue;
-			const data = WorkSpaceController.getNode(this.nodeId).data;
-			data['bucketFileSource'] = newValue;
+			this.showBucketUrlInput = Number(newValue);
+			if(this.showBucketUrlInput == 2){
+				mainContnr.querySelector('.input-file-bucket').removeAttribute('(required)');
+			}else{
+				mainContnr.querySelector('.input-file-bucket').setAttribute('(required)',true);
+			}
+			this.setNodeData('bucketFileSource', newValue);
 		});
 
-		this.bucketUrl.onChange((newValue) => {
-			const data = WorkSpaceController.getNode(this.nodeId).data;
-			data['bucketUrl'] = newValue;
-		});
+		this.bucketUrl.onChange((newValue) => this.setNodeData('bucketUrl', newValue));
 
 		this.selectedFilePattern.onChange(async (newValue) => {
 			const selectdFile = newValue.trim();
@@ -114,17 +130,18 @@ export class Bucket extends ViewComponent {
 			this.bucketUrl = 'user_folder';
 		});
 
-		this.filePattern.onChange(async (newValue) => {
-			const data = WorkSpaceController.getNode(this.nodeId).data;
-			data['filePattern'] = newValue;
-		});
+		this.filePattern.onChange(async (newValue) => this.setNodeData('filePattern', newValue));
 
 		this.provider.onChange((newValue) => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['provider'] = newValue;
 		});
+
+		this.sourcePrimaryKey.onChange(newValue => this.setNodeData('primaryKey', newValue));
 	}
 
+	setNodeData = (field, value) => WorkSpaceController.getNode(this.nodeId).data[field] = value;
+	
 	getMyData() {
 		const data = WorkSpaceController.getNode(this.nodeId);
 		WorkSpaceController.getNode(this.nodeId).html = '';

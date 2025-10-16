@@ -59,9 +59,9 @@
 													<select (value)="schedulePeriodicity">
 														<option value="" disabled selected>Select an option...</option>
 														<option value="every">Every</option>
-														<option value="daily">Daily</option>
-														<option value="weekly">Weekly</option>
-														<option value="monthly">Monthly</option>
+														<option disabled value="daily">Daily</option>
+														<option disabled value="weekly">Weekly</option>
+														<option disabled value="monthly">Monthly</option>
 													</select>
 												</div>
 												<div class="form-group-input">
@@ -97,6 +97,7 @@
 								</li>
 							</span>
 							<li style="display: none;" onclick="controller.changeModule('Other'); controller.changeModule(event);">Space 2</li>
+							<li style="display: none;" onclick="controller.changeModule('Other'); controller.changeModule(event);">Save </li>
 						</ul>
 					</div>
 

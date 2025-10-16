@@ -13,22 +13,15 @@ export class AIAgent extends ViewComponent {
 	$parent;
 
 	/** @Prop */ outputContainer;
-
 	/** @Prop */ outputContainerId = '_' + UUIDUtil.newId();
-
 	/** @Prop */ resizeHandle;
-
 	/** @Prop */ isDragging = false;
-
     /** @Prop */ startY = 0;
-
     /** @Prop */ startHeight = 0;
-
     /** @Prop */ appContainer;
-
     /** @Prop */ isThereAgentMessage = false;
-
     /** @Prop */ startedInstance = null;
+    /** @Prop */ showLimitReachedWarn = null;
 
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
@@ -42,8 +35,21 @@ export class AIAgent extends ViewComponent {
 	/** @Prop @type { AIAgentController }*/
 	controller = new AIAgentController();
 
+	sentMessagesCount = 0;
+
+	/** @Prop */ maxAllowedMessages = -1;
+
 	async stBeforeInit() {
 		await Assets.import({ path: '/app/assets/css/agent.css' });
+	}
+
+	stOnRender({totalMessages, messageCountLimit}){		
+		if(totalMessages) this.sentMessagesCount = Number(totalMessages);
+		if(messageCountLimit) this.maxAllowedMessages = Number(messageCountLimit);
+
+		/** this.sentMessagesCount will behave as a prop since it didn't render yet */
+		if(this.maxAllowedMessages != -1 &&  this.sentMessagesCount >= this.maxAllowedMessages)
+			this.showLimitReachedWarn = true;
 	}
 
 	async stAfterInit() {
@@ -54,6 +60,13 @@ export class AIAgent extends ViewComponent {
 		this.resizeHandle.style.backgroundColor = '#047857'
 		this.setResizeHandling();
 		await this.startNewAgent();
+
+		this.sentMessagesCount.onChange((val) => {
+			if(this.maxAllowedMessages != -1 && val >= this.maxAllowedMessages)
+				this.showLimitReachedWarn = true;
+		})
+
+		this.$parent.service.aiAgentNamespaceDetails;
 
 	}
 
@@ -83,12 +96,13 @@ export class AIAgent extends ViewComponent {
 
 				/** Because retry took place once, if it successfull connects, then the startedInstance won't be null */
 				if(this.startedInstance === null){
-					const result = "No agent was initiated since you don't have data in the namespace.";
+					const result = "No agent was initiated since you don't/didn't have data in the namespace. I can update myself if you ask.";
 					return this.createMessageBubble(`<div class="agent-no-start-msg">${result}</div>`, 'agent', 'DLT Workspace');
 				}
 			}
 
 			this.createMessageBubble(this.loadingContent(), 'agent');
+			this.sentMessagesCount = this.sentMessagesCount.value + 1;
 			const { result, error: errMessage, success } = await WorkspaceService.sendAgentMessage(message);
 
 			let response = null;

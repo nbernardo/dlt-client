@@ -24,6 +24,8 @@ export class WorkspaceService extends BaseService {
     table = new ServiceEvent([]);
     tableListStore = new ServiceEvent(null);
     fieldsByTableMap = {};
+    aiAgentNamespaceDetails = {};
+    totalPipelines = 0;
     dbPath = null;
     parsedTableListStore = new ServiceEvent([]);
     schedulePipelinesStore = new ServiceEvent([]);
@@ -87,7 +89,7 @@ export class WorkspaceService extends BaseService {
 
     async getDuckDbs(user, socketId) {
 
-        if (this.tableListStore.value == null) {
+        //if (this.tableListStore.value == null) {
             const url = '/workcpace/duckdb/list/' + user + '/' + socketId;
             const response = await $still.HTTPClient.post(url, null, {
                 headers: { 'Content-Type': 'application/json' }
@@ -95,7 +97,7 @@ export class WorkspaceService extends BaseService {
             const { db_path, ...tables } = await response.json();
             this.dbPath = db_path;
             this.tableListStore = tables;
-        }
+        //}
         return this.tableListStore.value;
         
     }
@@ -103,6 +105,14 @@ export class WorkspaceService extends BaseService {
     async downloadfile(fileName, downloadType) {
         const baseUrl = StillHTTPClient.getBaseUrl();
         window.location.href = `${baseUrl}/download/${downloadType}/${UserUtil.email}/${fileName}`;
+    }
+
+    async deletefile(fileName) {
+        const user = UserUtil.email;
+        const response = await $still.HTTPClient.delete('/file/' + user + '/' + fileName);
+        if (response.ok)
+            return await response.json();
+        return null;
     }
 
     async handleDuckdbConnect(payload, action = WorkspaceService.CONNECT_DB) {
@@ -122,7 +132,7 @@ export class WorkspaceService extends BaseService {
     async listPplineFiles(user) {
         const response = await $still.HTTPClient.get('/scriptfiles/' + user + '/');
         if (response.status === 404) {
-            AppTemplate.toast.error('No pipeline(s) found under ' + user);
+            AppTemplate.toast.warn('No pipeline(s) found under ' + user);
         } else if (response.ok)
             return await response.json();
 
@@ -154,7 +164,7 @@ export class WorkspaceService extends BaseService {
         let filesList = null;
         const response = await $still.HTTPClient.get('/files/' + UserUtil.email);
         if (response.status === 404) {
-            AppTemplate.toast.error('No data file found under ' + UserUtil.email);
+            AppTemplate.toast.warn('No data file found under ' + UserUtil.email);
         } else if (response.ok) {
             filesList = await response.json();
         }
@@ -165,7 +175,7 @@ export class WorkspaceService extends BaseService {
         let filesList = null;
         const response = await $still.HTTPClient.get(`/ppline/data/csv/${UserUtil.email}/${filename}`);
         if (response.status === 404)
-            AppTemplate.toast.error('No data file found under ' + UserUtil.email);
+            AppTemplate.toast.warn('No data file found under ' + UserUtil.email);
         else if (response.ok)
             filesList = (await response.text());
 
@@ -212,6 +222,17 @@ export class WorkspaceService extends BaseService {
         const namespace = await UserService.getNamespace();
         const url = '/workcpace/ppline/schedule/' + namespace;
         const response = await $still.HTTPClient.get(url);
+        
+        if (response.ok && !response.error)
+            return await response.json();
+        return null;
+    }
+
+    static async getPipelineInitialData() {
+        const namespace = await UserService.getNamespace();
+        const url = '/workcpace/init/' + namespace;
+        const response = await $still.HTTPClient.get(url);
+        
         if (response.ok && !response.error)
             return await response.json();
         return null;
@@ -258,9 +279,13 @@ export class WorkspaceService extends BaseService {
 
         const result = await response.json();
 
-        if (result.error)
-            return AppTemplate.toast.error('Error while querying the DB: ' + result.result);
-        return result
+        if (result.error){
+            if(result.code === 'err')
+                AppTemplate.toast.error('Error while querying the DB: ' + result.result, 10000);
+            AppTemplate.toast.warn('Exception while querying the DB: ' + result.result);
+            return { error: result.result };
+        }
+        return { ...result, error: null };
 
     }
 
