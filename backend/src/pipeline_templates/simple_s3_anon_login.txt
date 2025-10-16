@@ -44,6 +44,6 @@ dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
 
 # Bellow mapping: schema = DuckDBOutput.duckdb_dest
 pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%, destination=dest)
-info = pipeline.run(stream_s3())
+info = pipeline.run(stream_s3(), write_disposition="merge")
 
 print(info, flush=True)
