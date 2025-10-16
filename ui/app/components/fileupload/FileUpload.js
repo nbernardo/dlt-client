@@ -120,7 +120,7 @@ export class FileUpload extends ViewComponent {
 			`);
 			this.filesList.appendChild(fileItem);
 		});
-		fileInfo.style.display = 'block';
+		this.fileInfo.style.display = 'block';
 	}
 
 	clearAllFiles() {

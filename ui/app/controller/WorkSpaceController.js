@@ -652,10 +652,10 @@ export class WorkSpaceController extends BaseController {
 		return this.showDialog(message, { type: 'ok', title });
     }
     
-    moreThanOnePipelineOpenAlert(){
-        const message = 'You cannot load more than one pipelin at time, please clear the workspace to load another pipeline';
+    moreThanOnePipelineOpenAlert(cb = () => {}){
+        const message = 'You cannot load more than one pipelin at time, <br><b>Do you want to discard the existing diagram to render the clicked one?</b>';
 		const title = 'Cannot load multiple pipeline.';
-		return this.showDialog(message, { type: 'ok', title });	
+		return this.showDialog(message, { type: 'confirm', title, onConfirm: async () => await cb(true)  });	
     }
     
     noPipelineToSaveAlert(){

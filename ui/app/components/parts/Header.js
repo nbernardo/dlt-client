@@ -74,16 +74,15 @@ export class Header extends ViewComponent {
 	}
 
 	async getScheduleList(){
-		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
 		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.data;			
-		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value;			
-		this.scheduledPipelinesCount = this.workspaceService.schedulePipelinesStore.value.length;
+		this.scheduledPipelines = scheduledPipelinesInitList.data || [];			
+		this.scheduledPipelinesCount = scheduledPipelinesInitList.data.length || 0;
 	}
 
 	async getInitData(){
 
 		const namespaceInitData = await WorkspaceService.getPipelineInitialData();
-		
+
 		this.workspaceService.aiAgentNamespaceDetails = namespaceInitData.ai_agent_namespace_details;
 		this.workspaceService.schedulePipelinesStore = namespaceInitData.schedules.data;			
 		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value;			
@@ -95,9 +94,10 @@ export class Header extends ViewComponent {
 	navigateTo = (routeName) => {
 		if(routeName == Router.getCurrentViewName())
 			return
+		this.workspaceController.startedAgent = null;
 		AppTemplate.showLoading();
 		Router.goto(routeName);
-	} 
+	}
 
     handleScheduledPplineHideShow = () =>  handleHideShowSubmenu('.generic-context-drop-menu', '.submenu');
 

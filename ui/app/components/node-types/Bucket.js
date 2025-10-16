@@ -93,6 +93,7 @@ export class Bucket extends ViewComponent {
 					this.showLoading = false;
 				}, 100);
 			}else{
+				this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 				this.showLoading = false;
 			}
 			data['filePattern'] = this.filePattern.value;
