@@ -150,10 +150,14 @@ def get_initial_data(namespace):
     }
 
     try:
+        total_pipelines = 0
+        if os.path.exists(f'{BasePipeline.folder}/pipeline/{namespace}'):
+            total_pipelines = len(os.listdir(f'{BasePipeline.folder}/pipeline/{namespace}'))
+            
         return {
             'schedules': Workspace.get_ppline_schedule(namespace),
             'ai_agent_namespace_details': ai_agent_namespace_details,
-            'total_pipelines': len(os.listdir(f'{BasePipeline.folder}/pipeline/{namespace}'))
+            'total_pipelines':  total_pipelines
         }
     
     except Exception as error:

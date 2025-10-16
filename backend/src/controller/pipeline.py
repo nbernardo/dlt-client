@@ -32,11 +32,16 @@ def create():
     first_connection_id = list(connections)[0][0]['node']
     fst_connection = node_params.get(first_connection_id)
 
+    is_cloud_bucket_req = False
+    if 'bucketFileSource' in fst_connection['data']:
+        is_cloud_bucket_req = int(fst_connection['data']['bucketFileSource']) == 2
+
     context.ppline_path = ppline_path
     context.diagrm_path = diagrm_path
     context.pipeline_lbl = pipeline_lbl
     context.connections = connections
     context.node_params = node_params
+    context.is_cloud_url = True if is_cloud_bucket_req else False
 
     if(context.action_type == 'UPDATE'):
         result =  create_new_version_ppline(fst_connection, 
@@ -80,7 +85,7 @@ def create_new_ppline(fst_connection,
         message = list(context.exceptions[0].values())[0]['message']
         revert_and_notify_failure(None, all_nodes, message)
         print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
-        return 'Error on creating the pipeline'
+        return { 'error': True, 'result': context.exceptions }
 
     pipeline_instance, success = DltPipeline(), True
 
@@ -97,15 +102,16 @@ def create_new_ppline(fst_connection,
         if result['status'] is False: 
             success, message = False, result['message'] 
 
+        return { 'error': False, 'result': 'Pipeline created successfully' }
     except Exception as err:
-        result = { 'message': err }
+        result = { 'message': str(err) }
         success, message = False, result['message']
 
     finally:
         if success is False:
             revert_and_notify_failure(pipeline_instance, all_nodes, message)
 
-        return result['message']
+        return { 'error': False, 'result': message }
 
 
 def create_new_version_ppline(fst_connection, 
@@ -158,9 +164,7 @@ def create_new_version_ppline(fst_connection,
         if success is False:
             revert_and_notify_failure(pipeline_instance, all_nodes, message)
 
-        return result['message']
-
-
+        return { 'error': success, 'result': message }
 
 
 def pepeline_init_param(payload):

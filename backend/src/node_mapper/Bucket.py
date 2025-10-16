@@ -16,9 +16,12 @@ class Bucket(TemplateNodeType):
         """
         
         try:
-        
-            self.template = DltPipeline.get_template()\
-                                if context.transformation == None else DltPipeline.get_transform_template()
+            self.bucket_path_prefix = ""
+            self.template = DltPipeline.get_s3_no_auth_template()
+
+            if(context.is_cloud_url != True):
+                self.template = DltPipeline.get_template()\
+                                    if context.transformation == None else DltPipeline.get_transform_template()
             
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself
@@ -57,15 +60,22 @@ class Bucket(TemplateNodeType):
         return self.check_bucket_url()
 
     def check_bucket_url(self):
+        is_cloud_url = str(self.bucket_url).replace(' ','').__contains__('://')
         path_exists = os.path.exists(self.bucket_url)
         file_exists = os.path.exists(self.bucket_url+'/'+str(self.file_pattern).replace('*',''))
         error = None
-        if not path_exists:
+        if not path_exists and is_cloud_url == False:
             error = 'Specified bucket url does not exists'
-        if not file_exists:
+        if not file_exists and is_cloud_url == False:
             error = f'Files with specified patterns "{self.file_pattern}" does not exists'
         else:
             # Notify the UI that this step completed successfully
             return self.notify_completion_to_ui()
-            
+
+        if is_cloud_url:
+            backet_path_pieces = str(self.bucket_url).split('/',3)
+
+            if len(backet_path_pieces) > 3:
+                self.bucket_path_prefix = backet_path_pieces[3]
+
         return self.notify_failure_to_ui('Bucket',error)

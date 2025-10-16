@@ -34,8 +34,11 @@ class DltPipeline:
 
         file_path = f'{destinations_dir}/{file_name}.py'
         file_open_flag = 'x+'
-
+        
         template = DltPipeline.get_template()
+
+        if int(data['bucketFileSource']) == 2:
+            template = DltPipeline.get_s3_no_auth_template()
 
         if os.path.exists(file_path):
             return 'Pipeline exists already'
@@ -193,6 +196,20 @@ class DltPipeline:
         """
         tplt = ''
         file_name = f'{template_dir}/simple.txt'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
+        return tplt
+
+
+    @staticmethod
+    def get_s3_no_auth_template():
+        """
+        This is template handling method
+        """
+        tplt = ''
+        file_name = f'{template_dir}/simple_s3_anon_login.txt'
 
         with open(f'{file_name}', 'r', encoding='utf-8') as file:
             tplt = file.read()

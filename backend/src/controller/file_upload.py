@@ -20,7 +20,10 @@ def upload_files():
     user = request.form['user']
     files_path = BaseUpload.upload_folder+'/'+user
 
-    total_files = len(os.listdir(files_path))
+    total_files = 0
+    if(os.path.exists(files_path)):
+        total_files = len(os.listdir(files_path))
+        
     upload_limit = int(env('TOTAL_ALLOWED_UPLOADS'))
 
     if(total_files >= upload_limit and not(upload_limit == -1)):

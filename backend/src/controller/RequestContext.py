@@ -40,6 +40,7 @@ class RequestContext:
         self.ppline_path = None
         self.diagrm_path = None
         self.pipeline_lbl = None
+        self.is_cloud_url = False
         
 
 

@@ -1,0 +1,42 @@
+import dlt
+import pandas as pd
+import boto3
+from botocore import UNSIGNED
+from botocore.client import Config
+import fnmatch
+
+s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+
+# Bellow mapping: primary_key = Bucket.primary_key
+# Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
+@dlt.resource(name=%duck_dest_table%, primary_key=%primary_key%)
+def stream_s3():
+
+    # Bellow mapping: pattern = Bucket.file_pattern
+    pattern = %file_pattern%.replace('**','*')
+    
+    paginator = s3.get_paginator('list_objects_v2')
+
+    # Bellow mapping: Bucket = Bucket.bucket_url, 
+    bucket_url = %bucket_url%.replace('s3://','').replace('/','')
+
+    # Bellow mapping: Prefix = Bucket.bucket_path_prefix
+    pages = paginator.paginate(Bucket=bucket_url, Prefix=%bucket_path_prefix%)
+
+    for page in pages:
+        for obj in page.get('Contents', []):
+            file_name = obj['Key'].split('/')[-1]
+            # Match pattern
+            if fnmatch.fnmatch(file_name, pattern):
+                s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
+                
+                for chunk in pd.read_csv(s3_object['Body'], chunksize=10000):
+                    yield chunk.to_dict('records')
+
+dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
+
+# Bellow mapping: schema = DuckDBOutput.duckdb_dest
+pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%, destination=dest)
+info = pipeline.run(stream_s3())
+
+print(info, flush=True)
