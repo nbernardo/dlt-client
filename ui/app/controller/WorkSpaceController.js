@@ -442,8 +442,8 @@ export class WorkSpaceController extends BaseController {
                 [...tasks].forEach(WorkSpaceController.addSuccessStatus);
         });
 
-        socket.on('pplineTrace', ({ data: trace, time, error, job }) => {
-            const logType = (error ? 'error' : 'info');
+        socket.on('pplineTrace', ({ data: trace, time, error, job, warn }) => {
+            const logType = warn ? 'warn' : (error ? 'error' : 'info');
 
             // Because the backend is running in multithreading, sometimes multiple thread are trying to access 
             // the database file (.duckdb), which does not harm the normal proces, anyway an exceptio can be thrown

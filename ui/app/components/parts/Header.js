@@ -73,6 +73,13 @@ export class Header extends ViewComponent {
 		this.handleScheduledPplineHideShow();
 	}
 
+	async getScheduleList(){
+		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
+		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.data;			
+		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value;			
+		this.scheduledPipelinesCount = this.workspaceService.schedulePipelinesStore.value.length;
+	}
+
 	async getInitData(){
 
 		const namespaceInitData = await WorkspaceService.getPipelineInitialData();

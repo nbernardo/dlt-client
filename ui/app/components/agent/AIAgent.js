@@ -96,7 +96,7 @@ export class AIAgent extends ViewComponent {
 
 				/** Because retry took place once, if it successfull connects, then the startedInstance won't be null */
 				if(this.startedInstance === null){
-					const result = "No agent was initiated since you don't have data in the namespace.";
+					const result = "No agent was initiated since you don't/didn't have data in the namespace. I can update myself if you ask.";
 					return this.createMessageBubble(`<div class="agent-no-start-msg">${result}</div>`, 'agent', 'DLT Workspace');
 				}
 			}
