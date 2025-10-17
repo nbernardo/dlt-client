@@ -74,6 +74,7 @@ export class Header extends ViewComponent {
 	}
 
 	async getScheduleList(){
+		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
 		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.data;			
 		this.scheduledPipelines = scheduledPipelinesInitList.data || [];			
 		this.scheduledPipelinesCount = scheduledPipelinesInitList.data.length || 0;
