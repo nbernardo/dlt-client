@@ -33,7 +33,10 @@
 							</li>
 							<li onclick="controller.changeModule('Home'); controller.changeModule(event);"
 								class="selected" tooltip="Pipeline name" tooltip-x="0" tooltip-y="20">
-								<div onkeypress="component.onPplineNameKeyPress(event)" contenteditable="true"
+								<div 
+									onkeypress="component.onPplineNameKeyPress(event)" 
+									onblur="component.onPplineNameKeyPress(event, true)" 
+									contenteditable="true"
 									id="pplineNamePlaceHolder">
 									@activeGrid
 								</div>

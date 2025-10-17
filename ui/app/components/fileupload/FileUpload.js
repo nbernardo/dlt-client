@@ -161,7 +161,7 @@ export class FileUpload extends ViewComponent {
 				}
 				
 			} catch (error) {
-				AppTemplate.toast.error(`File(s) upload failed: ${error.message}`);
+				AppTemplate.toast.error(`File(s) upload failed. Each file size cannot exceed ${StillAppSetup.config.get('fileUploadSizeLimit')}`, 10000);
 			}finally{
 				this.isUploading = false;
 			}

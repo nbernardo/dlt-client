@@ -57,7 +57,8 @@ export class Transformation extends ViewComponent {
 
 	async stAfterInit() {
 
-		if (this.isImport && this.rows !== null) {
+		if (this.isImport && this.rows !== null) {			
+			this.databaseList = this.databaseList.value.map(itm => ({ ...itm, name: itm.name.replace('*','') }));
 			for (const rowConfig of this.rows)
 				await this.addNewField(rowConfig, true);
 			await sleepForSec(500);
@@ -156,7 +157,7 @@ export class Transformation extends ViewComponent {
 
 	parseCodeOnDf(transform, field) {
 
-		let matchCount = 0, addSpace = '';
+		let matchCount = 0, addSpace = '', isThereBitwhise = false;
 		const isMultiConditionCode = [' and ', ' or '].includes(transform);
 		const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z]{1,}\(|s{0,}\'[\sA-Z]{1,}\'|\s{0,}[A-Z]{1,}/ig;
 		const hasSplit = transform.indexOf('.split(') > 0;
@@ -165,10 +166,8 @@ export class Transformation extends ViewComponent {
 			matchCount++;
 
 			// In case split is being used
-			if (wrd.indexOf('.split(') == 0 && wrd.endsWith(']')) {
+			if (wrd.indexOf('.split(') == 0 && wrd.endsWith(']')) 
 				return wrd.replace('.', '.str.').replace(')[', ').str[');
-			}
-
 
 			if (wrd.startsWith('.') && wrd.endsWith('('))
 				return wrd.replace('.', '.str.');
@@ -176,22 +175,25 @@ export class Transformation extends ViewComponent {
 			if (wrd.trim() == "' '") return wrd
 
 			const isWordBitwise = ['and', 'or'].includes(wrd.trim());
-			if (isWordBitwise) return `) ${wrd} (`;
+			if (isWordBitwise) { 
+				isThereBitwhise = true;
+				return `) ${wrd} (`; 
+			}
 			if (matchCount > 1) addSpace = ' ';
 
 			if (
 				pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\"") && !transform[pos - 1]?.startsWith("'")
-				|| pos > 0 && !transform[pos - 1]?.startsWith("'") && !transform[pos - 1]?.startsWith("\"")
+				//|| pos > 0 && !transform[pos - 1]?.startsWith("'") && !transform[pos - 1]?.startsWith("\"")
 			)
 				return isMultiConditionCode ? `(${addSpace}df['${wrd.trim()}']` : `${addSpace}df['${wrd.trim()}']`;
 			else {
 				const isLiteral = (wrd.startsWith("'") && wrd.endsWith("'")) || (wrd.endsWith('"') && wrd.startsWith("'"))
 
 				if (hasSplit && side == 'right' && !isLiteral)
-					return `df.loc[condition, '${wrd}']`;
+					return `df.loc[condition, '${wrd.trim()}']`;
 				else if (isLiteral || (transform[pos - 1]?.startsWith("'") || transform[pos - 1]?.startsWith("\"")))
 					return wrd
-				return `df['${wrd}']`;
+				return `df['${wrd.trim()}']`;
 			}
 		}
 
@@ -205,8 +207,9 @@ export class Transformation extends ViewComponent {
 			return parsePieces(wrd, pos, rightSide, 'right');
 		});
 
-		const condition = `condition = ${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`,`'`)}`;
-		return `${condition}\ndf.loc[condition, '${field}'] = ${rightSide}`;
+		let condition = `condition = ${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`,`'`)}`;
+		if(isThereBitwhise) condition = `${condition})`.replace('condition = ', 'condition = (');
+		return `${condition}\ndf.loc[condition, '${field}'] = ${rightSide}`.replaceAll('( ','(').replaceAll(') ',')').replaceAll('  ',' ');
 	}
 
 	parseCode(transform, field) {
