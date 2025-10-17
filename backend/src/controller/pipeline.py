@@ -148,6 +148,7 @@ def create_new_version_ppline(fst_connection,
 
     parse_transformation_task(node_params, context)
     transformation = context.transformation
+    message = ''
 
     if(transformation is not None):
         template = template.replace('%transformation%',transformation)
@@ -313,6 +314,8 @@ def scriptfiles(user):
         files = []
        
         for filename in os.listdir(files_path):
+           if str(filename).endswith('.meta'): 
+               continue
            filepath = os.path.join(files_path, filename)
            if os.path.isfile(filepath):
                size_bytes = os.path.getsize(filepath)
