@@ -298,9 +298,9 @@ export class Workspace extends ViewComponent {
 		this.isAnyDiagramActive = false;
 	}
 
-	onPplineNameKeyPress(e) {
+	onPplineNameKeyPress(e, cursorMovedOut) {
 		document.getElementById('pplineNamePlaceHolder').classList.remove('invalida-ppline-name');
-		if (e.key === 'Enter') {
+		if (e.key === 'Enter' || cursorMovedOut) {
 			e.preventDefault();
 			if(e.target.innerText.replace(/\n|\s/g,'') === ''){
 				document.getElementById('pplineNamePlaceHolder').classList.add('invalida-ppline-name');

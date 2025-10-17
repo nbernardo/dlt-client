@@ -98,8 +98,6 @@ export class Bucket extends ViewComponent {
 			}
 			data['filePattern'] = this.filePattern.value;
 		}
-		
-
 	}
 
 	setupOnChangeListen() {
@@ -107,9 +105,9 @@ export class Bucket extends ViewComponent {
 		this.bucketFileSource.onChange(async (newValue) => {
 			this.showBucketUrlInput = Number(newValue);
 			if(this.showBucketUrlInput == 2){
-				mainContnr.querySelector('.input-file-bucket').removeAttribute('(required)');
+				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
 			}else{
-				mainContnr.querySelector('.input-file-bucket').setAttribute('(required)',true);
+				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('(required)',true);
 			}
 			this.setNodeData('bucketFileSource', newValue);
 		});
