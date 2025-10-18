@@ -183,14 +183,27 @@ export class LeftTabs extends ViewComponent {
 	async selectTab(tab){
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
-			const data = await this.fileUploadProxy.listFiles()
+			const data = await this.fileUploadProxy.listFiles();
 			this.fileListProxy.filesList = data?.length > 0 ? data.map((file, idx) => ({...file, id: 'file'+idx})) : [];			
 			this.fileListProxy.setUpFileMenuEvt();
 		}
 
 		if(tab === 'content-ppline-script'){
 			this.scriptListProxy.noFilesMessage = 'No pipeline script found';
-			this.scriptListProxy.filesList = await this.getPplineFiles();
+			const data = await this.getPplineFiles();
+			const isVersionFile = /\_v[0-9]{1,}\.py$/; //e.g. filename_v1, filename_v2
+			let currentFileObject = null, count = 0;
+			for (const file of data){
+				if(file.name.match(isVersionFile) === null){
+					file.id = ++count;
+					currentFileObject = file;
+					currentFileObject.versions = [];
+				}else{
+					file.version = true;
+					currentFileObject.versions.push(file);
+				}
+			}
+			this.scriptListProxy.filesList = data;
 			this.scriptListProxy.setUpFileMenuEvt();
 		}
 		this.$parent.selectedLeftTab = tab;

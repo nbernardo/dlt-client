@@ -44,7 +44,7 @@ export class NoteBookController extends BaseController {
                             </button>
                         </div>
                         <button class="minimize-cell-btn cell-button minimize-btn">_</button>
-                        <button class="delete-cell-btn cell-button delete-btn">x</button>
+                        <button class="delete-cell-btn cell-button delete-btn" filename="${filename}">x</button>
                     </div>
                 </div>
                 <div style="padding-bottom: 7px; margin-top: -6px; font-size: 13px;">${filename}</div>
@@ -129,15 +129,21 @@ export class NoteBookController extends BaseController {
 		}
     }
 
-	deleteCell = (id) => {
-		if (Object.keys(this.cells).length > 1) { 
+	deleteCell = (id, fileName = null, force = false) => {
+		if (Object.keys(this.cells).length > 1 || force === true) { 
 			this.cells[id].editor.dispose();
 			this.cells[id].element.remove();
 			delete this.cells[id];
+			this.filesOpened.delete(fileName);
 		}
 	};
 
+	removeAllCells(){
+		Object.keys(this.cells).forEach(id => this.deleteCell(id, true));
+	}
+
 	runCell = async (id, fileName = null) => {
+		return;
 		const cellData = this.cells[id];
 		const code = cellData.editor.getValue();
 		const language = cellData.element.querySelector('.language-select').value;

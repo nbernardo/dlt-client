@@ -160,9 +160,11 @@ def create_new_version_ppline(fst_connection,
             pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl, True, False)
         
         if result['status'] is False: 
+            print('Error while creating new pipeline version: ', str(result['message']))
             success, message = False, result['message'] 
 
     except Exception as err:
+        print('Exception while creating new pipeline version: ', str(result['message']))
         result = { 'message': err }
         success, message = False, result['message']
 
@@ -323,6 +325,7 @@ def scriptfiles(user):
                file_type = filepath.split('.')[-1]
                files.append({'name': filename, 'size': size_value, 'unit': size_unit, 'type': file_type})
        
+        files.sort(key=lambda x: x['name'])
         return jsonify(files)
    except FileNotFoundError as err:
        return jsonify({'error': 'User folder not found'}), 404

@@ -16,8 +16,9 @@ class FileVersionManager:
         
         if os.path.exists(self.base_dir):
             for f in os.listdir(self.base_dir):
-
-                if f.startswith(name + '_v') and f.endswith(ext):
+                
+                file_v_name = name + '_v'
+                if f.startswith(file_v_name) and f.endswith(ext):
                     try:
                         version_part = f[len(name + '_v'):len(f) - len(ext)]
                         version_num = int(version_part)

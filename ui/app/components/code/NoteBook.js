@@ -18,15 +18,11 @@ export class NoteBook extends ViewComponent {
 	controller;
 
 	/** @Prop */ uniqueId = '_' + UUIDUtil.newId();
-
-	/** @type { State<String> } */ openFile;
-
 	/** @Prop */ newCellFileName;
-
 	/** @Prop */ showNotebook = false;
 
-	/** @type { Workspace } */
-	$parent;
+	/** @type { State<String> } */ openFile;
+	/** @type { Workspace } */ $parent;
 
 	/** @Prop */ notebookContainer;
 	/** @Prop */ monacoEditorWrap;
@@ -81,7 +77,7 @@ export class NoteBook extends ViewComponent {
 				);
 				this.controller.runCell(cellId, e.target.getAttribute('filename'));
 			} else if (e.target.classList.contains('delete-cell-btn')) {
-				this.controller.deleteCell(cellId);
+				this.controller.deleteCell(cellId, e.target.getAttribute('filename'));
 			} else if (e.target.classList.contains('minimize-cell-btn')) {
 				this.controller.toggleMinimize(cellId);
 			} else if (e.target.classList.contains('move-up-btn')) {
@@ -98,6 +94,7 @@ export class NoteBook extends ViewComponent {
 	closeNoteBook(){
 		this.$parent.showDrawFlow = true;
 		this.showNotebook = false;
+		this.controller.removeAllCells();		
 	}
 
 }
