@@ -128,7 +128,10 @@ export class Bucket extends ViewComponent {
 			this.bucketUrl = 'user_folder';
 		});
 
-		this.filePattern.onChange(async (newValue) => this.setNodeData('filePattern', newValue));
+		this.filePattern.onChange(async (newValue) => {
+			if (this.moreOptionsRef !== null) this.moreOptionsRef.popup.style.display = 'none';
+			this.setNodeData('filePattern', newValue);
+		});
 
 		this.provider.onChange((newValue) => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
@@ -147,13 +150,10 @@ export class Bucket extends ViewComponent {
 	}
 
 	setMoreOptionsMenu(e, containerId) {
+		
 		const filesList = this.wspaceService.getCsvDataSourceFields(this.filePattern.value);
-		if (this.moreOptionsRef !== null)
-			return this.moreOptionsRef.handleShowPopup(e, containerId);
-
 		this.fieldListRender(containerId, filesList);
 		this.moreOptionsRef = (new MoreOptionsMenu).handleShowPopup(e, containerId);
-
 	}
 
 	addFieldInDataSource(fieldsContainerId) {

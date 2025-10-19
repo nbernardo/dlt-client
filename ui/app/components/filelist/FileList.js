@@ -87,5 +87,14 @@ export class FileList extends ViewComponent {
 		});
 		this.closeDropdown();
 	}
+	/** @param { HTMLLIElement } elm  */
+	async showOrHideVersion(elm, fileId){
+		const versionsContainer = document.querySelector(`.versions-of-file-${fileId}`);
+		if(versionsContainer.style.display === 'none'){
+			elm.innerHTML = '-', versionsContainer.style.display = '';
+		}else{
+			elm.innerHTML = '+', versionsContainer.style.display = 'none';
+		}
+	}
 	
 }

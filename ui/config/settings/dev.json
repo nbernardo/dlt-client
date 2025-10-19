@@ -17,6 +17,6 @@
         "clientId": "lwfP9CGSSXC3Fvo1vVhHv21Pmm4oLdBG"
     },
     "anonymousLogin": false,
-    "fileUploadSizeLimit": "10m",
-    "maxAgentConversationTurns": 10
+    "fileUploadSizeLimit": "500m",
+    "maxAgentConversationTurns": null
 }
