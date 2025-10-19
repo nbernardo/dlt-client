@@ -68,7 +68,9 @@ After cloning/downloading the repository follow the steps a bellow:
 3. change the ***src/.env*** accordingly or leave it as default:
     - ALLOW_ORIGINS=http://127.0.0.1:8080, http://localhost:8080
     - APP_SRV_ADDR=http://localhost:8000
-    - GROQ_API_KEY=    
+    - GROQ_API_KEY=  
+    - TOTAL_ALLOWED_UPLOADS=-1
+    - CONVERSATION_TURN_LIMIT=-1  
 4. python src/app.py <span style="color: lightgray;">//running the application</span>
 
 Expected output:
@@ -81,6 +83,10 @@ Expected output:
 > **APP_SRV_ADDR** is the address of the application itself, this is used by task schedule which is used to schedule DLT pipeline.
 
 > **GROQ_API_KEY** is used by the AI agent which initially is using <b>Groq</b> you can create a free account and generate a key.
+
+> **TOTAL_ALLOWED_UPLOADS** is used to set a limit (if neede) on how many data files (e.g. csv) each user/account can upload.
+
+> **CONVERSATION_TURN_LIMIT** is used to set a limit (if neede) on how many messages can be sent to AI agent per day.
 
 <br>
 
@@ -95,7 +101,7 @@ Expected output:
 
     - websockerAddr <span style="color: lightgray;">// e.g. <a>ws://localhost:8000/pipeline</a></span>
 
-    - anonymousLogin <span style="color: lightgray;">// For dev environment it's convinient to avoid using auth0</a></span>
+    - anonymousLogin <span style="color: lightgray;">// e.g. true, as for dev environment it's convinient to avoid using auth0</a></span>
 3. st serve <span style="color: lightgray;">//running the frontend</span>
 
 Expected output:
@@ -132,7 +138,7 @@ Follow bellow the result with anonymous login:
 <br>
 <br>
 
-If auth0 is active and anonymousLogin is set to false, user can login using social login options (Google, Outlook, Facebook, etc.) as we can see in the bellow picture:
+If auth0 is active and anonymousLogin is set to false, user can login using social login options (Google, Github, Facebook, etc.) as we can see in the bellow picture:
 
 <img src="assets/auth0-login.png" style="width:580px;">
 
