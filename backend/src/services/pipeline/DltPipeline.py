@@ -138,7 +138,12 @@ class DltPipeline:
 
         result.kill()
 
-        return { 'status': status if len(result.stderr.read()) > 0 else True, 'message': message }
+        if error_messages != None:
+            status = False
+        else:
+            status = status if len(result.stderr.read()) > 0 else True
+
+        return { 'status': status, 'message': message }
 
 
     def save_diagram(self, diagrm_path, file_name, content, pipeline_lbl, is_update = None, write_log = True):

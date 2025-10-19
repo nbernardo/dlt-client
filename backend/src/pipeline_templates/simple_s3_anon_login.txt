@@ -18,7 +18,9 @@ def stream_s3():
     paginator = s3.get_paginator('list_objects_v2')
 
     # Bellow mapping: Bucket = Bucket.bucket_url, 
-    bucket_url = %bucket_url%.replace('s3://','').replace('/','')
+    bucket_url = %bucket_url%.replace('s3://','').split('/')
+    if(len(bucket_url) > 1):
+        bucket_url = bucket_url[0]
 
     # Bellow mapping: Prefix = Bucket.bucket_path_prefix
     pages = paginator.paginate(Bucket=bucket_url, Prefix=%bucket_path_prefix%)
