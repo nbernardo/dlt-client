@@ -7,6 +7,7 @@ DLT Client is an MVP Data Engineering project designed to build ETL pipelines th
 
 In terms of stack the front end is build in <a href="https://stilljs.dev/">Still.js</a> framework and the Backend is built in <a href="https://dlthub.com/">dlt-hub (Python)</a>. This is a single repository comprising both the backend and the UI.
 
+There is a [live version](https://mvp1.dlt-c.cloud/#) deployed in cloud, you can access and test it using social login.
 
 <br>
 
@@ -17,6 +18,7 @@ In terms of stack the front end is build in <a href="https://stilljs.dev/">Still
     - [Setup Frontend - Option1](#backend-frontend)
     - [Setup Frontend - Option2](#backend-frontend2)
 - [Login into the application - video](#loging-in-ui)
+- [Videos - see some features in action](#some-features)
 [Architecture](#architecture)
 [Design System overview](#design-system)
 
@@ -143,6 +145,15 @@ If auth0 is active and anonymousLogin is set to false, user can login using soci
 <img src="assets/auth0-login.png" style="width:580px;">
 
 
+<a name="some-features"></a>
+
+## Youtube video of some features in action
+
+1. [Creating a basic pipeline](https://youtu.be/55pK4jzUXVQ)
+
+2. [Scheduling a job for pipeline](https://youtu.be/OuzI65-iMos)
+
+3. [Pipeline versioning, Data transformation and File system sourceing](https://youtu.be/Do5xXC7_d8Y)
 
 <br><hr>
 
