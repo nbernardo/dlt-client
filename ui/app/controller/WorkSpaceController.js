@@ -414,11 +414,12 @@ export class WorkSpaceController extends BaseController {
             socketData.sid = data.sid;
             await this.wSpaceComponent.service.updateSocketId(data.sid);
         });
-
+        //This will be used to revert pipeline
         socket.on('pplineError', ({ componentId, sid, error }) => {
             WorkSpaceController.addFailedStatus(componentId);
             AppTemplate.toast.error(error.message);
             this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
+            this.wSpaceComponent.wasDiagramSaved = false;
         });
 
         socket.on('pplineStepStart', ({ componentId, sid }) => {

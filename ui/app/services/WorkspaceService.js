@@ -186,10 +186,11 @@ export class WorkspaceService extends BaseService {
 
         if (!this.dataSourceFieldsMap.has(selectdFile)) {
             const fields = await this.getCsvFileFields(selectdFile);
+            
             if (fields != null) {
                 // API Response will be something like Index(['ID', 'Name', 'Age', 'Country'], dtype='object')
                 // hence bellow we're clearing things up so to have an array with the proper field names
-                const fieldList = fields.split('[')[1].split(']')[0].replace(/\'|\s/g, '').split(',')
+                const fieldList = fields.split('[')[1].split(']')[0].replace(/\'/g, '').split(',')
                     .map((name, id) => ({ name, id, type: 'string' }));
 
                 this.dataSourceFieldsMap.set(selectdFile, fieldList);
