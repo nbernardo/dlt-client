@@ -190,8 +190,8 @@ export class WorkspaceService extends BaseService {
             if (fields != null) {
                 // API Response will be something like Index(['ID', 'Name', 'Age', 'Country'], dtype='object')
                 // hence bellow we're clearing things up so to have an array with the proper field names
-                const fieldList = fields.split('[')[1].split(']')[0].replace(/\'/g, '').split(',')
-                    .map((name, id) => ({ name, id, type: 'string' }));
+                const fieldList = fields.split('[')[1].split(']')[0].replace(/\'\s{0,}/g, '').split(',')
+                    .map((name, id) => ({ name: name.trim(), id, type: 'string' }));
 
                 this.dataSourceFieldsMap.set(selectdFile, fieldList);
             }
