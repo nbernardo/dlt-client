@@ -5,6 +5,7 @@ from .RequestContext import RequestContext
 from node_mapper.TemplateNodeType import TemplateNodeType
 import os
 import pandas as pd
+from utils.duckdb_util import DuckdbUtil
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -147,6 +148,9 @@ def create_new_version_ppline(fst_connection,
     template = re.sub(pattern, replacement, template, flags=re.DOTALL)
 
     parse_transformation_task(node_params, context)
+
+    DuckdbUtil.check_pipline_db(f'{duckdb_path}/{pipeline_name}.duckdb')
+
     transformation = context.transformation
     message = ''
 

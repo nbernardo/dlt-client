@@ -70,8 +70,8 @@ class DltPipeline:
         
         if context.action_type == 'UPDATE':
             ppline_file = DltPipeline.create_new_pipline_version(file_name, file_path, data)
-        else:
             self.curr_file = ppline_file
+        else:
             # Create python file with pipeline code
             with open(ppline_file, file_open_flag, encoding='utf-8') as file:
                 file.write(data)
@@ -118,8 +118,11 @@ class DltPipeline:
 
         result.wait()
            
-        if result.returncode == 0 and context is not None and pipeline_exception == False:
+        if (result.returncode == 0 or (context.action_type == 'UPDATE'))\
+              and context is not None and (pipeline_exception == False or (context.action_type == 'UPDATE' and result.returncode == 2)):
             context.emit_ppsuccess()
+            pipeline_exception = False
+
         if pipeline_exception == True:
 
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
@@ -127,7 +130,7 @@ class DltPipeline:
         message, status = 'Pipeline run terminated successfully', True
         
         error_messages = None
-        if result.returncode != 0:
+        if result.returncode != 0 and not(context.action_type == 'UPDATE' and result.returncode == 2):
             error_messages = result.stderr.read().split('\n')
             message, status = '\n'.join(error_messages[1:]), False
             context.emit_ppline_trace(message, error=True)
