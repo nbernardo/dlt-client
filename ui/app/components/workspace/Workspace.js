@@ -132,6 +132,8 @@ export class Workspace extends ViewComponent {
 	selectedLeftTab = 'content-diagram';
 
 	/** @Prop */ schedulePeriodicitySelected;
+	
+	/** @Prop */ dynamicViewPlaceholder;
 
 	schedulePeriodicity;
 	scheduleTimeType = 'min';
@@ -181,6 +183,7 @@ export class Workspace extends ViewComponent {
 		this.onLeftTabChange();
 		this.handlePplineSchedulePopup();
 		this.resetWorkspace();
+		this.dynamicViewPlaceholder = document.querySelector('.dynamicViewPlaceholder');
 	}
 
 	onLeftTabChange() {

@@ -20,31 +20,6 @@
     .collapse-checkbox {
         display: none;
     }
-
-    .collapse-label {
-        display: block;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: bold;
-        color: #007bff;
-        text-align: center;
-        padding: 10px;
-        user-select: none;
-        transition: color 0.3s ease;
-        margin-bottom: 20px;
-    }
-
-    .collapse-label:hover {
-        color: #0056b3;
-    }
-
-    
-    .collapse-label::after {
-        content: '▼';
-        margin-left: 10px;
-        transition: transform 0.3s ease;
-    }
-
     
     .collapse-checkbox:checked ~ .collapse-label::after {
         transform: rotate(180deg);

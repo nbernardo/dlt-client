@@ -180,7 +180,14 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.genInitialDBQuery(table, dbfile)
 	}
 
+	addNewDBconnection = () => this.$parent.controller.catalogForm.showDialog();
+
 	async selectTab(tab){
+
+		if(tab === 'content-data-source'){
+			await this.$parent.controller.createCatalogForm();
+		}
+
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
 			const data = await this.fileUploadProxy.listFiles();
@@ -264,9 +271,9 @@ export class LeftTabs extends ViewComponent {
 		const obj = this; //Becuase inside callback this is not available
         document.addEventListener('click', function(event) {
 			
-            const [isClickInsideMenu, isClickTrigger] = [obj.promptSamplesMenu.contains(event.target), event.target.closest('img')];
+            const [isClickInsideMenu, isClickTrigger] = [obj.promptSamplesMenu?.contains(event.target), event.target?.closest('img')];
             if (!isClickInsideMenu && !isClickTrigger) {
-                obj.promptSamplesMenu.classList.remove('is-active');
+                obj.promptSamplesMenu?.classList.remove('is-active');
                 obj.activeFileDropdown = null;
             }
         });

@@ -3,7 +3,7 @@ import { Components } from "../../@still/setup/components.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
-import { UserUtil } from "../components/auth/UserUtil.js";
+import { CatalogForm } from "../components/catalog/CatalogForm.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
@@ -707,7 +707,7 @@ export class WorkSpaceController extends BaseController {
             const messageCountLimit = this.wSpaceComponent.service.aiAgentNamespaceDetails.user_message_count_limit;
 
             const parentId = this.wSpaceComponent.cmpInternalId;
-            const { template, component } = await Components.new('AIAgent', {totalMessages, messageCountLimit}, parentId);
+            const { template, component } = await Components.new(AIAgent, {totalMessages, messageCountLimit}, parentId);
             this.startedAgent = component;   
             document.querySelector('.ai-agent-placeholder').insertAdjacentHTML('beforeend', template);
             this.wSpaceComponent.showOrHideAgent();
@@ -717,6 +717,16 @@ export class WorkSpaceController extends BaseController {
 
             this.startedAgent.startNewAgent(retry);
         }
+    }
+
+    /** @type { CatalogForm } */
+    catalogForm = null;
+    
+    async createCatalogForm(){
+        const parentId = this.wSpaceComponent.cmpInternalId;
+        const { template: catalogFormUI, component } = await Components.new(CatalogForm, {}, parentId);
+        this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = catalogFormUI;
+        this.catalogForm = component;
     }
 
 }
