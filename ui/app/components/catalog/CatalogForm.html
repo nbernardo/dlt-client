@@ -35,51 +35,91 @@
   <div class="CatalogFormModel modal" id="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Register New Database</h3>
+        <h3>Register New Database Settings</h3>
         <button class="btn-close" id="closeModal">×</button>
       </div>
-      <form>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Name</label>
-            <input type="text" placeholder="User DB">
-          </div>
-          <div class="form-group">
-            <label>Type</label>
-            <select>
-              <option>PostgreSQL</option>
-              <option>MySQL</option>
-              <option>MongoDB</option>
-              <option>SQL Server</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Host</label>
-            <input type="text" placeholder="db.example.com">
-          </div>
-          <div class="form-group">
-            <label>Port</label>
-            <input type="number" value="5432">
-          </div>
-          <div class="form-group">
-            <label>Database Name</label>
-            <input type="text" placeholder="users">
-          </div>
-          <div class="form-group">
-            <label>Owner</label>
-            <input type="text" placeholder="data-team">
-          </div>
-          <div class="form-group">
-            <label>Username Env Var</label>
-            <input type="text" placeholder="USER_DB_USERNAME">
-          </div>
-          <div class="form-group">
-            <label>Password Env Var</label>
-            <input type="text" placeholder="USER_DB_PASSWORD">
-          </div>
+      <form (formRef)="formRef">
+		<div class="form-group database-settings-type">
+            <label>Type:</label>
+			<div>
+				<input type="radio" name="dbSettingType" value="1" onclick="component.changeType(this.value)"> Database
+				<input type="radio" name="dbSettingType" value="2" onclick="component.changeType(this.value)"> Secrets group
+			</div>
         </div>
+
+		<div (showIf)="self.showAddSecrete">
+			<button type="button" onclick="component.addSecreteGroup()" class="btn btn-add-secret">
+				<img src="app/assets/imgs/key-management-service-svgrepo-com.svg" width="20" alt="">
+				Add secret field
+			</button>
+		</div>
+
+		<span (showIf)="self.dataBaseSettingType==2">
+			<div class="modal-body catalog-form-secret-group">
+	
+			  <div class="form-group">
+				<label>Secret Key/Name</label>
+				<input type="text" placeholder="e.g. DB_PASSWORD">
+			  </div>
+			  <div class="form-group">
+				<label>Secret value</label>
+				<span class="hidden-secret-value initial-secret-field">
+					<input type="password" placeholder="Enter the secret value">
+					<img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
+				</span>
+			  </div>
+	
+			</div>
+		</span>
+
+		<span (showIf)="self.dataBaseSettingType==1">
+			<div class="modal-body catalog-form-db-fields">
+	
+			  <div class="form-group">
+				<label>Connection Name</label>
+				<input type="text" placeholder="User DB">
+			  </div>
+			  <div class="form-group">
+				<label>DB Engine</label>
+				<select>
+				  <option>PostgreSQL</option>
+				  <option>MySQL</option>
+				  <option>MongoDB</option>
+				  <option>SQL Server</option>
+				</select>
+			  </div>
+			  
+			  <div class="form-group">
+				<label>Host</label>
+				<input type="text" placeholder="db.example.com">
+			  </div>
+			  <div class="form-group">
+				<label>Port</label>
+				<input type="number" value="5432">
+			  </div>
+			  <div class="form-group">
+				<label>Database Name</label>
+				<input type="text" placeholder="users">
+			  </div>
+			  <div class="form-group">
+				<label>Owner</label>
+				<input type="text" placeholder="data-team">
+			  </div>
+			  <!--
+				<div class="form-group">
+				  <label>Username Env Var</label>
+				  <input type="text" placeholder="USER_DB_USERNAME">
+				</div>
+				<div class="form-group">
+				  <label>Password Env Var</label>
+				  <input type="text" placeholder="USER_DB_PASSWORD">
+				</div>
+			  -->
+			</div>
+		</span>
+
         <div class="modal-footer">
-          <button type="submit" class="btn">Save</button>
+          <button type="button" class="btn">Save</button>
         </div>
       </form>
     </div>
@@ -87,6 +127,24 @@
 
   <style>
 
+	.hidden-secret-value{
+		display: flex;
+		input{ width: 92%; };
+		img{ margin-left: .2em; width: 1.3em; cursor: pointer; };
+	}
+
+	.btn-add-secret {
+		width: 30% !important;
+		display: flex !important;
+		align-items: center !important;
+		margin-top: 10px !important;
+		height: 31px !important;
+		background: #1f2937db !important;
+		color: white !important;
+	}
+
+	.database-settings-type { flex-direction: row !important; }
+	.database-settings-type input { margin-left: 1em; }
 
     /* Layout */
     .CatalogForm {
@@ -201,6 +259,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+	  margin-top: 20px;
     }
 
     .CatalogFormModel .form-group {
@@ -225,6 +284,8 @@
     .CatalogFormModel .modal-footer {
       margin-top: 16px;
       text-align: right;
+	  display: flex;
+	  justify-content: space-between;
     }
 
     .CatalogFormModel .btn-close {
