@@ -57,8 +57,10 @@ export class UserService extends BaseService {
     }
 
     static async getNamespace(){
-        if(UserService.namespace === null)
-            UserService.namespace = (await new UserService().getLoggedUser())?.email
+        if(UserService.namespace === null){
+            UserService.namespace = (await new UserService().getLoggedUser())?.sub.replace('|','_')
+            || (await new UserService().getLoggedUser())?.email
+        }
         return UserService.namespace
     }
 

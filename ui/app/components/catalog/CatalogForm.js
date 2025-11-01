@@ -138,7 +138,7 @@ export class CatalogForm extends ViewComponent {
 
 		if(validate){
 
-			dbConfig = {
+			const dbConfig = {
 				'plugin_name': this.dbEngine.value,
 				'connection_url': 'postgresql://{{username}}:{{password}}@{{host}}:{{port}}/{{dbname}}',
 				'verify_connection': false,

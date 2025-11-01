@@ -293,11 +293,12 @@ export class WorkspaceService extends BaseService {
     }
 
 
-    static async createSecret(secrets) {
+    /** @returns { { result: { result, fields, actual_query, db_file } } } */
+    static async createSecret(secret) {
 
-        const namespace = await WorkspaceService.getNamespace();
+        const namespace = await UserService.getNamespace();
         const url = '/secret/' + namespace;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ secrets }), {
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
             headers: { 'content-type': 'Application/json' }
         });
         if (response.ok && !response.error)
@@ -306,6 +307,7 @@ export class WorkspaceService extends BaseService {
             const result = await response.json();
             AppTemplate.toast.error(result.result);
         }
+
     }
 
 }

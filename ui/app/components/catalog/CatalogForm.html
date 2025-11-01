@@ -84,10 +84,10 @@
               <label>DB Engine</label>
               <select (value)="dbEngine">
                 <option value="">SELECT DB Engine</option>
-                <option value="PostgreSQL">PostgreSQL</option>
-                <option value="MySQL">MySQL</option>
-                <option value="MongoDB">MongoDB</option>
-                <option value="SQL Server">SQL Server</option>
+                <option value="postgresql-database-plugin">PostgreSQL</option>
+                <option value="mssql-database-plugin">SQL Server</option>
+                <option value="mysql-database-plugin">MySQL</option>
+                <option value="oracle-database-plugin">Oracle</option>
               </select>
             </div>
             
@@ -104,11 +104,11 @@
               <input (value)="dbName" type="text" placeholder="users">
             </div>
             <div class="form-group">
-              <label>User name</label>
+              <label>Database user</label>
               <input (value)="dbUser" type="text" placeholder="data-team">
             </div>
 
-            <div>SECRETS</div>
+            <div style="margin-top: 8px; font-weight: bold;">SECRETS</div>
             <div></div>
             <!--
             <div class="form-group">
