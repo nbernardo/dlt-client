@@ -3,31 +3,23 @@ from os import getenv as env
 from hvac import Client
 from hvac.exceptions import InvalidPath, InvalidRequest
 import traceback
-
-class SecretManagerType:
-
-    @staticmethod
-    def create_namespace(namespace, type): ...
-
-    @staticmethod
-    def get_namespace(namespace, type): ...
-
-    @staticmethod
-    def create_secret(namespace, params: dict): ...
-
-    @staticmethod
-    def create_db_secret(namespace, params: dict): ...
-
-    @staticmethod
-    def get_secret(namespace, key): ...
-
+from services.workspace.supper.SecretManagerType import SecretManagerType
+import utils.database_secret as DBSecret
 
 class SecretManager(SecretManagerType):
+    """
+    This is a singleton classe which the responsibility is to handle 
+    secret managements, initially focusing on Hashicorp vault
+    """
 
     vault_instance: Client = None
     vault_url = env('HASHICORP_HOST')
-    vault_token = env('HASHICORP_TOKEN'),
-    vault_crt_path = env('HASHICORP_CERTIF_PATH')
+    vault_token = env('HASHICORP_TOKEN')
+    vault_crt_path = False \
+        if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
+        else env('HASHICORP_CERTIF_PATH')
+    
+    db_secrete_obj: DBSecret = None
 
     def __init__():
         pass
@@ -57,7 +49,7 @@ class SecretManager(SecretManagerType):
         )
 
 
-    def get_namespace(namespace, type = None) -> SecretManagerType | None:
+    def set_namespace(namespace, type = None) -> SecretManagerType | None:
 
         exception = False
 
@@ -82,11 +74,13 @@ class SecretManager(SecretManagerType):
         
             
     def create_db_secret(namespace, params: dict):
-        SecretManager.vault_instance.secrets.database.configure(
-            name=params['dbname'],
-            config=params,
-            mount_point=namespace
-        )        
+
+        config = params['dbConfig']
+        config['password'] = params['env']['val1-db']
+        dbengine = str(config['plugin_name']).split('-')[0]
+
+        print(dbengine)
+        SecretManager.db_secrete_obj.create_sql_db_secret(namespace, config, SecretManager, dbengine)
 
 
     def get_secret(namespace, key):
@@ -115,7 +109,7 @@ if __name__ == '__main__':
     SecretManager.connect_to_vault(params)
 
     namespace = 'standtest'
-    sec_manager = SecretManager.get_namespace(namespace)
+    sec_manager = SecretManager.set_namespace(namespace)
     
     key = 'mysecret'
     value = 'myvalue'

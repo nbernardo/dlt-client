@@ -1,6 +1,7 @@
 from os import getenv as env
 from flask import Blueprint, request
 from services.workspace.Workspace import Workspace
+from services.workspace.SecretManager import SecretManager
 from controller.pipeline import BasePipeline
 from controller.file_upload import BaseUpload
 from flask_cors import cross_origin
@@ -371,3 +372,26 @@ def get_request_ip(request):
     return ip
 
 
+
+
+@workspace.route('/secret/<namespace>', methods=['POST'])
+def create_seret(namespace):
+
+    payload = request.get_json()
+
+    try:
+
+        secret_type = 'db' if 'dbConfig' in payload else None
+        sec_management: SecretManager = SecretManager.set_namespace(namespace, secret_type)
+
+        if(secret_type == 'db'):
+            sec_management.create_db_secret(namespace, payload)
+        else:
+            sec_management.create_secret(namespace, payload)
+        
+        return { 'error': False, 'result': 'Secret created successfully' }
+    except Exception as err:
+        print('Error while secret creation: '+str(err))
+        print(err)
+        traceback.print_exc()
+        return { 'error': True, 'result': f'Error while secret creation: {str(err)}' }
