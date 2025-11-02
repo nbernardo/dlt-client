@@ -1,0 +1,16 @@
+class SecretManagerType:
+
+    @staticmethod
+    def create_namespace(namespace, type): ...
+
+    @staticmethod
+    def set_namespace(namespace, type): ...
+
+    @staticmethod
+    def create_secret(namespace, params: dict): ...
+
+    @staticmethod
+    def create_db_secret(namespace, params: dict): ...
+
+    @staticmethod
+    def get_secret(namespace, key): ...

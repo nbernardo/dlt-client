@@ -106,14 +106,49 @@
             </div>
 
             <div class="content-panel content-data-source">
-                <h3>Your Data sources</h3>
-                <div class="under-contruction-feature">
+                <h3>Database Catalog</h3>
+                <!-- <div class="under-contruction-feature">
                     <img src="@underContructionImg">
                     Feature under construction
                     <div class="feature-about">
                         (DB connections to serve as DLT source)
                     </div>
+                </div> -->
+                <div class="catalog-db-addnew" onclick="component.openSecretForm()">
+                    <img src="app/assets/imgs/left-menu/add-database.svg" width="20" height="20"> &nbsp;New DB settings
                 </div>
+
+                <span (showIf)="self.showLoading">
+                    <div class="fetching-db-loader">
+                        <div class="mini-loader-container db-secrets-loader">
+                            <div class="mini-loader-dot"></div>
+                            <div class="mini-loader-dot"></div>
+                            <div class="mini-loader-dot"></div>
+                        </div>
+                        Fetching DB secrets...
+                    </div>
+                </span>
+
+                <span (showIf)="!self.showLoading">
+                    @if(this.secretsList.length == 0)
+                        <div class="fetching-db-loader">No secret found</div>
+                    @endif
+                    <ul class="database-catalog-list">
+                        @for(secret in this.secretsList)
+                        <li>
+                            <div class="database-name">
+                                <span>{secret.dbname}</span>
+                                <span class="edit-datasource" onclick="component.openSecretForm('{secret.dbname}', 'db')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
+                                        <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="host">{secret.host}</div>
+                        </li>
+                        @endfor
+                    </ul>
+                </span>
             </div>
 
             <div class="content-panel content-diagram">
@@ -238,6 +273,30 @@
 
 
 <style>
+    .fetching-db-loader{ text-align: center; flex-direction: column; }
+    .db-secrets-loader {
+        display: flex; width: 100%; padding-bottom: 15px; margin-top: 45px;
+        .mini-loader-dot { background-color: #2c3e50; width: 16px; height: 16px; }
+    }
+
+    .catalog-db-addnew{
+        padding: 10px 0px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .database-catalog-list{
+        width: 98%;
+        .database-name{ font-size: 1em; display: flex; justify-content: space-between; };
+        .host{ font-size: .8em; };
+        li {
+            background: rgba(128, 128, 128, 0.23);
+            padding-left: 5px;
+            margin-top: 4px;
+        };
+
+        .edit-datasource{ font-size: 0.7em; padding-right: 4px; margin-top: 9px; cursor: pointer; }
+    }
 
     .under-contruction-feature{
         padding-bottom: 32px;

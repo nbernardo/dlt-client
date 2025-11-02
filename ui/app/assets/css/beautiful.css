@@ -932,3 +932,32 @@ button[disabled]:hover {
     }
 
 /** End of FileList component Styling */
+
+
+/** Left Menu tabs content buttons/links */
+
+.collapse-label, .catalog-db-addnew {
+    display: block;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    color: #007bff;
+    text-align: center;
+    padding: 10px;
+    user-select: none;
+    transition: color 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.collapse-label:hover, .catalog-db-addnew:hover {
+    color: #0056b3;
+}
+
+
+.collapse-label::after {
+    content: '▼';
+    margin-left: 10px;
+    transition: transform 0.3s ease;
+}
+
+/** End Left Menu tabs content buttons/links */

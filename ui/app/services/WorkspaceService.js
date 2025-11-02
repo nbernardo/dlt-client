@@ -50,6 +50,11 @@ export class WorkspaceService extends BaseService {
         },
     ]
 
+    static async getNamespace(){
+        return StillAppSetup.config.get('anonymousLogin')
+            ? UserUtil.email : await UserService.getNamespace();
+    }
+
     async getParsedTables(namespace, socketId) {
 
         if(this.parsedTableListStore.value.length == 0){
@@ -198,10 +203,8 @@ export class WorkspaceService extends BaseService {
         }
     }
 
-    getCsvDataSourceFields(sourceName) {
-        return this.dataSourceFieldsMap.get(sourceName);
-    }
-
+    getCsvDataSourceFields = (sourceName) => this.dataSourceFieldsMap.get(sourceName);
+    
     async updateSocketId(socketId) {
         const response = await $still.HTTPClient.post('/workcpace/socket_id/' + UserUtil.email + '/' + socketId);
         if (response.ok)
@@ -287,6 +290,53 @@ export class WorkspaceService extends BaseService {
             return { error: result.result };
         }
         return { ...result, error: null };
+    }
+
+
+    /** @returns { { result: { result, fields, actual_query, db_file } } } */
+    static async createSecret(secret) {
+
+        const namespace = await UserService.getNamespace();
+        const url = '/secret/' + namespace;
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
+            headers: { 'content-type': 'Application/json' }
+        });
+        if (response.ok && !response.error)
+            return AppTemplate.toast.success('Secrete created successfully');
+        else{
+            const result = await response.json();
+            AppTemplate.toast.error(result.result);
+        }
+
+    }
+
+    /** @returns { Array<string> } */
+    static async listSecrets() {
+
+        const namespace = await UserService.getNamespace();
+        const url = '/secret/' + namespace;
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok && !response.error)
+            return (await response.json()).result;
+        else{
+            const result = await response.json();
+            AppTemplate.toast.error(result.result);
+        }
+
+    }
+
+    /** @returns { Array<string> } */
+    static async fetchSecret(secretName, type) {
+
+        const namespace = await UserService.getNamespace();
+        const url = `/secret/${namespace}/${type}/${secretName}`;
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok && !response.error)
+            return (await response.json()).result;
+        else{
+            const result = await response.json();
+            AppTemplate.toast.error(result.result);
+        }
 
     }
 

@@ -49,9 +49,14 @@ export class LeftTabs extends ViewComponent {
 
 	/** @Prop */ underContructionImg = '/app/assets/imgs/bricks.gif';
 
+	/** @Prop */ showLoading = false;
+
 	dataFetchilgLabel = 'Fetching Data';
+	secretsList = [];
 
 	stAfterInit() {
+		
+		this.$parent.controller.leftTab = this;
 
 		this.setUpPromptMenuEvt();
 		this.service.on('load', () => {
@@ -180,7 +185,21 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.genInitialDBQuery(table, dbfile)
 	}
 
+	openSecretForm = async (secretName, secretType) => {
+		if(!secretName || !secretType)
+			return this.$parent.controller.catalogForm.showDialog(true);
+		const data = await WorkspaceService.fetchSecret(secretName, secretType);
+
+		this.$parent.controller.catalogForm.editSecret(secretType, {...data, secretName});
+	}
+
 	async selectTab(tab){
+		
+		if(tab === 'content-data-source'){
+			this.showLoading = true;
+			await this.$parent.controller.createCatalogForm();
+		}
+
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
 			const data = await this.fileUploadProxy.listFiles();
@@ -264,9 +283,9 @@ export class LeftTabs extends ViewComponent {
 		const obj = this; //Becuase inside callback this is not available
         document.addEventListener('click', function(event) {
 			
-            const [isClickInsideMenu, isClickTrigger] = [obj.promptSamplesMenu.contains(event.target), event.target.closest('img')];
+            const [isClickInsideMenu, isClickTrigger] = [obj.promptSamplesMenu?.contains(event.target), event.target?.closest('img')];
             if (!isClickInsideMenu && !isClickTrigger) {
-                obj.promptSamplesMenu.classList.remove('is-active');
+                obj.promptSamplesMenu?.classList.remove('is-active');
                 obj.activeFileDropdown = null;
             }
         });

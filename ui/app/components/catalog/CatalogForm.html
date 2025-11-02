@@ -1,0 +1,311 @@
+  <div class="CatalogForm layout">
+
+    <!-- <main class="content">
+      <div class="content-header">
+        <h2>Database Catalog</h2>
+        <button class="btn" id="openModal">+ Add Database</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Host</th>
+            <th>Database</th>
+            <th>Owner</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>User DB</td>
+            <td>PostgreSQL</td>
+            <td>db.internal.example.com</td>
+            <td>users</td>
+            <td>data-team</td>
+            <td>2025-10-25</td>
+          </tr>
+        </tbody>
+      </table>
+    </main> -->
+  </div>
+
+  <!-- Modal -->
+  <div class="CatalogFormModel modal" id="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Register New Database Settings</h3>
+        <button class="btn-close" id="closeModal">×</button>
+      </div>
+      <form (formRef)="formRef">
+        <div class="form-group database-settings-type">
+          <label>Type:</label>
+          <div>
+            <input type="radio" name="dbSettingType" value="1" onclick="component.changeType(this.value)"> Database
+            <input type="radio" name="dbSettingType" value="2" onclick="component.changeType(this.value)"> Secrets group
+          </div>
+        </div>
+
+        <div (showIf)="self.showAddSecrete">
+          <button type="button" onclick="component.addSecreteGroup()" class="btn btn-add-secret">
+            <img src="app/assets/imgs/key-management-service-svgrepo-com.svg" width="20" alt="">
+            Add secret field
+          </button>
+        </div>
+
+        <span (showIf)="self.dataBaseSettingType==2">
+          <div class="modal-body catalog-form-secret-group">
+      
+            <div class="form-group">
+              <label>Secret Key/Name</label>
+              <input (value)="firstKey" class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
+            </div>
+            <div class="form-group">
+              <label>Secret value</label>
+              <span class="hidden-secret-value initial-secret-field">
+                <input (value)="firstValue" type="password" placeholder="Enter the secret value">
+                <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
+              </span>
+            </div>
+      
+          </div>
+        </span>
+
+        <span (showIf)="self.dataBaseSettingType==1">
+          <div class="modal-body catalog-form-db-fields">
+      
+            <div class="form-group required-db-field">
+              <label>Connection Name</label>
+              <input class="db-connection-name" type="text" (value)="connectionName" placeholder="Name of connection">
+            </div>
+
+            <div class="form-group required-db-field">
+              <label>DB Engine</label>
+              <select (value)="dbEngine">
+                <option value="">SELECT DB Engine</option>
+                <option value="postgresql-database-plugin">PostgreSQL</option>
+                <option value="mssql-database-plugin">SQL Server</option>
+                <option value="mysql-database-plugin">MySQL</option>
+                <option value="oracle-database-plugin">Oracle</option>
+              </select>
+            </div>
+            
+            <div class="form-group required-db-field">
+              <label>Host</label>
+              <input type="text" (value)="dbHost" placeholder="db.example.com">
+            </div>
+            <div class="form-group required-db-field">
+              <label>Port</label>
+              <input type="number" (value)="dbPort" value="5432">
+            </div>
+            <div class="form-group required-db-field">
+              <label>Database Name</label>
+              <input (value)="dbName" type="text" placeholder="e.g. sales">
+            </div>
+            <div class="form-group">
+              <label>Database user</label>
+              <input (value)="dbUser" type="text" placeholder="e.g. dbreaduser">
+            </div>
+
+            <div style="margin-top: 8px; font-weight: bold;">SECRETS</div>
+            <div></div>
+            <!--
+            <div class="form-group">
+              <label>Username Env Var</label>
+              <input type="text" placeholder="USER_DB_USERNAME">
+            </div>
+            <div class="form-group">
+              <label>Password Env Var</label>
+              <input type="text" placeholder="USER_DB_PASSWORD">
+            </div>
+            -->
+          </div>
+        </span>
+
+        <div class="modal-footer">
+          <button type="button" onclick="component.createSecret()" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style>
+
+	.hidden-secret-value{
+		display: flex;
+    align-items: center;
+		input{ width: 92%; };
+		img{ margin-left: .2em; width: 1.3em; cursor: pointer; };
+    span {
+      font-size: 11px;
+      padding-left: 5px;
+      font-weight: bold;
+      color: red;
+      cursor: pointer;
+    }
+	}
+
+  .secret-field{ text-transform: uppercase; }
+
+	.btn-add-secret {
+		width: 30% !important;
+		display: flex !important;
+		align-items: center !important;
+		margin-top: 10px !important;
+		height: 31px !important;
+		background: #1f2937db !important;
+		color: white !important;
+	}
+
+	.database-settings-type { flex-direction: row !important; }
+	.database-settings-type input { margin-left: 1em; }
+
+    /* Layout */
+    .CatalogForm {
+      	display: flex;
+      	min-height: 100vh;
+
+      	margin: 0;
+      	font-family: Arial, sans-serif;
+      	background-color: #f5f6fa;
+      	color: #333;
+
+		z-index: -2;
+		position: absolute;
+
+		/** position: absolute;
+		width: 100%;
+		z-index: 10;
+		border: 1px solid;
+		bottom: 0;
+		top: 0;
+		left: 0;
+		right: 0; */
+    }
+
+    /* Main content */
+    .CatalogForm .content {
+      flex-grow: 1;
+      padding: 20px;
+    }
+
+    .CatalogForm .content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .CatalogForm .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    /* Table */
+    .CatalogForm table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .CatalogForm th,
+    .CatalogForm td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .CatalogForm th {
+      background-color: #f1f5f9;
+      font-weight: bold;
+    }
+
+    .CatalogForm tr:hover {
+      background-color: #f9fafb;
+    }
+
+    /* Modal */
+    .CatalogFormModel {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .CatalogFormModel .modal-content {
+      background: #fff;
+      border-radius: 6px;
+      width: 600px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .CatalogFormModel .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .CatalogFormModel .modal-header h3 {
+      margin: 0;
+    }
+
+    .CatalogFormModel .modal-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+	  margin-top: 20px;
+    }
+
+    .CatalogFormModel .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .CatalogFormModel label {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      color: #374151;
+    }
+
+    .CatalogFormModel input,
+    .CatalogFormModel select {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    .CatalogFormModel .modal-footer {
+      margin-top: 16px;
+      text-align: right;
+	  display: flex;
+	  justify-content: space-between;
+    }
+
+    .CatalogFormModel .btn-close {
+      background: #ef4444;
+      border: none;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .CatalogFormModel .btn-close:hover {
+      background: #dc2626;
+    }
+  </style>

@@ -97,6 +97,10 @@ export const stillRoutesMap = {
             SqlEditor: {
                 path: "app/components/code/sqleditor",
                 url: "/sql-editor"
+            },
+            CatalogForm: {
+                path: "app/components/catalog",
+                url: "/catalog-form"
             }
         },
         lazyInitial: {}
