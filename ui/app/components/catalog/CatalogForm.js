@@ -3,6 +3,7 @@ import { State, STForm } from "../../../@still/component/type/ComponentType.js";
 import { FormHelper } from "../../../@still/helper/form.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { Workspace } from "../workspace/Workspace.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -29,13 +30,19 @@ export class CatalogForm extends ViewComponent {
 	firstKey;
 	firstValue;
 
-	stAfterInit(){
+	async stAfterInit(){
 
 		this.modal = document.getElementById('modal');
 		//this.openModal = document.getElementById('openModal');
 		this.closeModal = document.getElementById('closeModal');
 		this.handleModalCall();
-
+		const secretList = await WorkspaceService.listSecrets();
+		
+		if(Array.isArray(secretList?.db_secrets)){
+			const secretAndServerList = secretList.db_secrets.map(secret => ({ dbname: secret, host: secretList.metadata[secret] }))
+			this.$parent.controller.leftTab.secretsList = secretAndServerList;
+		}
+		this.$parent.controller.leftTab.showLoading = false;
 	}
 
 	changeType(value){

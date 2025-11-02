@@ -49,9 +49,14 @@ export class LeftTabs extends ViewComponent {
 
 	/** @Prop */ underContructionImg = '/app/assets/imgs/bricks.gif';
 
+	/** @Prop */ showLoading = false;
+
 	dataFetchilgLabel = 'Fetching Data';
+	secretsList = [];
 
 	stAfterInit() {
+		
+		this.$parent.controller.leftTab = this;
 
 		this.setUpPromptMenuEvt();
 		this.service.on('load', () => {
@@ -183,8 +188,9 @@ export class LeftTabs extends ViewComponent {
 	addNewDBconnection = () => this.$parent.controller.catalogForm.showDialog();
 
 	async selectTab(tab){
-
+		
 		if(tab === 'content-data-source'){
+			this.showLoading = true;
 			await this.$parent.controller.createCatalogForm();
 		}
 
