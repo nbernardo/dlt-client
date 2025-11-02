@@ -45,20 +45,23 @@ There is a [live version](https://mvp1.dlt-c.cloud/#) deployed in cloud, you can
 
 <b>Backend:</b>
 
-[Python >=3.12.0](https://www.python.org/downloads/):
-
-Either run straight in the machine or create virtual environment and point it to version >=3.12.0 for Python
+>[Python >=3.12.0](https://www.python.org/downloads/):
+<br>Either run straight in the machine or create virtual environment and point it to version >=3.12.0 for Python
 
 <b>Frontend:</b>
 
-Install Still-cli or just serve with a Webserver like Nginx/Apache
-
-&nbsp;&nbsp;&nbsp;&nbsp;Option1 (Stilljs): `npm install @stilljs/cli` <span style="color: lightgray;">//Requires Nodejs and NPM</span>
-
-&nbsp;&nbsp;&nbsp;&nbsp;Option2 (Nginx): [Linux/Mac](https://nginx.org/en/docs/install.html), [Windows](https://nginx.org/en/docs/windows.html)
+> Install Still-cli or just serve with a Webserver like Nginx/Apache
+<br>&nbsp;&nbsp;&nbsp;&nbsp;Option1 (Stilljs): `npm install @stilljs/cli` <span style="color: lightgray;">//Requires Nodejs and NPM</span>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;Option2 (Nginx): [Linux/Mac](https://nginx.org/en/docs/install.html), [Windows](https://nginx.org/en/docs/windows.html)
 
 
 
+<b>Duckdb:</b>
+
+> Install according to the OS, follow the [link](https://duckdb.org/install/?platform=macos&environment=cli).
+<br>For MVP1, Duckdb has been the only used destination of pipeline output.
+
+<br>
 <a name="backend-setup"></a>
 
 ## Set up Backend
