@@ -53,7 +53,7 @@ Either run straight in the machine or create virtual environment and point it to
 
 Install Still-cli or just serve with a Webserver like Nginx/Apache
 
-&nbsp;&nbsp;&nbsp;&nbsp;Option1 (Stilljs): npm install @stilljs/cli <span style="color: lightgray;">//Requires Nodejs and NPM</span>
+&nbsp;&nbsp;&nbsp;&nbsp;Option1 (Stilljs): `npm install @stilljs/cli` <span style="color: lightgray;">//Requires Nodejs and NPM</span>
 
 &nbsp;&nbsp;&nbsp;&nbsp;Option2 (Nginx): [Linux/Mac](https://nginx.org/en/docs/install.html), [Windows](https://nginx.org/en/docs/windows.html)
 
@@ -65,15 +65,15 @@ Install Still-cli or just serve with a Webserver like Nginx/Apache
 
 After cloning/downloading the repository follow the steps a bellow:
 
-1. cd backend/ <span style="color: lightgray;">//From the root of project</span>
-2. pip install -r requirements.txt <span style="color: lightgray;">//Dependencies installation</span>
+1. `cd backend/` <span style="color: lightgray;">//From the root of project</span>
+2. `pip install -r requirements.txt` <span style="color: lightgray;">//Dependencies installation</span>
 3. change the ***src/.env*** accordingly or leave it as default:
     - ALLOW_ORIGINS=http://127.0.0.1:8080, http://localhost:8080
     - APP_SRV_ADDR=http://localhost:8000
     - GROQ_API_KEY=  
     - TOTAL_ALLOWED_UPLOADS=-1
     - CONVERSATION_TURN_LIMIT=-1  
-4. python src/app.py <span style="color: lightgray;">//running the application</span>
+4. `python src/app.py` <span style="color: lightgray;">//running the application</span>
 
 Expected output:
 
@@ -97,14 +97,14 @@ Expected output:
 ## Set up Frontend
 
 **Option1:**
-1. cd ui/ <span style="color: lightgray;">//From the root of project</span>
+1. `cd ui/` <span style="color: lightgray;">//From the root of project</span>
 2. In ***config/settings/dev.json*** change the accordingly:
     - httpClient.baseUrl <span style="color: lightgray;">//Backend address (e.g. http://localhost:8000)</span>
 
     - websockerAddr <span style="color: lightgray;">// e.g. <a>ws://localhost:8000/pipeline</a></span>
 
     - anonymousLogin <span style="color: lightgray;">// e.g. true, as for dev environment it's convinient to avoid using auth0</a></span>
-3. st serve <span style="color: lightgray;">//running the frontend</span>
+3. `st serve` <span style="color: lightgray;">//running the frontend</span>
 
 Expected output:
 
