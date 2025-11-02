@@ -51,7 +51,7 @@ There is a [live version](https://mvp1.dlt-c.cloud/#) deployed in cloud, you can
 <b>Frontend:</b>
 
 > Install Still-cli or just serve with a Webserver like Nginx/Apache
-<br>&nbsp;&nbsp;&nbsp;&nbsp;Option1 (Stilljs): `npm install @stilljs/cli` <span style="color: lightgray;">//Requires Nodejs and NPM</span>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;Option1 (Stilljs): `npm install @stilljs/cli -g` <span style="color: lightgray;">//Requires Nodejs and NPM</span>
 <br>&nbsp;&nbsp;&nbsp;&nbsp;Option2 (Nginx): [Linux/Mac](https://nginx.org/en/docs/install.html), [Windows](https://nginx.org/en/docs/windows.html)
 
 
