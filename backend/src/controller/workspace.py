@@ -412,3 +412,20 @@ def list_serets(namespace):
         print(err)
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while fetching secrets list: {str(err)}' }
+
+
+@workspace.route('/secret/<namespace>/<type>/<secretname>', methods=['GET'])
+def fetch_secret(namespace, type, secretname):
+
+    try:
+        path = f'main/{type}/{secretname}'
+        secret_details = SecretManager.get_secret(namespace,key=None,path=path)
+        if secret_details == None:
+            return { 'error': True, 'result': 'No secrete found for current namespace' }
+        else:
+            return { 'error': False, 'result': secret_details }
+    except Exception as err:
+        print('Error while fetching secret: '+str(err))
+        print(err)
+        traceback.print_exc()
+        return { 'error': True, 'result': f'Error while fetching secret: {str(err)}' }
