@@ -372,8 +372,6 @@ def get_request_ip(request):
     return ip
 
 
-
-
 @workspace.route('/secret/<namespace>', methods=['POST'])
 def create_seret(namespace):
 
@@ -382,12 +380,14 @@ def create_seret(namespace):
     try:
 
         secret_type = 'db' if 'dbConfig' in payload else None
+        path = payload['dbConfig']['connectionName']
+
         sec_management: SecretManager = SecretManager.set_namespace(namespace, secret_type)
 
         if(secret_type == 'db'):
-            sec_management.create_db_secret(namespace, payload)
+            sec_management.create_db_secret(namespace, payload, path)
         else:
-            sec_management.create_secret(namespace, payload)
+            sec_management.create_secret(namespace, payload, path)
         
         return { 'error': False, 'result': 'Secret created successfully' }
     except Exception as err:
@@ -395,3 +395,20 @@ def create_seret(namespace):
         print(err)
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while secret creation: {str(err)}' }
+
+
+@workspace.route('/secret/<namespace>', methods=['GET'])
+def list_serets(namespace):
+
+    try:
+
+        secret_names = SecretManager.list_secret_names(namespace)
+        if secret_names == None:
+            return { 'error': True, 'result': 'No secrete found for current namespace' }
+        else:
+            return { 'error': False, 'result': secret_names }
+    except Exception as err:
+        print('Error while fetching secrets list: '+str(err))
+        print(err)
+        traceback.print_exc()
+        return { 'error': True, 'result': f'Error while fetching secrets list: {str(err)}' }

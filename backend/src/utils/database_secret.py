@@ -1,7 +1,7 @@
 from services.workspace.supper.SecretManagerType import SecretManagerType
 
 
-def create_sql_db_secret(namespace, config, sec_managet: SecretManagerType, db_engind):
+def create_sql_db_secret(namespace, config, sec_managet: SecretManagerType, db_engind, path):
 
     if db_engind == 'postgresql':
         connection_url = f'postgresql://{config['username']}:{config['password']}@{config['host']}:{config['port']}/{config['dbname']}'
@@ -13,7 +13,7 @@ def create_sql_db_secret(namespace, config, sec_managet: SecretManagerType, db_e
         connection_url = f'mysql+pymysql://{config['username']}:{config['password']}@{config['host']}:{config['port']}/{config['dbname']}'
 
     sec_managet.vault_instance.secrets.kv.v2.create_or_update_secret(
-        path=f'main',
+        path=f'main/db/{path}',
         secret={
             'connection_url': connection_url,
             'host': config['host'],
@@ -22,7 +22,7 @@ def create_sql_db_secret(namespace, config, sec_managet: SecretManagerType, db_e
             'password': config['password'],
             'database': config['dbname']
         },
-        mount_point=f'_db{namespace}'
+        mount_point=namespace
     )
 
 
