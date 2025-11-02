@@ -45,6 +45,22 @@ export class CatalogForm extends ViewComponent {
 		this.$parent.controller.leftTab.showLoading = false;
 	}
 
+	editSecret(type, secretData){
+		const selectedOption = type === 'db' ? 0 : 1;
+		document.querySelectorAll('.database-settings-type input')[selectedOption].click();
+		this.connectionName = secretData.secretName;
+		this.dbHost = secretData.host;
+		this.dbPort = secretData.port;
+		this.dbName = secretData.database;
+		this.dbUser = secretData.username;
+		this.dbEngine = secretData?.dbengine+'-database-plugin';
+		
+		this.showDialog();
+		document.querySelector('.first-db-secret').value = secretData.password;
+		document.querySelector('.db-connection-name').disabled = true;
+		document.querySelectorAll('.database-settings-type input')[selectedOption == 1 ? 0 : 1].disabled = true;
+	}
+
 	changeType(value){
 		this.showAddSecrete = true, this.dataBaseSettingType = value;
 		if(value == 1){
@@ -67,7 +83,20 @@ export class CatalogForm extends ViewComponent {
 
 	}
 
-	showDialog(){		
+	showDialog(reset = false){
+
+		if(reset){
+			this.connectionName = '';
+			this.dbHost = '';
+			this.dbPort = '';
+			this.dbName = '';
+			this.dbUser = '';
+			this.dbEngine = '';
+			document.querySelector('.first-db-secret').value = '';
+		}
+
+		document.querySelector('.db-connection-name').disabled = false;
+		document.querySelectorAll('.database-settings-type input').forEach(opt => opt.disabled = false);
 		if(this.modal.style.display !== 'flex')
 			this.modal.style.display = 'flex';
 		else
@@ -95,7 +124,7 @@ export class CatalogForm extends ViewComponent {
 
 		fieldName = `val${this.dynamicFieldCount}-${type}`;
 		const secretValField = FormHelper.newField(this, this.formRef, fieldName)
-			.input({ required: true, placeholder: 'Enter the secret value', type: 'password' })
+			.input({ required: true, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-db-secret' : '' })
 			.element;
 
 		this.addSecreteField(secretKeyField, targetForm, null, fieldName);
@@ -141,8 +170,7 @@ export class CatalogForm extends ViewComponent {
 
 	async createSecret(){
 		const validate = await this.formRef.validate();
-		console.log(`ERROR COUNT: `, this.formRef.errorCount);
-
+		if(this.connectionName.value == '') return AppTemplate.toast.error('Please select the secret type');
 		if(validate){
 
 			const dbConfig = {

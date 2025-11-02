@@ -185,7 +185,13 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.genInitialDBQuery(table, dbfile)
 	}
 
-	addNewDBconnection = () => this.$parent.controller.catalogForm.showDialog();
+	openSecretForm = async (secretName, secretType) => {
+		if(!secretName || !secretType)
+			return this.$parent.controller.catalogForm.showDialog(true);
+		const data = await WorkspaceService.fetchSecret(secretName, secretType);
+
+		this.$parent.controller.catalogForm.editSecret(secretType, {...data, secretName});
+	}
 
 	async selectTab(tab){
 		

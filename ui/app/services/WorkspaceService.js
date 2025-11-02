@@ -325,4 +325,19 @@ export class WorkspaceService extends BaseService {
 
     }
 
+    /** @returns { Array<string> } */
+    static async fetchSecret(secretName, type) {
+
+        const namespace = await UserService.getNamespace();
+        const url = `/secret/${namespace}/${type}/${secretName}`;
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok && !response.error)
+            return (await response.json()).result;
+        else{
+            const result = await response.json();
+            AppTemplate.toast.error(result.result);
+        }
+
+    }
+
 }
