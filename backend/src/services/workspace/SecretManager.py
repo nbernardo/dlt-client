@@ -75,7 +75,13 @@ class SecretManager(SecretManagerType):
     def create_db_secret(namespace, params: dict, path):
 
         config = params['dbConfig']
-        config['password'] = params['env']['val1-db']
+
+        if('val1-db' in params['env']):
+            config['password'] = params['env']['val1-db']
+
+        if('key1-secret' in params['env']):
+            config['password'] = params['env']['key1-secret']
+
         dbengine = str(config['plugin_name']).split('-')[0]
 
         SecretManager.db_secrete_obj.create_sql_db_secret(namespace, config, SecretManager, dbengine, path)
