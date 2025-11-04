@@ -52,7 +52,8 @@ export class LeftTabs extends ViewComponent {
 	/** @Prop */ showLoading = false;
 
 	dataFetchilgLabel = 'Fetching Data';
-	secretsList = [];
+	dbSecretsList = [];
+	apiSecretsList = [];
 
 	stAfterInit() {
 		

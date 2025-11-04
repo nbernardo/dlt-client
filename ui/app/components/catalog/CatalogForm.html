@@ -65,6 +65,7 @@
             </div>
     
             <span (showIf)="self.dataBaseSettingType==2">
+
               <div class="modal-body catalog-form-secret-group">
           
                 <div class="form-group">
@@ -135,34 +136,24 @@
         </span>
 
         <span (showIf)="self.secretType == 2">
-    
-            <span>
-
+            <span class="catalog-form-secret-api">
               <div>
+                <label>Unique name</label>
+                <div style="margin-top: 5px;">
+                  <input (value)="connectionName" class="unique-api-name" type="text" placeholder="e.g. Inventory API - Products Endpoint">
+                </div>
+              </div>
+
+              <div style="padding-top: 15px;">
                 <label>API Settings</label>
                 <div>
                   <div id="@editorId" style="height: 150px; margin-top: 11px;"></div>
                 </div>
               </div>
 
-              <div class="modal-body catalog-form-secret-group-api">
-          
-                <div class="form-group">
-                  <label>Secret Key/Name</label>
-                  <input (value)="firstKey" class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
-                </div>
-                <div class="form-group">
-                  <label>Secret value</label>
-                  <span class="hidden-secret-value initial-secret-field">
-                    <input (value)="firstValue" type="password" placeholder="Enter the secret value">
-                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
-                  </span>
-                </div>
-          
+              <div class="modal-body">
               </div>
             </span>
-    
-
         </span>
         
 
@@ -174,6 +165,7 @@
   </div>
 
   <style>
+  .unique-api-name{ width: 100%; }
   .api-setting-content{ margin-top: 4px; width: 100%; }
 
 	.hidden-secret-value{

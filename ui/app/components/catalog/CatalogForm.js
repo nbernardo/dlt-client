@@ -24,14 +24,16 @@ export class CatalogForm extends ViewComponent {
 
 	/** @type { Workspace } */ $parent;
 
-	connectionName;
 	dbEngine;
 	dbHost;
 	dbPort;
 	dbName;
 	dbUser;
+	
+	// Bellow State variables are shared between API and DB secret creation
 	firstKey;
 	firstValue;
+	connectionName;
 
 	stOnRender = ({ type }) => {
 		type && (this.secretType = type);
@@ -46,13 +48,24 @@ export class CatalogForm extends ViewComponent {
 		this.handleModalCall();
 		const secretList = await WorkspaceService.listSecrets();
 		
-		if(Array.isArray(secretList?.db_secrets)){
-			const secretAndServerList = secretList.db_secrets.map(secret => ({ dbname: secret, host: secretList.metadata[secret] }))
-			this.$parent.controller.leftTab.secretsList = secretAndServerList;
+		if(this.secretType == 2){
+			if(Array.isArray(secretList?.api_secrets)){
+				const secretAndServerList = secretList.api_secrets.map(secret => ({ name: secret, host: 'to.be.def' }))
+				this.$parent.controller.leftTab.apiSecretsList = secretAndServerList;
+			}
+		}else{
+			if(Array.isArray(secretList?.db_secrets)){
+				const secretAndServerList = secretList.db_secrets.map(secret => ({ dbname: secret, host: secretList.metadata[secret] }))
+				this.$parent.controller.leftTab.dbSecretsList = secretAndServerList;
+			}
 		}
 		this.$parent.controller.leftTab.showLoading = false;
 
-		if(this.secretType == 2) this.startCodeEditor();
+		if(this.secretType == 2) {
+			this.markAPIFieldsAsRequired();
+			this.startCodeEditor();
+			this.addSecreteGroup(true);
+		}
 	}
 
 	startCodeEditor(){
@@ -63,19 +76,32 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	editSecret(type, secretData){
-		const selectedOption = type === 'db' ? 0 : 1;
-		document.querySelectorAll('.database-settings-type input')[selectedOption].click();
 		this.connectionName = secretData.secretName;
-		this.dbHost = secretData.host;
-		this.dbPort = secretData.port;
-		this.dbName = secretData.database;
-		this.dbUser = secretData.username;
-		this.dbEngine = secretData?.dbengine+'-database-plugin';
 		
+		if(this.secretType == 1){
+			const selectedOption = type === 'db' ? 0 : 1;
+			document.querySelectorAll('.database-settings-type input')[selectedOption].click();
+			this.dbHost = secretData.host;
+			this.dbPort = secretData.port;
+			this.dbName = secretData.database;
+			this.dbUser = secretData.username;
+			this.dbEngine = secretData?.dbengine+'-database-plugin';
+			
+			document.querySelector('.first-secret-field').value = secretData.password;
+			document.querySelector('.db-connection-name').disabled = true;
+			document.querySelectorAll('.database-settings-type input')[selectedOption == 1 ? 0 : 1].disabled = true;
+		}
+
+		if(this.secretType == 2){
+			document.querySelector('.unique-api-name').disabled = true;
+			document.querySelector('.catalog-form-secret-api .first-secret-field').value = secretData.env['val1-secret'];
+			this.editor.setValue(secretData.apiSettings);
+		}
 		this.showDialog();
-		document.querySelector('.first-db-secret').value = secretData.password;
-		document.querySelector('.db-connection-name').disabled = true;
-		document.querySelectorAll('.database-settings-type input')[selectedOption == 1 ? 0 : 1].disabled = true;
+	}
+
+	markAPIFieldsAsRequired(){
+		document.querySelectorAll('.catalog-form-secret-api input').forEach(inpt => inpt.setAttribute('required', true));
 	}
 
 	changeType(value){
@@ -97,7 +123,6 @@ export class CatalogForm extends ViewComponent {
 			});
 			document.querySelectorAll('.catalog-form-secret-group input').forEach(inpt => inpt.setAttribute('required', true));
 		}
-
 	}
 
 	showDialog(reset = false){
@@ -109,7 +134,7 @@ export class CatalogForm extends ViewComponent {
 			this.dbName = '';
 			this.dbUser = '';
 			this.dbEngine = '';
-			if(document.querySelector('.first-db-secret')) document.querySelector('.first-db-secret').value = '';
+			if(document.querySelector('.first-secret-field')) document.querySelector('.first-secret-field').value = '';
 		}
 
 		document.querySelector('.db-connection-name').disabled = false;
@@ -128,10 +153,17 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	addSecreteGroup(initial = false){
-		const type = this.dataBaseSettingType == 1 ? 'db' : 'secret';
-		const targetForm = type == 'db' ? 'catalog-form-db-fields' : 'catalog-form-secret-group';
+		
+		let type = 'secret';
+		let targetForm = 'catalog-form-secret-api';
+
+		if(this.dataBaseSettingType !== null){
+			type = this.dataBaseSettingType == 1 ? 'db' : 'secret';
+			targetForm = type == 'db' ? 'catalog-form-db-fields' : 'catalog-form-secret-group';
+		}
+		
 		this.dynamicFieldCount++;
-		const value = initial ? 'DB_PASSWORD' : '';
+		const value = targetForm ? 'API_KEY' : initial ? 'DB_PASSWORD' : '';
 		const disabled = initial ? true : false;
 		
 		let fieldName = `key${this.dynamicFieldCount}-${type}`;
@@ -141,7 +173,7 @@ export class CatalogForm extends ViewComponent {
 
 		fieldName = `val${this.dynamicFieldCount}-${type}`;
 		const secretValField = FormHelper.newField(this, this.formRef, fieldName)
-			.input({ required: true, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-db-secret' : '' })
+			.input({ required: true, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-secret-field' : '' })
 			.element;
 
 		this.addSecreteField(secretKeyField, targetForm, null, fieldName);
@@ -150,8 +182,11 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	addSecreteField = (field, targetForm, type, fieldName, initial) => {
+
 		const div = document.createElement('div');
 		div.className = `form-group remove-dyn-field-${fieldName}`;
+		const isAPISecret = this.dataBaseSettingType == null;
+		const subContainer = isAPISecret ? '.modal-body' : '';
 
 		if(type == 'val')
 			field = this.parseEvents(`
@@ -162,13 +197,20 @@ export class CatalogForm extends ViewComponent {
 				<span>`);
 
 		div.innerHTML = field;
-		document.querySelector(`.${targetForm}`).appendChild(div);
+		document.querySelector(`.${targetForm} ${subContainer}`).appendChild(div);
 	}
 
-	viewSecretValue(fieldContainer, secretType){
-		const type = this.dataBaseSettingType == 1 ? 'catalog-form-db-fields' : 'catalog-form-secret-group';
-		const clsName = fieldContainer == 'initial' ? `.initial-secret-field${secretType == 'db' ? '-db' : ''}` : `.${type} .${fieldContainer}`;
+	viewSecretValue(fieldContainer){
+
+		let type = 'catalog-form-secret-api', secretType = '-api';
+		if(this.dataBaseSettingType !== null && this.secretType != 2){
+			type = this.dataBaseSettingType == 1 ? 'catalog-form-db-fields' : 'catalog-form-secret-group';
+			secretType = this.dataBaseSettingType == 1 ? '-db' : '';
+		}
+
+		const clsName = fieldContainer == 'initial' ? `.initial-secret-field${secretType}` : `.${type} .${fieldContainer}`;
 		const currentVal = document.querySelector(`${clsName} input`).type;
+		
 		if(currentVal == 'text') {
 			document.querySelector(`${clsName} input`).type = 'password';
 			document.querySelector(`${clsName} img`).src = 'app/assets/imgs/view-svgrepo-com.svg';
@@ -176,6 +218,7 @@ export class CatalogForm extends ViewComponent {
 			document.querySelector(`${clsName} input`).type = 'text';
 			document.querySelector(`${clsName} img`).src = 'app/assets/imgs/view-hide-svgrepo-com.svg';
 		}
+
 	}
 
 	removeField = (fieldName) => {
@@ -186,22 +229,32 @@ export class CatalogForm extends ViewComponent {
 	
 
 	async createSecret(){
-		const validate = await this.formRef.validate();
-		if(this.connectionName.value == '') return AppTemplate.toast.error('Please select the secret type');
+		const validate = await this.formRef.validate(); 
+		let dbConfig = null, apiSettings = null;
+		
+		if(this.secretType != 2 && this.dataBaseSettingType == null) 
+			return AppTemplate.toast.error('Please select the secret type');
+
 		if(validate){
 
-			const dbConfig = {
-				'plugin_name': this.dbEngine.value,
-				'connection_url': 'postgresql://{{username}}:{{password}}@{{host}}:{{port}}/{{dbname}}',
-				'verify_connection': false,
-				'username': this.dbUser.value,
-				'password': this.firstValue.value,
-				'dbname': this.dbName.value,
-				'host': this.dbHost.value,
-				'port': this.dbPort.value,
-				'connectionName': this.connectionName.value
-			}
-			WorkspaceService.createSecret({ env: this.getDynamicFields(), dbConfig });
+			if(this.dataBaseSettingType != null){
+				dbConfig = {
+					'plugin_name': this.dbEngine.value,
+					'connection_url': 'postgresql://{{username}}:{{password}}@{{host}}:{{port}}/{{dbname}}',
+					'verify_connection': false,
+					'username': this.dbUser.value,
+					'password': this.firstValue.value,
+					'dbname': this.dbName.value,
+					'host': this.dbHost.value,
+					'port': this.dbPort.value,
+					'connectionName': this.connectionName.value
+				}
+			}else
+				apiSettings = this.editor.getValue();
+			
+			WorkspaceService.createSecret({ 
+				env: this.getDynamicFields(), dbConfig, apiSettings, 'connectionName': this.connectionName.value 
+			});
 			
 		}else{
 			AppTemplate.toast.error('Please fill all required field');
