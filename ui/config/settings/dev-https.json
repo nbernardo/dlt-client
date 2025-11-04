@@ -2,7 +2,7 @@
     "httpClient": {
         "baseUrl": ""
     },
-    "websockerAddr": "",
+    "websocketAddr": "",
     "logs": {
         "default": true,
         "error": false,

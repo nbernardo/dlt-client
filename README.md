@@ -104,7 +104,7 @@ Expected output:
 2. In ***config/settings/dev.json*** change the accordingly:
     - httpClient.baseUrl <span style="color: lightgray;">//Backend address (e.g. http://localhost:8000)</span>
 
-    - websockerAddr <span style="color: lightgray;">// e.g. <a>ws://localhost:8000/pipeline</a></span>
+    - websocketAddr <span style="color: lightgray;">// e.g. <a>ws://localhost:8000/pipeline</a></span>
 
     - anonymousLogin <span style="color: lightgray;">// e.g. true, as for dev environment it's convinient to avoid using auth0</a></span>
 3. `st serve` <span style="color: lightgray;">//running the frontend</span>
@@ -125,7 +125,7 @@ Expected output:
 **NOTE (Environment variables):** 
 > **httpClient.baseUrl** This will point to the Backend set address in the environment variable **APP_SRV_ADDR**.
 
-> **websockerAddr** This will point to the Backend IP/Domain, and prefixed with ***ws://*** and suffixed with ***/pipeline***. (e.g. ws://localhost:8000/pipeline)
+> **websocketAddr** This will point to the Backend IP/Domain, and prefixed with ***ws://*** and suffixed with ***/pipeline***. (e.g. ws://localhost:8000/pipeline)
 
 > **anonymousLogin** allows login access without authentication. Currently, authentication uses Auth0 (free license available). To enable Auth0, set **auth0.domain** and **auth0.clientId**, and making anonymousLogin false.
 

@@ -2,7 +2,7 @@
     "httpClient": {
         "baseUrl": "https://dlt-c.cloud:8443"
     },
-    "websockerAddr": "wss://dlt-c.cloud:8443/pipeline",
+    "websocketAddr": "wss://dlt-c.cloud:8443/pipeline",
     "logs": {
         "default": true,
         "error": false,

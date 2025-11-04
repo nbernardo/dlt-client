@@ -2,7 +2,7 @@
     "httpClient": {
         "baseUrl": "http://localhost:8000"
     },
-    "websockerAddr": "ws://127.0.0.1:8000/pipeline",
+    "websocketAddr": "ws://127.0.0.1:8000/pipeline",
     "logs": {
         "default": true,
         "error": false,

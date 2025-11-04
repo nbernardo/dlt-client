@@ -408,7 +408,7 @@ export class WorkSpaceController extends BaseController {
 
     socketChannelSetup(io, socketData) {
 
-        const wssAddr = StillAppSetup.config.get('websockerAddr');
+        const wssAddr = StillAppSetup.config.get('websocketAddr');
         const socket = io(wssAddr, { 
             transports: ["websocket"] 
         });
