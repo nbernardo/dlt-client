@@ -9,6 +9,8 @@ In terms of stack the front end is build in <a href="https://stilljs.dev/">Still
 
 There is a [live version](https://mvp1.dlt-c.cloud/#) deployed in cloud, you can access and test it using social login.
 
+For Dev environment setup you can also see <a href="https://youtu.be/XtUrSKXlOWo" target="_blank">this video</a>, although it's being done in Linux (Ubuntu), the process is the same for Mac, and not that different from Windows.
+
 <br>
 
 ##### Table of Contents  
