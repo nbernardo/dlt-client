@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { State, STForm } from "../../../@still/component/type/ComponentType.js";
 import { FormHelper } from "../../../@still/helper/form.js";
+import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
@@ -18,6 +19,8 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop @type { STForm } */ formRef = null;
 	/** @Prop */ dynamicFieldCount = 0;
 	/** @Prop */ isDbFirstCall = false;
+	/** @Prop */ secretType = 1;
+	/** @Prop */ editorId = '_'+UUIDUtil.newId();
 
 	/** @type { Workspace } */ $parent;
 
@@ -30,6 +33,11 @@ export class CatalogForm extends ViewComponent {
 	firstKey;
 	firstValue;
 
+	stOnRender = ({ type }) => {
+		type && (this.secretType = type);
+		if(type == 2) this.$parent.controller.loadMonacoEditorDependencies();
+	}
+	
 	async stAfterInit(){
 
 		this.modal = document.getElementById('modal');
@@ -43,6 +51,15 @@ export class CatalogForm extends ViewComponent {
 			this.$parent.controller.leftTab.secretsList = secretAndServerList;
 		}
 		this.$parent.controller.leftTab.showLoading = false;
+
+		if(this.secretType == 2) this.startCodeEditor();
+	}
+
+	startCodeEditor(){
+		this.editor = this.$parent.controller.loadMonadoEditor(
+			document.getElementById(this.editorId), { lang: 'json' }
+		);
+		this.editor.setValue(`{ \n\t"apiName": "TO BE DEFINED" \n}`);
 	}
 
 	editSecret(type, secretData){
@@ -92,7 +109,7 @@ export class CatalogForm extends ViewComponent {
 			this.dbName = '';
 			this.dbUser = '';
 			this.dbEngine = '';
-			document.querySelector('.first-db-secret').value = '';
+			if(document.querySelector('.first-db-secret')) document.querySelector('.first-db-secret').value = '';
 		}
 
 		document.querySelector('.db-connection-name').disabled = false;

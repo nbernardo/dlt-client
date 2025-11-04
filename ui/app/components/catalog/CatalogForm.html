@@ -35,93 +35,136 @@
   <div class="CatalogFormModel modal" id="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Register New Database Settings</h3>
+
+        <div (showIf)="self.secretType == 1">
+          <h3>Register New Database Settings</h3>
+        </div>
+
+        <div (showIf)="self.secretType == 2">
+          <h3>Register New API Settings</h3>
+        </div>
+
         <button class="btn-close" id="closeModal">×</button>
       </div>
+
       <form (formRef)="formRef">
-        <div class="form-group database-settings-type">
-          <label>Type:</label>
-          <div>
-            <input type="radio" name="dbSettingType" value="1" onclick="component.changeType(this.value)"> Database
-            <input type="radio" name="dbSettingType" value="2" onclick="component.changeType(this.value)"> Secrets group
-          </div>
-        </div>
-
-        <div (showIf)="self.showAddSecrete">
-          <button type="button" onclick="component.addSecreteGroup()" class="btn btn-add-secret">
-            <img src="app/assets/imgs/key-management-service-svgrepo-com.svg" width="20" alt="">
-            Add secret field
-          </button>
-        </div>
-
-        <span (showIf)="self.dataBaseSettingType==2">
-          <div class="modal-body catalog-form-secret-group">
-      
-            <div class="form-group">
-              <label>Secret Key/Name</label>
-              <input (value)="firstKey" class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
+        <span (showIf)="self.secretType == 1">
+            <div class="form-group database-settings-type">
+              <label>Type:</label>
+              <div>
+                <input type="radio" name="dbSettingType" value="1" onclick="component.changeType(this.value)"> Database
+                <input type="radio" name="dbSettingType" value="2" onclick="component.changeType(this.value)"> Secrets group
+              </div>
             </div>
-            <div class="form-group">
-              <label>Secret value</label>
-              <span class="hidden-secret-value initial-secret-field">
-                <input (value)="firstValue" type="password" placeholder="Enter the secret value">
-                <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
-              </span>
+    
+            <div (showIf)="self.showAddSecrete">
+              <button type="button" onclick="component.addSecreteGroup()" class="btn btn-add-secret">
+                <img src="app/assets/imgs/key-management-service-svgrepo-com.svg" width="20" alt="">
+                Add secret field
+              </button>
             </div>
-      
-          </div>
+    
+            <span (showIf)="self.dataBaseSettingType==2">
+              <div class="modal-body catalog-form-secret-group">
+          
+                <div class="form-group">
+                  <label>Secret Key/Name</label>
+                  <input (value)="firstKey" class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
+                </div>
+                <div class="form-group">
+                  <label>Secret value</label>
+                  <span class="hidden-secret-value initial-secret-field">
+                    <input (value)="firstValue" type="password" placeholder="Enter the secret value">
+                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
+                  </span>
+                </div>
+          
+              </div>
+            </span>
+    
+            <span (showIf)="self.dataBaseSettingType==1">
+              <div class="modal-body catalog-form-db-fields">
+          
+                <div class="form-group required-db-field">
+                  <label>Connection Name</label>
+                  <input class="db-connection-name" type="text" (value)="connectionName" placeholder="Name of connection">
+                </div>
+    
+                <div class="form-group required-db-field">
+                  <label>DB Engine</label>
+                  <select (value)="dbEngine">
+                    <option value="">SELECT DB Engine</option>
+                    <option value="postgresql-database-plugin">PostgreSQL</option>
+                    <option value="mssql-database-plugin">SQL Server</option>
+                    <option value="mysql-database-plugin">MySQL</option>
+                    <option value="oracle-database-plugin">Oracle</option>
+                  </select>
+                </div>
+                
+                <div class="form-group required-db-field">
+                  <label>Host</label>
+                  <input type="text" (value)="dbHost" placeholder="db.example.com">
+                </div>
+                <div class="form-group required-db-field">
+                  <label>Port</label>
+                  <input type="number" (value)="dbPort" value="5432">
+                </div>
+                <div class="form-group required-db-field">
+                  <label>Database Name</label>
+                  <input (value)="dbName" type="text" placeholder="e.g. sales">
+                </div>
+                <div class="form-group">
+                  <label>Database user</label>
+                  <input (value)="dbUser" type="text" placeholder="e.g. dbreaduser">
+                </div>
+    
+                <div style="margin-top: 8px; font-weight: bold;">SECRETS</div>
+                <div></div>
+                <!--
+                <div class="form-group">
+                  <label>Username Env Var</label>
+                  <input type="text" placeholder="USER_DB_USERNAME">
+                </div>
+                <div class="form-group">
+                  <label>Password Env Var</label>
+                  <input type="text" placeholder="USER_DB_PASSWORD">
+                </div>
+                -->
+              </div>
+            </span>
         </span>
 
-        <span (showIf)="self.dataBaseSettingType==1">
-          <div class="modal-body catalog-form-db-fields">
-      
-            <div class="form-group required-db-field">
-              <label>Connection Name</label>
-              <input class="db-connection-name" type="text" (value)="connectionName" placeholder="Name of connection">
-            </div>
+        <span (showIf)="self.secretType == 2">
+    
+            <span>
 
-            <div class="form-group required-db-field">
-              <label>DB Engine</label>
-              <select (value)="dbEngine">
-                <option value="">SELECT DB Engine</option>
-                <option value="postgresql-database-plugin">PostgreSQL</option>
-                <option value="mssql-database-plugin">SQL Server</option>
-                <option value="mysql-database-plugin">MySQL</option>
-                <option value="oracle-database-plugin">Oracle</option>
-              </select>
-            </div>
-            
-            <div class="form-group required-db-field">
-              <label>Host</label>
-              <input type="text" (value)="dbHost" placeholder="db.example.com">
-            </div>
-            <div class="form-group required-db-field">
-              <label>Port</label>
-              <input type="number" (value)="dbPort" value="5432">
-            </div>
-            <div class="form-group required-db-field">
-              <label>Database Name</label>
-              <input (value)="dbName" type="text" placeholder="e.g. sales">
-            </div>
-            <div class="form-group">
-              <label>Database user</label>
-              <input (value)="dbUser" type="text" placeholder="e.g. dbreaduser">
-            </div>
+              <div>
+                <label>API Settings</label>
+                <div>
+                  <div id="@editorId" style="height: 150px; margin-top: 11px;"></div>
+                </div>
+              </div>
 
-            <div style="margin-top: 8px; font-weight: bold;">SECRETS</div>
-            <div></div>
-            <!--
-            <div class="form-group">
-              <label>Username Env Var</label>
-              <input type="text" placeholder="USER_DB_USERNAME">
-            </div>
-            <div class="form-group">
-              <label>Password Env Var</label>
-              <input type="text" placeholder="USER_DB_PASSWORD">
-            </div>
-            -->
-          </div>
+              <div class="modal-body catalog-form-secret-group-api">
+          
+                <div class="form-group">
+                  <label>Secret Key/Name</label>
+                  <input (value)="firstKey" class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
+                </div>
+                <div class="form-group">
+                  <label>Secret value</label>
+                  <span class="hidden-secret-value initial-secret-field">
+                    <input (value)="firstValue" type="password" placeholder="Enter the secret value">
+                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
+                  </span>
+                </div>
+          
+              </div>
+            </span>
+    
+
         </span>
+        
 
         <div class="modal-footer">
           <button type="button" onclick="component.createSecret()" class="btn btn-primary">Save</button>
@@ -131,6 +174,7 @@
   </div>
 
   <style>
+  .api-setting-content{ margin-top: 4px; width: 100%; }
 
 	.hidden-secret-value{
 		display: flex;
