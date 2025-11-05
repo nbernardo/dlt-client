@@ -238,16 +238,28 @@ export class CatalogForm extends ViewComponent {
 		if(validate){
 
 			if(this.dataBaseSettingType != null){
-				dbConfig = {
-					'plugin_name': this.dbEngine.value,
-					'connection_url': 'postgresql://{{username}}:{{password}}@{{host}}:{{port}}/{{dbname}}',
-					'verify_connection': false,
-					'username': this.dbUser.value,
-					'password': this.firstValue.value,
-					'dbname': this.dbName.value,
-					'host': this.dbHost.value,
-					'port': this.dbPort.value,
-					'connectionName': this.connectionName.value
+				if(this.dataBaseSettingType == 2){
+					const allKeys = Object.keys(this.getDynamicFields()).filter(itm => itm.startsWith('key'));
+					dbConfig = {
+						secretsOnly: true,
+						connectionName: this.connectionName.value,
+						secrets: [ { 
+							[this.firstKey.value]: this.firstValue.value }, 
+							...allKeys.map(k => ({ [this.getDynamicFields()[k]]: this.getDynamicFields()[k.replace('key','val')] }))
+						]
+					};
+				}else{
+					dbConfig = {
+						'plugin_name': this.dbEngine.value,
+						'connection_url': 'postgresql://{{username}}:{{password}}@{{host}}:{{port}}/{{dbname}}',
+						'verify_connection': false,
+						'username': this.dbUser.value,
+						'password': this.firstValue.value,
+						'dbname': this.dbName.value,
+						'host': this.dbHost.value,
+						'port': this.dbPort.value,
+						'connectionName': this.connectionName.value
+					}
 				}
 			}else
 				apiSettings = this.editor.getValue();

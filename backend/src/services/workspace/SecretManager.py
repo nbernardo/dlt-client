@@ -65,11 +65,24 @@ class SecretManager(SecretManagerType):
         
             
     def create_secret(namespace, params: dict, path = 'main'):
-        SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
-            mount_point=namespace,
-            path=path,
-            secret=params
-        ) 
+        
+        if 'secretsOnly' in params['dbConfig']:
+            for item in params['dbConfig']['secrets']:
+                key_value = list(item.items())[0]
+                k = key_value[0]
+                v = key_value[1]
+
+                SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
+                    mount_point=namespace,
+                    path=path+k,
+                    secret={ k: v }
+                )
+        else:
+            SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
+                mount_point=namespace,
+                path=path,
+                secret=params
+            ) 
         
             
     def create_db_secret(namespace, params: dict, path):
