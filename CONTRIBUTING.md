@@ -1,4 +1,4 @@
-🧩 Contributing to DLT-C
+**Contributing to DLT-C**
 
 Welcome to DLT-C — an open-source project that makes it easier to build and manage Data Pipelines using a No/Low Code approach.
 
