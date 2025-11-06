@@ -390,9 +390,8 @@ def create_seret(namespace):
             if 'secretsOnly' in payload['dbConfig']:
                 secrets_only = True
             else:
-                secret_type = 'db' if 'dbConfig' in payload else None
+                secret_type = 'db'
                 
-
         sec_management: SecretManager = SecretManager.set_namespace(namespace, secret_type)
 
         if(secret_type == 'db'):

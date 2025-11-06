@@ -154,10 +154,10 @@ class SecretManager(SecretManagerType):
     def save_secrets_metadata(namespace, new_data):
         try:
             metadata = SecretManager.get_secret(namespace, key=None, path='metadata')
-            metadata = { **metadata, **new_data }
+            metadata = { **metadata, **new_data, 'dbConfig': {} }
             SecretManager.create_secret(namespace, metadata, path='metadata')
         except InvalidPath:
-            SecretManager.create_secret(namespace, { **new_data }, path='metadata')
+            SecretManager.create_secret(namespace, { **new_data, 'dbConfig': {} }, path='metadata')
             
 
 
