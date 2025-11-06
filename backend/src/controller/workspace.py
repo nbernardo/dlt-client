@@ -398,7 +398,7 @@ def create_seret(namespace):
             sec_management.create_db_secret(namespace, payload, path)
         else:
             pre_path = f'main/api' if secrets_only == False else f'main/db'
-            sec_management.create_secret(namespace, payload, f'{pre_path}/{path}')
+            sec_management.create_secret(namespace, { **payload, 'dbConfig': {} }, f'{pre_path}/{path}')
         
         return { 'error': False, 'result': 'Secret created successfully' }
     except Exception as err:

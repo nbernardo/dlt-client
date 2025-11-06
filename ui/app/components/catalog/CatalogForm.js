@@ -80,6 +80,7 @@ export class CatalogForm extends ViewComponent {
 		
 		if(this.secretType == 1){
 			let selectedOption = 0;
+			this.showDialog();
 			if(!('connection_url' in secretData)){
 				selectedOption = 1;
 				this.firstKey = secretData.secretName;
@@ -104,11 +105,12 @@ export class CatalogForm extends ViewComponent {
 		}
 
 		if(this.secretType == 2){
+			this.showDialog();
 			document.querySelector('.unique-api-name').disabled = true;
 			document.querySelector('.catalog-form-secret-api .first-secret-field').value = secretData.env['val1-secret'];
 			this.editor.setValue(secretData.apiSettings);
 		}
-		this.showDialog();
+		document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.disabled = true);
 	}
 
 	markAPIFieldsAsRequired(){
