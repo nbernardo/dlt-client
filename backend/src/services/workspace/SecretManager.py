@@ -65,17 +65,36 @@ class SecretManager(SecretManagerType):
         
             
     def create_secret(namespace, params: dict, path = 'main'):
-        SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
-            mount_point=namespace,
-            path=path,
-            secret=params
-        ) 
+        
+        if 'secretsOnly' in params['dbConfig']:
+            for item in params['dbConfig']['secrets']:
+                key_value = list(item.items())[0]
+                k = key_value[0]
+                v = key_value[1]
+
+                SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
+                    mount_point=namespace,
+                    path=path+k,
+                    secret={ k: v }
+                )
+        else:
+            SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
+                mount_point=namespace,
+                path=path,
+                secret=params
+            ) 
         
             
     def create_db_secret(namespace, params: dict, path):
 
         config = params['dbConfig']
-        config['password'] = params['env']['val1-db']
+
+        if('val1-db' in params['env']):
+            config['password'] = params['env']['val1-db']
+
+        if('key1-secret' in params['env']):
+            config['password'] = params['env']['key1-secret']
+
         dbengine = str(config['plugin_name']).split('-')[0]
 
         SecretManager.db_secrete_obj.create_sql_db_secret(namespace, config, SecretManager, dbengine, path)
@@ -135,10 +154,10 @@ class SecretManager(SecretManagerType):
     def save_secrets_metadata(namespace, new_data):
         try:
             metadata = SecretManager.get_secret(namespace, key=None, path='metadata')
-            metadata = { **metadata, **new_data }
+            metadata = { **metadata, **new_data, 'dbConfig': {} }
             SecretManager.create_secret(namespace, metadata, path='metadata')
         except InvalidPath:
-            SecretManager.create_secret(namespace, { **new_data }, path='metadata')
+            SecretManager.create_secret(namespace, { **new_data, 'dbConfig': {} }, path='metadata')
             
 
 

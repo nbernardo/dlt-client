@@ -301,13 +301,13 @@ export class WorkspaceService extends BaseService {
         const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
             headers: { 'content-type': 'Application/json' }
         });
-        if (response.ok && !response.error)
+        
+        const result = await response.json();
+        
+        if (response.ok && !result.error)
             return AppTemplate.toast.success('Secrete created successfully');
-        else{
-            const result = await response.json();
+        else
             AppTemplate.toast.error(result.result);
-        }
-
     }
 
     /** @returns { Array<string> } */

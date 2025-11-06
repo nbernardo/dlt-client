@@ -1,5 +1,6 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { Components } from "../../@still/setup/components.js";
+import { Assets } from "../../@still/util/componentUtil.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
@@ -726,11 +727,30 @@ export class WorkSpaceController extends BaseController {
     /** @type { CatalogForm } */
     catalogForm = null;
     
-    async createCatalogForm(){
+    async createCatalogForm(type = 1 /** 1 = db, 2 = api */){
         const parentId = this.wSpaceComponent.cmpInternalId;
-        const { template: catalogFormUI, component } = await Components.new(CatalogForm, {}, parentId);
-        this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = catalogFormUI;
+        const { template: catalogFormUI, component } = await Components.new(CatalogForm, { type }, parentId);
         this.catalogForm = component;
+        this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = catalogFormUI;
+    }
+
+    async loadMonacoEditorDependencies(){
+        if (window.monaco) return;
+        
+        await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js' });
+        await Assets.import({ path: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js' });
+
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } });
+        require(['vs/editor/editor.main'], () => window.monaco);
+    }
+
+    loadMonadoEditor(container, { lang, fontSize } = { lang: 'sql', fontSize: 14 }){
+		return monaco.editor.create(container, {
+			value: this.query, language: lang,
+			theme: 'vs-light', automaticLayout: true,
+			minimap: { enabled: false }, scrollBeyondLastLine: false,
+			fontSize
+		});
     }
 
 }

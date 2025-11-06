@@ -118,7 +118,7 @@
                     <img src="app/assets/imgs/left-menu/add-database.svg" width="20" height="20"> &nbsp;New DB settings
                 </div>
 
-                <span (showIf)="self.showLoading">
+                <span (showIf)="self.showLoading == 1">
                     <div class="fetching-db-loader">
                         <div class="mini-loader-container db-secrets-loader">
                             <div class="mini-loader-dot"></div>
@@ -130,23 +130,21 @@
                 </span>
 
                 <span (showIf)="!self.showLoading">
-                    @if(this.secretsList.length == 0)
+                    @if(this.dbSecretsList.length == 0)
                         <div class="fetching-db-loader">No secret found</div>
                     @endif
-                    <ul class="database-catalog-list">
-                        @for(secret in this.secretsList)
-                        <li>
+                    <ul class="database-catalog-list" (forEach)="dbSecretsList">
+                        <li each="item">
                             <div class="database-name">
-                                <span>{secret.dbname}</span>
-                                <span class="edit-datasource" onclick="component.openSecretForm('{secret.dbname}', 'db')">
+                                <span>{item.dbname}</span>
+                                <span class="edit-datasource" onclick="component.openSecretForm('{item.dbname}', 'db')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
                                         <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
                                     </svg>
                                 </span>
                             </div>
-                            <div class="host">{secret.host}</div>
+                            <div class="host">{item.host}</div>
                         </li>
-                        @endfor
                     </ul>
                 </span>
             </div>
@@ -177,13 +175,48 @@
 
             <div class="content-panel content-api-catalog">
                 <h3>API Catalog</h3>
-                <div class="under-contruction-feature">
+                <!-- <div class="under-contruction-feature">
                     <img src="@underContructionImg">
                     Feature under construction
                     <div class="feature-about">
                         (To hold your APIs to serve as DLT source)
                     </div>
+                </div> -->
+
+                <div class="catalog-db-addnew" onclick="component.openSecretForm()">
+                    <img src="app/assets/imgs/left-menu/api-cat-icon.png" width="20" height="20"> &nbsp;New API settings
                 </div>
+
+                <span (showIf)="self.showLoading == 2">
+                    <div class="fetching-db-loader">
+                        <div class="mini-loader-container db-secrets-loader">
+                            <div class="mini-loader-dot"></div>
+                            <div class="mini-loader-dot"></div>
+                            <div class="mini-loader-dot"></div>
+                        </div>
+                        Fetching API secrets...
+                    </div>
+                </span>
+
+                <span (showIf)="!self.showLoading">
+                    @if(this.apiSecretsList.length == 0)
+                        <div class="fetching-db-loader">No secret found</div>
+                    @endif
+                    <ul class="database-catalog-list" (forEach)="apiSecretsList">
+                        <li each="item">
+                            <div class="database-name">
+                                <span>{item.name}</span>
+                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'api')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
+                                        <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="host">{item.host}</div>
+                        </li>
+                    </ul>
+                </span>
+
             </div>
 
             <div class="content-panel content-logs">

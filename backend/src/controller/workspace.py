@@ -378,16 +378,27 @@ def create_seret(namespace):
     payload = request.get_json()
 
     try:
+        
+        secrets_only = False
+        secret_type = ''
 
-        secret_type = 'db' if 'dbConfig' in payload else None
-        path = payload['dbConfig']['connectionName']
-
+        if payload['apiSettings'] != None:
+            path = payload['connectionName']
+            del payload['dbConfig']
+        else:
+            path = payload['dbConfig']['connectionName']
+            if 'secretsOnly' in payload['dbConfig']:
+                secrets_only = True
+            else:
+                secret_type = 'db'
+                
         sec_management: SecretManager = SecretManager.set_namespace(namespace, secret_type)
 
         if(secret_type == 'db'):
             sec_management.create_db_secret(namespace, payload, path)
         else:
-            sec_management.create_secret(namespace, payload, path)
+            pre_path = f'main/api' if secrets_only == False else f'main/db'
+            sec_management.create_secret(namespace, { **payload, 'dbConfig': {} }, f'{pre_path}/{path}')
         
         return { 'error': False, 'result': 'Secret created successfully' }
     except Exception as err:

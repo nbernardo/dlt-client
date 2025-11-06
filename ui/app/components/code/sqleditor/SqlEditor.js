@@ -33,18 +33,9 @@ export class SqlEditor extends ViewComponent {
 
 	/** @Prop */ selectedTable;
 
-	async stBeforeInit() {
-		
-		if (window.monaco) return;
-		
-		await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js' });
-		await Assets.import({ path: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js' });
-
-		require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } });
-		require(['vs/editor/editor.main'], () => window.monaco);
-
-	}
-
+	stBeforeInit = async () =>
+		await this.$parent.controller.loadMonacoEditorDependencies();
+	
 	/** 
 	 * @param {Object} param0 
 	 * @param {String} param0.database  */

@@ -52,7 +52,8 @@ export class LeftTabs extends ViewComponent {
 	/** @Prop */ showLoading = false;
 
 	dataFetchilgLabel = 'Fetching Data';
-	secretsList = [];
+	dbSecretsList = [];
+	apiSecretsList = [];
 
 	stAfterInit() {
 		
@@ -196,8 +197,13 @@ export class LeftTabs extends ViewComponent {
 	async selectTab(tab){
 		
 		if(tab === 'content-data-source'){
-			this.showLoading = true;
-			await this.$parent.controller.createCatalogForm();
+			this.showLoading = 1;
+			await this.$parent.controller.createCatalogForm(1);
+		}
+
+		if(tab === 'content-api-catalog'){
+			this.showLoading = 2;
+			await this.$parent.controller.createCatalogForm(2);
 		}
 
 		if(tab === 'content-data-files'){
