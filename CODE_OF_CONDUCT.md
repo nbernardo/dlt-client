@@ -1,4 +1,5 @@
 DLT-C Code of Conduct
+
 🌟 Our Pledge
 
 We, as members, contributors, and leaders of the DLT-C community, pledge to make participation in our project and community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
@@ -56,9 +57,7 @@ When an individual officially represents the project or its community (such as u
 
 📨 Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project team at:
-
-📧 [add your contact email here]
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project team.
 
 All complaints will be reviewed and investigated promptly and fairly.
 The project team is obligated to maintain confidentiality with regard to the reporter of an incident.
