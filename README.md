@@ -11,6 +11,8 @@ There is a [live version](https://mvp1.dlt-c.cloud/#) deployed in cloud, you can
 
 For Dev environment setup you can also see <a href="https://youtu.be/XtUrSKXlOWo" target="_blank">this video</a>, although it's being done in Linux (Ubuntu), the process is the same for Mac, and not that different from Windows.
 
+See the [ARCHITECTURE.md](ARCHITECTURE.md) to follow the latest progress of the implementations.
+
 <br>
 
 ##### Table of Contents  
