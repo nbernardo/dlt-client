@@ -79,17 +79,28 @@ export class CatalogForm extends ViewComponent {
 		this.connectionName = secretData.secretName;
 		
 		if(this.secretType == 1){
-			const selectedOption = type === 'db' ? 0 : 1;
-			document.querySelectorAll('.database-settings-type input')[selectedOption].click();
-			this.dbHost = secretData.host;
-			this.dbPort = secretData.port;
-			this.dbName = secretData.database;
-			this.dbUser = secretData.username;
-			this.dbEngine = secretData?.dbengine+'-database-plugin';
+			let selectedOption = 0;
+			if(!('connection_url' in secretData)){
+				selectedOption = 1;
+				this.firstKey = secretData.secretName;
+				this.firstValue = secretData[secretData.secretName];
+				document.querySelector('.save-secret-btn').style.display = 'none';
+				document.querySelector('.btn-add-secret').disabled = true;
+			}
 			
-			document.querySelector('.first-secret-field').value = secretData.password;
-			document.querySelector('.db-connection-name').disabled = true;
-			document.querySelectorAll('.database-settings-type input')[selectedOption == 1 ? 0 : 1].disabled = true;
+			document.querySelectorAll('.database-settings-type input')[selectedOption].click();
+			if('connection_url' in secretData){
+				this.dataBaseSettingType = 1;
+				this.dbHost = secretData.host;
+				this.dbPort = secretData.port;
+				this.dbName = secretData.database;
+				this.dbUser = secretData.username;
+				this.dbEngine = secretData?.dbengine+'-database-plugin';
+				
+				document.querySelector('.first-secret-field').value = secretData.password;
+				document.querySelector('.db-connection-name').disabled = true;
+				document.querySelectorAll('.database-settings-type input')[selectedOption == 1 ? 0 : 1].disabled = true;
+			}
 		}
 
 		if(this.secretType == 2){
@@ -148,8 +159,19 @@ export class CatalogForm extends ViewComponent {
 	handleModalCall(){
 		const self = this;
 		//this.openModal.addEventListener('click', () => self.modal.style.display = 'flex');
-		this.closeModal.addEventListener('click', () => self.modal.style.display = 'none');
-		window.addEventListener('click', (e) => e.target === modal ? self.modal.style.display = 'none' : '');
+		this.closeModal.addEventListener('click', () => resetForm());
+		window.addEventListener('click', (e) => e.target === modal ? resetForm() : '');
+
+		function resetForm(){
+			document.querySelector('.save-secret-btn').style.display = '';
+			document.querySelector('.btn-add-secret').disabled = false;
+			self.dataBaseSettingType = 0;
+			self.modal.style.display = 'none';
+			self.showAddSecrete = false;
+			self.firstKey = '';
+			self.firstValue = '';
+			document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.checked = false);
+		}
 	}
 
 	addSecreteGroup(initial = false){
@@ -163,7 +185,7 @@ export class CatalogForm extends ViewComponent {
 		}
 		
 		this.dynamicFieldCount++;
-		const value = targetForm ? 'API_KEY' : initial ? 'DB_PASSWORD' : '';
+		const value = targetForm.endsWith('api') ? 'API_KEY' : initial ? 'DB_PASSWORD' : '';
 		const disabled = initial ? true : false;
 		
 		let fieldName = `key${this.dynamicFieldCount}-${type}`;
