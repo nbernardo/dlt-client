@@ -46,19 +46,13 @@ export class CatalogForm extends ViewComponent {
 		//this.openModal = document.getElementById('openModal');
 		this.closeModal = document.getElementById('closeModal');
 		this.handleModalCall();
-		const secretList = await WorkspaceService.listSecrets();
+		const secretList = await WorkspaceService.listSecrets(this.secretType);
 		
-		if(this.secretType == 2){
-			if(Array.isArray(secretList?.api_secrets)){
-				const secretAndServerList = secretList.api_secrets.map(secret => ({ name: secret, host: 'to.be.def' }))
-				this.$parent.controller.leftTab.apiSecretsList = secretAndServerList;
-			}
-		}else{
-			if(Array.isArray(secretList?.db_secrets)){
-				const secretAndServerList = secretList.db_secrets.map(secret => ({ dbname: secret, host: secretList.metadata[secret] }))
-				this.$parent.controller.leftTab.dbSecretsList = secretAndServerList;
-			}
-		}
+		if(this.secretType == 2)
+			this.$parent.controller.leftTab.apiSecretsList = secretList;
+		else
+			this.$parent.controller.leftTab.dbSecretsList = secretList;
+		
 		this.$parent.controller.leftTab.showLoading = false;
 
 		if(this.secretType == 2) {

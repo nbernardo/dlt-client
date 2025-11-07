@@ -3,6 +3,8 @@ import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { FormHelper } from "../../../@still/helper/form.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { InputDropdown } from "../../util/InputDropdownUtil.js";
 
 export class SqlDBComponent extends ViewComponent {
 
@@ -11,7 +13,7 @@ export class SqlDBComponent extends ViewComponent {
 	label = 'SQL DB Source';
 	databaseEngines = [
 		{ name: 'MySQL', dialect: 'mysql' },
-		{ name: 'Postgress', dialect: 'postgres' },
+		{ name: 'Postgress', dialect: 'postgresql' },
 		{ name: 'Oracle', dialect: 'oracle' },
 		{ name: 'SQL Server', dialect: 'mssql' }
 	]
@@ -26,18 +28,21 @@ export class SqlDBComponent extends ViewComponent {
 	dbInputCounter = 1;
 	/** @Prop @type { STForm } */	
 	formRef;
+
 	database;
 	tableName;
 	selectedDbEngine;
+	selectedSecret;
 	primaryKey;
+	secretList = [];
+	hostName = 'None';
 
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
 
 	/** @Prop @type { STForm } */
 	anotherForm;
-	databaseC;
-	tableNameC;
+
 
 	// tables and primaryKeys hold all tables name when importing/reading
 	// An existing pipeline by calling the API
@@ -61,7 +66,7 @@ export class SqlDBComponent extends ViewComponent {
 		this.primaryKeys = primaryKeys;		
 	}
 
-	stAfterInit(){
+	async stAfterInit(){
 
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
@@ -87,11 +92,17 @@ export class SqlDBComponent extends ViewComponent {
 		}
 
 		this.setupOnChangeListen();
+		await this.getDBSecrets();
+
+		new InputDropdown({ 
+			inputSelector: 'input[data-id="firstTable"]',
+			filterableListSelector: '#firstTableFilterList',
+			dataSource: ['Primeiro','Secundo']
+		});
 
 	}
 
 	setupOnChangeListen(){
-
 		this.database.onChange(newValue => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['database'] = newValue;
@@ -102,6 +113,24 @@ export class SqlDBComponent extends ViewComponent {
 			data['dbengine'] = value;
 		});
 
+		this.selectedSecret.onChange(async secretName => {
+			
+			let database = '', dbengine = '', host = '';
+			if(secretName != ''){
+				const data = await WorkspaceService.fetchSecret(secretName, 'db');
+				database = data?.database, dbengine = data?.dbengine, host = data?.host;
+			}	
+			this.database = database;
+			this.selectedDbEngine = dbengine;
+			this.hostName = host;
+
+		})
+	}
+
+	/** Brings the existing Databases secret */
+	async getDBSecrets(){
+		const dbSecretType = 1;		
+		this.secretList = (await WorkspaceService.listSecrets(dbSecretType)).filter(itm => itm.host != 'None');
 	}
 
 	addField(){

@@ -7,41 +7,43 @@
 		<div class="statusicon"></div>
 	</div>
 	<div class="box @formWrapClass">
+		Host: @hostName
 		<form (formRef)="formRef" onsubmit="return false;">
+			<select
+					(required)="true" 
+					(forEach)="secretList"
+					(value)="selectedSecret"
+					placeholder="DB Connection Name"
+					data-dropdown
+					>
+				<option each="item" value="{item.name}">{item.name}</option>
+			</select>
 			<select
 					(required)="true" 
 					(forEach)="databaseEngines" 
 					(value)="selectedDbEngine"
 					placeholder="Database Engine"
+					data-dropdown
 					>
 				<option each="item" value="{item.dialect}">{item.name}</option>
 			</select>
 			<p>Database:</p>
-			<input type="text" placeholder="Database Name" (required)="true" (value)="database">
+			<input type="text" placeholder="Database Name" disabled (required)="true" (value)="database">
 			<p>Tables list:</p>
 			<div>
-				<input type="text" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
+				<input type="text" data-id="firstTable" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
+				<ul id="firstTableFilterList" class="filterable-list-dropdown hidden"></ul>
 				<input type="text" (value)="primaryKey" placeholder="PK Field">
 			</div>
 		</form>
 		<button onclick="component.addField()" class="add-table-buttons">Add Table field</button>
-		<!--
-			<form (formRef)="anotherForm" onsubmit="return false;">
-				<p>Another Database:</p>
-				<input type="text" (required)="true" (value)="database1" placeholder="Enter the DB name">
-				<p>Another Table name 1:</p>
-				<input type="text" (value)="tableName1" placeholder="Enter table name">
-			</form>
-			<button onclick="component.validate()">Validate1</button>
-			<button onclick="component.validate1()">Validat2</button>
-		-->
 	</div>
 </div>
 <style>
 	.add-table-buttons { margin-top: 5px; }
 	.parent-node .SqlDBComponent { width: 275px; z-index: 1; }
-	input:not([placeholder="PK Field"]){ width: 129px; font-size: 12px; }
-	input[placeholder="PK Field"]{ width: 100px; font-size: 12px; }
-	select[placeholder="Database Engine"]{ width: 100%; }
-	input[placeholder="Database Name"]{ width: 100%; }
+	.SqlDBComponent input:not([placeholder="PK Field"]){ width: 129px; font-size: 12px; }
+	.SqlDBComponent input[placeholder="PK Field"]{ width: 100px; font-size: 12px; padding-left: 3px; }
+	.SqlDBComponent select[data-dropdown]{ width: 100%; padding-left: 3px; margin-top: 5px; }
+	.SqlDBComponent input[placeholder="Database Name"]{ width: 100%; padding-left: 3px; }
 </style>
