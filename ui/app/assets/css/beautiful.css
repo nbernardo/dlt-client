@@ -983,7 +983,7 @@ button[disabled]:hover {
 
     .filterable-list-dropdown {
         position: absolute;
-        width: 500px;
+        width: 250px;
         background-color: #ffffff;
         border: 1px solid #d1d5db;
         border-top: none;
@@ -998,7 +998,7 @@ button[disabled]:hover {
     }
 
     .list-item-dropdown {
-        padding: 2px 16px;
+        padding: 6px 16px;
         cursor: pointer;
         color: #1f2937;
         border-top: 1px solid #f3f4f6;

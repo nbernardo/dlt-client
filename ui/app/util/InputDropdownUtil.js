@@ -29,7 +29,7 @@ export class InputDropdown {
         this.dataSource.forEach((fruit) => {
             const li = document.createElement('li');
             li.textContent = fruit;
-            li.classList.add('list-item');
+            li.classList.add('list-item-dropdown');
             self.filterableList.appendChild(li);
         });
 
