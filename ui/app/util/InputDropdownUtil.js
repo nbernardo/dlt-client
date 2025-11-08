@@ -1,10 +1,17 @@
 import { UUIDUtil } from "../../@still/util/UUIDUtil.js";
 
 class InputDropdownParam {
-    inputSelector;
-    filterableListSelector;
-    dataSource;
-    onSelect = null;
+    inputSelector; //The selector (e.g. css className) of the html input which is being bound
+    filterableListSelector;//INTERNALLY HANDLED:  The selector (e.g. css className) of the html list (<ul>) to list the filtered results
+    dataSource; //Array with the list of the elements to be filtered, assigned/passed from InputDropdown instance 
+    boundComponent; //The component where the field is placed, normally recieves this
+    componentFieldName; //INTERNALLY HANDLED: field name/state variable of the component which the dropdown is being bound, 
+
+    /**  
+     * @param { any } value
+     * @param { InputDropdown } self
+     */
+    onSelect(value, self) {};
 }
 
 export class InputDropdown {
@@ -14,15 +21,22 @@ export class InputDropdown {
     filterInput;
     filterableList;
     listItems;
+    /** @type { Array<InputDropdown> } */
+    relatedFields = [];
+    componentBoundField;
+
+    #params;
 
     /** @param { InputDropdownParam } params  */
     static new(params){
 
         const resultListId = 'dynamicFilter-'+UUIDUtil.newId();
         const filterResultLst = `<ul id="${resultListId}" class="filterable-list-dropdown hidden"></ul>`;
-        document.querySelector(params.inputSelector).insertAdjacentHTML('afterend',filterResultLst);
+        const /** @type { HTMLInputElement } */ inputHTMLElement = document.querySelector(params.inputSelector);
+        inputHTMLElement.insertAdjacentHTML('afterend',filterResultLst);
         params.filterableListSelector = `#${resultListId}`;
-
+        params.componentFieldName = inputHTMLElement.dataset.stFieldName;
+        
         return new InputDropdown(params);
         
     }
@@ -30,9 +44,12 @@ export class InputDropdown {
     /** @param { InputDropdownParam } params  */
     constructor(params) {
         
+        this.#params = params;
         if (params.dataSource) this.dataSource = params.dataSource;
         if (params.onSelect){
-            this.onSelect = (selectedVal) => params.onSelect(selectedVal);
+            this.onSelect = async (selectedVal) => {
+                await params.onSelect(selectedVal, this);
+            }
         }
 
         this.filterInput = document.querySelector(params.inputSelector);
@@ -42,17 +59,30 @@ export class InputDropdown {
     }
 
     populateList() {
+        
         const self = this;
         this.filterableList.innerHTML = '';
+        const params = this.#params;
+
         this.dataSource.forEach((fruit) => {
             const li = document.createElement('li');
-            li.onclick = () => self.onSelect(li.innerText);
+            li.onclick = () => {
+                if(params.boundComponent){
+                    params.boundComponent[params.componentFieldName] = li.innerText;
+                }
+                self.onSelect(li.innerText);
+            }
             li.textContent = fruit;
             li.classList.add('list-item-dropdown');
             self.filterableList.appendChild(li);
         });
 
         this.listItems = this.filterableList.getElementsByTagName('li');
+    }
+
+    setDataSource(dataSource){
+        this.dataSource = dataSource;
+        this.populateList();
     }
 
     filterList() {
@@ -93,6 +123,7 @@ export class InputDropdown {
         });
     }
 
-    onSelect = () => {};
+    onSelect = async (value, self) => {};
 
 }
+

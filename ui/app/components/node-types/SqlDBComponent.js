@@ -69,7 +69,7 @@ export class SqlDBComponent extends ViewComponent {
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.tables = tables;
-		this.primaryKeys = primaryKeys;		
+		this.primaryKeys = primaryKeys;	
 	}
 
 	async stAfterInit(){
@@ -79,7 +79,7 @@ export class SqlDBComponent extends ViewComponent {
 		//if(this.isImport !== false){
 		//	this.setupOnChangeListen();
 		//}
-		this.tablesFields = [];
+		this.dynamicFields = new TableAndPKType();
 		if(this.isImport === true){	
 			// At this point the WorkSpaceController was loaded by WorkSpace component
 			// hance no this.wSpaceController.on('load') subscrtiption is needed
@@ -100,17 +100,34 @@ export class SqlDBComponent extends ViewComponent {
 		this.setupOnChangeListen();
 		await this.getDBSecrets();
 
-		const tableField = InputDropdown.new({ 
-			inputSelector: 'input[data-id="firstTable"]', 
+		const htmlTableInputSelector = 'input[data-id="firstTable"]', 
+			  htmlPkInputSelector = 'input[data-id="firstPK"]';
+			  		
+		this.handleTableFieldsDropdown(htmlTableInputSelector, htmlPkInputSelector);
+
+	}
+
+	handleTableFieldsDropdown(tableSelecter, pkSelecter, tableFieldName, pkFieldName){
+
+		const pkField = InputDropdown.new({ 
+			inputSelector: pkSelecter, dataSource: this.selectedTableList.value,
+			boundComponent: this, componentFieldName: pkFieldName
+		});
+
+		const tableField = InputDropdown.new({
+			inputSelector: tableSelecter, 
 			dataSource: this.selectedSecretTableList.value,
-			onSelect: (value) => {
-					
+			boundComponent: this,
+			componentFieldName: tableFieldName,
+			onSelect: async (table, self) => {
+				const data = await WorkspaceService.getDBTableDetails(this.selectedSecret.value ,table);
+				
+				const pkRelatedField = self.relatedFields[0];
+				pkRelatedField.setDataSource(data.fields);
 			}
 		});
 
-		const pkField = InputDropdown.new({ 
-			inputSelector: 'input[data-id="firstPK"]', dataSource: this.selectedTableList.value
-		});
+		tableField.relatedFields.push(pkField);
 
 		this.dynamicFields.tables.push(tableField);
 		this.dynamicFields.fields.push(pkField);
@@ -132,9 +149,16 @@ export class SqlDBComponent extends ViewComponent {
 			
 			let database = '', dbengine = '', host = '';
 			if(secretName != ''){
-				const data = await WorkspaceService.fetchSecret(secretName, 'db');
-				database = data?.database, dbengine = data?.dbengine, host = data?.host;
-			}	
+				const data = await WorkspaceService.getConnectionDetails(secretName);
+				
+				const detail = data['secret_details'];
+				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
+				this.selectedSecretTableList = data.tables;
+				this.dynamicFields.tables.forEach(tbl => {
+					tbl.setDataSource(data.tables);
+				});
+
+			}
 			this.database = database;
 			this.selectedDbEngine = dbengine;
 			this.hostName = host;
@@ -176,19 +200,9 @@ export class SqlDBComponent extends ViewComponent {
 		document.querySelector(`.${this.formWrapClass} form`).appendChild(div);
 
 		//Add the filter result list
+		const self = this;
 		setTimeout(() => {
-			const tableField = InputDropdown.new({ 
-				inputSelector: `.${tblFieldName}`, 
-				dataSource: this.selectedSecretTableList.value,
-				onSelect: (value) => {
-					
-				}
-			});
-			
-			const pkField = InputDropdown.new({ inputSelector: `.${pkFieldName}`, dataSource: this.selectedTableList.value });
-
-			this.dynamicFields.tables.push(tableField);
-			this.dynamicFields.fields.push(pkField);
+			self.handleTableFieldsDropdown(`.${tblFieldName}`, `.${pkFieldName}`);
 		},500);
 
 	}
@@ -214,6 +228,7 @@ export class SqlDBComponent extends ViewComponent {
 
 	showTable(){
 		console.log(this.getDynamicFields());
+		console.log(`THE INITIAL VALUE IS: `, { v1: this.tableName.value, v2: this.primaryKey.value });
 	}
 }
 

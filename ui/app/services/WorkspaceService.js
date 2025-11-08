@@ -316,6 +316,7 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
     }
 
+
     /** @returns { Array<string> } */
     static async listSecrets(type) {
 
@@ -355,6 +356,36 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
         }
 
+    }
+
+    /** @returns { {tables, secret_details} } */
+    static async getConnectionDetails(connectionName) {
+
+        const namespace = await UserService.getNamespace();
+        const url = `/${namespace}/db/connection/${connectionName}/tables`;
+
+        const response = await $still.HTTPClient.get(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error)
+            return result.result;
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    /** @returns { { fields } | undefined } */
+    static async getDBTableDetails(connectionName, tableName) {
+
+        const namespace = await UserService.getNamespace();
+        const url = `/${namespace}/db/${connectionName}/${tableName}`;
+
+        const response = await $still.HTTPClient.get(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error)
+            return result.result;
+        else
+            AppTemplate.toast.error(result.result);
     }
 
 }
