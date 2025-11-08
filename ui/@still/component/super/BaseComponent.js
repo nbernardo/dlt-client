@@ -1051,6 +1051,7 @@ export class BaseComponent extends BehaviorComponent {
             if ('value' in this[field]) val = this[field].value;
         }
 
+        const dataFieldId = `data-st-field-name="${field}"`;
         if(isThereComboBox){
             comboSfix = '-combobox';
             if(mt.indexOf(' multiple ') > 0) this['stOptListFieldMap'].set(field, { multpl: true });
@@ -1063,8 +1064,7 @@ export class BaseComponent extends BehaviorComponent {
 
         const /*dataField*/ dtFields = `${isThereComboBox
             ? `data-formRef="${formRef?.formRef || ''}" data-field="${field}" data-cls="${clsName}"`
-            : ''
-            }`;
+            : ''}`;
 
         if (mt.indexOf(`class="`) >= 0)
             mt = mt.replace(`class="`, `${dtFields} class="${clsList}${comboSfix} ${this.cmpInternalId}-${field} `);
@@ -1074,9 +1074,9 @@ export class BaseComponent extends BehaviorComponent {
         let replacer = `${subscrtionCls} `, complmnt = isOptList ? `name="${field}"` : `value="${val}"`;
         if(isOptList){
             if(mt.toLowerCase().indexOf('onclick="') > 0) mt = mt.replace('onclick="', '');
-            else evt = `onclick="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
+            else evt = `${dataFieldId} onclick="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
         }else
-            evt = `onkeyup="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')" onkeydown="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
+            evt = `${dataFieldId} onkeyup="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')" onkeydown="${clsPath}.onValueInput(event,'${field}',this, '${formRef?.formRef || null}')"`;
 
         if (!(isThereComboBox)) replacer = `${forEachValue} ${complmnt} ${subscrtionCls} ${evt}`;
         return { mt, replacer };
