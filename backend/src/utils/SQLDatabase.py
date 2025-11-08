@@ -19,14 +19,44 @@ class SQLDatabase:
         'oracle': {},
     }
 
+
+    def get_mysql_tables(namespace, connection_name, secret):
+        mysql_conection = SQLConnection\
+                    .mysql_connect(namespace, connection_name, secret)
+        return inspect(mysql_conection).get_table_names()
+
+
+    def get_pgsql_tables(namespace, connection_name, secret):
+        #tables_per_schema = {}
+        mysql_conection = SQLConnection\
+                    .pgsql_connect(namespace, connection_name, secret)
+        schemas = inspect(mysql_conection).get_schema_names()
+
+        inspector = inspect(mysql_conection)
+
+        tables_per_schema = { schma_name: inspector.get_table_names(schema=schma_name) for schma_name in schemas if schma_name != 'information_schema' }
+        tables_per_schema['schema_based'] = True
+
+        return tables_per_schema
+
+
     def get_tables_list(namespace, connection_name):
 
         try:
-            mysql_conection = SQLConnection\
-                                .mysql_connect(namespace, connection_name)
-            table_list = inspect(mysql_conection).get_table_names()
             
-            return { 'tables': table_list }
+            path = f'main/db/{connection_name}'
+            secret = SQLDatabase.secret_manager.get_secret(namespace,key=None,path=path)
+
+            table_list = None
+            dbengine = secret['dbengine']
+
+            if(dbengine == 'mysql'):
+                table_list = SQLDatabase.get_mysql_tables(namespace, connection_name, secret)
+
+            if(dbengine == 'postgresql'):
+                table_list = SQLDatabase.get_pgsql_tables(namespace, connection_name, secret)
+            
+            return { 'tables': table_list, 'details': secret }
         
         except Exception as err:
             print(f'Error while loading table from {connection_name}')
@@ -39,8 +69,10 @@ class SQLDatabase:
 
         try:
             fields = []
+            path = f'main/db/{connection_name}'
+            secret = SQLDatabase.secret_manager.get_secret(namespace,key=None,path=path)
             mysql_conection = SQLConnection\
-                                .mysql_connect(namespace, connection_name)
+                                .mysql_connect(namespace, connection_name, secret)
             
             if not metadata:
                 metadata = MetaData()
@@ -60,21 +92,41 @@ class SQLDatabase:
             return { 'error': True, 'message': str(err) }
 
 
+    def db_schemas():
+        ...
+
 
 class SQLConnection:
 
-    def mysql_connect(namespace, connection_name) -> Engine:
+    def mysql_connect(namespace, connection_name, secret = {}) -> Engine:
 
         connection_key = f'{namespace}-{connection_name}'
 
         if connection_key in SQLDatabase.connections['mysql']:
             return SQLDatabase.connections['mysql'][connection_key]
 
-        path = f'main/db/{connection_name}'
-        secret = SQLDatabase.secret_manager.get_secret(namespace,key=None,path=path)
         connection_string = secret['connection_url']
         connection = create_engine(connection_string)
 
         SQLDatabase.connections['mysql'][connection_key] = connection
+
+        return connection
+
+
+    def pgsql_connect(namespace, connection_name, secret) -> Engine:
+
+        connection_key = f'{namespace}-{connection_name}'
+        if connection_key in SQLDatabase.connections['postgresql']:
+            return SQLDatabase.connections['postgresql'][connection_key]
+
+        connection_string = secret['connection_url']
+
+        postgress_prefix = 'postgresql://'
+        psycopa2_driver_prefix = 'postgresql+psycopg2://'
+
+        connection_string = str(connection_string).replace(postgress_prefix,psycopa2_driver_prefix)
+
+        connection = create_engine(connection_string)
+        SQLDatabase.connections['postgresql'][connection_key] = connection
 
         return connection

@@ -446,12 +446,10 @@ def fetch_secret(namespace, type, secretname):
 @workspace.route('/<namespace>/db/connection/<connection_name>/tables', methods=['GET'])
 def get_db_connection_detailes(namespace, connection_name):
 
-    path = f'main/db/{connection_name}'
-    result = SQLDatabase.get_tables_list(namespace,connection_name)
-    secret_details = SecretManager.get_secret(namespace,key=None,path=path)
+    result = SQLDatabase.get_tables_list(namespace, connection_name)
 
     if 'error' not in result:
-        return { 'error': False, 'result': { 'tables': result['tables'], 'secret_details': secret_details } }
+        return { 'error': False, 'result': { 'tables': result['tables'], 'secret_details': result['details'] } }
     else:
         return { 'error': True, 'result': 'No secrete found for current namespace' }
         
