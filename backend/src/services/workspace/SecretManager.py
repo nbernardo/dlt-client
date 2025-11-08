@@ -101,7 +101,7 @@ class SecretManager(SecretManagerType):
         SecretManager.save_secrets_metadata(namespace, { config['connectionName'] : config['host'] })
 
 
-    def get_secret(namespace, key, path = 'main/api/'):
+    def get_secret(namespace, key=None, path = 'main/api/'):
         secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
             path=path,
             mount_point=namespace,
