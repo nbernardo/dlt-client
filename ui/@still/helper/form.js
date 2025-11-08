@@ -28,7 +28,7 @@ export const FormHelper = {
 
         return {
             /** @param { InParams } params  */
-            input(params = inParams){
+            input(params){
                 if(formRef === undefined) return;
                 const {className, id, datasets = {}, type, placeholder, min, max, required, validator, warn, value, disabled} = params;
                 const datafields = Object.entries(datasets).map(([f,v]) => (`data-${f}="${v}"`)).join(' ');
