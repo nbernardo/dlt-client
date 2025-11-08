@@ -367,8 +367,19 @@ export class WorkspaceService extends BaseService {
         const response = await $still.HTTPClient.get(url);
         const result = await response.json();
         
-        if (response.ok && !result.error)
+        if (response.ok && !result.error){
+            if(result.result.tables?.schema_based){
+                delete result.result.tables?.schema_based;
+                const allTables = [], schemas = Object.entries(result.result.tables);
+                for(const [schema, tables] of schemas){
+                    for(const table of tables){
+                        allTables.push(`${schema}.${table}`);
+                    }
+                }
+                result.result['tables'] = allTables;
+            }
             return result.result;
+        }
         else
             AppTemplate.toast.error(result.result);
     }
