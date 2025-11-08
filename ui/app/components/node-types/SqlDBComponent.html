@@ -32,8 +32,7 @@
 			<p>Tables list:</p>
 			<div>
 				<input type="text" data-id="firstTable" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
-				<ul id="firstTableFilterList" class="filterable-list-dropdown hidden"></ul>
-				<input type="text" (value)="primaryKey" placeholder="PK Field">
+				<input type="text" data-id="firstPK" (value)="primaryKey" placeholder="PK Field">
 			</div>
 		</form>
 		<button onclick="component.addField()" class="add-table-buttons">Add Table field</button>

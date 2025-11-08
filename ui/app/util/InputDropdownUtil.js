@@ -1,7 +1,10 @@
+import { UUIDUtil } from "../../@still/util/UUIDUtil.js";
+
 class InputDropdownParam {
     inputSelector;
     filterableListSelector;
     dataSource;
+    onSelect = null;
 }
 
 export class InputDropdown {
@@ -13,10 +16,25 @@ export class InputDropdown {
     listItems;
 
     /** @param { InputDropdownParam } params  */
+    static new(params){
+
+        const resultListId = 'dynamicFilter-'+UUIDUtil.newId();
+        const filterResultLst = `<ul id="${resultListId}" class="filterable-list-dropdown hidden"></ul>`;
+        document.querySelector(params.inputSelector).insertAdjacentHTML('afterend',filterResultLst);
+        params.filterableListSelector = `#${resultListId}`;
+
+        return new InputDropdown(params);
+        
+    }
+
+    /** @param { InputDropdownParam } params  */
     constructor(params) {
         
         if (params.dataSource) this.dataSource = params.dataSource;
-        
+        if (params.onSelect){
+            this.onSelect = (selectedVal) => params.onSelect(selectedVal);
+        }
+
         this.filterInput = document.querySelector(params.inputSelector);
         this.filterableList = document.querySelector(params.filterableListSelector);
         this.populateList();
@@ -28,6 +46,7 @@ export class InputDropdown {
         this.filterableList.innerHTML = '';
         this.dataSource.forEach((fruit) => {
             const li = document.createElement('li');
+            li.onclick = () => self.onSelect(li.innerText);
             li.textContent = fruit;
             li.classList.add('list-item-dropdown');
             self.filterableList.appendChild(li);
@@ -73,4 +92,7 @@ export class InputDropdown {
             setTimeout(() => self.filterableList.classList.add('hidden'), 150);
         });
     }
+
+    onSelect = () => {};
+
 }

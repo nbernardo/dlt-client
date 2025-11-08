@@ -6,6 +6,7 @@ import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
 
+
 export class SqlDBComponent extends ViewComponent {
 
 	isPublic = true;
@@ -28,7 +29,11 @@ export class SqlDBComponent extends ViewComponent {
 	dbInputCounter = 1;
 	/** @Prop @type { STForm } */	
 	formRef;
+	/** @Prop @type { TableAndPKType } */	
+	dynamicFields;
 
+	selectedSecretTableList = ['Primeiro','Secundo'];
+	selectedTableList = ['personID','firstname'];
 	database;
 	tableName;
 	selectedDbEngine;
@@ -42,6 +47,7 @@ export class SqlDBComponent extends ViewComponent {
 
 	/** @Prop @type { STForm } */
 	anotherForm;
+	
 
 
 	// tables and primaryKeys hold all tables name when importing/reading
@@ -73,7 +79,7 @@ export class SqlDBComponent extends ViewComponent {
 		//if(this.isImport !== false){
 		//	this.setupOnChangeListen();
 		//}
-
+		this.tablesFields = [];
 		if(this.isImport === true){	
 			// At this point the WorkSpaceController was loaded by WorkSpace component
 			// hance no this.wSpaceController.on('load') subscrtiption is needed
@@ -94,11 +100,20 @@ export class SqlDBComponent extends ViewComponent {
 		this.setupOnChangeListen();
 		await this.getDBSecrets();
 
-		new InputDropdown({ 
-			inputSelector: 'input[data-id="firstTable"]',
-			filterableListSelector: '#firstTableFilterList',
-			dataSource: ['Primeiro','Secundo']
+		const tableField = InputDropdown.new({ 
+			inputSelector: 'input[data-id="firstTable"]', 
+			dataSource: this.selectedSecretTableList.value,
+			onSelect: (value) => {
+					
+			}
 		});
+
+		const pkField = InputDropdown.new({ 
+			inputSelector: 'input[data-id="firstPK"]', dataSource: this.selectedTableList.value
+		});
+
+		this.dynamicFields.tables.push(tableField);
+		this.dynamicFields.fields.push(pkField);
 
 	}
 
@@ -140,18 +155,18 @@ export class SqlDBComponent extends ViewComponent {
 	}
 
 	newTableField(tableId, value = '', disabled = false){
-		let fieldName = 'tableName' + tableId, placeholder = 'Enter table '+tableId+' name';
+		let tblFieldName = 'tableName' + tableId, placeholder = 'Enter table '+tableId+' name', pkFieldName;
 		const table = FormHelper
-			.newField(this, this.formRef, fieldName, value)
-			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled })
+			.newField(this, this.formRef, tblFieldName, value)
+			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled, className: tblFieldName })
 			//Add will add in the form which reference was specified (2nd param of newField)
 			//.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);
 			.element;
 		
-		fieldName = 'primaryKey' + tableId, placeholder = 'PK Field';
+		pkFieldName = 'primaryKey' + tableId, placeholder = 'PK Field';
 		const pkField = FormHelper
-			.newField(this, this.formRef, fieldName, value)
-			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled })
+			.newField(this, this.formRef, pkFieldName, value)
+			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled, className: pkFieldName })
 			.element;
 
 		const div = document.createElement('div');
@@ -159,6 +174,22 @@ export class SqlDBComponent extends ViewComponent {
 		div.className = 'table-detailes';
 		div.innerHTML = `${table}${pkField}`;		
 		document.querySelector(`.${this.formWrapClass} form`).appendChild(div);
+
+		//Add the filter result list
+		setTimeout(() => {
+			const tableField = InputDropdown.new({ 
+				inputSelector: `.${tblFieldName}`, 
+				dataSource: this.selectedSecretTableList.value,
+				onSelect: (value) => {
+					
+				}
+			});
+			
+			const pkField = InputDropdown.new({ inputSelector: `.${pkFieldName}`, dataSource: this.selectedTableList.value });
+
+			this.dynamicFields.tables.push(tableField);
+			this.dynamicFields.fields.push(pkField);
+		},500);
 
 	}
 
@@ -184,4 +215,12 @@ export class SqlDBComponent extends ViewComponent {
 	showTable(){
 		console.log(this.getDynamicFields());
 	}
+}
+
+
+class TableAndPKType {
+
+	/** @type { Array<InputDropdown> } */ tables = [];
+	/** @type { Array<InputDropdown> } */ fields = [];
+
 }
