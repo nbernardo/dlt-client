@@ -158,6 +158,11 @@ class SecretManager(SecretManagerType):
             SecretManager.create_secret(namespace, metadata, path='metadata')
         except InvalidPath:
             SecretManager.create_secret(namespace, { **new_data, 'dbConfig': {} }, path='metadata')
+
+
+    def get_db_secret(namespace, connection_name):
+        path = f'main/db/{connection_name}'
+        return SecretManager.get_secret(namespace,key=None,path=path)
             
 
 

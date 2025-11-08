@@ -14,3 +14,6 @@ class SecretManagerType:
 
     @staticmethod
     def get_secret(namespace, key, path): ...
+
+    @staticmethod
+    def get_db_secret(namespace, connection_name): ...

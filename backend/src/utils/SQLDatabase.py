@@ -27,7 +27,7 @@ class SQLDatabase:
 
 
     def get_pgsql_tables(namespace, connection_name, secret):
-        #tables_per_schema = {}
+        
         mysql_conection = SQLConnection\
                     .pgsql_connect(namespace, connection_name, secret)
         schemas = inspect(mysql_conection).get_schema_names()
@@ -65,24 +65,30 @@ class SQLDatabase:
             return { 'error': True, 'message': str(err) }
 
 
-    def get_fields_from_table(namespace, connection_name, table_name, metadata = None):
+    def get_fields_from_table(namespace, connection_name, table_name: str, metadata = None):
 
         try:
             fields = []
-            path = f'main/db/{connection_name}'
-            secret = SQLDatabase.secret_manager.get_secret(namespace,key=None,path=path)
             mysql_conection = SQLConnection\
-                                .mysql_connect(namespace, connection_name, secret)
+                                .mysql_connect(namespace, connection_name, None)
             
             if not metadata:
+
                 metadata = MetaData()
-                table = Table(table_name, metadata, autoload_with=mysql_conection)
+                table = {}
+
+                if table_name.__contains__('.'):
+                    schema, table = table_name.split('.',1)
+                    table = Table(table, metadata, autoload_with=mysql_conection, schema=schema) 
+                else:
+                    table = Table(table_name, metadata, autoload_with=mysql_conection)
                 fields = list(table.columns.keys())
             else:
                 # If all fields metadata, bellow is the approach to go for
                 inspector = reflection.Inspector.from_engine(mysql_conection)
                 fields = inspector.get_columns(table_name)
             
+            print(fields)
             return { 'fields': fields }
         
         except Exception as err:
@@ -98,12 +104,15 @@ class SQLDatabase:
 
 class SQLConnection:
 
-    def mysql_connect(namespace, connection_name, secret = {}) -> Engine:
+    def mysql_connect(namespace, connection_name, secret = None) -> Engine:
 
         connection_key = f'{namespace}-{connection_name}'
 
         if connection_key in SQLDatabase.connections['mysql']:
             return SQLDatabase.connections['mysql'][connection_key]
+        
+        if secret == None:
+            secret = SQLDatabase.secret_manager.get_db_secret(namespace,connection_name)
 
         connection_string = secret['connection_url']
         connection = create_engine(connection_string)
@@ -113,11 +122,14 @@ class SQLConnection:
         return connection
 
 
-    def pgsql_connect(namespace, connection_name, secret) -> Engine:
+    def pgsql_connect(namespace, connection_name, secret = None) -> Engine:
 
         connection_key = f'{namespace}-{connection_name}'
         if connection_key in SQLDatabase.connections['postgresql']:
             return SQLDatabase.connections['postgresql'][connection_key]
+        
+        if secret == None:
+            secret = SQLDatabase.secret_manager.get_db_secret(namespace,connection_name)
 
         connection_string = secret['connection_url']
 
