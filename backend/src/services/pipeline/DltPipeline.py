@@ -281,8 +281,8 @@ class DltPipeline:
         
 
     def revert_ppline(self):
-        os.remove(self.curr_file)
-
+        if(type(self.curr_file) == str):
+            os.remove(self.curr_file)
 
     @staticmethod
     def get_template_from_existin_ppline(ppline_path):
