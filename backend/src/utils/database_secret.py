@@ -8,7 +8,7 @@ def create_sql_db_secret(namespace, config, sec_managet: SecretManagerType, dben
     elif dbengine == 'oracle':
         connection_url = f'oracle+oracledb://{config['username']}:{config['password']}@{config['host']}:{config['port']}/?service_name={config.get('dbname', 'ORCL')}'
     elif dbengine == 'mssql':
-        connection_url = f'mssql+pyodbc://{config['username']}:{config['password']}@{config['host']}:{config['port']}/{config['dbname']}?driver=ODBC+Driver+17+for+SQL+Server'
+        connection_url = f'mssql+pyodbc://{config['username']}:{config['password']}@{config['host']}:{config['port']}/{config['dbname']}'
     elif dbengine == 'mysql':
         connection_url = f'mysql+pymysql://{config['username']}:{config['password']}@{config['host']}:{config['port']}/{config['dbname']}'
 

@@ -454,10 +454,10 @@ def get_db_connection_detailes(namespace, connection_name):
         return { 'error': True, 'result': 'No secrete found for current namespace' }
         
 
-@workspace.route('/<namespace>/db/<connection_name>/<table_name>', methods=['GET'])
-def get_fields_from_db(namespace, connection_name, table_name):
+@workspace.route('/<namespace>/db/<dbengine>/<connection_name>/<table_name>', methods=['GET'])
+def get_fields_from_db(namespace, dbengine, connection_name, table_name):
 
-    result = SQLDatabase.get_fields_from_table(namespace,connection_name,table_name)
+    result = SQLDatabase.get_fields_from_table(namespace, dbengine, connection_name, table_name)
     if 'error' not in result:
         return { 'error': False, 'result': { 'fields': result['fields'] } }
     else:
