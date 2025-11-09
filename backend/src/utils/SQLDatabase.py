@@ -40,6 +40,13 @@ class SQLDatabase:
         return tables_per_schema
 
 
+    def get_oracle_tables(namespace, connection_name, secret):
+        
+        oracle_conection = SQLConnection\
+                    .oracle_connect(namespace, connection_name, secret)
+        return inspect(oracle_conection).get_table_names()
+
+
     def get_tables_list(namespace, connection_name):
 
         try:
@@ -55,6 +62,9 @@ class SQLDatabase:
 
             if(dbengine == 'postgresql'):
                 table_list = SQLDatabase.get_pgsql_tables(namespace, connection_name, secret)
+
+            if(dbengine == 'oracle'):
+                table_list = SQLDatabase.get_oracle_tables(namespace, connection_name, secret)
             
             return { 'tables': table_list, 'details': secret }
         
@@ -140,5 +150,22 @@ class SQLConnection:
 
         connection = create_engine(connection_string)
         SQLDatabase.connections['postgresql'][connection_key] = connection
+
+        return connection
+
+
+    def oracle_connect(namespace, connection_name, secret = None) -> Engine:
+
+        connection_key = f'{namespace}-{connection_name}'
+        if connection_key in SQLDatabase.connections['oracle']:
+            return SQLDatabase.connections['oracle'][connection_key]
+        
+        if secret == None:
+            secret = SQLDatabase.secret_manager.get_db_secret(namespace,connection_name)
+
+        connection_string = secret['connection_url']
+
+        connection = create_engine(connection_string)
+        SQLDatabase.connections['oracle'][connection_key] = connection
 
         return connection
