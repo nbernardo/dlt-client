@@ -385,10 +385,10 @@ export class WorkspaceService extends BaseService {
     }
 
     /** @returns { { fields } | undefined } */
-    static async getDBTableDetails(connectionName, tableName) {
+    static async getDBTableDetails(dbEngine, connectionName, tableName) {
 
         const namespace = await UserService.getNamespace();
-        const url = `/${namespace}/db/${connectionName}/${tableName}`;
+        const url = `/${namespace}/db/${dbEngine}/${connectionName}/${tableName}`;
 
         const response = await $still.HTTPClient.get(url);
         const result = await response.json();

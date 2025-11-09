@@ -102,7 +102,7 @@ export class SqlDBComponent extends ViewComponent {
 
 		const htmlTableInputSelector = 'input[data-id="firstTable"]', 
 			  htmlPkInputSelector = 'input[data-id="firstPK"]';
-			  		
+
 		this.handleTableFieldsDropdown(htmlTableInputSelector, htmlPkInputSelector);
 
 	}
@@ -120,8 +120,8 @@ export class SqlDBComponent extends ViewComponent {
 			boundComponent: this,
 			componentFieldName: tableFieldName,
 			onSelect: async (table, self) => {
-				const data = await WorkspaceService.getDBTableDetails(this.selectedSecret.value ,table);
-				
+				const data = await WorkspaceService.getDBTableDetails(this.selectedDbEngine.value, this.selectedSecret.value ,table);
+								
 				const pkRelatedField = self.relatedFields[0];
 				pkRelatedField.setDataSource(data.fields);
 			}
@@ -150,7 +150,7 @@ export class SqlDBComponent extends ViewComponent {
 			let database = '', dbengine = '', host = '';
 			if(secretName != ''){
 				const data = await WorkspaceService.getConnectionDetails(secretName);
-				
+
 				const detail = data['secret_details'];
 				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
 				this.selectedSecretTableList = data.tables;

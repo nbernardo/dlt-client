@@ -14,6 +14,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ openModal;
 	/** @Prop */ closeModal;
 	/** @Prop */ showAddSecrete = false;
+	/** @Prop */ showServiceNameLbl = false;
 
 	/** @Prop */ dataBaseSettingType = null;
 	/** @Prop @type { STForm } */ formRef = null;
@@ -41,7 +42,7 @@ export class CatalogForm extends ViewComponent {
 	}
 	
 	async stAfterInit(){
-
+		this.showServiceNameLbl = false;
 		this.modal = document.getElementById('modal');
 		//this.openModal = document.getElementById('openModal');
 		this.closeModal = document.getElementById('closeModal');
@@ -60,6 +61,13 @@ export class CatalogForm extends ViewComponent {
 			this.startCodeEditor();
 			this.addSecreteGroup(true);
 		}
+
+		this.dbEngine.onChange(dbEngine => {
+			if(dbEngine == 'oracle-database-plugin')
+				this.showServiceNameLbl = true;
+			else
+				this.showServiceNameLbl = false;
+		});
 	}
 
 	startCodeEditor(){
