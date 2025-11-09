@@ -22,6 +22,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ isDbFirstCall = false;
 	/** @Prop */ secretType = 1;
 	/** @Prop */ editorId = '_'+UUIDUtil.newId();
+	/** @Prop */ isNewSecret = false;
 
 	/** @type { Workspace } */ $parent;
 
@@ -140,16 +141,21 @@ export class CatalogForm extends ViewComponent {
 		}
 	}
 
+	resetForm(){
+		this.connectionName = '';
+		this.dbHost = '';
+		this.dbPort = '';
+		this.dbName = '';
+		this.dbUser = '';
+		this.dbEngine = '';
+		if(document.querySelector('.first-secret-field')) document.querySelector('.first-secret-field').value = '';
+	}
+
 	showDialog(reset = false){
 
 		if(reset){
-			this.connectionName = '';
-			this.dbHost = '';
-			this.dbPort = '';
-			this.dbName = '';
-			this.dbUser = '';
-			this.dbEngine = '';
-			if(document.querySelector('.first-secret-field')) document.querySelector('.first-secret-field').value = '';
+			this.isNewSecret = true;
+			this.resetForm();
 		}
 
 		document.querySelector('.db-connection-name').disabled = false;
@@ -175,6 +181,7 @@ export class CatalogForm extends ViewComponent {
 			self.firstKey = '';
 			self.firstValue = '';
 			document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.checked = false);
+			self.isNewSecret = false;
 		}
 	}
 
@@ -256,7 +263,7 @@ export class CatalogForm extends ViewComponent {
 
 	async createSecret(){
 		const validate = await this.formRef.validate(); 
-		let dbConfig = null, apiSettings = null;
+		let dbConfig = null, apiSettings = null, updatingSecret;
 		
 		if(this.secretType != 2 && this.dataBaseSettingType == null) 
 			return AppTemplate.toast.error('Please select the secret type');
@@ -287,17 +294,42 @@ export class CatalogForm extends ViewComponent {
 						'connectionName': this.connectionName.value
 					}
 				}
+				updatingSecret = this.getUpdatingSecret();
+
+				if(updatingSecret.updatingId && this.isNewSecret){
+					return AppTemplate.toast.error(`Secret with name ${this.connectionName.value} already exists`);
+				}
 			}else
 				apiSettings = this.editor.getValue();
 			
-			WorkspaceService.createSecret({ 
+			const result = await WorkspaceService.createSecret({ 
 				env: this.getDynamicFields(), dbConfig, apiSettings, 'connectionName': this.connectionName.value 
 			});
-			
+
+			if(result === true && this.dataBaseSettingType != null)
+				this.updateLeftMenuSecretList(updatingSecret);
 		}else{
 			AppTemplate.toast.error('Please fill all required field');
 		}
 		
+	}
+
+	getUpdatingSecret(){
+		const updatedSecrets = [...this.$parent.controller.leftTab.dbSecretsList.value];
+		let updatingId = null;
+		for(const id in updatedSecrets){
+			if(updatedSecrets[id].name === this.connectionName.value) 
+				updatingId = id;
+		}
+		return { updatingId, updatedSecrets };
+	}
+
+	updateLeftMenuSecretList({ updatingId, updatedSecrets }){
+		const host = this.dataBaseSettingType == 2 ? 'None' : this.dbHost.value;
+		if(updatingId !== null) updatedSecrets[updatingId].host = host;
+		if(updatingId === null) updatedSecrets.push({ name: this.connectionName.value, host });
+		this.$parent.controller.leftTab.dbSecretsList = updatedSecrets;
+		this.resetForm();
 	}
 
 }

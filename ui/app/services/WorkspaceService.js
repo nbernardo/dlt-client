@@ -310,8 +310,10 @@ export class WorkspaceService extends BaseService {
         
         const result = await response.json();
         
-        if (response.ok && !result.error)
-            return AppTemplate.toast.success('Secrete created successfully');
+        if (response.ok && !result.error){
+            AppTemplate.toast.success('Secrete created successfully');
+            return true;
+        }
         else
             AppTemplate.toast.error(result.result);
     }
@@ -329,7 +331,7 @@ export class WorkspaceService extends BaseService {
             let secretAndServerList;
             
             if(type == 2 && Array.isArray(secretList?.api_secrets))
-				secretAndServerList = secretList.api_secrets.map(secret => ({ name: secret, host: 'to.be.def' }))
+				secretAndServerList = secretList.api_secrets.map(secret => ({ name: secret, host: 'None' }))
             
             if(type == 1 && Array.isArray(secretList?.db_secrets))
 				secretAndServerList = secretList.db_secrets.map(secret => ({ name: secret, host: secretList.metadata[secret] || 'None' }));
