@@ -61,11 +61,11 @@ export class WorkspaceService extends BaseService {
             ? UserUtil.email : await UserService.getNamespace();
     }
 
-    async getParsedTables(namespace, socketId) {
+    async getParsedTables(socketId) {
 
         if(this.parsedTableListStore.value.length == 0){
 
-            const result = await this.getDuckDbs(namespace, socketId);
+            const result = await this.getDuckDbs(socketId);
             const data = Object.entries(result);
             const tables = [];
     
@@ -98,8 +98,8 @@ export class WorkspaceService extends BaseService {
 
     }
 
-    async getDuckDbs(user, socketId) {
-
+    async getDuckDbs(socketId) {
+        const user = await UserService.getNamespace();
         //if (this.tableListStore.value == null) {
             const url = '/workcpace/duckdb/list/' + user + '/' + socketId;
             const response = await $still.HTTPClient.post(url, null, {

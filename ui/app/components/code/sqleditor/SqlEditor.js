@@ -49,8 +49,8 @@ export class SqlEditor extends ViewComponent {
 			databasename = databaseParam;
 		
 		this.query = query;
-		const user = this.$parent.userEmail, socketId = this.$parent.socketData.sid;
-		this.tablesList = await this.$parent.service.getParsedTables(user, socketId);
+
+		this.tablesList = await this.$parent.service.getParsedTables(this.$parent.socketData.sid);
 		this.dbpath = this.$parent.service.dbPath.slice(0,-1);
 		
 		if(this.$parent.service.fieldsByTableMap[databasename.trim()])

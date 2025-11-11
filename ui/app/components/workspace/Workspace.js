@@ -280,7 +280,7 @@ export class Workspace extends ViewComponent {
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
-		data = { ...data, user: this.userEmail, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
+		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
 		console.log(data);
 
 		if (update === true) data.update = true;
