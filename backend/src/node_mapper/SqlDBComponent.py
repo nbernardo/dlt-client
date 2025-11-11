@@ -34,6 +34,12 @@ class SqlDBComponent(TemplateNodeType):
         # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
         self.source_dbengine = data['dbengine']
 
+        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
+        self.namespace = data['namespace']
+
+        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
+        self.connection_name = data['connection_name']
+
 
     def run(self) -> None:
         """

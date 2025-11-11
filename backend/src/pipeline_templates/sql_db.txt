@@ -11,23 +11,35 @@ sys.path.insert(0, src_path)
 sys.path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
+from src.services.workspace.SecretManager import SecretManager
 
-mysql_srv = env('MYSQLDBSRV')
-mysql_usr = env('MYSQLDBUSR')
-mysql_pwd = env('MYSQLDBPWD')
-mysql_prt = env('MYSQLDBPRT')
+vault_url = env('HASHICORP_HOST')
+vault_token = env('HASHICORP_TOKEN')
+vault_crt_path = False \
+    if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
+    else env('HASHICORP_CERTIF_PATH')
+
+params = { 
+    'vault_url': vault_url, 
+    'vault_token': vault_token,
+    'vault_crt_path': vault_crt_path
+}
+
+# Bellow mapping: namespace = SqlDBComponent.namespace
+namespace = %namespace%
+
+# Bellow mapping: connection_name = SqlDBComponent.connection_name
+connection_name = %connection_name%
+
+SecretManager.connect_to_vault(params)
+secret = SecretManager.get_db_secret(namespace, connection_name)
+connection_string = secret['connection_url']
 
 # Bellow mapping: schema = SqlDBComponent.source_database
 database_to_connect = %source_database%
 
-dialects = {
-    "mysql": f"mysql+pymysql://{mysql_usr}:\
-            {mysql_pwd}@{mysql_srv}:\
-            {mysql_prt}/{database_to_connect}" 
-}
-
 # Bellow mapping: schema = SqlDBComponent.source_dbengine
-credentials = ConnectionStringCredentials(dialects[%source_dbengine%])
+credentials = ConnectionStringCredentials(connection_string)
 
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()
