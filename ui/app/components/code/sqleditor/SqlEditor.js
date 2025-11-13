@@ -32,15 +32,14 @@ export class SqlEditor extends ViewComponent {
 	/** @type { ListState<Array> } */ tablesList = [];
 
 	/** @Prop */ selectedTable;
-
-	stBeforeInit = async () =>
-		await this.$parent.controller.loadMonacoEditorDependencies();
 	
 	/** 
 	 * @param {Object} param0 
 	 * @param {String} param0.database  */
 	async stOnRender({ query, database, databaseParam, queryTable }){
 
+		await this.$parent.controller.loadMonacoEditorDependencies();
+		
 		let dbPath = null, databasename = '';
 		if(database){
 			dbPath = database.split('/')
