@@ -25,6 +25,15 @@ class SqlDBComponent(TemplateNodeType):
         # source_tables fields is mapped in /pipeline_templates/sql_db.txt
         self.source_tables = list(data['tables'].values())
 
+        schema = None
+        if len(self.source_tables) > 0:
+            if(self.source_tables[0].__contains__('.')):
+                schema = self.source_tables[0].split('.')[0]
+
+                # When the UI sends the tables that is under a schema (e.g. Postgres, SQLServer)
+                # the tables names will be prefixed with the schema name, bellow logic is to clean it up
+                self.source_tables = [table.replace(f'{schema}.','') for table in self.source_tables]
+
         # primary_keys fields is mapped in /pipeline_templates/sql_db.txt
         self.primary_keys = list(data['primaryKeys'].values())
 
@@ -38,7 +47,10 @@ class SqlDBComponent(TemplateNodeType):
         self.namespace = data['namespace']
 
         # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
-        self.connection_name = data['connection_name']
+        self.connection_name = data['connectionName']
+
+        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
+        self.schema = schema
 
 
     def run(self) -> None:
@@ -54,8 +66,14 @@ class SqlDBComponent(TemplateNodeType):
 
     def check_db_and_tables(self, tables: list[str]) -> None:
         """
-        Check if the table already exists
+        Check if the table exists
+        TODO: Implemente validation to check table existance if needed otherwise
+              this should be deprecated since the connection not comes from secrets 
+              connection which provides auto-complete for the existing table thereby
+              preventing non-existing tables to be send from the UI
         """
+        
+        """        
         query_template = 'SELECT 1 FROM @tblName'
         final_query = query_template.replace('@tblName', tables[0])
         try:
@@ -76,5 +94,6 @@ class SqlDBComponent(TemplateNodeType):
 
         except Exception as err:
             self.notify_failure_to_ui('SqlDBComponent', err)    
+        """
 
 

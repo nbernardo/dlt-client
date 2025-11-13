@@ -25,6 +25,23 @@ class SecretManager(SecretManagerType):
         pass
 
     
+    def ppline_connect_to_vault():
+
+        vault_url = env('HASHICORP_HOST')
+        vault_token = env('HASHICORP_TOKEN')
+        vault_crt_path = False \
+            if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
+            else env('HASHICORP_CERTIF_PATH')
+
+        params = { 
+            'vault_url': vault_url, 
+            'vault_token': vault_token,
+            'vault_crt_path': vault_crt_path
+        }
+
+        SecretManager.connect_to_vault(params)
+
+
     def connect_to_vault(params = {}):
 
         if('vault_url' in params):
