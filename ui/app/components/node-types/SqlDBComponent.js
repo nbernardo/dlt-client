@@ -3,6 +3,7 @@ import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { FormHelper } from "../../../@still/helper/form.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
 
@@ -32,8 +33,8 @@ export class SqlDBComponent extends ViewComponent {
 	/** @Prop @type { TableAndPKType } */	
 	dynamicFields;
 
-	selectedSecretTableList = ['Primeiro','Secundo'];
-	selectedTableList = ['personID','firstname'];
+	selectedSecretTableList = [];
+	selectedTableList = [];
 	database;
 	tableName;
 	selectedDbEngine;
@@ -182,7 +183,7 @@ export class SqlDBComponent extends ViewComponent {
 		let tblFieldName = 'tableName' + tableId, placeholder = 'Enter table '+tableId+' name', pkFieldName;
 		const table = FormHelper
 			.newField(this, this.formRef, tblFieldName, value)
-			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled, className: tblFieldName })
+			.input({ required: true, placeholder, validator: 'text', value, disabled, className: tblFieldName })
 			//Add will add in the form which reference was specified (2nd param of newField)
 			//.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);
 			.element;
@@ -190,7 +191,7 @@ export class SqlDBComponent extends ViewComponent {
 		pkFieldName = 'primaryKey' + tableId, placeholder = 'PK Field';
 		const pkField = FormHelper
 			.newField(this, this.formRef, pkFieldName, value)
-			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled, className: pkFieldName })
+			.input({ required: true, placeholder, validator: 'text', value, disabled, className: pkFieldName })
 			.element;
 
 		const div = document.createElement('div');
@@ -207,7 +208,7 @@ export class SqlDBComponent extends ViewComponent {
 
 	}
 
-	getTables(){
+	async getTables(){
 		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		const /** @type Array<String> */ dynFields = this.getDynamicFields();
@@ -221,14 +222,16 @@ export class SqlDBComponent extends ViewComponent {
 			else
 				pkFields[field.trim()] = val;
 		}
-		
+
 		data['tables'] = tables;
 		data['primaryKeys'] = pkFields;
+		data['namespace'] = await UserService.getNamespace();
+		data['connectionName'] = this.selectedSecret.value;
 	}
 
-	showTable(){
+	async showTable(){
+		await this.formRef.validate();
 		console.log(this.getDynamicFields());
-		console.log(`THE INITIAL VALUE IS: `, { v1: this.tableName.value, v2: this.primaryKey.value });
 	}
 }
 

@@ -79,7 +79,7 @@ export class LeftTabs extends ViewComponent {
 
 		this.selectTab('content-outputs');
 		this.dbTreeviewProxy.clearTreeData();
-		let response = await this.service.getDuckDbs(this.$parent.userEmail, this.$parent.socketData.sid);
+		let response = await this.service.getDuckDbs(this.$parent.socketData.sid);
 		
 		if(response?.no_data || Object.keys(response).length === 0){
 			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'

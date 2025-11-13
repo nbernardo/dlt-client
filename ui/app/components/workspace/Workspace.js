@@ -261,9 +261,13 @@ export class Workspace extends ViewComponent {
 		let validationResults = formReferences.map(async (r) => {
 			const component = Components.ref(r);
 
-			if (component.getName() === SqlDBComponent.name) component.getTables();
+			if (component.getName() === SqlDBComponent.name) {
+				const /** @type { SqlDBComponent } */ castedCmp = component;
+				await castedCmp.getTables();
+			}
 			if (component.getName() === Transformation.name) {
-				component.parseTransformationCode();
+				const /** @type { Transformation } */ castedCmp = component;
+				castedCmp.parseTransformationCode();
 				return true;
 			}
 
@@ -452,7 +456,7 @@ export class Workspace extends ViewComponent {
 
 		async function openDiagram(reset = null){
 			if(reset) self.resetWorkspace();
-			const response = await self.service.readDiagramFile(self.userEmail, pplineName);
+			const response = await self.service.readDiagramFile(await UserService.getNamespace(), pplineName);
 			const result = JSON.parse(response);
 			self.activeGrid = result.pipeline_lbl;
 			document.querySelector('.clear-workspace-btn').style.right = '110px';
