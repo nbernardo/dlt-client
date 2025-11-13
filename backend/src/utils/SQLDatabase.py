@@ -110,7 +110,7 @@ class SQLDatabase:
 
             if(dbengine == 'mssql'):
                 db_conection = SQLConnection.mssql_connect(namespace, connection_name, None)
-                
+
             if(dbengine == 'oracle'):
                 db_conection = SQLConnection.oracle_connect(namespace, connection_name, None)
             
@@ -213,9 +213,7 @@ class SQLConnection:
         if secret == None:
             secret = SQLDatabase.secret_manager.get_db_secret(namespace,connection_name)
 
-        driver = '?driver=ODBC+Driver+18+for+SQL+Server;Encrypt=yes;TrustServerCertificate=yes'
-        if platform.system() != 'Windows':
-            driver = '?driver=ODBC%20Driver%2018%20for%20SQL%20Server&Encrypt=yes&TrustServerCertificate=yes'
+        driver = SQLConnection.get_mssql_driver()
 
         connection_string = secret['connection_url']+driver
 
@@ -223,3 +221,10 @@ class SQLConnection:
         SQLDatabase.connections['mssql'][connection_key] = connection
 
         return connection
+    
+
+    def get_mssql_driver():
+        driver = '?driver=ODBC+Driver+18+for+SQL+Server;Encrypt=yes;TrustServerCertificate=yes'
+        if platform.system() != 'Windows':
+            driver = '?driver=ODBC%20Driver%2018%20for%20SQL%20Server&Encrypt=yes&TrustServerCertificate=yes'
+        return driver
