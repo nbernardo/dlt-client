@@ -12,18 +12,7 @@ sys.path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
-
-vault_url = env('HASHICORP_HOST')
-vault_token = env('HASHICORP_TOKEN')
-vault_crt_path = False \
-    if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
-    else env('HASHICORP_CERTIF_PATH')
-
-params = { 
-    'vault_url': vault_url, 
-    'vault_token': vault_token,
-    'vault_crt_path': vault_crt_path
-}
+from src.utils.SQLDatabase import SQLConnection
 
 # Bellow mapping: namespace = SqlDBComponent.namespace
 namespace = %namespace%
@@ -31,14 +20,21 @@ namespace = %namespace%
 # Bellow mapping: connection_name = SqlDBComponent.connection_name
 connection_name = %connection_name%
 
-SecretManager.connect_to_vault(params)
+SecretManager.ppline_connect_to_vault()
+print('connecting to secrets vault')
+
 secret = SecretManager.get_db_secret(namespace, connection_name)
+print(f'fetching "{connection_name}" secrets for DB connection')
+
 connection_string = secret['connection_url']
 
-# Bellow mapping: schema = SqlDBComponent.source_database
+if str(connection_string).startswith('mssql'):
+    connection_string = secret['connection_url']+f'{SQLConnection.get_mssql_driver()}'
+
+# Bellow mapping: source_database = SqlDBComponent.source_database
 database_to_connect = %source_database%
 
-# Bellow mapping: schema = SqlDBComponent.source_dbengine
+# Bellow mapping: connection_string = SqlDBComponent.source_dbengine
 credentials = ConnectionStringCredentials(connection_string)
 
 def load_select_tables_from_db():
@@ -48,17 +44,24 @@ def load_select_tables_from_db():
     pipeline = dlt.pipeline(
         pipeline_name=ppline_name,
         destination=dest_db,
-        # Bellow mapping: schema = DuckDBOutput.duckdb_dest
+        # Bellow mapping: duckdb_dest = DuckDBOutput.duckdb_dest
         dataset_name=%duckdb_dest%
     )
 
-    # Bellow mapping: schema = SqlDBComponent.source_tables
+    # Bellow mapping: source_tables = SqlDBComponent.source_tables
     tables = %source_tables%
 
-    # Bellow mapping: schema = SqlDBComponent.primary_keys
+    # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
 
-    source = sql_database(table_names=tables, credentials=credentials)
+    # Bellow mapping: schema = SqlDBComponent.schema
+    schema = %schema%
+
+    if schema != None:
+        source = sql_database(table_names=tables, credentials=credentials, schema=schema)
+    else:
+        source = sql_database(table_names=tables, credentials=credentials)
+
 
     for idx in range(len(tables)):
         getattr(source, tables[idx])\
