@@ -256,6 +256,20 @@ class DltPipeline:
         with open(f'{file_name}', 'r', encoding='utf-8') as file:
             tplt = file.read()
 
+        return tplt    
+    
+
+    @staticmethod
+    def get_mssql_db_template():
+        """
+        This is template handling method
+        """
+        tplt = ''
+        file_name = f'{template_dir}/sql_server.txt'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
         return tplt
 
 

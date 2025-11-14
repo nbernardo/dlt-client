@@ -12,7 +12,10 @@ class SqlDBComponent(TemplateNodeType):
         """
         Initialize the instance
         """
-        self.template = DltPipeline.get_sql_db_template()
+        if data['dbengine'] == 'mssql':
+            self.template = DltPipeline.get_sql_db_template()
+        else:
+            self.template = DltPipeline.get_mssql_db_template()
 
         # When instance is created only to get the template 
         # Nothing more takes place except for the template itself
