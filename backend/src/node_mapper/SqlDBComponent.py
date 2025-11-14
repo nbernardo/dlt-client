@@ -12,14 +12,17 @@ class SqlDBComponent(TemplateNodeType):
         """
         Initialize the instance
         """
+
         if data['dbengine'] == 'mssql':
-            self.template = DltPipeline.get_sql_db_template()
-        else:
             self.template = DltPipeline.get_mssql_db_template()
+        else:
+            self.template = DltPipeline.get_sql_db_template()
 
         # When instance is created only to get the template 
         # Nothing more takes place except for the template itself
-        if data is None: return None
+        if data: 
+            if 'componentId' not in data:
+                return None
 
         self.context = context
         self.component_id = data['componentId']
@@ -27,15 +30,6 @@ class SqlDBComponent(TemplateNodeType):
 
         # source_tables fields is mapped in /pipeline_templates/sql_db.txt
         self.source_tables = list(data['tables'].values())
-
-        schema = None
-        if len(self.source_tables) > 0:
-            if(self.source_tables[0].__contains__('.')):
-                schema = self.source_tables[0].split('.')[0]
-
-                # When the UI sends the tables that is under a schema (e.g. Postgres, SQLServer)
-                # the tables names will be prefixed with the schema name, bellow logic is to clean it up
-                self.source_tables = [table.replace(f'{schema}.','') for table in self.source_tables]
 
         # primary_keys fields is mapped in /pipeline_templates/sql_db.txt
         self.primary_keys = list(data['primaryKeys'].values())
@@ -52,9 +46,6 @@ class SqlDBComponent(TemplateNodeType):
         # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
         self.connection_name = data['connectionName']
 
-        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
-        self.schema = schema
-
 
     def run(self) -> None:
         """
@@ -65,6 +56,21 @@ class SqlDBComponent(TemplateNodeType):
               {self.source_database} and {self.source_tables}\
               and DBEngine is {self.source_dbengine}')
         self.check_db_and_tables(self.source_tables)
+
+
+    def parse_tables_and_schema(self):
+        schema = None
+        if len(self.source_tables) > 0:
+            if(self.source_tables[0].__contains__('.')):
+                schema = self.source_tables[0].split('.')[0]
+
+                # When the UI sends the tables that is under a schema (e.g. Postgres, SQLServer)
+                # the tables names will be prefixed with the schema name, bellow logic is to clean it up
+                self.source_tables = [table.replace(f'{schema}.','') for table in self.source_tables]
+
+        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
+        self.schema = schema
+
 
 
     def check_db_and_tables(self, tables: list[str]) -> None:

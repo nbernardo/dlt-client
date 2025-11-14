@@ -32,17 +32,17 @@ def column_type_conversion(columns, connection, table, schema):
 def dynamic_mssql_source(
     tables: list[str],
     primary_keys: list[str],
-    schema_name: str,
     connection_string: str
 ):
     """Source that generates resources dynamically with injected engine"""    
-    def create_table_resource(table_name, key):
-        @dlt.resource(name=table_name, primary_key=key)
+    def create_table_resource(table: str, key):
+        @dlt.resource(name=table, primary_key=key)
         def table_data():
 
             engine = create_engine(connection_string)
             inspector = inspect(engine)
-            
+
+            schema_name, table_name = table.split('.')
             columns = inspector.get_columns(table_name, schema=schema_name)
             parsed_columns = column_type_conversion(columns, engine.connect(), table_name, schema_name)
 

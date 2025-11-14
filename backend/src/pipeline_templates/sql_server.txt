@@ -9,7 +9,7 @@ src_path = str(Path(__file__).parent).replace('/destinations/pipeline/facebook_2
 sys.path.insert(0, src_path)
 sys.path.insert(0, src_path+'/src')
 
-#from src.services.workspace.Workspace import Workspace
+from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
 from src.utils.SQLDatabase import SQLConnection
 from src.utils import SQLServerUtil
@@ -19,8 +19,6 @@ namespace = %namespace%
 
 # Bellow mapping: connection_name = SqlDBComponent.connection_name
 connection_name = %connection_name%
-
-#SecretManager.ppline_connect_to_vault()
 
 print('connecting to secrets vault')
 SecretManager.ppline_connect_to_vault()
@@ -37,7 +35,7 @@ credentials = ConnectionStringCredentials(connection_string)
 
 def load_select_tables_from_db():
 
-    dest_folder = '/Users/nakassony/Desktop/dlt/dlt-client/backend/destinations/pipeline' #Workspace.get_duckdb_path_on_ppline()
+    dest_folder = Workspace.get_duckdb_path_on_ppline()
     ppline_name = "sql_server_pipeline"
     dest_db = dlt.destinations.duckdb(f'{dest_folder}/facebook_25690644623870471/{ppline_name}.duckdb')
     pipeline = dlt.pipeline(
@@ -52,10 +50,7 @@ def load_select_tables_from_db():
     # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
 
-    # Bellow mapping: schema = SqlDBComponent.schema
-    schema = %schema%
-
-    source = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, schema, connection_string)
+    source = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, connection_string)
     info = pipeline.run(source)
     print(info)
 

@@ -49,18 +49,10 @@ def load_select_tables_from_db():
     # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
 
-    # Bellow mapping: schema = SqlDBComponent.schema
-    schema = %schema%
-
-    if schema != None:
-        source = sql_database(table_names=tables, credentials=credentials, schema=schema)
-    else:
-        source = sql_database(table_names=tables, credentials=credentials)
-
+    source = sql_database(table_names=tables, credentials=credentials)
 
     for idx in range(len(tables)):
-        getattr(source, tables[idx])\
-            .apply_hints(primary_key=tables_pk[idx])
+        getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
 
     info = pipeline.run(source)
     print(info)
