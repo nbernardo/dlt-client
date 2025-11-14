@@ -256,6 +256,7 @@ export class Workspace extends ViewComponent {
 
 	async preparePipelineContent(update = false) {
 
+		let sqlPipelineDbEngine = null;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		let validationResults = formReferences.map(async (r) => {
@@ -263,6 +264,7 @@ export class Workspace extends ViewComponent {
 
 			if (component.getName() === SqlDBComponent.name) {
 				const /** @type { SqlDBComponent } */ castedCmp = component;
+				sqlPipelineDbEngine = castedCmp.selectedDbEngine.value;
 				await castedCmp.getTables();
 			}
 			if (component.getName() === Transformation.name) {
@@ -284,7 +286,9 @@ export class Workspace extends ViewComponent {
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
-		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
+		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid };
+		
+		if(sqlPipelineDbEngine) data.initDbengine = sqlPipelineDbEngine;
 		console.log(data);
 
 		if (update === true) data.update = true;
