@@ -32,7 +32,8 @@ const ProduceComponentType = {
     registerCls: false,
     urlRequest: false,
     lone: false,
-    loneCntrId: null
+    loneCntrId: null,
+    templateFile: null
 };
 
 class ProducedCmpResultType {
@@ -108,6 +109,7 @@ export class Components {
     /** @returns { ProducedCmpResultType } */
     static async produceComponent(params = ProduceComponentType) {
         if (!params.cmp) return;
+        
         const { cmp, parentCmp, registerCls, urlRequest: url } = params;
         const npmRoute = parseNpmToCdn(cmp);
         let clsName = cmp, isVendorCmp = (cmp || []).at(0) == '@', cmpPath,
@@ -149,18 +151,24 @@ export class Components {
             
             const cmpCls = await import(`${cmpPath}.js`);
             const parent = parentCmp ? { parent: parentCmp } : '';
-
+            
             newInstance = new cmpCls[clsName](parent);
+            
             await newInstance.stBeforeInit();          
             Components.prevLoadingTracking.add(clsName);
             newInstance.lone = !!params.loneCntrId || params.lone;
             newInstance.loneCntrId = params.loneCntrId || Router.clickEvetCntrId;
             newInstance.$parent = parentCmp;
-
+            
             if (!newInstance.template) {
+
                 let tmplFileUrl = cmpPath + '.html';
-                const { templateUrl } = newInstance;
-                if (templateUrl) tmplFileUrl = `${folderPah}/${templateUrl}`;
+                if(params.templateFile) tmplFileUrl = `${folderPah}/`+params.templateFile;
+                
+                if(!params.templateFile){
+                    const { templateUrl } = newInstance;
+                    if (templateUrl) tmplFileUrl = `${folderPah}/${templateUrl}`;
+                }
 
                 const result = await fetch(tmplFileUrl);
                 if (result.status == 404) {
@@ -1693,7 +1701,7 @@ export class Components {
     static async new(cmp, data = {} | null, parentId = null) {
         let cmpName = cmp;
         if (cmp?.__proto__?.name == 'ViewComponent') cmpName = cmp.name;
-        const { newInstance: instance } = await Components.produceComponent({ cmp: cmpName });
+        const { newInstance: instance } = await Components.produceComponent({ cmp: cmpName, templateFile: data.template });
         
         if(parentId !== null) instance.$parent = Components.ref(parentId);
         
