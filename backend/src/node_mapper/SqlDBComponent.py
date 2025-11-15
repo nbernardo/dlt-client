@@ -24,6 +24,7 @@ class SqlDBComponent(TemplateNodeType):
             if 'componentId' not in data:
                 return None
 
+        self.schema = False
         self.context = context
         self.component_id = data['componentId']
         self.context.emit_start(self, '')
@@ -46,6 +47,9 @@ class SqlDBComponent(TemplateNodeType):
         # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
         self.connection_name = data['connectionName']
 
+        if data['dbengine'] == 'postgresql':
+            self.parse_tables_and_schema()
+
 
     def run(self) -> None:
         """
@@ -59,17 +63,15 @@ class SqlDBComponent(TemplateNodeType):
 
 
     def parse_tables_and_schema(self):
-        schema = None
+        
         if len(self.source_tables) > 0:
             if(self.source_tables[0].__contains__('.')):
-                schema = self.source_tables[0].split('.')[0]
+                self.schema = True
 
                 # When the UI sends the tables that is under a schema (e.g. Postgres, SQLServer)
                 # the tables names will be prefixed with the schema name, bellow logic is to clean it up
-                self.source_tables = [table.replace(f'{schema}.','') for table in self.source_tables]
+                # self.source_tables = [table.replace(f'{schema}.','') for table in self.source_tables]
 
-        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
-        self.schema = schema
 
 
 

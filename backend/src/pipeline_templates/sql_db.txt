@@ -49,12 +49,28 @@ def load_select_tables_from_db():
     # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
 
-    source = sql_database(table_names=tables, credentials=credentials)
+    # Bellow mapping: schema = SqlDBComponent.schema
+    schema = %schema%
 
-    for idx in range(len(tables)):
-        getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
+    if schema:
+        source = []
+        for idx in range(len(tables)):
+            schema_name, table_name = tables[idx].split('.')
 
-    info = pipeline.run(source)
+            db_table = sql_table(
+                table=table_name,  credentials=credentials, schema=schema_name
+            ).apply_hints(
+                primary_key=tables_pk[idx]
+            )
+            
+            source.append(db_table)
+
+    else:
+        source = sql_database(table_names=tables, credentials=credentials)
+        for idx in range(len(tables)):
+            getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
+
+    info = pipeline.run(source, write_disposition='merge')
     print(info)
 
 load_select_tables_from_db()
