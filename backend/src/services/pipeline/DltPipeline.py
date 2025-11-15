@@ -299,7 +299,6 @@ class DltPipeline:
         if(type(self.curr_file) == str):
             os.remove(self.curr_file)
 
-
     @staticmethod
     def get_template_from_existin_ppline(ppline_path):
         """
@@ -417,6 +416,7 @@ class DltPipeline:
 
     @staticmethod
     def get_pipline_runtime(namespace, ppline):
+        time = datetime.now()
         cnx = DuckdbUtil.get_workspace_db_instance()
         query = f"UPDATE ppline_schedule\
                     SET last_run='{time}'\
