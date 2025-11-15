@@ -7,35 +7,45 @@
 		<div class="statusicon"></div>
 	</div>
 	<div class="box @formWrapClass">
-		Host: @hostName
-		<form (formRef)="formRef" onsubmit="return false;">
-			<select
-					(required)="true" 
-					(forEach)="secretList"
-					(value)="selectedSecret"
-					placeholder="DB Connection Name"
-					data-dropdown
-					>
-				<option each="item" value="{item.name}">{item.name}</option>
-			</select>
-			<select
-					(required)="true" 
-					(forEach)="databaseEngines" 
-					(value)="selectedDbEngine"
-					placeholder="Database Engine"
-					data-dropdown
-					>
-				<option each="item" value="{item.dialect}">{item.name}</option>
-			</select>
-			<p>Database:</p>
-			<input type="text" placeholder="Database Name" disabled (required)="true" (value)="database">
-			<p>Tables list:</p>
-			<div>
-				<input type="text" data-id="firstTable" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
-				<input type="text" data-id="firstPK" (value)="primaryKey" placeholder="PK Field">
-			</div>
-		</form>
-		<button onclick="component.addField()" class="add-table-buttons">Add Table field</button>
+
+		<st-loader 
+			small center
+			(showIf)="self.showLoading" 
+			topPadding="50"
+			(label)="Parsing Rules..."/>
+
+		<span (showIf)="!self.showLoading">
+			Host: @hostName
+			<form (formRef)="formRef" onsubmit="return false;">
+				<select
+						(required)="true" 
+						(forEach)="secretList"
+						(value)="selectedSecret"
+						placeholder="DB Connection Name"
+						data-dropdown
+						>
+					<option each="item" value="{item.name}">{item.name}</option>
+				</select>
+				<select
+						(required)="true" 
+						(forEach)="databaseEngines" 
+						(value)="selectedDbEngine"
+						placeholder="Database Engine"
+						data-dropdown
+						>
+					<option each="item" value="{item.dialect}">{item.name}</option>
+				</select>
+				<p>Database:</p>
+				<input type="text" placeholder="Database Name" disabled (required)="true" (value)="database">
+				<p>Tables list:</p>
+				<div>
+					<input type="text" data-id="firstTable" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
+					<input type="text" data-id="firstPK" (value)="primaryKey" placeholder="PK Field">
+				</div>
+			</form>
+			<button onclick="component.addField()" class="add-table-buttons add-btn-primary" style="padding: 5px;">+ Table field</button>
+		</span>
+
 	</div>
 </div>
 <style>
@@ -44,5 +54,15 @@
 	.SqlDBComponent input:not([placeholder="PK Field"]){ width: 129px; font-size: 12px; }
 	.SqlDBComponent input[placeholder="PK Field"]{ width: 100px; font-size: 12px; padding-left: 3px; }
 	.SqlDBComponent select[data-dropdown]{ width: 100%; padding-left: 3px; margin-top: 5px; }
-	.SqlDBComponent input[placeholder="Database Name"]{ width: 100%; padding-left: 3px; }
+	.SqlDBComponent input[data-id="firstPK"], .SqlDBComponent input[data-id="firstTable"] { padding-left: 3px; }
+	.SqlDBComponent input[placeholder="Database Name"], .dynamic-db-table-field{ width: 100%; padding-left: 3px; }
+	.remove-dyn-field{ 
+		float: right;
+		position: absolute;
+		right: 7px;
+		margin-top: -23px;
+		font-weight: bold;
+		color: red;
+		cursor: pointer; 
+  	}
 </style>

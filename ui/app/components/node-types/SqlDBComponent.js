@@ -1,11 +1,11 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
-import { FormHelper } from "../../../@still/helper/form.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
+import { addSQLComponentTableField } from "./util/formUtil.js";
 
 
 export class SqlDBComponent extends ViewComponent {
@@ -46,8 +46,8 @@ export class SqlDBComponent extends ViewComponent {
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
 
-	/** @Prop @type { STForm } */
-	anotherForm;
+	/** @Prop @type { STForm } */ anotherForm;
+	/** @Prop */ showLoading = false;
 	
 
 
@@ -55,6 +55,7 @@ export class SqlDBComponent extends ViewComponent {
 	// An existing pipeline by calling the API
 	/** @Prop @type { Map } */ tables;
 	/** @Prop @type { Map } */ primaryKeys;
+	/** @Prop */ importFields;
 
 	/**
 	 * @Inject @Path services/
@@ -66,11 +67,14 @@ export class SqlDBComponent extends ViewComponent {
 	 * through the Component.new(type, param) where for para nodeId 
 	 * will be passed
 	 * */
-	stOnRender({ nodeId, isImport, tables, primaryKeys }){
+	stOnRender(data){		
+		const { nodeId, isImport, tables, primaryKeys, database, dbengine } = data;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.tables = tables;
 		this.primaryKeys = primaryKeys;	
+		this.importFields = { database, dbengine };
+		if(data?.host) this.importFields.host = data.host;
 	}
 
 	async stAfterInit(){
@@ -96,6 +100,10 @@ export class SqlDBComponent extends ViewComponent {
 			// Assign remaining tables if more than one in the pipeline
 			allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
 			this.dbInputCounter = allTables.length;
+			this.selectedDbEngine = this.importFields.dbengine;
+			this.selectedSecret = this.importFields.database;
+			this.hostName = this.importFields.host || 'None';
+			document.querySelector('.add-table-buttons').disabled = true;
 		}
 
 		this.setupOnChangeListen();
@@ -147,7 +155,8 @@ export class SqlDBComponent extends ViewComponent {
 		});
 
 		this.selectedSecret.onChange(async secretName => {
-			
+			this.clearSelectedTablesAndPk();
+			this.showLoading = true;
 			let database = '', dbengine = '', host = '';
 			if(secretName != ''){
 				const data = await WorkspaceService.getConnectionDetails(secretName);
@@ -155,6 +164,7 @@ export class SqlDBComponent extends ViewComponent {
 				const detail = data['secret_details'];
 				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
 				this.selectedSecretTableList = data.tables;
+				WorkSpaceController.getNode(this.nodeId).data['host'] = host;
 				this.dynamicFields.tables.forEach(tbl => {
 					tbl.setDataSource(data.tables);
 				});
@@ -163,8 +173,13 @@ export class SqlDBComponent extends ViewComponent {
 			this.database = database;
 			this.selectedDbEngine = dbengine;
 			this.hostName = host;
-
+			this.showLoading = false;
 		})
+	}
+
+	clearSelectedTablesAndPk(){
+		this.getDynamicFieldNames().forEach(field => this[field] = '');
+		this.tableName = '', this.primaryKey = '';
 	}
 
 	/** Brings the existing Databases secret */
@@ -179,34 +194,8 @@ export class SqlDBComponent extends ViewComponent {
 		this.newTableField(tableId);
 	}
 
-	newTableField(tableId, value = '', disabled = false){
-		let tblFieldName = 'tableName' + tableId, placeholder = 'Enter table '+tableId+' name', pkFieldName;
-		const table = FormHelper
-			.newField(this, this.formRef, tblFieldName, value)
-			.input({ required: true, placeholder, validator: 'text', value, disabled, className: tblFieldName })
-			//Add will add in the form which reference was specified (2nd param of newField)
-			//.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);
-			.element;
-		
-		pkFieldName = 'primaryKey' + tableId, placeholder = 'PK Field';
-		const pkField = FormHelper
-			.newField(this, this.formRef, pkFieldName, value)
-			.input({ required: true, placeholder, validator: 'text', value, disabled, className: pkFieldName })
-			.element;
-
-		const div = document.createElement('div');
-		div.style.marginTop = '3px';
-		div.className = 'table-detailes';
-		div.innerHTML = `${table}${pkField}`;		
-		document.querySelector(`.${this.formWrapClass} form`).appendChild(div);
-
-		//Add the filter result list
-		const self = this;
-		setTimeout(() => {
-			self.handleTableFieldsDropdown(`.${tblFieldName}`, `.${pkFieldName}`);
-		},500);
-
-	}
+	newTableField = (tableId, value = '', disabled = false) =>
+		addSQLComponentTableField(this, tableId, value, disabled);
 
 	async getTables(){
 		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 
@@ -231,7 +220,7 @@ export class SqlDBComponent extends ViewComponent {
 
 	async showTable(){
 		await this.formRef.validate();
-		console.log(this.getDynamicFields());
+		console.log(this.formRef.errorCount);
 	}
 }
 
