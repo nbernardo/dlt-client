@@ -16,7 +16,11 @@ class SqlDBComponent(TemplateNodeType):
         if data['dbengine'] == 'mssql':
             self.template = DltPipeline.get_mssql_db_template()
         else:
-            self.template = DltPipeline.get_sql_db_template()
+            if 'old_template' in data:
+                if data['old_template']:
+                    self.template = DltPipeline.get_sql_db_template('sql_db_old.txt')
+            else:
+                self.template = DltPipeline.get_sql_db_template()
 
         # When instance is created only to get the template 
         # Nothing more takes place except for the template itself

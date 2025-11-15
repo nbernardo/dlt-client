@@ -78,6 +78,8 @@ def create_new_ppline(fst_connection,
     if type(payload) == dict:
         if 'initDbengine' in payload:
             template_params['dbengine'] = payload['initDbengine']
+        if 'isOldSQLNode' in payload:
+            template_params['old_template'] = payload['isOldSQLNode']
 
     template = NodeFactory.new_node(fst_connection.get('name',None), template_params, context).template
     data_place, node_list = {}, []
