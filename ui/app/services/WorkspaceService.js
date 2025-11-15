@@ -40,8 +40,9 @@ export class WorkspaceService extends BaseService {
         { icon: 'far fa-circle', label: 'Start', typeName: 'Start', source: 0, dest: 1 },
         { icon: 'fas fa-circle', label: 'End', typeName: 'End', source: 1, dest: 0 },
         { icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
-        { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name },
-        { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: SqlDBComponent.name, disable: 'yes', name: 'DLT-class' },
+        { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
+        { imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
+        { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: null, disable: 'yes', name: 'DLT-class' },
         { 
             imgIcon: 'app/assets/imgs/language-python-text-svgrepo-com.svg', 
             label: 'Code Transformation', 

@@ -30,6 +30,8 @@ export class SqlDBComponent extends ViewComponent {
 	dbInputCounter = 1;
 	/** @Prop @type { STForm } */	
 	formRef;
+	/** @Prop */	
+	isOldUI;
 	/** @Prop @type { TableAndPKType } */	
 	dynamicFields;
 
@@ -78,7 +80,7 @@ export class SqlDBComponent extends ViewComponent {
 	}
 
 	async stAfterInit(){
-
+		this.isOldUI = this.templateUrl?.includes('SqlDBComponent_old.html');
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
 		//if(this.isImport !== false){
@@ -112,7 +114,7 @@ export class SqlDBComponent extends ViewComponent {
 		const htmlTableInputSelector = 'input[data-id="firstTable"]', 
 			  htmlPkInputSelector = 'input[data-id="firstPK"]';
 
-		this.handleTableFieldsDropdown(htmlTableInputSelector, htmlPkInputSelector);
+		if(!this.isOldUI) this.handleTableFieldsDropdown(htmlTableInputSelector, htmlPkInputSelector);
 
 	}
 
@@ -194,8 +196,8 @@ export class SqlDBComponent extends ViewComponent {
 		this.newTableField(tableId);
 	}
 
-	newTableField = (tableId, value = '', disabled = false) =>
-		addSQLComponentTableField(this, tableId, value, disabled);
+	newTableField = (tableId, value = '', disabled = false) => 
+		addSQLComponentTableField(this, tableId, value, disabled, this.isOldUI);
 
 	async getTables(){
 		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 

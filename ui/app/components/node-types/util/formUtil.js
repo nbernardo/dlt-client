@@ -4,8 +4,8 @@ import { SqlDBComponent } from "../SqlDBComponent.js";
 /**
  * @param { SqlDBComponent } self 
  */
-export function addSQLComponentTableField(self, tableId, value = '', disabled = false){
-
+export function addSQLComponentTableField(self, tableId, value = '', disabled = false, isOld = false){
+    
     let tblFieldName = `tableName` + tableId, placeholder = 'Enter table ' + tableId + ' name', pkFieldName;
     const table = FormHelper
         .newField(self, self.formRef, tblFieldName, value)
@@ -20,21 +20,24 @@ export function addSQLComponentTableField(self, tableId, value = '', disabled = 
         .input({ required: true, placeholder, validator: 'text', value, disabled, className: `dynamic-db-table-field ${pkFieldName}` })
         .element;
 
-    const div = document.createElement('div');
-    const delBtn = document.createElement('div');
-
-    delBtn.className = 'remove-dyn-field';
-    delBtn.innerHTML = 'x';
-    delBtn.onclick = function () {
-        FormHelper.delField(self, self.formRef, pkFieldName);
-        FormHelper.delField(self, self.formRef, tblFieldName);
-        div.remove();
+    let div = document.createElement('div'), delBtn;
+    
+    if(!isOld){
+        delBtn = document.createElement('div');
+        delBtn.className = 'remove-dyn-field';
+        delBtn.innerHTML = 'x';
+        delBtn.onclick = function () {
+            FormHelper.delField(self, self.formRef, pkFieldName);
+            FormHelper.delField(self, self.formRef, tblFieldName);
+            div.remove();
+        }
     }
 
     div.style.marginTop = '3px';
     div.className = 'table-detailes';
     div.innerHTML = `${table}${pkField}`;
-    div.insertAdjacentElement('beforeend', delBtn);
+
+    if(!isOld) div.insertAdjacentElement('beforeend', delBtn);
 
     document.querySelector(`.${self.formWrapClass} form`).appendChild(div);
 

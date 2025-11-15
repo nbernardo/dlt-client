@@ -20,6 +20,8 @@ export class ObjectType extends ViewComponent {
 
 	/** @Prop */ disable = 'no';
 
+	/** @Prop */ tmplt;
+
 	template = `
 		<div 
 			class="drag-drawflow" 
@@ -31,6 +33,7 @@ export class ObjectType extends ViewComponent {
 			data-img="@imgIcon"
 			data-src=@source
 			data-dst=@dest
+			data-template="@tmplt"
 			>
 			<i (renderIf)="self.icon" class="@icon"></i>
 			<span>

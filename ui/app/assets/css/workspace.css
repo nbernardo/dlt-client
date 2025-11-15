@@ -197,6 +197,17 @@
 	    background: #0056b3;
 	}
 
+	.add-btn-primary{
+		padding: 7px;
+		background: #008000b8;
+		border: none;
+		color: white;
+		border-radius: 4px;
+		cursor: pointer;
+	}
+
+	.add-btn-primary:hover{ background: green; }
+
 	/** End Dialog styling */
 
 
