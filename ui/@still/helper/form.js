@@ -28,7 +28,7 @@ export const FormHelper = {
 
         return {
             /** @param { InParams } params  */
-            input(params = inParams){
+            input(params){
                 if(formRef === undefined) return;
                 const {className, id, datasets = {}, type, placeholder, min, max, required, validator, warn, value, disabled} = params;
                 const datafields = Object.entries(datasets).map(([f,v]) => (`data-${f}="${v}"`)).join(' ');
@@ -44,8 +44,9 @@ export const FormHelper = {
                 const validateEvt = `${evt}="$still.c.ref('${cmp.cmpInternalId}').onValueInput(event,'${fName}',this, '${formRef.name}')"`;
                 const vlidtor = `${validator ? `(validator)=${validator}`: ''}`;
                 const cmpId = cmp.cmpInternalId?.replace('/','').replace('@','');
+
                 const input = `
-                    <input ${datafields} ${disabled ? 'disabled="true"' : ''}
+                    <input ${datafields} ${disabled ? 'disabled="true"' : ''} data-st-field-name="${fName}"
                         class="${genInputsClasses(validatorClass, cmpId, fName, val, isOptList)} ${cmp.cmpInternalId}-${fName} ${className || ''}"
                         ${ftype} ${val} ${_id} ${req.trim()} ${wrn} ${hint} ${mn} ${mx} ${validateEvt} ${vlidtor} ${checked}>
                 `;

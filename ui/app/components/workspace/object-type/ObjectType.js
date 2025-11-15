@@ -16,7 +16,11 @@ export class ObjectType extends ViewComponent {
 
 	/** @Prop */ dest = true;
 
+	/** @Prop */ name = '';
+
 	/** @Prop */ disable = 'no';
+
+	/** @Prop */ tmplt;
 
 	template = `
 		<div 
@@ -29,11 +33,12 @@ export class ObjectType extends ViewComponent {
 			data-img="@imgIcon"
 			data-src=@source
 			data-dst=@dest
+			data-template="@tmplt"
 			>
 			<i (renderIf)="self.icon" class="@icon"></i>
 			<span>
 				<span (renderIf)="self.imgIcon">
-					<img src="@imgIcon" style="width: 20px;" />
+					<img src="@imgIcon" style="width: 20px;" class="@name"/>
 				</span> @label
 			</span>
 		</div>

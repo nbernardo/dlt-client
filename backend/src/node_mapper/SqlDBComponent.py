@@ -12,12 +12,23 @@ class SqlDBComponent(TemplateNodeType):
         """
         Initialize the instance
         """
-        self.template = DltPipeline.get_sql_db_template()
+
+        if data['dbengine'] == 'mssql':
+            self.template = DltPipeline.get_mssql_db_template()
+        else:
+            if 'old_template' in data:
+                if data['old_template']:
+                    self.template = DltPipeline.get_sql_db_template('sql_db_old.txt')
+            else:
+                self.template = DltPipeline.get_sql_db_template()
 
         # When instance is created only to get the template 
         # Nothing more takes place except for the template itself
-        if data is None: return None
+        if data: 
+            if 'componentId' not in data:
+                return None
 
+        self.schema = False
         self.context = context
         self.component_id = data['componentId']
         self.context.emit_start(self, '')
@@ -34,6 +45,15 @@ class SqlDBComponent(TemplateNodeType):
         # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
         self.source_dbengine = data['dbengine']
 
+        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
+        self.namespace = data['namespace']
+
+        # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
+        self.connection_name = data['connectionName']
+
+        if data['dbengine'] == 'postgresql':
+            self.parse_tables_and_schema()
+
 
     def run(self) -> None:
         """
@@ -46,10 +66,29 @@ class SqlDBComponent(TemplateNodeType):
         self.check_db_and_tables(self.source_tables)
 
 
+    def parse_tables_and_schema(self):
+        
+        if len(self.source_tables) > 0:
+            if(self.source_tables[0].__contains__('.')):
+                self.schema = True
+
+                # When the UI sends the tables that is under a schema (e.g. Postgres, SQLServer)
+                # the tables names will be prefixed with the schema name, bellow logic is to clean it up
+                # self.source_tables = [table.replace(f'{schema}.','') for table in self.source_tables]
+
+
+
+
     def check_db_and_tables(self, tables: list[str]) -> None:
         """
-        Check if the table already exists
+        Check if the table exists
+        TODO: Implemente validation to check table existance if needed otherwise
+              this should be deprecated since the connection not comes from secrets 
+              connection which provides auto-complete for the existing table thereby
+              preventing non-existing tables to be send from the UI
         """
+        
+        """        
         query_template = 'SELECT 1 FROM @tblName'
         final_query = query_template.replace('@tblName', tables[0])
         try:
@@ -70,5 +109,6 @@ class SqlDBComponent(TemplateNodeType):
 
         except Exception as err:
             self.notify_failure_to_ui('SqlDBComponent', err)    
+        """
 
 

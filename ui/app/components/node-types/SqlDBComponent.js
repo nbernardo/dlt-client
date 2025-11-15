@@ -1,8 +1,12 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
-import { FormHelper } from "../../../@still/helper/form.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { UserService } from "../../services/UserService.js";
+import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { InputDropdown } from "../../util/InputDropdownUtil.js";
+import { addSQLComponentTableField } from "./util/formUtil.js";
+
 
 export class SqlDBComponent extends ViewComponent {
 
@@ -11,7 +15,7 @@ export class SqlDBComponent extends ViewComponent {
 	label = 'SQL DB Source';
 	databaseEngines = [
 		{ name: 'MySQL', dialect: 'mysql' },
-		{ name: 'Postgress', dialect: 'postgres' },
+		{ name: 'Postgress', dialect: 'postgresql' },
 		{ name: 'Oracle', dialect: 'oracle' },
 		{ name: 'SQL Server', dialect: 'mssql' }
 	]
@@ -26,23 +30,34 @@ export class SqlDBComponent extends ViewComponent {
 	dbInputCounter = 1;
 	/** @Prop @type { STForm } */	
 	formRef;
+	/** @Prop */	
+	isOldUI;
+	/** @Prop @type { TableAndPKType } */	
+	dynamicFields;
+
+	selectedSecretTableList = [];
+	selectedTableList = [];
 	database;
 	tableName;
 	selectedDbEngine;
+	selectedSecret;
 	primaryKey;
+	secretList = [];
+	hostName = 'None';
 
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
 
-	/** @Prop @type { STForm } */
-	anotherForm;
-	databaseC;
-	tableNameC;
+	/** @Prop @type { STForm } */ anotherForm;
+	/** @Prop */ showLoading = false;
+	
+
 
 	// tables and primaryKeys hold all tables name when importing/reading
 	// An existing pipeline by calling the API
 	/** @Prop @type { Map } */ tables;
 	/** @Prop @type { Map } */ primaryKeys;
+	/** @Prop */ importFields;
 
 	/**
 	 * @Inject @Path services/
@@ -54,21 +69,24 @@ export class SqlDBComponent extends ViewComponent {
 	 * through the Component.new(type, param) where for para nodeId 
 	 * will be passed
 	 * */
-	stOnRender({ nodeId, isImport, tables, primaryKeys }){
+	stOnRender(data){		
+		const { nodeId, isImport, tables, primaryKeys, database, dbengine } = data;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.tables = tables;
-		this.primaryKeys = primaryKeys;		
+		this.primaryKeys = primaryKeys;	
+		this.importFields = { database, dbengine };
+		if(data?.host) this.importFields.host = data.host;
 	}
 
-	stAfterInit(){
-
+	async stAfterInit(){
+		this.isOldUI = this.templateUrl?.includes('SqlDBComponent_old.html');
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
 		//if(this.isImport !== false){
 		//	this.setupOnChangeListen();
 		//}
-
+		this.dynamicFields = new TableAndPKType();
 		if(this.isImport === true){	
 			// At this point the WorkSpaceController was loaded by WorkSpace component
 			// hance no this.wSpaceController.on('load') subscrtiption is needed
@@ -84,14 +102,50 @@ export class SqlDBComponent extends ViewComponent {
 			// Assign remaining tables if more than one in the pipeline
 			allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
 			this.dbInputCounter = allTables.length;
+			this.selectedDbEngine = this.importFields.dbengine;
+			this.selectedSecret = this.importFields.database;
+			this.hostName = this.importFields.host || 'None';
+			document.querySelector('.add-table-buttons').disabled = true;
 		}
 
 		this.setupOnChangeListen();
+		await this.getDBSecrets();
+
+		const htmlTableInputSelector = 'input[data-id="firstTable"]', 
+			  htmlPkInputSelector = 'input[data-id="firstPK"]';
+
+		if(!this.isOldUI) this.handleTableFieldsDropdown(htmlTableInputSelector, htmlPkInputSelector);
+
+	}
+
+	handleTableFieldsDropdown(tableSelecter, pkSelecter, tableFieldName, pkFieldName){
+
+		const pkField = InputDropdown.new({ 
+			inputSelector: pkSelecter, dataSource: this.selectedTableList.value,
+			boundComponent: this, componentFieldName: pkFieldName
+		});
+
+		const tableField = InputDropdown.new({
+			inputSelector: tableSelecter, 
+			dataSource: this.selectedSecretTableList.value,
+			boundComponent: this,
+			componentFieldName: tableFieldName,
+			onSelect: async (table, self) => {
+				const data = await WorkspaceService.getDBTableDetails(this.selectedDbEngine.value, this.selectedSecret.value ,table);
+								
+				const pkRelatedField = self.relatedFields[0];
+				pkRelatedField.setDataSource(data.fields);
+			}
+		});
+
+		tableField.relatedFields.push(pkField);
+
+		this.dynamicFields.tables.push(tableField);
+		this.dynamicFields.fields.push(pkField);
 
 	}
 
 	setupOnChangeListen(){
-
 		this.database.onChange(newValue => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['database'] = newValue;
@@ -102,6 +156,38 @@ export class SqlDBComponent extends ViewComponent {
 			data['dbengine'] = value;
 		});
 
+		this.selectedSecret.onChange(async secretName => {
+			this.clearSelectedTablesAndPk();
+			this.showLoading = true;
+			let database = '', dbengine = '', host = '';
+			if(secretName != ''){
+				const data = await WorkspaceService.getConnectionDetails(secretName);
+
+				const detail = data['secret_details'];
+				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
+				this.selectedSecretTableList = data.tables;
+				WorkSpaceController.getNode(this.nodeId).data['host'] = host;
+				this.dynamicFields.tables.forEach(tbl => {
+					tbl.setDataSource(data.tables);
+				});
+
+			}
+			this.database = database;
+			this.selectedDbEngine = dbengine;
+			this.hostName = host;
+			this.showLoading = false;
+		})
+	}
+
+	clearSelectedTablesAndPk(){
+		this.getDynamicFieldNames().forEach(field => this[field] = '');
+		this.tableName = '', this.primaryKey = '';
+	}
+
+	/** Brings the existing Databases secret */
+	async getDBSecrets(){
+		const dbSecretType = 1;		
+		this.secretList = (await WorkspaceService.listSecrets(dbSecretType)).filter(itm => itm.host != 'None');
 	}
 
 	addField(){
@@ -110,30 +196,10 @@ export class SqlDBComponent extends ViewComponent {
 		this.newTableField(tableId);
 	}
 
-	newTableField(tableId, value = '', disabled = false){
-		let fieldName = 'tableName' + tableId, placeholder = 'Enter table '+tableId+' name';
-		const table = FormHelper
-			.newField(this, this.formRef, fieldName, value)
-			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled })
-			//Add will add in the form which reference was specified (2nd param of newField)
-			//.add((inpt) => `<div style="padding-top:5px;">${inpt}</div>`);
-			.element;
-		
-		fieldName = 'primaryKey' + tableId, placeholder = 'PK Field';
-		const pkField = FormHelper
-			.newField(this, this.formRef, fieldName, value)
-			.input({ required: true, placeholder, validator: 'alphanumeric', value, disabled })
-			.element;
+	newTableField = (tableId, value = '', disabled = false) => 
+		addSQLComponentTableField(this, tableId, value, disabled, this.isOldUI);
 
-		const div = document.createElement('div');
-		div.style.marginTop = '3px';
-		div.className = 'table-detailes';
-		div.innerHTML = `${table}${pkField}`;		
-		document.querySelector(`.${this.formWrapClass} form`).appendChild(div);
-
-	}
-
-	getTables(){
+	async getTables(){
 		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		const /** @type Array<String> */ dynFields = this.getDynamicFields();
@@ -147,12 +213,23 @@ export class SqlDBComponent extends ViewComponent {
 			else
 				pkFields[field.trim()] = val;
 		}
-		
+
 		data['tables'] = tables;
 		data['primaryKeys'] = pkFields;
+		data['namespace'] = await UserService.getNamespace();
+		data['connectionName'] = this.selectedSecret.value;
 	}
 
-	showTable(){
-		console.log(this.getDynamicFields());
+	async showTable(){
+		await this.formRef.validate();
+		console.log(this.formRef.errorCount);
 	}
+}
+
+
+class TableAndPKType {
+
+	/** @type { Array<InputDropdown> } */ tables = [];
+	/** @type { Array<InputDropdown> } */ fields = [];
+
 }

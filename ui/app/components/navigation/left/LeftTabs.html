@@ -136,8 +136,8 @@
                     <ul class="database-catalog-list" (forEach)="dbSecretsList">
                         <li each="item">
                             <div class="database-name">
-                                <span>{item.dbname}</span>
-                                <span class="edit-datasource" onclick="component.openSecretForm('{item.dbname}', 'db')">
+                                <span>{item.name}</span>
+                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'db')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
                                         <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
                                     </svg>
@@ -306,11 +306,16 @@
 
 
 <style>
+
+    img[src="app/assets/imgs/sql-server-v2.png"]{ width: 22px !important; }
+
     .fetching-db-loader{ text-align: center; flex-direction: column; }
     .db-secrets-loader {
         display: flex; width: 100%; padding-bottom: 15px; margin-top: 45px;
         .mini-loader-dot { background-color: #2c3e50; width: 16px; height: 16px; }
     }
+
+    .DLT-class { width: 22px !important; }
 
     .catalog-db-addnew{
         padding: 10px 0px;
@@ -358,7 +363,7 @@
     }
 
     .data-panel {
-        width: 100%; overflow-y: scroll; height: 100vh;
+        width: 100%; overflow-y: scroll; height: 90vh;;
     }
 
     #nav-toggle,

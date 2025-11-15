@@ -32,15 +32,14 @@ export class SqlEditor extends ViewComponent {
 	/** @type { ListState<Array> } */ tablesList = [];
 
 	/** @Prop */ selectedTable;
-
-	stBeforeInit = async () =>
-		await this.$parent.controller.loadMonacoEditorDependencies();
 	
 	/** 
 	 * @param {Object} param0 
 	 * @param {String} param0.database  */
 	async stOnRender({ query, database, databaseParam, queryTable }){
 
+		await this.$parent.controller.loadMonacoEditorDependencies();
+		
 		let dbPath = null, databasename = '';
 		if(database){
 			dbPath = database.split('/')
@@ -49,8 +48,8 @@ export class SqlEditor extends ViewComponent {
 			databasename = databaseParam;
 		
 		this.query = query;
-		const user = this.$parent.userEmail, socketId = this.$parent.socketData.sid;
-		this.tablesList = await this.$parent.service.getParsedTables(user, socketId);
+
+		this.tablesList = await this.$parent.service.getParsedTables(this.$parent.socketData.sid);
 		this.dbpath = this.$parent.service.dbPath.slice(0,-1);
 		
 		if(this.$parent.service.fieldsByTableMap[databasename.trim()])

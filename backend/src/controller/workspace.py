@@ -14,6 +14,7 @@ import traceback
 from flask import abort, send_file
 from utils.cache_util import DuckDBCache
 from datetime import datetime
+from utils.SQLDatabase import SQLDatabase
 
 
 workspace = Blueprint('workspace', __name__)
@@ -440,3 +441,25 @@ def fetch_secret(namespace, type, secretname):
         print(err)
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while fetching secret: {str(err)}' }
+    
+
+@workspace.route('/<namespace>/db/connection/<connection_name>/tables', methods=['GET'])
+def get_db_connection_detailes(namespace, connection_name):
+
+    result = SQLDatabase.get_tables_list(namespace, connection_name)
+
+    if 'error' not in result:
+        return { 'error': False, 'result': { 'tables': result['tables'], 'secret_details': result['details'] } }
+    else:
+        return { 'error': True, 'result': 'No secrete found for current namespace' }
+        
+
+@workspace.route('/<namespace>/db/<dbengine>/<connection_name>/<table_name>', methods=['GET'])
+def get_fields_from_db(namespace, dbengine, connection_name, table_name):
+
+    result = SQLDatabase.get_fields_from_table(namespace, dbengine, connection_name, table_name)
+    if 'error' not in result:
+        return { 'error': False, 'result': { 'fields': result['fields'] } }
+    else:
+        return { 'error': True, 'result': 'No secrete found for current namespace' }
+    

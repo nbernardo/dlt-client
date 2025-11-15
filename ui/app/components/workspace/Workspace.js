@@ -256,14 +256,21 @@ export class Workspace extends ViewComponent {
 
 	async preparePipelineContent(update = false) {
 
+		let sqlPipelineDbEngine = null, isOldSQLNode = false;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		let validationResults = formReferences.map(async (r) => {
 			const component = Components.ref(r);
 
-			if (component.getName() === SqlDBComponent.name) component.getTables();
+			if (component.getName() === SqlDBComponent.name) {
+				const /** @type { SqlDBComponent } */ castedCmp = component;
+				sqlPipelineDbEngine = castedCmp.selectedDbEngine.value;
+				isOldSQLNode = castedCmp.isOldUI;
+				await castedCmp.getTables();
+			}
 			if (component.getName() === Transformation.name) {
-				component.parseTransformationCode();
+				const /** @type { Transformation } */ castedCmp = component;
+				castedCmp.parseTransformationCode();
 				return true;
 			}
 
@@ -280,7 +287,10 @@ export class Workspace extends ViewComponent {
 		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
-		data = { ...data, user: this.userEmail, startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid }
+		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid };
+		
+		if(sqlPipelineDbEngine) data.initDbengine = sqlPipelineDbEngine;
+		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);
 
 		if (update === true) data.update = true;
@@ -452,7 +462,7 @@ export class Workspace extends ViewComponent {
 
 		async function openDiagram(reset = null){
 			if(reset) self.resetWorkspace();
-			const response = await self.service.readDiagramFile(self.userEmail, pplineName);
+			const response = await self.service.readDiagramFile(await UserService.getNamespace(), pplineName);
 			const result = JSON.parse(response);
 			self.activeGrid = result.pipeline_lbl;
 			document.querySelector('.clear-workspace-btn').style.right = '110px';

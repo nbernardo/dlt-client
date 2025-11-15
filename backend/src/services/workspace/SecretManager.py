@@ -25,6 +25,23 @@ class SecretManager(SecretManagerType):
         pass
 
     
+    def ppline_connect_to_vault():
+
+        vault_url = env('HASHICORP_HOST')
+        vault_token = env('HASHICORP_TOKEN')
+        vault_crt_path = False \
+            if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
+            else env('HASHICORP_CERTIF_PATH')
+
+        params = { 
+            'vault_url': vault_url, 
+            'vault_token': vault_token,
+            'vault_crt_path': vault_crt_path
+        }
+
+        SecretManager.connect_to_vault(params)
+
+
     def connect_to_vault(params = {}):
 
         if('vault_url' in params):
@@ -101,7 +118,7 @@ class SecretManager(SecretManagerType):
         SecretManager.save_secrets_metadata(namespace, { config['connectionName'] : config['host'] })
 
 
-    def get_secret(namespace, key, path = 'main/api/'):
+    def get_secret(namespace, key=None, path = 'main/api/'):
         secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
             path=path,
             mount_point=namespace,
@@ -158,6 +175,11 @@ class SecretManager(SecretManagerType):
             SecretManager.create_secret(namespace, metadata, path='metadata')
         except InvalidPath:
             SecretManager.create_secret(namespace, { **new_data, 'dbConfig': {} }, path='metadata')
+
+
+    def get_db_secret(namespace, connection_name):
+        path = f'main/db/{connection_name}'
+        return SecretManager.get_secret(namespace,key=None,path=path)
             
 
 

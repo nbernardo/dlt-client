@@ -246,12 +246,27 @@ class DltPipeline:
     
     
     @staticmethod
-    def get_sql_db_template():
+    def get_sql_db_template(tamplate_name = None):
         """
         This is template handling method
         """
         tplt = ''
-        file_name = f'{template_dir}/sql_db.txt'
+        tplt_file = tamplate_name if tamplate_name != None else 'sql_db.txt'
+        file_name = f'{template_dir}/{tplt_file}'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
+        return tplt    
+    
+
+    @staticmethod
+    def get_mssql_db_template():
+        """
+        This is template handling method
+        """
+        tplt = ''
+        file_name = f'{template_dir}/sql_server.txt'
 
         with open(f'{file_name}', 'r', encoding='utf-8') as file:
             tplt = file.read()
@@ -401,6 +416,7 @@ class DltPipeline:
 
     @staticmethod
     def get_pipline_runtime(namespace, ppline):
+        time = datetime.now()
         cnx = DuckdbUtil.get_workspace_db_instance()
         query = f"UPDATE ppline_schedule\
                     SET last_run='{time}'\

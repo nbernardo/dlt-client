@@ -152,6 +152,7 @@ export class WorkSpaceController extends BaseController {
             ev.dataTransfer.setData("label", ev.target.getAttribute('data-lbl'));
             ev.dataTransfer.setData("source", ev.target.getAttribute('data-src'));
             ev.dataTransfer.setData("dest", ev.target.getAttribute('data-dst'));
+            ev.dataTransfer.setData("template", ev.target.getAttribute('data-template'));
             ev.dataTransfer.setData("icon", isIconValid ? icon : null);
             ev.dataTransfer.setData("img", isIconValid ? null : img);
         }
@@ -172,14 +173,16 @@ export class WorkSpaceController extends BaseController {
             const img = ev.dataTransfer.getData('img');
             const source = ev.dataTransfer.getData("source");
             const dest = ev.dataTransfer.getData("dest");
+            const template = ev.dataTransfer.getData("template");
+            
             const [pos_x, pos_y] = [ev.clientX, ev.clientY];
-            const data = { name, label, icon, img, pos_x, pos_y, source, dest };
+            const data = { name, label, icon, img, pos_x, pos_y, source, dest, template };
 
             await this.addNodeToDrawFlow(data);
         }
     }
 
-    async addNodeToDrawFlow({ name, label, icon, img, pos_x, pos_y, source, dest }) {
+    async addNodeToDrawFlow({ name, label, icon, img, pos_x, pos_y, source, dest, template }) {
         const inType = name;
         if (this.editor.editor_mode === 'fixed') return false;
         if (['bucket', 'slack', 'log'].includes(name)) name = 'generic';
@@ -193,7 +196,7 @@ export class WorkSpaceController extends BaseController {
         const nodeId = this.getNodeId();
         this.isImportProgress = false;
         const parentId = this.wSpaceComponent.cmpInternalId;
-        const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false }, parentId);
+        const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false, template }, parentId);
         this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
 
     }

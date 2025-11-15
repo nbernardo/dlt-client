@@ -40,8 +40,15 @@ export class WorkspaceService extends BaseService {
         { icon: 'far fa-circle', label: 'Start', typeName: 'Start', source: 0, dest: 1 },
         { icon: 'fas fa-circle', label: 'End', typeName: 'End', source: 1, dest: 0 },
         { icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
-        { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name },
-        { imgIcon: 'app/assets/imgs/language-python-text-svgrepo-com.svg', label: 'Code Transformation', typeName: 'none', disable: 'yes' },
+        { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
+        { imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
+        { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: null, disable: 'yes', name: 'DLT-class' },
+        { 
+            imgIcon: 'app/assets/imgs/language-python-text-svgrepo-com.svg', 
+            label: 'Code Transformation', 
+            typeName: 'none', 
+            disable: 'yes' 
+        },
         { icon: 'fas fa-cogs', label: 'Transformation', typeName: Transformation.name },
         {
             imgIcon: 'app/assets/imgs/duckdb-icon.svg',
@@ -55,11 +62,11 @@ export class WorkspaceService extends BaseService {
             ? UserUtil.email : await UserService.getNamespace();
     }
 
-    async getParsedTables(namespace, socketId) {
+    async getParsedTables(socketId) {
 
         if(this.parsedTableListStore.value.length == 0){
 
-            const result = await this.getDuckDbs(namespace, socketId);
+            const result = await this.getDuckDbs(socketId);
             const data = Object.entries(result);
             const tables = [];
     
@@ -92,8 +99,8 @@ export class WorkspaceService extends BaseService {
 
     }
 
-    async getDuckDbs(user, socketId) {
-
+    async getDuckDbs(socketId) {
+        const user = await UserService.getNamespace();
         //if (this.tableListStore.value == null) {
             const url = '/workcpace/duckdb/list/' + user + '/' + socketId;
             const response = await $still.HTTPClient.post(url, null, {
@@ -304,28 +311,42 @@ export class WorkspaceService extends BaseService {
         
         const result = await response.json();
         
-        if (response.ok && !result.error)
-            return AppTemplate.toast.success('Secrete created successfully');
+        if (response.ok && !result.error){
+            AppTemplate.toast.success('Secrete created successfully');
+            return true;
+        }
         else
             AppTemplate.toast.error(result.result);
     }
 
+
     /** @returns { Array<string> } */
-    static async listSecrets() {
+    static async listSecrets(type) {
 
         const namespace = await UserService.getNamespace();
         const url = '/secret/' + namespace;
         const response = await $still.HTTPClient.get(url);
-        if (response.ok && !response.error)
-            return (await response.json()).result;
-        else{
+        if (response.ok && !response.error){
+
+            const secretList = (await response.json()).result;
+            let secretAndServerList;
+            
+            if(type == 2 && Array.isArray(secretList?.api_secrets))
+				secretAndServerList = secretList.api_secrets.map(secret => ({ name: secret, host: 'None' }))
+            
+            if(type == 1 && Array.isArray(secretList?.db_secrets))
+				secretAndServerList = secretList.db_secrets.map(secret => ({ name: secret, host: secretList.metadata[secret] || 'None' }));
+			
+            return secretAndServerList.length > 0 ? secretAndServerList : [];
+
+        } else {
             const result = await response.json();
             AppTemplate.toast.error(result.result);
         }
 
     }
 
-    /** @returns { Array<string> } */
+    /** @returns { Object } */
     static async fetchSecret(secretName, type) {
 
         const namespace = await UserService.getNamespace();
@@ -338,6 +359,47 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
         }
 
+    }
+
+    /** @returns { {tables, secret_details} } */
+    static async getConnectionDetails(connectionName) {
+
+        const namespace = await UserService.getNamespace();
+        const url = `/${namespace}/db/connection/${connectionName}/tables`;
+
+        const response = await $still.HTTPClient.get(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            if(result.result.tables?.schema_based){
+                delete result.result.tables?.schema_based;
+                const allTables = [], schemas = Object.entries(result.result.tables);
+                for(const [schema, tables] of schemas){
+                    for(const table of tables){
+                        allTables.push(`${schema}.${table}`);
+                    }
+                }
+                result.result['tables'] = allTables;
+            }
+            return result.result;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    /** @returns { { fields } | undefined } */
+    static async getDBTableDetails(dbEngine, connectionName, tableName) {
+
+        const namespace = await UserService.getNamespace();
+        const url = `/${namespace}/db/${dbEngine}/${connectionName}/${tableName}`;
+
+        const response = await $still.HTTPClient.get(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error)
+            return result.result;
+        else
+            AppTemplate.toast.error(result.result);
     }
 
 }

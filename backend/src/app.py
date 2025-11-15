@@ -16,6 +16,7 @@ from services.workspace.SecretManager import SecretManager
 from controller.file_upload import upload, BaseUpload
 from utils.duckdb_util import DuckdbUtil
 from utils import database_secret
+from utils.SQLDatabase import SQLDatabase
 from os import getenv as env
 from utils.cache_util import DuckDBCache
 
@@ -46,6 +47,7 @@ call_scheduled_job()
 DuckDBCache.connect()
 SecretManager.connect_to_vault()
 SecretManager.db_secrete_obj = database_secret
+SQLDatabase.secret_manager = SecretManager
 
 port=env('APP_SRV_ADDR').split(':')[-1]
 socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)

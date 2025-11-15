@@ -1,17 +1,18 @@
 import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
-from dlt.sources.sql_database import sql_database, sql_table
-from os import getenv as env
 from pathlib import Path
 import sys
 
+
 #Adding root folder to allow import  from src
-src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline/facebook_25690644623870471','')
 sys.path.insert(0, src_path)
 sys.path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
+from src.utils.SQLDatabase import SQLConnection
+from src.utils import SQLServerUtil
 
 # Bellow mapping: namespace = SqlDBComponent.namespace
 namespace = %namespace%
@@ -25,7 +26,7 @@ SecretManager.ppline_connect_to_vault()
 print(f'fetching "{connection_name}" secrets for DB connection')
 secret = SecretManager.get_db_secret(namespace, connection_name)
 
-connection_string = secret['connection_url']
+connection_string = secret['connection_url']+f'{SQLConnection.get_mssql_driver()}'
 
 # Bellow mapping: source_database = SqlDBComponent.source_database
 database_to_connect = %source_database%
@@ -33,14 +34,14 @@ database_to_connect = %source_database%
 credentials = ConnectionStringCredentials(connection_string)
 
 def load_select_tables_from_db():
+
     dest_folder = Workspace.get_duckdb_path_on_ppline()
     ppline_name = %pipeline_name%
-    dest_db = dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')
+    dest_db = dlt.destinations.duckdb(f'{dest_folder}/facebook_25690644623870471/{ppline_name}.duckdb')
     pipeline = dlt.pipeline(
         pipeline_name=ppline_name,
         destination=dest_db,
-        # Bellow mapping: duckdb_dest = DuckDBOutput.duckdb_dest
-        dataset_name=%duckdb_dest%
+        dataset_name="destsqlserver"
     )
 
     # Bellow mapping: source_tables = SqlDBComponent.source_tables
@@ -49,27 +50,7 @@ def load_select_tables_from_db():
     # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
 
-    # Bellow mapping: schema = SqlDBComponent.schema
-    schema = %schema%
-
-    if schema:
-        source = []
-        for idx in range(len(tables)):
-            schema_name, table_name = tables[idx].split('.')
-
-            db_table = sql_table(
-                table=table_name,  credentials=credentials, schema=schema_name
-            ).apply_hints(
-                primary_key=tables_pk[idx]
-            )
-            
-            source.append(db_table)
-
-    else:
-        source = sql_database(table_names=tables, credentials=credentials)
-        for idx in range(len(tables)):
-            getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
-
+    source = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, connection_string)
     info = pipeline.run(source, write_disposition='merge')
     print(info)
 
