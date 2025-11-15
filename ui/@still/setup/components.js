@@ -163,9 +163,10 @@ export class Components {
             if (!newInstance.template) {
 
                 let tmplFileUrl = cmpPath + '.html';
-                if(params.templateFile) tmplFileUrl = `${folderPah}/`+params.templateFile;
-                
-                if(!params.templateFile){
+                if(params.templateFile && params.templateFile != 'undefined'){
+                    newInstance.templateUrl = `${folderPah}/`+params.templateFile;
+                    tmplFileUrl = newInstance.templateUrl;
+                }else {
                     const { templateUrl } = newInstance;
                     if (templateUrl) tmplFileUrl = `${folderPah}/${templateUrl}`;
                 }
