@@ -5,6 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
+import { handleAddEndpointField, markOrUnmarkAPICatalogRequired, onAPIAuthChange, viewSecretValue } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -45,6 +46,8 @@ export class CatalogForm extends ViewComponent {
 	paginationStartField;
 	paginationEndField;
 	paginationBatch;
+	apiBaseUrl;
+	apiEndpoint;
 
 	stOnRender = ({ type }) => {
 		type && (this.secretType = type);
@@ -238,26 +241,7 @@ export class CatalogForm extends ViewComponent {
 		document.querySelector(`.${targetForm} ${subContainer}`).appendChild(div);
 	}
 
-	viewSecretValue(fieldContainer){
-
-		let type = 'catalog-form-secret-api', secretType = '-api';
-		if(this.dataBaseSettingType !== null && this.secretType != 2){
-			type = this.dataBaseSettingType == 1 ? 'catalog-form-db-fields' : 'catalog-form-secret-group';
-			secretType = this.dataBaseSettingType == 1 ? '-db' : '';
-		}
-
-		const clsName = fieldContainer == 'initial' ? `.initial-secret-field${secretType}` : `.${type} .${fieldContainer}`;
-		const currentVal = document.querySelector(`${clsName} input`).type;
-		
-		if(currentVal == 'text') {
-			document.querySelector(`${clsName} input`).type = 'password';
-			document.querySelector(`${clsName} img`).src = 'app/assets/imgs/view-svgrepo-com.svg';
-		}else{
-			document.querySelector(`${clsName} input`).type = 'text';
-			document.querySelector(`${clsName} img`).src = 'app/assets/imgs/view-hide-svgrepo-com.svg';
-		}
-
-	}
+	viewSecretValue = (fieldContainer) => viewSecretValue(fieldContainer, this.dataBaseSettingType, this.secretType);
 
 	removeField = (fieldName) => {
 		FormHelper.delField(this,this.formRef,fieldName);
@@ -307,8 +291,10 @@ export class CatalogForm extends ViewComponent {
 				}
 			}else{
 				apiSettings = {
-					...this.editor.getValue(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, token: this.apiTknValue.value,
-					paginateBatch: this.paginateBatch.value, paginationStartField: this.paginationStartField.value, paginateEndField: this.paginationEndField.value
+					...this.editor.getValue(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
+					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value,
+					paginateBatch: this.paginateBatch.value, paginationStartField: this.paginationStartField.value, 
+					paginateEndField: this.paginationEndField.value
 				};
 			}
 			
@@ -342,49 +328,7 @@ export class CatalogForm extends ViewComponent {
 		this.resetForm();
 	}
 
-	getApiSecretFields(){
-		const apiFormContainer = 'catalog-form-secret-api';
-		let fields = `.${apiFormContainer} .api-tkn-field, .${apiFormContainer} .hidden-tkn-secret-value-api, .api-tkn-lbl`;
-		const bearerTokenFields = document.querySelectorAll(fields);
-
-		fields = `.${apiFormContainer} .api-key-field, .${apiFormContainer} .hidden-secret-value-api, .api-key-lbl`;
-		const apiKeyFields = document.querySelectorAll(fields);
-		return { bearerTokenFields, apiKeyFields };
-	}
-
-	onAPIAuthChange(type = null){
-
-		const { bearerTokenFields, apiKeyFields } = this.getApiSecretFields();
-		if(type == null || type == ""){
-			[...bearerTokenFields, ...apiKeyFields].forEach(field => {
-				field.style.display = 'none';
-				if(field.nodeName === 'INPUT') field.removeAttribute('required');
-			});
-			return;
-		}
-		
-		if(type === 'bearer-token'){
-			bearerTokenFields.forEach(field => {
-				field.style.display = '';
-				if(field.nodeName === 'INPUT') field.setAttribute('required',true);
-			});
-			apiKeyFields.forEach(field => {
-				field.style.display = 'none';
-				if(field.nodeName === 'INPUT') field.removeAttribute('required');
-			});
-		}else{
-			bearerTokenFields.forEach(field => {
-				field.style.display = 'none';
-				if(field.nodeName === 'INPUT') field.removeAttribute('required');
-			});
-			apiKeyFields.forEach(field => {
-				field.style.display = '';
-				if(field.nodeName === 'INPUT') field.setAttribute('required', true);
-			});
-		}
-		this.apiAuthType = type;
-		
-	}
+	onAPIAuthChange = (type = null) => this.apiAuthType = onAPIAuthChange(type);
 
 	/** @Prop */ useAuth = false;
 	setUseAuth = (value) => {
@@ -397,25 +341,18 @@ export class CatalogForm extends ViewComponent {
 		}
 		document.querySelector('.catalog-form-secret-api .use-auth-secret-input').style.display = value ? '' : 'none';
 	}
-	
 
 	/** @Prop */ usePagination = false;
 	setUsePagination = (value) => {
-
 		if(!value){
 			this.paginationStartField = null;
 			this.paginationEndField = null;
 			this.paginationBatch = null;
 		}
-
-		document.querySelectorAll('.catalog-form-secret-api .use-pagination-field')
-			.forEach(field => {				
-				if(value) // Mark fields as required
-					field.querySelector('input')?.setAttribute('required', true);
-				else // Unmark fields as required
-					field.querySelector('input')?.removeAttribute('required');
-				field.style.display = value ? '' : 'none';
-			});
+		markOrUnmarkAPICatalogRequired();
 	}
+
+	/** @Prop */ endpointCounter = 1;
+	addEndpointFields = () => handleAddEndpointField(++this.endpointCounter, this);
 
 }
