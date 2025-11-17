@@ -1,0 +1,100 @@
+import dlt
+from dlt.sources.helpers.rest_client import RESTClient
+import requests
+
+#Adding root folder to allow import  from src
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
+sys.path.insert(0, src_path)
+sys.path.insert(0, src_path+'/src')
+
+from src.services.workspace.Workspace import Workspace
+from src.services.workspace.SecretManager import SecretManager
+from src.utils.APIClientUtil import PaginateParam
+
+# Bellow mapping: connection_name = SqlDBComponent.connection_name
+connection_name = %connection_name%
+
+print('connecting to secrets vault')
+SecretManager.ppline_connect_to_vault()
+
+print(f'fetching "{connection_name}" secrets for DB connection')
+secret = SecretManager.get_db_secret(namespace, connection_name)
+
+api_client = RESTClient(
+    base_url=%base_url%,
+    %auth_config%
+)
+
+resource_names = %resources_names%
+data_selectors = %data_selectors%
+paginate_params = %paginate_params%
+
+@dlt.source
+def get_api_data():
+
+    def generate_source(
+            path: str, 
+            data_selector: str = None, 
+            primary_key: str = None,
+            page_param: PaginateParam = None
+        ):
+
+        resource_name = path.split('/')[1]
+
+        @dlt.resource(name=resource_name, primary_key=primary_key)
+        def fetch_api_data(path, data_selector, page: PaginateParam = None):
+
+            # Stating start and end record fetch is paginated
+            start, end = None, None
+
+            if page != None:
+                start = page.start_record
+                end = page.start_record + page.batch_size
+
+            try:
+                # While true takes place especially because of pagination possibility
+                while True:
+                    data_fetch = False
+                    full_path = path if page == None else f'{path}?{page.start_param}={start}&{page.end_param}={end}'
+                    data = api_client.get(full_path)
+                    data_fetch = True
+                    if data_selector:
+                        result = data.json().get(data_selector,[])
+                    else:
+                        result = data.json()
+                    
+                    if not result: break
+
+                    yield result
+
+                    # In no pagination needs to happe it forces to end the loop
+                    if page == None: break
+                    
+                    start += page.batch_size
+                    end = start + (page.batch_size - 1)
+                    print(f'Fetched data from {full_path} endpoint')
+                
+                print(f'Completed data fetch from {path} endpoint')
+
+            except requests.exceptions.RequestException as err:
+                if data_fetch:
+                    print(f'No result found for {full_path}')
+                else:
+                    print('Error while fetching API data for resource: ', resource_name)
+
+        return fetch_api_data(path, data_selector, page_param)
+    
+    for path, selector, page_params in zip(resource_names, data_selectors, paginate_params):
+        yield generate_source(path, selector, None, page_params)
+
+
+ppline_name, output_name = %pipeline_name%, %output_name%
+dest_folder = Workspace.get_duckdb_path_on_ppline()
+dest_db = dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')
+
+pipeline = dlt.pipeline(
+    pipeline_name=ppline_name, destination=dest_db, dataset_name=output_name,
+)
+
+load_info = pipeline.run(get_api_data())
+print(load_info)
