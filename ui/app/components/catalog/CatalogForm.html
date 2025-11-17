@@ -147,12 +147,79 @@
 
               <div style="padding-top: 15px;">
                 <label>API Settings</label>
-                <div>
+                <div (showIf)="self.hideCodeEditor">
                   <div id="@editorId" style="height: 150px; margin-top: 11px;"></div>
                 </div>
               </div>
 
               <div class="modal-body">
+
+                <div class="form-group">
+                  <div class="use-authentication-check-group">
+                    <label class="bold-lbl">Use Pagination</label>
+                    <input type="checkbox" onclick="component.setUsePagination(this.checked)">
+                  </div>
+                </div>
+                <div><!-- Only to create an empy colum --></div>
+
+                <div class="form-group use-pagination-field" style="display: none;">
+                  <label>Offset field name</label>
+                  <input type="text" (value)="paginationStartField" placeholder="e.g. offset">
+                </div>
+                <div class="form-group use-pagination-field" style="display: none;">
+                  <label>Limit field name</label>
+                  <input type="text" (value)="paginationEndField" placeholder="e.g. limit">
+                </div>
+
+                <div class="form-group use-pagination-field" style="display: none;">
+                  <label>Batch size (records per page)</label>
+                  <input type="text" (value)="paginationBatch" placeholder="e.g. 1000">
+                </div>
+                <div class="use-pagination-field" style="display: none;"><!-- Only to create an empy colum --></div>
+
+                <div class="form-group">
+                  <div class="use-authentication-check-group">
+                    <label class="bold-lbl">Use Authentication</label>
+                    <input type="checkbox" onclick="component.setUseAuth(this.checked)">
+
+                    <select style="width: 100%; display: none; margin-top: 9px;" class="use-auth-secret-input" onchange="component.onAPIAuthChange(this.value)">
+                      <option value="">Select Auth type</option>
+                      <option value="bearer-token">Bearer Token</option>
+                      <option value="api-key">API Key</option>
+                    </select>
+
+                  </div>
+                </div>
+                <div><!-- Only to create an empy colum --></div>
+
+                <!-- API Key fields -->
+                <div class="form-group">
+                  <label class="api-key-lbl">KEY Header name</label>
+                  <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Ket">
+                </div>
+                <div class="form-group">
+                  <label class="api-key-lbl">Key Hader value</label>
+                  <span class="hidden-secret-value initial-secret-field hidden-secret-value-api">
+                    <input type="password" (value)="apiKeyValue" class="api-key-value api-key-field" placeholder="Enter the secret value">
+                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-secret-value-api')">
+                  </span>
+                </div>
+                <!-- END API Key fields -->
+
+                <!-- API Token fields -->
+                <div class="form-group">
+                  <label class="api-tkn-lbl">API token name</label>
+                  <input type="text" value="API_TOKEN" disabled class="api-tkn-name api-tkn-field">
+                </div>
+                <div class="form-group">
+                  <label class="api-tkn-lbl">API token value</label>
+                  <span class="hidden-secret-value initial-secret-field hidden-tkn-secret-value-api">
+                    <input type="password" (value)="apiTknValue" class="api-tkn-value api-tkn-field" placeholder="Enter the secret value">
+                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-tkn-secret-value-api')">
+                  </span>
+                </div>
+                <!-- END API Token fields -->
+
               </div>
             </span>
         </span>
@@ -169,6 +236,8 @@
   </div>
 
   <style>
+  
+  .bold-lbl { font-weight: bold; }
   .unique-api-name{ width: 100%; }
   .api-setting-content{ margin-top: 4px; width: 100%; }
 

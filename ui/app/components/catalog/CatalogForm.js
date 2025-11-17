@@ -23,6 +23,8 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ secretType = 1;
 	/** @Prop */ editorId = '_'+UUIDUtil.newId();
 	/** @Prop */ isNewSecret = false;
+	/** @Prop */ hideCodeEditor = false;
+	/** @Prop */ apiAuthType = false;
 
 	/** @type { Workspace } */ $parent;
 
@@ -36,6 +38,13 @@ export class CatalogForm extends ViewComponent {
 	firstKey;
 	firstValue;
 	connectionName;
+
+	apiKeyName;
+	apiKeyValue;
+	apiTknValue;
+	paginationStartField;
+	paginationEndField;
+	paginationBatch;
 
 	stOnRender = ({ type }) => {
 		type && (this.secretType = type);
@@ -58,9 +67,9 @@ export class CatalogForm extends ViewComponent {
 		this.$parent.controller.leftTab.showLoading = false;
 
 		if(this.secretType == 2) {
-			this.markAPIFieldsAsRequired();
 			this.startCodeEditor();
-			this.addSecreteGroup(true);
+			//this.addSecreteGroup(true, false);
+			this.onAPIAuthChange();
 		}
 
 		this.dbEngine.onChange(dbEngine => {
@@ -114,10 +123,6 @@ export class CatalogForm extends ViewComponent {
 			this.editor.setValue(secretData.apiSettings);
 		}
 		document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.disabled = true);
-	}
-
-	markAPIFieldsAsRequired(){
-		document.querySelectorAll('.catalog-form-secret-api input').forEach(inpt => inpt.setAttribute('required', true));
 	}
 
 	changeType(value){
@@ -185,7 +190,7 @@ export class CatalogForm extends ViewComponent {
 		}
 	}
 
-	addSecreteGroup(initial = false){
+	addSecreteGroup(initial = false, valueRequired = true){
 		
 		let type = 'secret';
 		let targetForm = 'catalog-form-secret-api';
@@ -196,7 +201,7 @@ export class CatalogForm extends ViewComponent {
 		}
 		
 		this.dynamicFieldCount++;
-		const value = targetForm.endsWith('api') ? 'API_KEY' : initial ? 'DB_PASSWORD' : '';
+		const value = targetForm.endsWith('api') ? 'API_TOKEN' : initial ? 'DB_PASSWORD' : '';
 		const disabled = initial ? true : false;
 		
 		let fieldName = `key${this.dynamicFieldCount}-${type}`;
@@ -206,7 +211,7 @@ export class CatalogForm extends ViewComponent {
 
 		fieldName = `val${this.dynamicFieldCount}-${type}`;
 		const secretValField = FormHelper.newField(this, this.formRef, fieldName)
-			.input({ required: true, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-secret-field' : '' })
+			.input({ required: valueRequired, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-secret-field' : '' })
 			.element;
 
 		this.addSecreteField(secretKeyField, targetForm, null, fieldName);
@@ -264,6 +269,7 @@ export class CatalogForm extends ViewComponent {
 	async createSecret(){
 		const validate = await this.formRef.validate(); 
 		let dbConfig = null, apiSettings = null, updatingSecret;
+		//return console.log(`TOTAL ERRORS: `, this.formRef.errorCount);
 		
 		if(this.secretType != 2 && this.dataBaseSettingType == null) 
 			return AppTemplate.toast.error('Please select the secret type');
@@ -299,8 +305,12 @@ export class CatalogForm extends ViewComponent {
 				if(updatingSecret.updatingId && this.isNewSecret){
 					return AppTemplate.toast.error(`Secret with name ${this.connectionName.value} already exists`);
 				}
-			}else
-				apiSettings = this.editor.getValue();
+			}else{
+				apiSettings = {
+					...this.editor.getValue(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, token: this.apiTknValue.value,
+					paginateBatch: this.paginateBatch.value, paginationStartField: this.paginationStartField.value, paginateEndField: this.paginationEndField.value
+				};
+			}
 			
 			const result = await WorkspaceService.createSecret({ 
 				env: this.getDynamicFields(), dbConfig, apiSettings, 'connectionName': this.connectionName.value 
@@ -330,6 +340,82 @@ export class CatalogForm extends ViewComponent {
 		if(updatingId === null) updatedSecrets.push({ name: this.connectionName.value, host });
 		this.$parent.controller.leftTab.dbSecretsList = updatedSecrets;
 		this.resetForm();
+	}
+
+	getApiSecretFields(){
+		const apiFormContainer = 'catalog-form-secret-api';
+		let fields = `.${apiFormContainer} .api-tkn-field, .${apiFormContainer} .hidden-tkn-secret-value-api, .api-tkn-lbl`;
+		const bearerTokenFields = document.querySelectorAll(fields);
+
+		fields = `.${apiFormContainer} .api-key-field, .${apiFormContainer} .hidden-secret-value-api, .api-key-lbl`;
+		const apiKeyFields = document.querySelectorAll(fields);
+		return { bearerTokenFields, apiKeyFields };
+	}
+
+	onAPIAuthChange(type = null){
+
+		const { bearerTokenFields, apiKeyFields } = this.getApiSecretFields();
+		if(type == null || type == ""){
+			[...bearerTokenFields, ...apiKeyFields].forEach(field => {
+				field.style.display = 'none';
+				if(field.nodeName === 'INPUT') field.removeAttribute('required');
+			});
+			return;
+		}
+		
+		if(type === 'bearer-token'){
+			bearerTokenFields.forEach(field => {
+				field.style.display = '';
+				if(field.nodeName === 'INPUT') field.setAttribute('required',true);
+			});
+			apiKeyFields.forEach(field => {
+				field.style.display = 'none';
+				if(field.nodeName === 'INPUT') field.removeAttribute('required');
+			});
+		}else{
+			bearerTokenFields.forEach(field => {
+				field.style.display = 'none';
+				if(field.nodeName === 'INPUT') field.removeAttribute('required');
+			});
+			apiKeyFields.forEach(field => {
+				field.style.display = '';
+				if(field.nodeName === 'INPUT') field.setAttribute('required', true);
+			});
+		}
+		this.apiAuthType = type;
+		
+	}
+
+	/** @Prop */ useAuth = false;
+	setUseAuth = (value) => {
+		if(!value) {
+			this.apiKeyName = null;
+			this.apiKeyValue = null;
+			this.apiTknValue = null;
+			this.onAPIAuthChange(null);
+			document.querySelector('.use-auth-secret-input').value = '';
+		}
+		document.querySelector('.catalog-form-secret-api .use-auth-secret-input').style.display = value ? '' : 'none';
+	}
+	
+
+	/** @Prop */ usePagination = false;
+	setUsePagination = (value) => {
+
+		if(!value){
+			this.paginationStartField = null;
+			this.paginationEndField = null;
+			this.paginationBatch = null;
+		}
+
+		document.querySelectorAll('.catalog-form-secret-api .use-pagination-field')
+			.forEach(field => {				
+				if(value) // Mark fields as required
+					field.querySelector('input')?.setAttribute('required', true);
+				else // Unmark fields as required
+					field.querySelector('input')?.removeAttribute('required');
+				field.style.display = value ? '' : 'none';
+			});
 	}
 
 }
