@@ -47,7 +47,8 @@ export class CatalogForm extends ViewComponent {
 	paginationEndField;
 	paginationBatch;
 	apiBaseUrl;
-	apiEndpoint;
+	apiEndpointPath1;
+	apiEndpointPathPK1;
 
 	stOnRender = ({ type }) => {
 		type && (this.secretType = type);
@@ -253,7 +254,7 @@ export class CatalogForm extends ViewComponent {
 	async createSecret(){
 		const validate = await this.formRef.validate(); 
 		let dbConfig = null, apiSettings = null, updatingSecret;
-		//return console.log(`TOTAL ERRORS: `, this.formRef.errorCount);
+		return console.log(`TOTAL ERRORS: `, this.formRef.errorCount);
 		
 		if(this.secretType != 2 && this.dataBaseSettingType == null) 
 			return AppTemplate.toast.error('Please select the secret type');

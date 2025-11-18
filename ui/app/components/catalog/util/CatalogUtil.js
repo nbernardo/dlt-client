@@ -76,11 +76,13 @@ export function markOrUnmarkAPICatalogRequired() {
         });
 }
 
-/**
- * @param { CatalogForm } self 
- */
-export function handleAddEndpointField(endpointCounter, self) {
 
+/**
+ * @param { CatalogForm } component 
+ */
+export function handleAddEndpointField(endpointCounter, component) {
+
+    const self = { fieldList: [], component };
     const fieldSet = document.createElement('fieldset');
     const legend = document.createElement('legend');
     legend.innerText = 'Endpoint ' + endpointCounter;
@@ -92,16 +94,23 @@ export function handleAddEndpointField(endpointCounter, self) {
     const formGroup1 = document.createElement('div'), formGroup2 = document.createElement('div');
     formGroup1.className = 'form-group use-pagination-field', formGroup2.className = 'form-group use-pagination-field';
 
-    let fieldName = `endpointPath${endpointCounter}`;
-    const endpointField = FormHelper.newField(self, self.formRef, fieldName)
-        .input({ required: true, placeholder: 'e.g. /transaction/paginate', className: 'endpoint-input' })
-        .element;
-    formGroup1.insertAdjacentHTML('afterbegin', `<label>Path</label>${endpointField}`);
+    formGroup1.insertAdjacentHTML('afterbegin', `<label>Path</label>`);
+    
+    const delEntpointBtn = document.createElement('div');
+    delEntpointBtn.className = 'del-endpoint-setting-icon';
+    delEntpointBtn.innerText = 'Remove';
+    fieldSet.appendChild(delEntpointBtn);
 
-    fieldName = `endpointPK${endpointCounter}`;
-    const primaryKeyField = FormHelper.newField(self, self.formRef, fieldName)
-        .input({ required: true, placeholder: 'e.g. transactionId' })
-        .element;
+    // Creates the field for entering the endpoint
+    let fieldName = `apiEndpointPath1${endpointCounter}`;
+    const endpointField = newStilComponentField(self, 
+        { fieldName, required: true, placeholder: 'e.g. /transaction/paginate', className: 'endpoint-input' }
+    );
+    formGroup1.insertAdjacentHTML('beforeend', endpointField);
+
+    // Creates the field for entering the endpoint data primary key
+    fieldName = `apiEndpointPathPK1${endpointCounter}`;
+    const primaryKeyField = newStilComponentField(self, { required: true, placeholder: 'e.g. transactionId', fieldName });
     formGroup2.insertAdjacentHTML('afterbegin', `<label>Primary key</label>${primaryKeyField}`);
 
     const formGroup3 = document.createElement('div'), formGroup4 = document.createElement('div'), formGroup5 = document.createElement('div');
@@ -109,22 +118,19 @@ export function handleAddEndpointField(endpointCounter, self) {
         formGroup4.className = 'form-group use-pagination-field',
         formGroup5.className = 'form-group use-pagination-field';
 
+    // Creates the field for entering the name of the pagination offset filend name
     fieldName = `paginateOffsetName${endpointCounter}`;
-    const offsetFieldName = FormHelper.newField(self, self.formRef, fieldName)
-        .input({ required: true, placeholder: 'e.g. offset' })
-        .element;
+    const offsetFieldName = newStilComponentField(self, { placeholder: 'e.g. offset', fieldName });
     formGroup3.insertAdjacentHTML('afterbegin', `<label>Offset field name</label>${offsetFieldName}`);
 
+    // Creates the field for entering the name of the pagination limit filend name
     fieldName = `paginateLimitName${endpointCounter}`;
-    const limitFieldName = FormHelper.newField(self, self.formRef, fieldName)
-        .input({ required: true, placeholder: 'e.g. limit' })
-        .element;
+    const limitFieldName = newStilComponentField(self, { placeholder: 'e.g. limit', fieldName });
     formGroup4.insertAdjacentHTML('afterbegin', `<label>Limit field name</label>${limitFieldName}`);
 
+    // Creates the field for entering the name of the pagination record per page
     fieldName = `paginateRecPerPage${endpointCounter}`;
-    const recordPerPage = FormHelper.newField(self, self.formRef, fieldName)
-        .input({ required: true, placeholder: 'e.g. 1000' })
-        .element;
+    const recordPerPage = newStilComponentField(self, { placeholder: 'e.g. 1000', fieldName });
     formGroup5.insertAdjacentHTML('afterbegin', `<label>Records per page</label>${recordPerPage}`);
 
     dataSetting.appendChild(formGroup1);
@@ -136,6 +142,28 @@ export function handleAddEndpointField(endpointCounter, self) {
     fieldSet.appendChild(dataSetting);
     fieldSet.appendChild(paginateSetting);
 
+    delEntpointBtn.onclick = function(){
+        for(const fieldName of self.fieldList)
+            FormHelper.delField(component, component.formRef, fieldName);
+        fieldSet.remove();
+    }
     document.querySelector(`.catalog-form-secret-api .endpoint-group-config`).appendChild(fieldSet);
+
+}
+
+
+function newStilComponentField(self, { fieldName, placeholder = '', required, className }){
+
+    const obj = self.component;
+    const settings = { required: false, placeholder };
+    
+    if(className) settings.className = className;
+    if(required) settings.required = required;
+    
+    self.fieldList.push(fieldName);
+
+    return FormHelper.newField(obj, obj.formRef, fieldName)
+        .input(settings)
+        .element;
 
 }

@@ -152,18 +152,18 @@
                 </div>
               </div>
 
-              <div class="endpoint-group-config">
+              <div class="endpoint-group-config" style="max-height: 45vh; overflow-x: scroll;">
                 <fieldset>
                   <legend>Endpoint 1</legend>
                     <div class="endpoint-data-setting">
                       <div class="form-group use-pagination-field">
                         <label>Path</label>
-                        <input type="text" class="endpoint-input" (value)="paginationStartField" placeholder="e.g. /transaction/paginate">
+                        <input type="text" class="endpoint-input" (required)="true" (value)="apiEndpointPath1" placeholder="e.g. /transaction/paginate">
                       </div>
       
                       <div class="form-group use-pagination-field">
                         <label>Primary key</label>
-                        <input type="text" (value)="paginationStartField" placeholder="e.g. transactionId">
+                        <input type="text" (required)="true" (value)="apiEndpointPathPK1" placeholder="e.g. transactionId">
                       </div>
                     </div>
     
@@ -278,7 +278,16 @@
   </div>
 
   <style>
-  
+    
+    .del-endpoint-setting-icon{
+      width: 78px;
+      text-align: center;
+      font-size: 10px;
+      color: red;
+      cursor: pointer;
+      font-weight: bold;
+      float: right;
+    }
     fieldset { margin-top: 15px; border-radius: 3px; padding-bottom: 4px; }
     fieldset input { width: 150px; }
     fieldset legend { margin-left: 8px; font-size: 14px; font-weight: bold; }
