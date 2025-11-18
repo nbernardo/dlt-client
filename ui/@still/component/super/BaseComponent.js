@@ -101,7 +101,7 @@ export class BaseComponent extends BehaviorComponent {
     async stOnUnload() { }
     async stOnRender() { }
     reRender() { }
-    getState = (fName) => this[fName].value;
+    getState = (fName) => (fName in this) ? this[fName].value : null;
     setDynamicField = (fName, value) => {
         this[fName] = value;
         this.#dynFields.push(fName);

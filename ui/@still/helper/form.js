@@ -67,6 +67,7 @@ export const FormHelper = {
     * @param { String } fName Field name */
    delField(cmp, formRef, fName){        
         delete BehaviorComponent.currentFormsValidators[cmp.cmpInternalId+'-'+formRef.name][fName];
+        delete cmp[fName];
         const inpt = document.getElementsByClassName(`listenChangeOn-${cmp.cmpInternalId}-${fName}`)[0];
         inpt.parentElement.removeChild(inpt);
     }
