@@ -138,21 +138,30 @@
 
         <span (showIf)="self.secretType == 2">
             <span class="catalog-form-secret-api">
-              <div>
-                <label>Unique name</label>
-                <div style="margin-top: 5px;">
-                  <input (value)="connectionName" class="unique-api-name" type="text" placeholder="e.g. Inventory API - Products Endpoint">
+
+              <div class="modal-body">
+                <div>
+                  <label>Unique name</label>
+                  <div style="margin-top: 5px;">
+                    <input (value)="apiConnName" (required)="true" data="unique-api-name" class="unique-api-name" type="text" placeholder="e.g. Inventory API">
+                  </div>
+                </div>
+                <div>
+                  <label>Base Url</label>
+                  <div style="margin-top: 5px;">
+                    <input (value)="apiBaseUrl" (required)="true" class="unique-api-name" type="text" placeholder="e.g. https://api.mycompany.com">
+                  </div>
                 </div>
               </div>
 
               <div style="padding-top: 15px;">
-                <label>API Settings</label>
+                <label>API Settings - <b>@endpointCounter</b> Endpoint(s)</label>
                 <div (showIf)="self.hideCodeEditor">
                   <div id="@editorId" style="height: 150px; margin-top: 11px;"></div>
                 </div>
               </div>
 
-              <div class="endpoint-group-config" style="max-height: 45vh; overflow-x: scroll;">
+              <div class="endpoint-group-config">
                 <fieldset>
                   <legend>Endpoint 1</legend>
                     <div class="endpoint-data-setting">
@@ -165,23 +174,35 @@
                         <label>Primary key</label>
                         <input type="text" (required)="true" (value)="apiEndpointPathPK1" placeholder="e.g. transactionId">
                       </div>
+
+                      <div class="form-group use-pagination-check">
+                        <label>Use pagination</label>
+                        <div class="use-pagination-check-group">
+                          <input type="radio" onclick="component.showPaginateEndpoint()" name="userPagination1"> Yes
+                          <input type="radio" onclick="component.hidePaginateEndpoint()" name="userPagination1" checked> No
+                        </div>
+                      </div>
                     </div>
     
-                    <div class="endpoint-paginate-setting">
-                      <div class="form-group use-pagination-field">
-                        <label>Offset field name</label>
-                        <input type="text" (value)="paginationStartField" placeholder="e.g. offset">
-                      </div>
-      
-                      <div class="form-group use-pagination-field">
-                        <label>Limit field name</label>
-                        <input type="text" (value)="paginationEndField" placeholder="e.g. limit">
-                      </div>
-      
-                      <div class="form-group use-pagination-field">
-                        <label>Records per page</label>
-                        <input type="text" (value)="paginationBatch" placeholder="e.g. 1000">
-                      </div>
+                    <div class="endpoint-paginate-setting endpointFieldGrp1" style="display: none;">
+
+                      <span style="display: flex;">
+                        <div class="form-group use-pagination-field">
+                          <label>Offset field name</label>
+                          <input class="endpointField1" type="text" (value)="paginationStartField1" placeholder="e.g. offset">
+                        </div>
+        
+                        <div class="form-group use-pagination-field">
+                          <label>Limit field name</label>
+                          <input class="endpointField1" type="text" (value)="paginationLimitField1" placeholder="e.g. limit">
+                        </div>
+        
+                        <div class="form-group use-pagination-field">
+                          <label>Records per page</label>
+                          <input class="endpointField1" type="text" (value)="paginationRecPerPage1" placeholder="e.g. 1000">
+                        </div>
+                      </span>
+
                     </div>  
                 </fieldset>
               </div>
@@ -193,31 +214,6 @@
               <div class="modal-body">
 
                 <!-- Pagination fields -->
-                <!--
-                <div class="form-group">
-                  <div class="use-authentication-check-group">
-                    <label class="bold-lbl">Use Pagination</label>
-                    <input type="checkbox" onclick="component.setUsePagination(this.checked)">
-                  </div>
-                </div>
-                <div></div>
-
-                <div class="form-group use-pagination-field" style="display: none;">
-                  <label>Offset field name</label>
-                  <input type="text" (value)="paginationStartField" placeholder="e.g. offset">
-                </div>
-                <div class="form-group use-pagination-field" style="display: none;">
-                  <label>Limit field name</label>
-                  <input type="text" (value)="paginationEndField" placeholder="e.g. limit">
-                </div>
-
-                <div class="form-group use-pagination-field" style="display: none;">
-                  <label>Batch size (records per page)</label>
-                  <input type="text" (value)="paginationBatch" placeholder="e.g. 1000">
-                </div>
-                <div class="use-pagination-field" style="display: none;"></div>
-              -->
-
                 <div class="form-group">
                   <div class="use-authentication-check-group">
                     <label class="bold-lbl">Use Authentication</label>
@@ -278,7 +274,21 @@
   </div>
 
   <style>
-    
+    .endpoint-group-config{
+      /* box-shadow: inset 0 10px 8px -10px rgba(0, 0, 0, 0.5), inset 0 -10px 8px -10px rgba(0, 0, 0, 0.5); */
+      max-height: 45vh; overflow-x: scroll;
+    }
+
+    .use-pagination-check{ 
+      margin-left: 10px; 
+      label { width: 100px; margin-top: 21px; }
+    }
+    .use-pagination-check-group{ 
+      display: flex;
+      width: 93px;
+      font-size: 12px;
+    }
+
     .del-endpoint-setting-icon{
       width: 78px;
       text-align: center;
@@ -289,11 +299,12 @@
       float: right;
     }
     fieldset { margin-top: 15px; border-radius: 3px; padding-bottom: 4px; }
+    fieldset label { margin-top: 3px; }
     fieldset input { width: 150px; }
     fieldset legend { margin-left: 8px; font-size: 14px; font-weight: bold; }
 
     .use-pagination-field { margin-left: 5px; }
-    .endpoint-input { width: 300px; }
+    .endpoint-input { width: 275px; }
    .endpoint-data-setting, .endpoint-paginate-setting{ display: flex; margin: 5px; }
 
   .bold-lbl { font-weight: bold; }

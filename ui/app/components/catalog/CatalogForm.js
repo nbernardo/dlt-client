@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { handleAddEndpointField, markOrUnmarkAPICatalogRequired, onAPIAuthChange, viewSecretValue } from "./util/CatalogUtil.js";
+import { handleAddEndpointField, markOrUnmarkAPICatalogRequired, onAPIAuthChange, showHidePaginateEndpoint, viewSecretValue } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -29,26 +29,31 @@ export class CatalogForm extends ViewComponent {
 
 	/** @type { Workspace } */ $parent;
 
+	// DB catalog/secrets fields
 	dbEngine;
 	dbHost;
 	dbPort;
 	dbName;
 	dbUser;
+	connectionName;
 	
 	// Bellow State variables are shared between API and DB secret creation
 	firstKey;
 	firstValue;
-	connectionName;
-
+	
+	// API catalog/secrets variables
+	apiConnName;
 	apiKeyName;
 	apiKeyValue;
 	apiTknValue;
-	paginationStartField;
-	paginationEndField;
-	paginationBatch;
+	paginationStartField1;
+	paginationLimitField1;
+	paginationRecPerPage1; //Record per pages
 	apiBaseUrl;
 	apiEndpointPath1;
 	apiEndpointPathPK1;
+
+	endpointCounter = 1;
 
 	stOnRender = ({ type }) => {
 		type && (this.secretType = type);
@@ -184,6 +189,7 @@ export class CatalogForm extends ViewComponent {
 		function resetForm(){
 			document.querySelector('.save-secret-btn').style.display = '';
 			document.querySelector('.btn-add-secret').disabled = false;
+			document.querySelector('input[data="unique-api-name"]').disabled = false;
 			self.dataBaseSettingType = 0;
 			self.modal.style.display = 'none';
 			self.showAddSecrete = false;
@@ -254,7 +260,8 @@ export class CatalogForm extends ViewComponent {
 	async createSecret(){
 		const validate = await this.formRef.validate(); 
 		let dbConfig = null, apiSettings = null, updatingSecret;
-		return console.log(`TOTAL ERRORS: `, this.formRef.errorCount);
+		//console.log(`API SETTINGS IS: `, this.parseAPICatalogFields());
+		//return console.log(`TOTAL ERRORS: `, this.formRef.errorCount);
 		
 		if(this.secretType != 2 && this.dataBaseSettingType == null) 
 			return AppTemplate.toast.error('Please select the secret type');
@@ -292,15 +299,13 @@ export class CatalogForm extends ViewComponent {
 				}
 			}else{
 				apiSettings = {
-					...this.editor.getValue(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
+					...this.parseAPICatalogFields(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
 					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value,
-					paginateBatch: this.paginateBatch.value, paginationStartField: this.paginationStartField.value, 
-					paginateEndField: this.paginationEndField.value
 				};
 			}
-			
+			const connectionName = this.dataBaseSettingType != null ? this.connectionName.value : this.apiConnName.value;
 			const result = await WorkspaceService.createSecret({ 
-				env: this.getDynamicFields(), dbConfig, apiSettings, 'connectionName': this.connectionName.value 
+				env: this.getDynamicFields(), dbConfig, apiSettings, connectionName
 			});
 
 			if(result === true && this.dataBaseSettingType != null)
@@ -353,7 +358,50 @@ export class CatalogForm extends ViewComponent {
 		markOrUnmarkAPICatalogRequired();
 	}
 
-	/** @Prop */ endpointCounter = 1;
-	addEndpointFields = () => handleAddEndpointField(++this.endpointCounter, this);
+	addEndpointFields = () => {
+		this.endpointCounter = this.endpointCounter.value + 1;
+		handleAddEndpointField(this.endpointCounter.value, this);
+	}
+
+	parseAPICatalogFields(){
+
+		const endPointsGroup = {
+			paginationStartField: [this.paginationStartField1.value],
+			paginationLimitField: [this.paginationLimitField1.value],
+			paginationRecPerPage: [this.paginationRecPerPage1.value],
+			apiEndpointPath: [this.apiEndpointPath1.value],
+			apiEndpointPathPK : [this.apiEndpointPathPK1.value],
+		}
+
+		const dynamicFields = this.getDynamicFields();
+		const validFieldNames = [
+			'apiEndpointPath','apiEndpointPathPK',
+			'paginationStartField','paginationLimitField','paginationRecPerPage'
+		]
+
+		console.log(`THIS IS RHE VAKUES: `, dynamicFields);
+		
+
+		for(let x = 2; x <= this.endpointCounter; x++){
+			for(const field of validFieldNames){
+				const fieldValue = dynamicFields[`${field}${x}`] || '';
+				endPointsGroup[field].push(fieldValue);
+			}
+		}
+
+		return { 
+			apiBaseUrl: this.apiBaseUrl.value, apiKeyName: this.apiKeyName.value,
+			apiKeyValue: this.apiKeyValue.value, apiTknValue: this.apiTknValue.value,
+			endPointsGroup
+		}
+	}
+
+	showPaginateEndpoint = () => showHidePaginateEndpoint(1, true);
+	hidePaginateEndpoint = () => {
+		this.paginationStartField1 = '';
+		this.paginationLimitField1 = '';
+		this.paginationRecPerPage1 = '';
+		showHidePaginateEndpoint(1, false);
+	}
 
 }

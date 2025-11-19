@@ -82,17 +82,18 @@ export function markOrUnmarkAPICatalogRequired() {
  */
 export function handleAddEndpointField(endpointCounter, component) {
 
-    const self = { fieldList: [], component };
+    const self = { fieldList: [], component, endpointCounter, paginateFields: [] };
     const fieldSet = document.createElement('fieldset');
     const legend = document.createElement('legend');
     legend.innerText = 'Endpoint ' + endpointCounter;
     fieldSet.appendChild(legend);
+    fieldSet.className = `endpointSettings${endpointCounter}`;
 
-    const dataSetting = document.createElement('div'), paginateSetting = document.createElement('div');
-    dataSetting.className = 'endpoint-data-setting', paginateSetting.className = 'endpoint-paginate-setting';
+    const dataSetting = document.createElement('div');
+    dataSetting.className = 'endpoint-data-setting';
 
-    const formGroup1 = document.createElement('div'), formGroup2 = document.createElement('div');
-    formGroup1.className = 'form-group use-pagination-field', formGroup2.className = 'form-group use-pagination-field';
+    const formGroup1 = document.createElement('div'), formGroup2 = document.createElement('div'), formGroup3 = document.createElement('div');
+    formGroup1.className = 'form-group use-pagination-field', formGroup2.className = 'form-group use-pagination-field', formGroup3.className = 'form-group use-pagination-check';
 
     formGroup1.insertAdjacentHTML('afterbegin', `<label>Path</label>`);
     
@@ -102,46 +103,25 @@ export function handleAddEndpointField(endpointCounter, component) {
     fieldSet.appendChild(delEntpointBtn);
 
     // Creates the field for entering the endpoint
-    let fieldName = `apiEndpointPath1${endpointCounter}`;
+    let fieldName = `apiEndpointPath${endpointCounter}`;
     const endpointField = newStilComponentField(self, 
-        { fieldName, required: true, placeholder: 'e.g. /transaction/paginate', className: 'endpoint-input' }
+        { fieldName, required: true, placeholder: 'e.g. /transaction/paginate', className: ' endpoint-input' }
     );
     formGroup1.insertAdjacentHTML('beforeend', endpointField);
 
     // Creates the field for entering the endpoint data primary key
-    fieldName = `apiEndpointPathPK1${endpointCounter}`;
+    fieldName = `apiEndpointPathPK${endpointCounter}`;
     const primaryKeyField = newStilComponentField(self, { required: true, placeholder: 'e.g. transactionId', fieldName });
     formGroup2.insertAdjacentHTML('afterbegin', `<label>Primary key</label>${primaryKeyField}`);
-
-    const formGroup3 = document.createElement('div'), formGroup4 = document.createElement('div'), formGroup5 = document.createElement('div');
-    formGroup3.className = 'form-group use-pagination-field',
-        formGroup4.className = 'form-group use-pagination-field',
-        formGroup5.className = 'form-group use-pagination-field';
-
-    // Creates the field for entering the name of the pagination offset filend name
-    fieldName = `paginateOffsetName${endpointCounter}`;
-    const offsetFieldName = newStilComponentField(self, { placeholder: 'e.g. offset', fieldName });
-    formGroup3.insertAdjacentHTML('afterbegin', `<label>Offset field name</label>${offsetFieldName}`);
-
-    // Creates the field for entering the name of the pagination limit filend name
-    fieldName = `paginateLimitName${endpointCounter}`;
-    const limitFieldName = newStilComponentField(self, { placeholder: 'e.g. limit', fieldName });
-    formGroup4.insertAdjacentHTML('afterbegin', `<label>Limit field name</label>${limitFieldName}`);
-
-    // Creates the field for entering the name of the pagination record per page
-    fieldName = `paginateRecPerPage${endpointCounter}`;
-    const recordPerPage = newStilComponentField(self, { placeholder: 'e.g. 1000', fieldName });
-    formGroup5.insertAdjacentHTML('afterbegin', `<label>Records per page</label>${recordPerPage}`);
+    
+    addPaginateOption(self, formGroup3, endpointCounter, component);
 
     dataSetting.appendChild(formGroup1);
     dataSetting.appendChild(formGroup2);
-    paginateSetting.appendChild(formGroup3);
-    paginateSetting.appendChild(formGroup4);
-    paginateSetting.appendChild(formGroup5);
+    dataSetting.appendChild(formGroup3);
 
     fieldSet.appendChild(dataSetting);
-    fieldSet.appendChild(paginateSetting);
-
+    
     delEntpointBtn.onclick = function(){
         for(const fieldName of self.fieldList)
             FormHelper.delField(component, component.formRef, fieldName);
@@ -152,12 +132,18 @@ export function handleAddEndpointField(endpointCounter, component) {
 }
 
 
-function newStilComponentField(self, { fieldName, placeholder = '', required, className }){
+function newStilComponentField(self, { fieldName, placeholder = '', required, className, paginateField }){
 
     const obj = self.component;
-    const settings = { required: false, placeholder };
+    const settings = { required: true, placeholder };
     
-    if(className) settings.className = className;
+    if(paginateField)
+        self.paginateFields.push(fieldName);
+
+    if(className) {
+        if(settings.className) settings.className += ' '+className;
+        else settings.className += className;
+    }
     if(required) settings.required = required;
     
     self.fieldList.push(fieldName);
@@ -167,3 +153,98 @@ function newStilComponentField(self, { fieldName, placeholder = '', required, cl
         .element;
 
 }
+
+function addPaginateOption(self, formGroup, endpointCounter, component){
+
+    formGroup.insertAdjacentHTML('afterbegin', `<label>Use pagination</label>`);
+    const paginateRadioButtonContainer = document.createElement('div');
+    paginateRadioButtonContainer.classList = 'use-pagination-check-group';
+    const yesRadio = document.createElement('input');
+    const noRadio = document.createElement('input');
+
+    yesRadio.type = 'radio', noRadio.type = 'radio', noRadio.checked = true;
+    yesRadio.name = `endpointField${endpointCounter}`, noRadio.name = `endpointField${endpointCounter}`;
+
+    paginateRadioButtonContainer.appendChild(yesRadio);
+    paginateRadioButtonContainer.insertAdjacentText('beforeend','Yes');
+    paginateRadioButtonContainer.appendChild(noRadio);
+    paginateRadioButtonContainer.insertAdjacentText('beforeend','No');
+    formGroup.appendChild(paginateRadioButtonContainer);
+
+    yesRadio.onclick = () => addPaginateEndpoint(self, endpointCounter);
+
+    noRadio.onclick = () => delPaginateEndpoint(self, endpointCounter);
+
+}
+
+
+export function addPaginateEndpoint(self, endpointCounter){
+    addPaginateFields(self, endpointCounter);
+    document.querySelector(`.endpointFieldGrp${endpointCounter}`).style.display = '';
+}
+
+export function delPaginateEndpoint(self, endpointCounter){
+
+    const component = self.component;
+    for(const fieldName of self.paginateFields)
+        FormHelper.delField(component, component.formRef, fieldName);
+    document.querySelector(`.endpointFieldGrp${endpointCounter}`).remove();
+    
+}
+
+function addPaginateFields(self, endpointCounter){
+
+    self.paginateFields = [];
+
+    const paginateSetting = document.createElement('div');
+    paginateSetting.className = `endpoint-paginate-setting endpointFieldGrp${endpointCounter}`
+
+    const formGroup4 = document.createElement('div'), formGroup5 = document.createElement('div'), formGroup6 = document.createElement('div');
+    formGroup4.className = 'form-group use-pagination-field',
+        formGroup5.className = 'form-group use-pagination-field',
+        formGroup6.className = 'form-group use-pagination-field';
+
+    // Creates the field for entering the name of the pagination offset filend name
+    let fieldName = `paginationStartField${endpointCounter}`;
+    const offsetFieldName = newStilComponentField(self, { placeholder: 'e.g. offset', fieldName, paginateField: true });
+    formGroup4.insertAdjacentHTML('afterbegin', `<label>Offset field name</label>${offsetFieldName}`);
+
+    // Creates the field for entering the name of the pagination limit filend name
+    fieldName = `paginationLimitField${endpointCounter}`;
+    const limitFieldName = newStilComponentField(self, { placeholder: 'e.g. limit', fieldName, paginateField: true });
+    formGroup5.insertAdjacentHTML('afterbegin', `<label>Limit field name</label>${limitFieldName}`);
+
+    // Creates the field for entering the name of the pagination record per page
+    fieldName = `paginationRecPerPage${endpointCounter}`;
+    const recordPerPage = newStilComponentField(self, { placeholder: 'e.g. 1000', fieldName, paginateField: true });
+    formGroup6.insertAdjacentHTML('afterbegin', `<label>Records per page</label>${recordPerPage}`);
+
+    paginateSetting.appendChild(formGroup4);
+    paginateSetting.appendChild(formGroup5);
+    paginateSetting.appendChild(formGroup6);
+
+    document.querySelector(`.endpointSettings${endpointCounter}`).appendChild(paginateSetting);
+
+}
+
+
+export function showHidePaginateEndpoint(endpointCounter, show = false){
+
+    const paginateFieldsContainer = document.querySelector(`.endpointFieldGrp${endpointCounter}`);
+    const paginateFields = document.querySelectorAll(`.endpointField${endpointCounter}`);
+
+    if(show){
+        paginateFieldsContainer.style.display = '';
+        paginateFields.forEach(field => {
+            field.setAttribute('required', true);
+            field.style.display = '';
+        });
+    }else{
+        paginateFieldsContainer.style.display = 'none';
+        paginateFields.forEach(field => {
+            field.removeAttribute('required');
+            field.style.display = 'none';
+        });
+    }
+}
+
