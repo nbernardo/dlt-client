@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { handleAddEndpointField, markOrUnmarkAPICatalogRequired, onAPIAuthChange, showHidePaginateEndpoint, viewSecretValue } from "./util/CatalogUtil.js";
+import { handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, viewSecretValue } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -49,10 +49,11 @@ export class CatalogForm extends ViewComponent {
 	apiTknValue;
 	paginationStartField1;
 	paginationLimitField1;
-	paginationRecPerPage1; //Record per pages
+	paginationRecPerPage1 = 100; //Record per pages
 	apiBaseUrl;
 	apiEndpointPath1;
 	apiEndpointPathPK1;
+	fullEndpointPath = '';
 
 	endpointCounter = 1;
 
@@ -89,6 +90,26 @@ export class CatalogForm extends ViewComponent {
 			else
 				this.showServiceNameLbl = false;
 		});
+
+		this.onEndpointUpdate();
+	}
+
+	onEndpointUpdate(){
+		const self = this;
+		function updateFullPath(){
+
+			const path = self.apiEndpointPath1.value;
+			const offset = self.paginationStartField1.value;
+			const limit = self.paginationLimitField1.value;
+			const batchSize = self.paginationRecPerPage1.value;
+			self.fullEndpointPath = parseEndpointPath(path, offset, limit, batchSize)
+
+		}
+
+		this.apiEndpointPath1.onChange(() => updateFullPath());
+		this.paginationStartField1.onChange(() => updateFullPath());
+		this.paginationLimitField1.onChange(() => updateFullPath());
+		this.paginationRecPerPage1.onChange(() => updateFullPath());
 	}
 
 	startCodeEditor(){

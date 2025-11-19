@@ -122,9 +122,24 @@ export function handleAddEndpointField(endpointCounter, component, details) {
 
     /** @type { EndpointGroupType } */
     const self = { fieldList: [], component, endpointCounter, paginateFields: [], details };
-    const fieldSet = document.createElement('fieldset');
-    const legend = document.createElement('legend');
-    legend.innerText = 'Endpoint ' + endpointCounter;
+    const fieldSet = document.createElement('fieldset'), legend = document.createElement('legend');
+    let fullEndpointPath = '';
+
+    if(details){
+        const path = details.apiEndpointPath;
+        const offset = details.paginationStartField;
+        const limit = details.paginationLimitField;
+        const batchSize = details.paginationRecPerPage;
+        fullEndpointPath = parseEndpointPath(path, offset, limit, batchSize);
+    }
+
+    legend.innerHTML = `
+        Endpoint  ${endpointCounter}
+        <span style="font-weight: normal;" id="fullEndpointPath${endpointCounter}">
+        ${fullEndpointPath}
+        </span>
+    `;
+
     fieldSet.appendChild(legend);
     fieldSet.className = `endpointSettings${endpointCounter}`;
 
@@ -185,18 +200,15 @@ export function handleAddEndpointField(endpointCounter, component, details) {
 /** @param { EndpointGroupType } self */
 function newStilComponentField(self, { fieldName, placeholder = '', required, className, paginateField }){
 
-    const obj = self.component;
-
     /** @type { InParams } */
-    const settings = { required: true, placeholder }; 
+    const settings = { required: true, placeholder, value: null };
  
     if(self.details){        
         const fieldCategory = fieldName.slice(0, fieldName.length - 1);
         settings.value = self.details[fieldCategory];
     }
     
-    if(paginateField)
-        self.paginateFields.push(fieldName);
+    if(paginateField) self.paginateFields.push(fieldName);
 
     if(className) {
         if(settings.className) settings.className += ' '+className;
@@ -206,10 +218,46 @@ function newStilComponentField(self, { fieldName, placeholder = '', required, cl
     
     self.fieldList.push(fieldName);
 
-    return FormHelper.newField(obj, obj.formRef, fieldName)
+    const field = FormHelper.newField(self.component, self.component.formRef, fieldName, settings.value)
         .input(settings)
         .element;
 
+    const id = self.endpointCounter;
+    self.component[fieldName].onChange(() => updateDynamicEndpoint(id, self.component));
+
+    return field;
+
+}
+
+export function parseEndpointPath(path,offset,limit,batchSize){
+
+    let fullEndpointPath = '';
+
+    if(!['',null,undefined].includes(path)){
+	    fullEndpointPath = `→ ${path} `;
+	if(offset)
+		fullEndpointPath = `→ ${path}?${offset}=0 `
+	if(limit)
+			fullEndpointPath = `→ ${path}?${offset}=0&${limit}=${batchSize} `;
+	}else
+		fullEndpointPath = '';
+    
+    return fullEndpointPath;
+}
+
+/**
+ * @param { int } id //Represents the endpoint id/positions 
+ * @param { CatalogForm } component 
+ */
+function updateDynamicEndpoint(id, component){
+    
+	const path = component['apiEndpointPath'+id].value;
+	const offset = component['paginationStartField'+id]?.value;
+	const limit = component['paginationLimitField'+id]?.value;
+	const batchSize = component['paginationRecPerPage'+id]?.value;
+	const fullEndpointPath = parseEndpointPath(path,offset,limit,batchSize);
+
+    document.getElementById(`fullEndpointPath${id}`).innerText = fullEndpointPath;
 }
 
 /** @param { EndpointGroupType } self */
