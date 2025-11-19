@@ -26,6 +26,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ isNewSecret = false;
 	/** @Prop */ hideCodeEditor = false;
 	/** @Prop */ apiAuthType = false;
+	/** @Prop @type { Array<HTMLElement> } */ dynamicEndpointsDelButtons = [];
 
 	/** @type { Workspace } */ $parent;
 
@@ -62,12 +63,13 @@ export class CatalogForm extends ViewComponent {
 	
 	async stAfterInit(){
 		this.showServiceNameLbl = false;
+		this.dynamicEndpointsDelButtons = [];
 		this.modal = document.getElementById('modal');
 		//this.openModal = document.getElementById('openModal');
 		this.closeModal = document.getElementById('closeModal');
 		this.handleModalCall();
 		const secretList = await WorkspaceService.listSecrets(this.secretType);
-		
+				
 		if(this.secretType == 2)
 			this.$parent.controller.leftTab.apiSecretsList = secretList;
 		else
@@ -77,8 +79,8 @@ export class CatalogForm extends ViewComponent {
 
 		if(this.secretType == 2) {
 			this.startCodeEditor();
-			//this.addSecreteGroup(true, false);
 			this.onAPIAuthChange();
+			this.dataBaseSettingType = null;
 		}
 
 		this.dbEngine.onChange(dbEngine => {
@@ -126,10 +128,58 @@ export class CatalogForm extends ViewComponent {
 		}
 
 		if(this.secretType == 2){
+			
+			if(secretData.apiSettings.apiKeyName.trim() !== ''){
+				this.apiKeyName = secretData.apiSettings.apiKeyName;
+				this.apiKeyValue = secretData.apiSettings.apiKeyValue;
+				document.querySelector('.use-auth-secret-input').value = 'api-key';
+				this.onAPIAuthChange('api-key');
+				document.querySelector('.use-auth-checkbox').click();
+			}else if(secretData.apiSettings.apiTknValue.trim() !== ''){
+				this.apiTknValue = secretData.apiSettings.apiTknValue;
+				document.querySelector('.use-auth-secret-input').value = 'bearer-token';
+				this.onAPIAuthChange('bearer-token');
+				document.querySelector('.use-auth-checkbox').click();
+			}
+
+			this.dataBaseSettingType = null;
+			const { 
+				apiEndpointPath, apiEndpointPathPK, paginationLimitField, 
+				paginationRecPerPage, paginationStartField 
+			} = secretData.apiSettings.endPointsGroup;
+
+			this.apiEndpointPath1 = apiEndpointPath[0];
+			this.apiEndpointPathPK1 = apiEndpointPathPK[0];
+
+			if(paginationStartField[0] !== ''){
+				document.querySelector('input[name="userPagination1"]').checked = true;
+				this.showPaginateEndpoint();
+				this.paginationStartField1 = paginationStartField[0];
+				this.paginationLimitField1 = paginationLimitField[0];
+				this.paginationRecPerPage1 = paginationRecPerPage[0];
+			}
+
+			this.endpointCounter = 1;
+			for(const idx in paginationStartField.slice(1)){
+				const index = Number(idx) + 1;
+				/** @type { CatalogEndpointType } */
+				const details = { 
+					apiEndpointPath: apiEndpointPath[index],
+					apiEndpointPathPK: apiEndpointPathPK[index],
+					paginationStartField: paginationStartField[index],
+					paginationLimitField: paginationLimitField[index],
+					paginationRecPerPage: paginationRecPerPage[index],
+				};				
+				this.addEndpointFields(details);
+			}
+
+			this.apiBaseUrl = secretData.apiSettings.apiBaseUrl;
+			this.apiConnName = secretData.connectionName;
+
 			this.showDialog();
 			document.querySelector('.unique-api-name').disabled = true;
-			document.querySelector('.catalog-form-secret-api .first-secret-field').value = secretData.env['val1-secret'];
-			this.editor.setValue(secretData.apiSettings);
+			//document.querySelector('.catalog-form-secret-api .first-secret-field').value = secretData.env['val1-secret'];
+			//this.editor.setValue(secretData.apiSettings);
 		}
 		document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.disabled = true);
 	}
@@ -183,20 +233,37 @@ export class CatalogForm extends ViewComponent {
 	handleModalCall(){
 		const self = this;
 		//this.openModal.addEventListener('click', () => self.modal.style.display = 'flex');
-		this.closeModal.addEventListener('click', () => resetForm());
-		window.addEventListener('click', (e) => e.target === modal ? resetForm() : '');
+		this.closeModal.addEventListener('click', () => localResetForm());
+		window.addEventListener('click', (e) => e.target === modal ? localResetForm() : '');
 
-		function resetForm(){
+		function localResetForm(){
 			document.querySelector('.save-secret-btn').style.display = '';
 			document.querySelector('.btn-add-secret').disabled = false;
 			document.querySelector('input[data="unique-api-name"]').disabled = false;
-			self.dataBaseSettingType = 0;
+			self.dataBaseSettingType = null;
 			self.modal.style.display = 'none';
 			self.showAddSecrete = false;
 			self.firstKey = '';
 			self.firstValue = '';
+			self.apiBaseUrl = '';
+			self.apiConnName = '';
+			self.apiEndpointPath1 = '';
+			self.apiEndpointPathPK1 = '';
+			self.paginationStartField1 = '';
+			self.paginationLimitField1 = '';
+			self.paginationRecPerPage1 = '';
+			self.apiKeyName = '';
+			self.apiKeyValue = '';
+			self.apiTknValue = '';
+			self.onAPIAuthChange(null);
+			document.querySelector('.use-auth-checkbox').checked = false;
+			document.querySelector('.use-auth-secret-input').style.display = 'none';
 			document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.checked = false);
 			self.isNewSecret = false;
+			
+			for(const btn of self.dynamicEndpointsDelButtons)
+				btn.click();
+			self.dynamicEndpointsDelButtons = [];
 		}
 	}
 
@@ -348,19 +415,10 @@ export class CatalogForm extends ViewComponent {
 		document.querySelector('.catalog-form-secret-api .use-auth-secret-input').style.display = value ? '' : 'none';
 	}
 
-	/** @Prop */ usePagination = false;
-	setUsePagination = (value) => {
-		if(!value){
-			this.paginationStartField = null;
-			this.paginationEndField = null;
-			this.paginationBatch = null;
-		}
-		markOrUnmarkAPICatalogRequired();
-	}
-
-	addEndpointFields = () => {
+	/** @param { CatalogEndpointType } details */
+	addEndpointFields = (details = null) => {
 		this.endpointCounter = this.endpointCounter.value + 1;
-		handleAddEndpointField(this.endpointCounter.value, this);
+		handleAddEndpointField(this.endpointCounter.value, this, details);
 	}
 
 	parseAPICatalogFields(){
@@ -379,10 +437,7 @@ export class CatalogForm extends ViewComponent {
 			'paginationStartField','paginationLimitField','paginationRecPerPage'
 		]
 
-		console.log(`THIS IS RHE VAKUES: `, dynamicFields);
-		
-
-		for(let x = 2; x <= this.endpointCounter; x++){
+		for(let x = 2; x <= this.endpointCounter.value; x++){
 			for(const field of validFieldNames){
 				const fieldValue = dynamicFields[`${field}${x}`] || '';
 				endPointsGroup[field].push(fieldValue);

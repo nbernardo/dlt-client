@@ -330,7 +330,7 @@ export class WorkspaceService extends BaseService {
 
             const secretList = (await response.json()).result;
             let secretAndServerList;
-            
+
             if(type == 2 && Array.isArray(secretList?.api_secrets))
 				secretAndServerList = secretList.api_secrets.map(secret => ({ name: secret, host: 'None' }))
             

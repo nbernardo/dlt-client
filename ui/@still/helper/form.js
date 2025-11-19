@@ -2,7 +2,7 @@ import { BehaviorComponent } from "../component/super/BehaviorComponent.js";
 import { ViewComponent } from "../component/super/ViewComponent.js";
 import { STForm } from "../component/type/ComponentType.js";
 
-class InParams {
+export class InParams {
     className; 
     id; 
     datasets = {}; 

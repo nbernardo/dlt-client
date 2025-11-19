@@ -1,5 +1,42 @@
-import { FormHelper } from "../../../../@still/helper/form.js";
+import { FormHelper, InParams } from "../../../../@still/helper/form.js";
 import { CatalogForm } from "../CatalogForm.js";
+
+export class CatalogEndpointType {
+
+    /** @type { String } */
+	apiEndpointPath;
+    
+    /** @type { String } */
+	apiEndpointPathPK;
+    
+    /** @type { String } */
+	paginationStartField;
+    
+    /** @type { String } */
+	paginationLimitField;
+    
+    /** @type { String } */
+	paginationRecPerPage;
+
+}
+
+export class EndpointGroupType {
+    /** @type { Array } */
+    fieldList;
+
+    /** @type { CatalogForm } */
+    component;
+    
+    /** @type { CatalogForm } */
+    endpointCounter;
+    
+    /** @type { Array } */
+    paginateFields;
+    
+    /** @type { CatalogEndpointType } */
+    details;
+}
+
 
 function getApiSecretFields() {
     const apiFormContainer = 'catalog-form-secret-api';
@@ -79,10 +116,12 @@ export function markOrUnmarkAPICatalogRequired() {
 
 /**
  * @param { CatalogForm } component 
+ * @param { CatalogEndpointType } details
  */
-export function handleAddEndpointField(endpointCounter, component) {
+export function handleAddEndpointField(endpointCounter, component, details) {
 
-    const self = { fieldList: [], component, endpointCounter, paginateFields: [] };
+    /** @type { EndpointGroupType } */
+    const self = { fieldList: [], component, endpointCounter, paginateFields: [], details };
     const fieldSet = document.createElement('fieldset');
     const legend = document.createElement('legend');
     legend.innerText = 'Endpoint ' + endpointCounter;
@@ -122,6 +161,7 @@ export function handleAddEndpointField(endpointCounter, component) {
 
     fieldSet.appendChild(dataSetting);
     
+    component.dynamicEndpointsDelButtons.push(delEntpointBtn);
     delEntpointBtn.onclick = function(){
         for(const fieldName of self.fieldList)
             FormHelper.delField(component, component.formRef, fieldName);
@@ -129,13 +169,28 @@ export function handleAddEndpointField(endpointCounter, component) {
     }
     document.querySelector(`.catalog-form-secret-api .endpoint-group-config`).appendChild(fieldSet);
 
+    if(details){
+        if(details.paginationLimitField != ''){
+            addPaginateEndpoint(self,endpointCounter);
+            const yesRadioButton = document.querySelector(`input[name="endpointField${endpointCounter}"]`);
+            yesRadioButton.checked = true, 1000;
+        }
+    }
+
 }
 
-
+/** @param { EndpointGroupType } self */
 function newStilComponentField(self, { fieldName, placeholder = '', required, className, paginateField }){
 
     const obj = self.component;
-    const settings = { required: true, placeholder };
+
+    /** @type { InParams } */
+    const settings = { required: true, placeholder }; 
+ 
+    if(self.details){        
+        const fieldCategory = fieldName.slice(0, fieldName.length - 1);
+        settings.value = self.details[fieldCategory];
+    }
     
     if(paginateField)
         self.paginateFields.push(fieldName);
@@ -154,6 +209,7 @@ function newStilComponentField(self, { fieldName, placeholder = '', required, cl
 
 }
 
+/** @param { EndpointGroupType } self */
 function addPaginateOption(self, formGroup, endpointCounter, component){
 
     formGroup.insertAdjacentHTML('afterbegin', `<label>Use pagination</label>`);
@@ -177,12 +233,13 @@ function addPaginateOption(self, formGroup, endpointCounter, component){
 
 }
 
-
+/** @param { EndpointGroupType } self */
 export function addPaginateEndpoint(self, endpointCounter){
     addPaginateFields(self, endpointCounter);
     document.querySelector(`.endpointFieldGrp${endpointCounter}`).style.display = '';
 }
 
+/** @param { EndpointGroupType } self */
 export function delPaginateEndpoint(self, endpointCounter){
 
     const component = self.component;
@@ -192,6 +249,7 @@ export function delPaginateEndpoint(self, endpointCounter){
     
 }
 
+/** @param { EndpointGroupType } self */
 function addPaginateFields(self, endpointCounter){
 
     self.paginateFields = [];
