@@ -69,7 +69,7 @@ export const FormHelper = {
         delete BehaviorComponent.currentFormsValidators[cmp.cmpInternalId+'-'+formRef.name][fName];
         delete cmp[fName];
         const inpt = document.getElementsByClassName(`listenChangeOn-${cmp.cmpInternalId}-${fName}`)[0];
-        inpt.parentElement.removeChild(inpt);
+        inpt?.parentElement?.removeChild(inpt);
     }
 }
 

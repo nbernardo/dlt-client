@@ -163,8 +163,11 @@ export function handleAddEndpointField(endpointCounter, component, details) {
     
     component.dynamicEndpointsDelButtons.push(delEntpointBtn);
     delEntpointBtn.onclick = function(){
-        for(const fieldName of self.fieldList)
+        for(const fieldName of self.fieldList){
             FormHelper.delField(component, component.formRef, fieldName);
+        }
+        if(component.endpointCounter.value > 1)
+            component.endpointCounter = component.endpointCounter.value - 1;
         fieldSet.remove();
     }
     document.querySelector(`.catalog-form-secret-api .endpoint-group-config`).appendChild(fieldSet);

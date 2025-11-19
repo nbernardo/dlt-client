@@ -162,15 +162,20 @@ export class CatalogForm extends ViewComponent {
 			this.endpointCounter = 1;
 			for(const idx in paginationStartField.slice(1)){
 				const index = Number(idx) + 1;
-				/** @type { CatalogEndpointType } */
-				const details = { 
-					apiEndpointPath: apiEndpointPath[index],
-					apiEndpointPathPK: apiEndpointPathPK[index],
-					paginationStartField: paginationStartField[index],
-					paginationLimitField: paginationLimitField[index],
-					paginationRecPerPage: paginationRecPerPage[index],
-				};				
-				this.addEndpointFields(details);
+
+				if(apiEndpointPath[index]){
+
+					/** @type { CatalogEndpointType } */
+					const details = { 
+						apiEndpointPath: apiEndpointPath[index],
+						apiEndpointPathPK: apiEndpointPathPK[index],
+						paginationStartField: paginationStartField[index],
+						paginationLimitField: paginationLimitField[index],
+						paginationRecPerPage: paginationRecPerPage[index],
+					};				
+					this.addEndpointFields(details);
+
+				}
 			}
 
 			this.apiBaseUrl = secretData.apiSettings.apiBaseUrl;
@@ -255,9 +260,11 @@ export class CatalogForm extends ViewComponent {
 			self.apiKeyName = '';
 			self.apiKeyValue = '';
 			self.apiTknValue = '';
+			self.endpointCounter = 1;
 			self.onAPIAuthChange(null);
 			document.querySelector('.use-auth-checkbox').checked = false;
 			document.querySelector('.use-auth-secret-input').style.display = 'none';
+			document.querySelectorAll('input[name="userPagination1"]')[1].click();
 			document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.checked = false);
 			self.isNewSecret = false;
 			
@@ -401,7 +408,9 @@ export class CatalogForm extends ViewComponent {
 		this.resetForm();
 	}
 
-	onAPIAuthChange = (type = null) => this.apiAuthType = onAPIAuthChange(type);
+	onAPIAuthChange = (type = null) => {
+		return this.apiAuthType = onAPIAuthChange(type);
+	}
 
 	/** @Prop */ useAuth = false;
 	setUseAuth = (value) => {
@@ -435,9 +444,15 @@ export class CatalogForm extends ViewComponent {
 		const validFieldNames = [
 			'apiEndpointPath','apiEndpointPathPK',
 			'paginationStartField','paginationLimitField','paginationRecPerPage'
-		]
+		];
 
-		for(let x = 2; x <= this.endpointCounter.value; x++){
+		let endpointOrderTrace = 2;
+		while(true){
+			const x = endpointOrderTrace++;
+			const apiPath = dynamicFields[`apiEndpointPath${x}`];
+			if(apiPath === null) continue;
+			if(apiPath === undefined) break;
+			
 			for(const field of validFieldNames){
 				const fieldValue = dynamicFields[`${field}${x}`] || '';
 				endPointsGroup[field].push(fieldValue);
