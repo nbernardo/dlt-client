@@ -26,6 +26,7 @@ class Bucket(TemplateNodeType):
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself
             if data is None: return None
+            if len(data.keys()) == 0: return None
 
             self.context = context
             self.component_id = data['componentId']
