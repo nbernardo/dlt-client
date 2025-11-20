@@ -101,6 +101,10 @@ export const stillRoutesMap = {
             CatalogForm: {
                 path: "app/components/catalog",
                 url: "/catalog-form"
+            },
+            InputAPI: {
+                path: "app/components/node-types/api",
+                url: "/input-api"
             }
         },
         lazyInitial: {}
