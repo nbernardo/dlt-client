@@ -99,7 +99,22 @@ class SecretManager(SecretManagerType):
                 mount_point=namespace,
                 path=path,
                 secret=params
-            ) 
+            )
+
+        SecretManager.save_api_secret_metadata(namespace, path, params)
+
+    
+    def save_api_secret_metadata(namespace, path, params):
+        path_pieces = str(path).split('/')
+        if len(path_pieces) >= 2:
+            if path_pieces[-2] == 'api':
+                api_metadata = { 
+                    path_pieces[-1] : {
+                        'host': params['apiSettings']['apiBaseUrl'],
+                        'totalEndpoints': len(params['apiSettings']['endPointsGroup']['apiEndpointPath'])
+                    }
+                }
+                SecretManager.save_secrets_metadata(namespace, api_metadata)
         
             
     def create_db_secret(namespace, params: dict, path):
