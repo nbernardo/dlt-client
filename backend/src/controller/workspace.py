@@ -431,7 +431,7 @@ def fetch_secret(namespace, type, secretname):
 
     try:
         path = f'main/{type}/{secretname}'
-        secret_details = SecretManager.get_secret(namespace,key=None,path=path)
+        secret_details = SecretManager.get_secret(namespace,path=path,edit=True)
         if secret_details == None:
             return { 'error': True, 'result': 'No secrete found for current namespace' }
         else:

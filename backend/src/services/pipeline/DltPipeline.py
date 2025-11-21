@@ -229,6 +229,19 @@ class DltPipeline:
             tplt = file.read()
 
         return tplt
+
+    @staticmethod
+    def get_api_templete():
+        """
+        This is template handling method
+        """
+        tplt = ''
+        file_name = f'{template_dir}/api.txt'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
+        return tplt
     
     
     @staticmethod

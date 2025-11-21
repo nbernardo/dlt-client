@@ -71,7 +71,7 @@ class SQLDatabase:
         try:
             
             path = f'main/db/{connection_name}'
-            secret = SQLDatabase.secret_manager.get_secret(namespace,key=None,path=path)
+            secret = SQLDatabase.secret_manager.get_secret(namespace,path=path)
 
             table_list = None
             dbengine = secret['dbengine']
