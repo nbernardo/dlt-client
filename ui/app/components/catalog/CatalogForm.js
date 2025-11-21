@@ -53,6 +53,7 @@ export class CatalogForm extends ViewComponent {
 	apiBaseUrl;
 	apiEndpointPath1;
 	apiEndpointPathPK1;
+	apiEndpointDS1; //To specify the field on the API response where data lies
 	fullEndpointPath = '';
 
 	endpointCounter = 1;
@@ -149,6 +150,7 @@ export class CatalogForm extends ViewComponent {
 		}
 
 		if(this.secretType == 2){
+			console.log(`THE DATA IS: `,secretData.apiSettings);
 			
 			if(secretData.apiSettings.apiKeyName.trim() !== ''){
 				this.apiKeyName = secretData.apiSettings.apiKeyName;
@@ -459,11 +461,12 @@ export class CatalogForm extends ViewComponent {
 			paginationRecPerPage: [this.paginationRecPerPage1.value],
 			apiEndpointPath: [this.apiEndpointPath1.value],
 			apiEndpointPathPK : [this.apiEndpointPathPK1.value],
+			apiEndpointDS : [this.apiEndpointDS1.value],
 		}
 
 		const dynamicFields = this.getDynamicFields();
 		const validFieldNames = [
-			'apiEndpointPath','apiEndpointPathPK',
+			'apiEndpointPath','apiEndpointPathPK','apiEndpointDS',
 			'paginationStartField','paginationLimitField','paginationRecPerPage'
 		];
 

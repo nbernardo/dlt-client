@@ -1,4 +1,6 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
+import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
+import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 
@@ -6,6 +8,9 @@ import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 export class InputAPI extends ViewComponent {
 
 	isPublic = true;
+
+	/** This is strictly to reference the object in the diagram 
+	 * @Prop */ nodeId;
 
 	/** @Prop */ label = 'Source - API';
 	/** @Prop */ showLoading = true;
@@ -18,6 +23,10 @@ export class InputAPI extends ViewComponent {
 	totalEndpoints = '';
 	selectedSecret;
 
+	async stOnRender({ nodeId }){
+		this.nodeId = nodeId;
+	}
+
 	async stAfterInit(){
 		this.secretsList = await WorkspaceService.listSecrets(2);
 		
@@ -26,9 +35,13 @@ export class InputAPI extends ViewComponent {
 		this.selectedSecret.onChange(value => {
 			const selectedSecret = this.secretsList.value.find(obj => obj.name === value);
 			
+			WorkSpaceController.getNode(this.nodeId).data['connectionName'] = value;
+			WorkSpaceController.getNode(this.nodeId).data['baseUrl'] = selectedSecret.host;
 			this.host = selectedSecret.host || '';
 			this.totalEndpoints = selectedSecret.totalEndpoints || '';
 		});
+
+		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 	}
 
 }

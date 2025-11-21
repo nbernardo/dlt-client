@@ -146,8 +146,10 @@ export function handleAddEndpointField(endpointCounter, component, details) {
     const dataSetting = document.createElement('div');
     dataSetting.className = 'endpoint-data-setting';
 
-    const formGroup1 = document.createElement('div'), formGroup2 = document.createElement('div'), formGroup3 = document.createElement('div');
-    formGroup1.className = 'form-group use-pagination-field', formGroup2.className = 'form-group use-pagination-field', formGroup3.className = 'form-group use-pagination-check';
+    const formGroup1 = document.createElement('div'), formGroup2 = document.createElement('div'), 
+          formGroup3 = document.createElement('div'), formGroup4 = document.createElement('div');
+    formGroup1.className = 'form-group use-pagination-field', formGroup2.className = 'form-group use-pagination-field', 
+    formGroup3.className = 'form-group use-pagination-field', formGroup4.className = 'form-group use-pagination-check';
 
     formGroup1.insertAdjacentHTML('afterbegin', `<label>Path</label>`);
     
@@ -163,16 +165,24 @@ export function handleAddEndpointField(endpointCounter, component, details) {
     );
     formGroup1.insertAdjacentHTML('beforeend', endpointField);
 
+    // Creates the field for entering the endpoint data selector
+    fieldName = `apiEndpointDS${endpointCounter}`;
+    const primaryDataSelector = newStilComponentField(self, { placeholder: 'e.g. result', fieldName });
+    formGroup2.insertAdjacentHTML('beforeend', `<label>Data Selector</label>${primaryDataSelector}`);
+
     // Creates the field for entering the endpoint data primary key
     fieldName = `apiEndpointPathPK${endpointCounter}`;
-    const primaryKeyField = newStilComponentField(self, { required: true, placeholder: 'e.g. transactionId', fieldName });
-    formGroup2.insertAdjacentHTML('afterbegin', `<label>Primary key</label>${primaryKeyField}`);
+    const primaryKeyField = newStilComponentField(self, 
+        { required: true, placeholder: 'e.g. transactionId', fieldName, className: ' endpoint-pk-input' }
+    );
+    formGroup3.insertAdjacentHTML('beforeend', `<label>Primary key</label>${primaryKeyField}`);
     
-    addPaginateOption(self, formGroup3, endpointCounter, component);
+    addPaginateOption(self, formGroup4, endpointCounter, component);
 
     dataSetting.appendChild(formGroup1);
     dataSetting.appendChild(formGroup2);
     dataSetting.appendChild(formGroup3);
+    dataSetting.appendChild(formGroup4);
 
     fieldSet.appendChild(dataSetting);
     

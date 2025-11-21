@@ -171,8 +171,13 @@
                       </div>
       
                       <div class="form-group use-pagination-field">
+                        <label>Data Selector</label>
+                        <input type="text" (value)="apiEndpointDS1" placeholder="e.g. result">
+                      </div>
+      
+                      <div class="form-group use-pagination-field">
                         <label>Primary key</label>
-                        <input type="text" (required)="true" (value)="apiEndpointPathPK1" placeholder="e.g. transactionId">
+                        <input type="text" (required)="true" class="endpoint-pk-input" (value)="apiEndpointPathPK1" placeholder="e.g. transactionId">
                       </div>
 
                       <div class="form-group use-pagination-check">
@@ -300,12 +305,14 @@
     }
     fieldset { margin-top: 15px; border-radius: 3px; padding-bottom: 4px; }
     fieldset label { margin-top: 3px; }
-    fieldset input { width: 150px; }
+    fieldset input { width: 100px; }
     fieldset legend { margin-left: 8px; font-size: 14px; font-weight: bold; }
 
     .use-pagination-field { margin-left: 5px; }
-    .endpoint-input { width: 275px; }
+    .endpoint-input { width: 190px; }
+    .endpoint-pk-input { width: 130px; }
    .endpoint-data-setting, .endpoint-paginate-setting{ display: flex; margin: 5px; }
+   .endpoint-paginate-setting input{ width: 150px; }
 
   .bold-lbl { font-weight: bold; }
   .unique-api-name{ width: 100%; }
