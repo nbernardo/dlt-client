@@ -16,7 +16,10 @@ export class CatalogEndpointType {
 	paginationLimitField;
     
     /** @type { String } */
-	paginationRecPerPage;
+	paginationRecPerPage; 
+
+    /** @type { String } */
+	apiEndpointDS;
 
 }
 
@@ -173,7 +176,7 @@ export function handleAddEndpointField(endpointCounter, component, details) {
     // Creates the field for entering the endpoint data primary key
     fieldName = `apiEndpointPathPK${endpointCounter}`;
     const primaryKeyField = newStilComponentField(self, 
-        { required: true, placeholder: 'e.g. transactionId', fieldName, className: ' endpoint-pk-input' }
+        { placeholder: 'e.g. transactionId', fieldName, className: ' endpoint-pk-input' }
     );
     formGroup3.insertAdjacentHTML('beforeend', `<label>Primary key</label>${primaryKeyField}`);
     
@@ -211,7 +214,7 @@ export function handleAddEndpointField(endpointCounter, component, details) {
 function newStilComponentField(self, { fieldName, placeholder = '', required, className, paginateField }){
 
     /** @type { InParams } */
-    const settings = { required: true, placeholder, value: null };
+    const settings = { required: required != true ? false : true, placeholder, value: null };
  
     if(self.details){        
         const fieldCategory = fieldName.slice(0, fieldName.length - 1);

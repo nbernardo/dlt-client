@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, viewSecretValue } from "./util/CatalogUtil.js";
+import { CatalogEndpointType, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, viewSecretValue } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -168,11 +168,12 @@ export class CatalogForm extends ViewComponent {
 			this.dataBaseSettingType = null;
 			const { 
 				apiEndpointPath, apiEndpointPathPK, paginationLimitField, 
-				paginationRecPerPage, paginationStartField 
+				paginationRecPerPage, paginationStartField, apiEndpointDS
 			} = secretData.apiSettings.endPointsGroup;
 
 			this.apiEndpointPath1 = apiEndpointPath[0];
 			this.apiEndpointPathPK1 = apiEndpointPathPK[0];
+			this.apiEndpointDS1 = apiEndpointDS[0];
 
 			if(paginationStartField[0] !== ''){
 				document.querySelector('input[name="userPagination1"]').checked = true;
@@ -195,6 +196,7 @@ export class CatalogForm extends ViewComponent {
 						paginationStartField: paginationStartField[index],
 						paginationLimitField: paginationLimitField[index],
 						paginationRecPerPage: paginationRecPerPage[index],
+						apiEndpointDS: apiEndpointDS[index],
 					};				
 					this.addEndpointFields(details);
 
@@ -357,8 +359,6 @@ export class CatalogForm extends ViewComponent {
 	async createSecret(){
 		const validate = await this.formRef.validate(); 
 		let dbConfig = null, apiSettings = null, updatingSecret;
-		//console.log(`API SETTINGS IS: `, this.parseAPICatalogFields());
-		//return console.log(`TOTAL ERRORS: `, this.formRef.errorCount);
 		
 		if(this.secretType != 2 && this.dataBaseSettingType == null) 
 			return AppTemplate.toast.error('Please select the secret type');
@@ -397,7 +397,7 @@ export class CatalogForm extends ViewComponent {
 			}else{
 				apiSettings = {
 					...this.parseAPICatalogFields(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
-					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value,
+					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value, apiAuthType: this.apiAuthType
 				};
 			}
 			const connectionName = this.dataBaseSettingType != null ? this.connectionName.value : this.apiConnName.value;
@@ -431,9 +431,7 @@ export class CatalogForm extends ViewComponent {
 		this.resetForm();
 	}
 
-	onAPIAuthChange = (type = null) => {
-		return this.apiAuthType = onAPIAuthChange(type);
-	}
+	onAPIAuthChange = (type = null) =>  this.apiAuthType = onAPIAuthChange(type);
 
 	/** @Prop */ useAuth = false;
 	setUseAuth = (value) => {
