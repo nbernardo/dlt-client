@@ -25,7 +25,7 @@ class InputAPI(TemplateNodeType):
             if len(data.keys()) == 0: return None
 
             # Every field in this list will be parse and considerd as pure python code
-            self.parse_to_literal = ['paginate_params','auth_config','auth_strategy']
+            self.parse_to_literal = ['paginate_params','auth_config','auth_strategy','endpoints_params']
 
             self.context = context
             self.connection_name = data['connectionName']
@@ -39,6 +39,10 @@ class InputAPI(TemplateNodeType):
             self.resource_names = secret['apiSettings']['endPointsGroup']['apiEndpointPath']
             self.primary_keys = secret['apiSettings']['endPointsGroup']['apiEndpointPathPK']
             self.data_selectors = secret['apiSettings']['endPointsGroup']['apiEndpointDS']
+            self.endpoints_params = str(secret['apiSettings']['endPointsGroup']['apiEndpointParams'])\
+                                        .replace('\\t','')\
+                                        .replace('\t','')\
+                                        .replace("'",'')
             
             url_status, url_call_error = InputAPI.check_base_url_exists(secret['apiSettings']['apiBaseUrl'])
             if url_status == False:
@@ -90,20 +94,18 @@ class InputAPI(TemplateNodeType):
             connection_type = secret['apiSettings']['apiAuthType']
 
             if connection_type == 'bearer-token':
-                auth_config = "auth=BearerTokenAuth(token=secret['apiSettings']['apiTknValue'])\n"
+                auth_config = "auth=BearerTokenAuth(token=secret['apiSettings']['apiTknValue'])"
                 auth_strategy = 'from dlt.sources.helpers.rest_client.auth import BearerTokenAuth'
             
             if connection_type == 'api-key':
-                auth_config = f"auth=APIKeyAuth(name='{secret['apiSettings']['apiKeyName']}', api_key=secret['apiSettings']['apiKeyValue'], location='header')\n"
+                auth_config = f"auth=APIKeyAuth(name='{secret['apiSettings']['apiKeyName']}', api_key=secret['apiSettings']['apiKeyValue'], location='header')"
                 auth_strategy = 'from dlt.sources.helpers.rest_client.auth import APIKeyAuth'
 
         return auth_config, auth_strategy
 
 
     def check_base_url_exists(url):
-        """
-        Checks if a base URL exists and is reachable.
-        """
+        """ Checks if a base URL exists and is reachable. """
         try:
             response = requests.head(url, timeout=5)  # Set a timeout to prevent indefinite waiting
             if response.status_code == 200:
@@ -116,4 +118,3 @@ class InputAPI(TemplateNodeType):
             return False, f'Timeout error: Request to {url} timed out.'
         except RequestException as e:
             return False, f'An unexpected error occurred for {url}: {e}'
-

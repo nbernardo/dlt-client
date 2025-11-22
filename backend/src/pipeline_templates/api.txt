@@ -15,13 +15,10 @@ from src.utils.APIClientUtil import PaginateParam
 
 # Bellow mapping: connection_name = InputAPI.connection_name
 connection_name = %connection_name%
-
 print('connecting to secrets vault')
 SecretManager.ppline_connect_to_vault()
-
 # Bellow mapping: namespace = InputAPI.namespace
 namespace = %namespace%
-
 print(f'fetching "{connection_name}" secrets for DB connection')
 secret = SecretManager.get_secret(namespace, connection_name)
 
@@ -29,9 +26,12 @@ resource_names = %resource_names%
 data_selectors = %data_selectors%
 primary_keys = %primary_keys%
 paginate_params = %paginate_params%
+endpoints_params = %endpoints_params%
 
-api_client = RESTClient(base_url=%base_url%,%auth_config%)
-
+api_client = RESTClient(
+    base_url=%base_url%,
+    %auth_config%
+)
 
 @dlt.source
 def get_api_data():
@@ -40,7 +40,8 @@ def get_api_data():
             path: str, 
             data_selector: str = None, 
             primary_key: str = None,
-            page_param: PaginateParam = None
+            page_param: PaginateParam = None,
+            path_params = {}
         ):
 
         resource_name = path.split('/')[1]
@@ -61,7 +62,7 @@ def get_api_data():
                 while True:
                     data_fetch = False
                     full_path = path if page == None else f'{path}?{page.start_param}={start}&{page.end_param}={end}'
-                    data = api_client.get(full_path)
+                    data = api_client.get(full_path, path_params)
                     data_fetch = True
                     if data_selector:
                         result = data.json().get(data_selector,[])
@@ -89,8 +90,9 @@ def get_api_data():
 
         return fetch_api_data(path, data_selector, page_param)
     
-    for path, pk, selector, page_params in zip(resource_names, primary_keys, data_selectors, paginate_params):
-        yield generate_source(path, selector, pk, page_params)
+    params_tuple = zip(resource_names, endpoints_params, primary_keys, data_selectors, paginate_params)
+    for path, path_params, pk , selector, page_params in params_tuple:
+        yield generate_source(path, selector, pk, page_params, path_params)
 
 
 ppline_name, output_name = %pipeline_name%, %duckdb_dest%
