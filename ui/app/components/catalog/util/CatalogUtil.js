@@ -154,8 +154,17 @@ export function handleAddEndpointField(endpointCounter, component, details) {
     formGroup1.className = 'form-group use-pagination-field', formGroup2.className = 'form-group use-pagination-field', 
     formGroup3.className = 'form-group use-pagination-field', formGroup4.className = 'form-group use-pagination-check';
 
-    formGroup1.insertAdjacentHTML('afterbegin', `<label>Path</label>`);
-    
+    const addParamsBtn = document.createElement('span');
+    addParamsBtn.className = `add-api-param-btn`;
+    addParamsBtn.textContent = ' (+ Params)';
+    addParamsBtn.onclick = () => component.showEditor(endpointCounter);
+
+    const pathLbl = document.createElement('label');
+    pathLbl.appendChild(document.createTextNode('Path'));
+    pathLbl.appendChild(addParamsBtn);
+
+    formGroup1.insertAdjacentElement('beforeend', pathLbl);
+
     const delEntpointBtn = document.createElement('div');
     delEntpointBtn.className = 'del-endpoint-setting-icon';
     delEntpointBtn.innerText = 'Remove';
@@ -198,6 +207,8 @@ export function handleAddEndpointField(endpointCounter, component, details) {
             component.endpointCounter = component.endpointCounter.value - 1;
         fieldSet.remove();
     }
+
+    fieldSet.insertAdjacentHTML('beforeend',`<div class="api-code-editor-placeholder${endpointCounter}"></div>`);
     document.querySelector(`.catalog-form-secret-api .endpoint-group-config`).appendChild(fieldSet);
 
     if(details){
@@ -345,7 +356,9 @@ function addPaginateFields(self, endpointCounter){
     paginateSetting.appendChild(formGroup5);
     paginateSetting.appendChild(formGroup6);
 
-    document.querySelector(`.endpointSettings${endpointCounter}`).appendChild(paginateSetting);
+    document.querySelector(`.api-code-editor-placeholder${endpointCounter}`).insertAdjacentElement(
+        'beforebegin', paginateSetting
+    );
 
 }
 

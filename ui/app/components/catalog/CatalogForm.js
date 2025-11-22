@@ -27,8 +27,8 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ hideCodeEditor = false;
 	/** @Prop */ apiAuthType = false;
 	/** @Prop @type { Array<HTMLElement> } */ dynamicEndpointsDelButtons = [];
-
 	/** @type { Workspace } */ $parent;
+	/** @Prop */ editorPlaceholder = null;
 
 	// DB catalog/secrets fields
 	dbEngine;
@@ -55,6 +55,7 @@ export class CatalogForm extends ViewComponent {
 	apiEndpointPathPK1;
 	apiEndpointDS1; //To specify the field on the API response where data lies
 	fullEndpointPath = '';
+	/** @Prop */ endPointEditorContent;
 
 	endpointCounter = 1;
 
@@ -64,6 +65,8 @@ export class CatalogForm extends ViewComponent {
 	}
 	
 	async stAfterInit(){
+		this.endPointEditorContent = {};
+		this.editorPlaceholder = null;
 		this.showServiceNameLbl = false;
 		this.dynamicEndpointsDelButtons = [];
 		this.modal = document.getElementById('modal');
@@ -80,19 +83,49 @@ export class CatalogForm extends ViewComponent {
 		this.$parent.controller.leftTab.showLoading = false;
 
 		if(this.secretType == 2) {
-			this.startCodeEditor();
 			this.onAPIAuthChange();
 			this.dataBaseSettingType = null;
 		}
 
 		this.dbEngine.onChange(dbEngine => {
 			if(dbEngine == 'oracle-database-plugin')
-				this.showServiceNameLbl = true;
-			else
-				this.showServiceNameLbl = false;
+				return this.showServiceNameLbl = true;
+			this.showServiceNameLbl = false;
 		});
 
 		this.onEndpointUpdate();
+	}
+
+	showEditor = (placeId) => {
+		const placeholderPrefix = 'api-code-editor-placeholder';
+		const container = document.querySelector(`.${placeholderPrefix}${placeId}`);
+		if(this.editorPlaceholder == placeId){
+			this.editor = null;
+			this.editorPlaceholder = null;
+			container.style="height: 0px;";
+			container.innerHTML = '';
+			return;
+		}else{
+			if(this.editorPlaceholder !== undefined && this.editorPlaceholder !== null){
+				const prevContainer = document.querySelector(`.${placeholderPrefix}${this.editorPlaceholder}`);
+				prevContainer.style="height: 0px;";
+				prevContainer.innerHTML = '';
+			}
+			this.editorPlaceholder = placeId;
+			this.editor = this.$parent.controller.loadMonadoEditor(container, { lang: 'json' });
+			container.style="height: 80px; margin-top: 11px;"
+			let params = this.endPointEditorContent[placeId] || `{ \t"param1": "param1 value" }`;
+
+			this.editor.setValue(params);
+
+			this.editor.onDidChangeModelContent(() => {
+				if(this.editor.getValue() === '')
+					this.endPointEditorContent[placeId] = {};
+				else
+					this.endPointEditorContent[placeId] = this.editor.getValue();
+				//console.log(`TYPED VALUE IS: `, this.editor.getValue());
+			});
+		}
 	}
 
 	onEndpointUpdate(){
@@ -111,13 +144,6 @@ export class CatalogForm extends ViewComponent {
 		this.paginationStartField1.onChange(() => updateFullPath());
 		this.paginationLimitField1.onChange(() => updateFullPath());
 		this.paginationRecPerPage1.onChange(() => updateFullPath());
-	}
-
-	startCodeEditor(){
-		this.editor = this.$parent.controller.loadMonadoEditor(
-			document.getElementById(this.editorId), { lang: 'json' }
-		);
-		this.editor.setValue(`{ \n\t"apiName": "TO BE DEFINED" \n}`);
 	}
 
 	editSecret(type, secretData){
@@ -286,6 +312,7 @@ export class CatalogForm extends ViewComponent {
 			self.apiKeyValue = '';
 			self.apiTknValue = '';
 			self.endpointCounter = 1;
+			self.endPointEditorContent = {};
 			self.onAPIAuthChange(null);
 			document.querySelector('.use-auth-checkbox').checked = false;
 			document.querySelector('.use-auth-secret-input').style.display = 'none';
@@ -460,12 +487,13 @@ export class CatalogForm extends ViewComponent {
 			apiEndpointPath: [this.apiEndpointPath1.value],
 			apiEndpointPathPK : [this.apiEndpointPathPK1.value],
 			apiEndpointDS : [this.apiEndpointDS1.value],
+			apiEndpointParams : [this.endPointEditorContent[1] || {}],
 		}
 
 		const dynamicFields = this.getDynamicFields();
 		const validFieldNames = [
-			'apiEndpointPath','apiEndpointPathPK','apiEndpointDS',
-			'paginationStartField','paginationLimitField','paginationRecPerPage'
+			'apiEndpointPath','apiEndpointPathPK','apiEndpointDS', 'paginationStartField',
+			'paginationLimitField','paginationRecPerPage',
 		];
 
 		let endpointOrderTrace = 2;
@@ -479,6 +507,7 @@ export class CatalogForm extends ViewComponent {
 				const fieldValue = dynamicFields[`${field}${x}`] || '';
 				endPointsGroup[field].push(fieldValue);
 			}
+			endPointsGroup['apiEndpointParams'].push(this.endPointEditorContent[x] || {});
 		}
 
 		return { 

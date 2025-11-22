@@ -166,7 +166,10 @@
                   <legend>Endpoint 1 <span style="font-weight: normal;">@fullEndpointPath</span></legend>
                     <div class="endpoint-data-setting">
                       <div class="form-group use-pagination-field">
-                        <label>Path</label>
+                        <label>
+                          Path 
+                          (<span class="add-api-param-btn" onclick="component.showEditor('1')">+ Params</span>)
+                        </label>
                         <input type="text" class="endpoint-input" (required)="true" (value)="apiEndpointPath1" placeholder="e.g. /transaction/paginate">
                       </div>
       
@@ -208,7 +211,9 @@
                         </div>
                       </span>
 
-                    </div>  
+                    </div>
+                    
+                    <div class="api-code-editor-placeholder1"></div>
                 </fieldset>
               </div>
 
@@ -279,6 +284,9 @@
   </div>
 
   <style>
+
+    .add-api-param-btn { color: blue; text-decoration: underline; cursor: pointer; }
+
     .endpoint-group-config{
       /* box-shadow: inset 0 10px 8px -10px rgba(0, 0, 0, 0.5), inset 0 -10px 8px -10px rgba(0, 0, 0, 0.5); */
       max-height: 45vh; overflow-x: scroll;
