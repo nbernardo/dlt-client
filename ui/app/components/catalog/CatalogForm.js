@@ -176,8 +176,6 @@ export class CatalogForm extends ViewComponent {
 		}
 
 		if(this.secretType == 2){
-			console.log(`THE DATA IS: `,secretData.apiSettings);
-			
 			if(secretData.apiSettings.apiKeyName.trim() !== ''){
 				this.apiKeyName = secretData.apiSettings.apiKeyName;
 				this.apiKeyValue = secretData.apiSettings.apiKeyValue;
@@ -271,11 +269,10 @@ export class CatalogForm extends ViewComponent {
 		if(document.querySelector('.first-secret-field')) document.querySelector('.first-secret-field').value = '';
 	}
 
-	showDialog(reset = false){
-
+	showDialog(reset = false, type = null){		
+		if(type === 'api') this.markRequiredApiFields(true);
 		if(reset){
-			this.isNewSecret = true;
-			this.resetForm();
+			this.isNewSecret = true, this.resetForm();
 		}
 
 		document.querySelector('.db-connection-name').disabled = false;
@@ -299,18 +296,12 @@ export class CatalogForm extends ViewComponent {
 			self.dataBaseSettingType = null;
 			self.modal.style.display = 'none';
 			self.showAddSecrete = false;
-			self.firstKey = '';
-			self.firstValue = '';
-			self.apiBaseUrl = '';
-			self.apiConnName = '';
-			self.apiEndpointPath1 = '';
-			self.apiEndpointPathPK1 = '';
-			self.paginationStartField1 = '';
-			self.paginationLimitField1 = '';
-			self.paginationRecPerPage1 = '';
-			self.apiKeyName = '';
-			self.apiKeyValue = '';
-			self.apiTknValue = '';
+			self.firstKey = '', self.firstValue = '';
+			self.apiBaseUrl = '', self.apiConnName = '';
+			self.apiEndpointPath1 = '', self.apiEndpointPathPK1 = '';
+			self.paginationStartField1 = '', self.paginationLimitField1 = '';
+			self.paginationRecPerPage1 = '', self.apiKeyName = '';
+			self.apiKeyValue = '', self.apiTknValue = '';
 			self.endpointCounter = 1;
 			self.endPointEditorContent = {};
 			self.onAPIAuthChange(null);
@@ -319,6 +310,7 @@ export class CatalogForm extends ViewComponent {
 			document.querySelectorAll('input[name="userPagination1"]')[1].click();
 			document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.checked = false);
 			self.isNewSecret = false;
+			self.markRequiredApiFields(false);
 			
 			for(const btn of self.dynamicEndpointsDelButtons)
 				btn.click();
@@ -519,10 +511,13 @@ export class CatalogForm extends ViewComponent {
 
 	showPaginateEndpoint = () => showHidePaginateEndpoint(1, true);
 	hidePaginateEndpoint = () => {
-		this.paginationStartField1 = '';
-		this.paginationLimitField1 = '';
-		this.paginationRecPerPage1 = '';
+		this.paginationStartField1 = '', this.paginationLimitField1 = '', this.paginationRecPerPage1 = '';
 		showHidePaginateEndpoint(1, false);
+	}
+
+	markRequiredApiFields = (flag) => {
+		if(flag) document.querySelectorAll('.api-required-field').forEach(ipt => ipt.setAttribute('required',true));
+		else document.querySelectorAll('.api-required-field').forEach(ipt => ipt.removeAttribute('required'));
 	}
 
 }

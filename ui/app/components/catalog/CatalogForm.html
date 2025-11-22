@@ -143,13 +143,13 @@
                 <div>
                   <label>Unique name</label>
                   <div style="margin-top: 5px;">
-                    <input (value)="apiConnName" (required)="true" data="unique-api-name" class="unique-api-name" type="text" placeholder="e.g. Inventory API">
+                    <input (value)="apiConnName" data="unique-api-name" class="unique-api-name api-required-field" type="text" placeholder="e.g. Inventory API">
                   </div>
                 </div>
                 <div>
                   <label>Base Url</label>
                   <div style="margin-top: 5px;">
-                    <input (value)="apiBaseUrl" (required)="true" class="unique-api-name" type="text" placeholder="e.g. https://api.mycompany.com">
+                    <input (value)="apiBaseUrl" class="unique-api-url api-required-field" type="text" placeholder="e.g. https://api.mycompany.com">
                   </div>
                 </div>
               </div>
@@ -170,7 +170,7 @@
                           Path 
                           (<span class="add-api-param-btn" onclick="component.showEditor('1')">+ Params</span>)
                         </label>
-                        <input type="text" class="endpoint-input" (required)="true" (value)="apiEndpointPath1" placeholder="e.g. /transaction/paginate">
+                        <input type="text" class="endpoint-input api-required-field" (value)="apiEndpointPath1" placeholder="e.g. /transaction/paginate">
                       </div>
       
                       <div class="form-group use-pagination-field">
@@ -323,7 +323,7 @@
    .endpoint-paginate-setting input{ width: 150px; }
 
   .bold-lbl { font-weight: bold; }
-  .unique-api-name{ width: 100%; }
+  .unique-api-name, .unique-api-url{ width: 100%; }
   .api-setting-content{ margin-top: 4px; width: 100%; }
 
 	.hidden-secret-value{

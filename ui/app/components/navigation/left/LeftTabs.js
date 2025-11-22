@@ -188,7 +188,7 @@ export class LeftTabs extends ViewComponent {
 
 	openSecretForm = async (secretName, secretType) => {
 		if(!secretName || !secretType)
-			return this.$parent.controller.catalogForm.showDialog(true);
+			return this.$parent.controller.catalogForm.showDialog(true, secretType);
 		const data = await WorkspaceService.fetchSecret(secretName, secretType);
 		this.$parent.controller.catalogForm.editSecret(secretType, {...data, secretName});
 	}

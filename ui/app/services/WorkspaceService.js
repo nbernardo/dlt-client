@@ -66,7 +66,7 @@ export class WorkspaceService extends BaseService {
 
     async getParsedTables(socketId) {
 
-        if(this.parsedTableListStore.value.length == 0){
+        //if(this.parsedTableListStore.value.length == 0){
 
             const result = await this.getDuckDbs(socketId);
             const data = Object.entries(result);
@@ -82,7 +82,7 @@ export class WorkspaceService extends BaseService {
             }
 
             this.parsedTableListStore = tables;
-        }
+        //}
 
         return this.parsedTableListStore.value;
 
@@ -345,7 +345,7 @@ export class WorkspaceService extends BaseService {
             if(type == 1 && Array.isArray(secretList?.db_secrets))
 				secretAndServerList = secretList.db_secrets.map(secret => ({ name: secret, host: secretList.metadata[secret] || 'None' }));
 			
-            return secretAndServerList.length > 0 ? secretAndServerList : [];
+            return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
 
         } else {
             const result = await response.json();

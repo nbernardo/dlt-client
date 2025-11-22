@@ -22,15 +22,25 @@ export class InputAPI extends ViewComponent {
 	host = '';
 	totalEndpoints = '';
 	selectedSecret;
+	/** @Prop */ isImport;
+	/** @Prop */ importData = null;
 
-	async stOnRender({ nodeId }){
-		this.nodeId = nodeId;
+	async stOnRender(data){
+		const { nodeId } = data;
+		this.importData = data;
+		this.nodeId = nodeId;		
 	}
 
 	async stAfterInit(){
 		this.secretsList = await WorkspaceService.listSecrets(2);
-		
 		this.showLoading = false;
+
+		if(this.importData){			
+			this.host = this.importData.baseUrl;
+			this.selectedSecret = this.importData.connectionName;
+			const selectedSecret = this.secretsList.value.find(obj => obj.name === this.selectedSecret.value);
+			this.totalEndpoints = selectedSecret.totalEndpoints || '';
+		}
 
 		this.selectedSecret.onChange(value => {
 			const selectedSecret = this.secretsList.value.find(obj => obj.name === value);
