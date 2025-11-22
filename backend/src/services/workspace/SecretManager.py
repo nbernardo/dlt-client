@@ -134,7 +134,7 @@ class SecretManager(SecretManagerType):
 
 
     def get_secret(namespace, path, edit=False):
-        if not edit:
+        if not edit and not str(path).startswith('main/db/'):
             path = 'metadata' if path == 'metadata' else 'main/api/'+path
         secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
             path=path,
