@@ -99,7 +99,22 @@ class SecretManager(SecretManagerType):
                 mount_point=namespace,
                 path=path,
                 secret=params
-            ) 
+            )
+
+        SecretManager.save_api_secret_metadata(namespace, path, params)
+
+    
+    def save_api_secret_metadata(namespace, path, params):
+        path_pieces = str(path).split('/')
+        if len(path_pieces) >= 2:
+            if path_pieces[-2] == 'api':
+                api_metadata = { 
+                    path_pieces[-1] : {
+                        'host': params['apiSettings']['apiBaseUrl'],
+                        'totalEndpoints': len(params['apiSettings']['endPointsGroup']['apiEndpointPath'])
+                    }
+                }
+                SecretManager.save_secrets_metadata(namespace, api_metadata)
         
             
     def create_db_secret(namespace, params: dict, path):
@@ -118,7 +133,9 @@ class SecretManager(SecretManagerType):
         SecretManager.save_secrets_metadata(namespace, { config['connectionName'] : config['host'] })
 
 
-    def get_secret(namespace, key=None, path = 'main/api/'):
+    def get_secret(namespace, path, edit=False):
+        if not edit and not str(path).startswith('main/db/'):
+            path = 'metadata' if path == 'metadata' else 'main/api/'+path
         secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
             path=path,
             mount_point=namespace,
@@ -126,8 +143,6 @@ class SecretManager(SecretManagerType):
         )
 
         data = secrets['data']['data']
-        if key != None:
-            return secrets['data']['data'][key]
         return data
 
 
@@ -159,7 +174,7 @@ class SecretManager(SecretManagerType):
         metadata = {}
         db_secrets
         if(len(db_secrets) or len(api_secrets)):
-            metadata = SecretManager.get_secret(namespace, key=None, path='metadata')
+            metadata = SecretManager.get_secret(namespace, path='metadata')
 
         return {
             'db_secrets': db_secrets,
@@ -170,7 +185,7 @@ class SecretManager(SecretManagerType):
 
     def save_secrets_metadata(namespace, new_data):
         try:
-            metadata = SecretManager.get_secret(namespace, key=None, path='metadata')
+            metadata = SecretManager.get_secret(namespace, path='metadata')
             metadata = { **metadata, **new_data, 'dbConfig': {} }
             SecretManager.create_secret(namespace, metadata, path='metadata')
         except InvalidPath:
@@ -179,7 +194,7 @@ class SecretManager(SecretManagerType):
 
     def get_db_secret(namespace, connection_name):
         path = f'main/db/{connection_name}'
-        return SecretManager.get_secret(namespace,key=None,path=path)
+        return SecretManager.get_secret(namespace, path=path)
             
 
 

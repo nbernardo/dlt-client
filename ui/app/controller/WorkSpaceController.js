@@ -437,6 +437,8 @@ export class WorkSpaceController extends BaseController {
         });
 
         socket.on('pplineStepSuccess', ({ componentId, sid }) => {
+            if (!this.pplineSteps[sid]) this.pplineSteps[sid] = new Set();
+            this.pplineSteps[sid].add(componentId);
             const nodeId = this.cmpIdToNodeIdMap[componentId];
             const node = WorkSpaceController.getNode(nodeId);
             if (Object.keys(node.outputs).length > 0)

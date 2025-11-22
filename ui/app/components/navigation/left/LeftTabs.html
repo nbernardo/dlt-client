@@ -149,9 +149,9 @@
                 </span>
             </div>
 
-            <div class="content-panel content-diagram">
+            <div class="content-panel content-diagram" style="border-left: 1px;">
                 <h3>Pipeline Design</h3>
-                <section id="draw-diagram-tab" class="tab-panel">
+                <section id="draw-diagram-tab" style="border-left: 1px solid lightgray; height: 100vh;" class="tab-panel">
                     <span (forEach)="objectTypes">
                         <st-element component="ObjectType" each="item"></st-element>
                     </span>
@@ -183,7 +183,7 @@
                     </div>
                 </div> -->
 
-                <div class="catalog-db-addnew" onclick="component.openSecretForm()">
+                <div class="catalog-db-addnew" onclick="component.openSecretForm(null,'api')">
                     <img src="app/assets/imgs/left-menu/api-cat-icon.png" width="20" height="20"> &nbsp;New API settings
                 </div>
 
@@ -507,6 +507,8 @@
         }
 
     }
+
+    .content-diagram { border-left: 1px solid; }
 
     #tab-outputs:checked~.app-container .content-outputs,
     #tab-data-source:checked~.app-container .content-data-source,

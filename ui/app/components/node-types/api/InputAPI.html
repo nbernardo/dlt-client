@@ -1,0 +1,45 @@
+<div class="@cmpInternalId">
+	<div class="title-box">
+		<div>
+			<img src="app/assets/imgs/api-source.svg" width="20">
+			@label
+		</div>
+		<div class="statusicon"></div>
+	</div>
+	<st-loader 
+		small center
+		(showIf)="self.showLoading" 
+		topPadding="50"
+		(label)="Fetching API catalog..."/>
+	
+	<div class="box @formWrapClass">
+		<span (showIf)="!self.showLoading">
+			<form (formRef)="formRef" onsubmit="return false;">
+				<select
+					(forEach)="secretsList" 
+					(value)="selectedSecret"
+					placeholder="Select API connection"
+					>
+					<option each="item" value="{item.name}">{item.name}</option>
+				</select>
+				<div class="input-endpoint-data">
+					<p>
+						<b>Host:</b> 
+						<div style="color: rgb(32, 32, 107); padding-top: 3px;">@host</div>
+					</p>
+				</div>
+				<div class="input-endpoint-data">
+					<p><b>Total endpoints:</b> @totalEndpoints</p>
+				</div>
+			</form>
+		</span>
+	</div>
+</div>
+<style>
+
+	.parent-node .InputAPI { width: 200px; z-index: 1; }
+
+	.input-endpoint-data {
+		padding-top: 5px;
+	}
+</style>

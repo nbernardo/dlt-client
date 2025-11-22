@@ -474,7 +474,7 @@ export class Components {
 
                     cmp.__defineSetter__(field, (val) => {
                         // This is to address the initial assignment for child component having (showIf) since ths instantiation is automatically by handleInPartsImpl
-                        if (typeof val === 'object') {
+                        if (typeof val === 'object' && val !== null) {
                             if ('v' in val) {
                                 val = val.v; delete cmp.st_flag_ini_val[field];
                             }

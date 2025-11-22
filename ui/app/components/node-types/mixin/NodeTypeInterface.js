@@ -3,6 +3,7 @@
  */
 export class NodeTypeInterface {
 
+	nodeId;
 	inConnectors;
 	outConnectors;
 	formRef;

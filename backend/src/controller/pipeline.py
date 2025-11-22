@@ -281,7 +281,14 @@ def parse_node(connections, node_params, data_place, context: RequestContext, no
                 for field in node.__dict__.keys():
                     if field not in escape_component_field:
                         data = node.__dict__[f'{field}']
-                        data_place[f'%{field}%'] = f'"{data}"' if type(data) == str else data
+
+                        if 'parse_to_literal' in node.__dict__:
+                            if node.__dict__['parse_to_literal'].__contains__(field):
+                                data_place[f'%{field}%'] = data
+                            else:
+                                data_place[f'%{field}%'] = f'"{data}"' if type(data) == str else data
+                        else:
+                            data_place[f'%{field}%'] = f'"{data}"' if type(data) == str else data
 
                 if node.run() is RequestContext.FAILED:
                     break

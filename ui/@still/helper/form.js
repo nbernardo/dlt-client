@@ -2,7 +2,7 @@ import { BehaviorComponent } from "../component/super/BehaviorComponent.js";
 import { ViewComponent } from "../component/super/ViewComponent.js";
 import { STForm } from "../component/type/ComponentType.js";
 
-class InParams {
+export class InParams {
     className; 
     id; 
     datasets = {}; 
@@ -67,8 +67,9 @@ export const FormHelper = {
     * @param { String } fName Field name */
    delField(cmp, formRef, fName){        
         delete BehaviorComponent.currentFormsValidators[cmp.cmpInternalId+'-'+formRef.name][fName];
+        delete cmp[fName];
         const inpt = document.getElementsByClassName(`listenChangeOn-${cmp.cmpInternalId}-${fName}`)[0];
-        inpt.parentElement.removeChild(inpt);
+        inpt?.parentElement?.removeChild(inpt);
     }
 }
 

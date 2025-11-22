@@ -4,6 +4,7 @@ import { StillHTTPClient } from "../../@still/helper/http.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
+import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
@@ -42,6 +43,7 @@ export class WorkspaceService extends BaseService {
         { icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
         { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
         { imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
+        { imgIcon: 'app/assets/imgs/api-source.svg', label: 'Source - API', typeName: InputAPI.name },
         { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: null, disable: 'yes', name: 'DLT-class' },
         { 
             imgIcon: 'app/assets/imgs/language-python-text-svgrepo-com.svg', 
@@ -64,7 +66,7 @@ export class WorkspaceService extends BaseService {
 
     async getParsedTables(socketId) {
 
-        if(this.parsedTableListStore.value.length == 0){
+        //if(this.parsedTableListStore.value.length == 0){
 
             const result = await this.getDuckDbs(socketId);
             const data = Object.entries(result);
@@ -80,7 +82,7 @@ export class WorkspaceService extends BaseService {
             }
 
             this.parsedTableListStore = tables;
-        }
+        //}
 
         return this.parsedTableListStore.value;
 
@@ -330,14 +332,20 @@ export class WorkspaceService extends BaseService {
 
             const secretList = (await response.json()).result;
             let secretAndServerList;
-            
+
             if(type == 2 && Array.isArray(secretList?.api_secrets))
-				secretAndServerList = secretList.api_secrets.map(secret => ({ name: secret, host: 'None' }))
+				secretAndServerList = secretList.api_secrets.map(secret => {
+                return { 
+                    name: secret, 
+                    host: secretList.metadata[secret].host, 
+                    totalEndpoints: secretList.metadata[secret].totalEndpoints 
+                }
+            })
             
             if(type == 1 && Array.isArray(secretList?.db_secrets))
 				secretAndServerList = secretList.db_secrets.map(secret => ({ name: secret, host: secretList.metadata[secret] || 'None' }));
 			
-            return secretAndServerList.length > 0 ? secretAndServerList : [];
+            return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
 
         } else {
             const result = await response.json();

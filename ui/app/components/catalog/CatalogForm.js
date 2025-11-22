@@ -5,6 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
+import { CatalogEndpointType, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, viewSecretValue } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -23,19 +24,40 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ secretType = 1;
 	/** @Prop */ editorId = '_'+UUIDUtil.newId();
 	/** @Prop */ isNewSecret = false;
-
+	/** @Prop */ hideCodeEditor = false;
+	/** @Prop */ apiAuthType = false;
+	/** @Prop @type { Array<HTMLElement> } */ dynamicEndpointsDelButtons = [];
 	/** @type { Workspace } */ $parent;
+	/** @Prop */ editorPlaceholder = null;
 
+	// DB catalog/secrets fields
 	dbEngine;
 	dbHost;
 	dbPort;
 	dbName;
 	dbUser;
+	connectionName;
 	
 	// Bellow State variables are shared between API and DB secret creation
 	firstKey;
 	firstValue;
-	connectionName;
+	
+	// API catalog/secrets variables
+	apiConnName;
+	apiKeyName;
+	apiKeyValue;
+	apiTknValue;
+	paginationStartField1;
+	paginationLimitField1;
+	paginationRecPerPage1 = 100; //Record per pages
+	apiBaseUrl;
+	apiEndpointPath1;
+	apiEndpointPathPK1;
+	apiEndpointDS1; //To specify the field on the API response where data lies
+	fullEndpointPath = '';
+	/** @Prop */ endPointEditorContent;
+
+	endpointCounter = 1;
 
 	stOnRender = ({ type }) => {
 		type && (this.secretType = type);
@@ -43,13 +65,16 @@ export class CatalogForm extends ViewComponent {
 	}
 	
 	async stAfterInit(){
+		this.endPointEditorContent = {};
+		this.editorPlaceholder = null;
 		this.showServiceNameLbl = false;
+		this.dynamicEndpointsDelButtons = [];
 		this.modal = document.getElementById('modal');
 		//this.openModal = document.getElementById('openModal');
 		this.closeModal = document.getElementById('closeModal');
 		this.handleModalCall();
 		const secretList = await WorkspaceService.listSecrets(this.secretType);
-		
+				
 		if(this.secretType == 2)
 			this.$parent.controller.leftTab.apiSecretsList = secretList;
 		else
@@ -58,24 +83,67 @@ export class CatalogForm extends ViewComponent {
 		this.$parent.controller.leftTab.showLoading = false;
 
 		if(this.secretType == 2) {
-			this.markAPIFieldsAsRequired();
-			this.startCodeEditor();
-			this.addSecreteGroup(true);
+			this.onAPIAuthChange();
+			this.dataBaseSettingType = null;
 		}
 
 		this.dbEngine.onChange(dbEngine => {
 			if(dbEngine == 'oracle-database-plugin')
-				this.showServiceNameLbl = true;
-			else
-				this.showServiceNameLbl = false;
+				return this.showServiceNameLbl = true;
+			this.showServiceNameLbl = false;
 		});
+
+		this.onEndpointUpdate();
 	}
 
-	startCodeEditor(){
-		this.editor = this.$parent.controller.loadMonadoEditor(
-			document.getElementById(this.editorId), { lang: 'json' }
-		);
-		this.editor.setValue(`{ \n\t"apiName": "TO BE DEFINED" \n}`);
+	showEditor = (placeId) => {
+		const placeholderPrefix = 'api-code-editor-placeholder';
+		const container = document.querySelector(`.${placeholderPrefix}${placeId}`);
+		if(this.editorPlaceholder == placeId){
+			this.editor = null;
+			this.editorPlaceholder = null;
+			container.style="height: 0px;";
+			container.innerHTML = '';
+			return;
+		}else{
+			if(this.editorPlaceholder !== undefined && this.editorPlaceholder !== null){
+				const prevContainer = document.querySelector(`.${placeholderPrefix}${this.editorPlaceholder}`);
+				prevContainer.style="height: 0px;";
+				prevContainer.innerHTML = '';
+			}
+			this.editorPlaceholder = placeId;
+			this.editor = this.$parent.controller.loadMonadoEditor(container, { lang: 'json' });
+			container.style="height: 80px; margin-top: 11px;"
+			let params = this.endPointEditorContent[placeId] || `{ \t"param1": "param1 value" }`;
+
+			this.editor.setValue(params);
+
+			this.editor.onDidChangeModelContent(() => {
+				if(this.editor.getValue() === '')
+					this.endPointEditorContent[placeId] = {};
+				else
+					this.endPointEditorContent[placeId] = this.editor.getValue();
+				//console.log(`TYPED VALUE IS: `, this.editor.getValue());
+			});
+		}
+	}
+
+	onEndpointUpdate(){
+		const self = this;
+		function updateFullPath(){
+
+			const path = self.apiEndpointPath1.value;
+			const offset = self.paginationStartField1.value;
+			const limit = self.paginationLimitField1.value;
+			const batchSize = self.paginationRecPerPage1.value;
+			self.fullEndpointPath = parseEndpointPath(path, offset, limit, batchSize)
+
+		}
+
+		this.apiEndpointPath1.onChange(() => updateFullPath());
+		this.paginationStartField1.onChange(() => updateFullPath());
+		this.paginationLimitField1.onChange(() => updateFullPath());
+		this.paginationRecPerPage1.onChange(() => updateFullPath());
 	}
 
 	editSecret(type, secretData){
@@ -108,16 +176,66 @@ export class CatalogForm extends ViewComponent {
 		}
 
 		if(this.secretType == 2){
+			if(secretData.apiSettings.apiKeyName.trim() !== ''){
+				this.apiKeyName = secretData.apiSettings.apiKeyName;
+				this.apiKeyValue = secretData.apiSettings.apiKeyValue;
+				document.querySelector('.use-auth-secret-input').value = 'api-key';
+				this.onAPIAuthChange('api-key');
+				document.querySelector('.use-auth-checkbox').click();
+			}else if(secretData.apiSettings.apiTknValue.trim() !== ''){
+				this.apiTknValue = secretData.apiSettings.apiTknValue;
+				document.querySelector('.use-auth-secret-input').value = 'bearer-token';
+				this.onAPIAuthChange('bearer-token');
+				document.querySelector('.use-auth-checkbox').click();
+			}
+
+			this.dataBaseSettingType = null;
+			const { 
+				apiEndpointPath, apiEndpointPathPK, paginationLimitField, 
+				paginationRecPerPage, paginationStartField, apiEndpointDS
+			} = secretData.apiSettings.endPointsGroup;
+
+			this.apiEndpointPath1 = apiEndpointPath[0];
+			this.apiEndpointPathPK1 = apiEndpointPathPK[0];
+			this.apiEndpointDS1 = apiEndpointDS[0];
+
+			if(paginationStartField[0] !== ''){
+				document.querySelector('input[name="userPagination1"]').checked = true;
+				this.showPaginateEndpoint();
+				this.paginationStartField1 = paginationStartField[0];
+				this.paginationLimitField1 = paginationLimitField[0];
+				this.paginationRecPerPage1 = paginationRecPerPage[0];
+			}
+
+			this.endpointCounter = 1;
+			for(const idx in paginationStartField.slice(1)){
+				const index = Number(idx) + 1;
+
+				if(apiEndpointPath[index]){
+
+					/** @type { CatalogEndpointType } */
+					const details = { 
+						apiEndpointPath: apiEndpointPath[index],
+						apiEndpointPathPK: apiEndpointPathPK[index],
+						paginationStartField: paginationStartField[index],
+						paginationLimitField: paginationLimitField[index],
+						paginationRecPerPage: paginationRecPerPage[index],
+						apiEndpointDS: apiEndpointDS[index],
+					};				
+					this.addEndpointFields(details);
+
+				}
+			}
+
+			this.apiBaseUrl = secretData.apiSettings.apiBaseUrl;
+			this.apiConnName = secretData.connectionName;
+
 			this.showDialog();
 			document.querySelector('.unique-api-name').disabled = true;
-			document.querySelector('.catalog-form-secret-api .first-secret-field').value = secretData.env['val1-secret'];
-			this.editor.setValue(secretData.apiSettings);
+			//document.querySelector('.catalog-form-secret-api .first-secret-field').value = secretData.env['val1-secret'];
+			//this.editor.setValue(secretData.apiSettings);
 		}
 		document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.disabled = true);
-	}
-
-	markAPIFieldsAsRequired(){
-		document.querySelectorAll('.catalog-form-secret-api input').forEach(inpt => inpt.setAttribute('required', true));
 	}
 
 	changeType(value){
@@ -151,11 +269,10 @@ export class CatalogForm extends ViewComponent {
 		if(document.querySelector('.first-secret-field')) document.querySelector('.first-secret-field').value = '';
 	}
 
-	showDialog(reset = false){
-
+	showDialog(reset = false, type = null){		
+		if(type === 'api') this.markRequiredApiFields(true);
 		if(reset){
-			this.isNewSecret = true;
-			this.resetForm();
+			this.isNewSecret = true, this.resetForm();
 		}
 
 		document.querySelector('.db-connection-name').disabled = false;
@@ -169,23 +286,39 @@ export class CatalogForm extends ViewComponent {
 	handleModalCall(){
 		const self = this;
 		//this.openModal.addEventListener('click', () => self.modal.style.display = 'flex');
-		this.closeModal.addEventListener('click', () => resetForm());
-		window.addEventListener('click', (e) => e.target === modal ? resetForm() : '');
+		this.closeModal.addEventListener('click', () => localResetForm());
+		window.addEventListener('click', (e) => e.target === modal ? localResetForm() : '');
 
-		function resetForm(){
+		function localResetForm(){
 			document.querySelector('.save-secret-btn').style.display = '';
 			document.querySelector('.btn-add-secret').disabled = false;
-			self.dataBaseSettingType = 0;
+			document.querySelector('input[data="unique-api-name"]').disabled = false;
+			self.dataBaseSettingType = null;
 			self.modal.style.display = 'none';
 			self.showAddSecrete = false;
-			self.firstKey = '';
-			self.firstValue = '';
+			self.firstKey = '', self.firstValue = '';
+			self.apiBaseUrl = '', self.apiConnName = '';
+			self.apiEndpointPath1 = '', self.apiEndpointPathPK1 = '';
+			self.paginationStartField1 = '', self.paginationLimitField1 = '';
+			self.paginationRecPerPage1 = '', self.apiKeyName = '';
+			self.apiKeyValue = '', self.apiTknValue = '';
+			self.endpointCounter = 1;
+			self.endPointEditorContent = {};
+			self.onAPIAuthChange(null);
+			document.querySelector('.use-auth-checkbox').checked = false;
+			document.querySelector('.use-auth-secret-input').style.display = 'none';
+			document.querySelectorAll('input[name="userPagination1"]')[1].click();
 			document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.checked = false);
 			self.isNewSecret = false;
+			self.markRequiredApiFields(false);
+			
+			for(const btn of self.dynamicEndpointsDelButtons)
+				btn.click();
+			self.dynamicEndpointsDelButtons = [];
 		}
 	}
 
-	addSecreteGroup(initial = false){
+	addSecreteGroup(initial = false, valueRequired = true){
 		
 		let type = 'secret';
 		let targetForm = 'catalog-form-secret-api';
@@ -196,7 +329,7 @@ export class CatalogForm extends ViewComponent {
 		}
 		
 		this.dynamicFieldCount++;
-		const value = targetForm.endsWith('api') ? 'API_KEY' : initial ? 'DB_PASSWORD' : '';
+		const value = targetForm.endsWith('api') ? 'API_TOKEN' : initial ? 'DB_PASSWORD' : '';
 		const disabled = initial ? true : false;
 		
 		let fieldName = `key${this.dynamicFieldCount}-${type}`;
@@ -206,7 +339,7 @@ export class CatalogForm extends ViewComponent {
 
 		fieldName = `val${this.dynamicFieldCount}-${type}`;
 		const secretValField = FormHelper.newField(this, this.formRef, fieldName)
-			.input({ required: true, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-secret-field' : '' })
+			.input({ required: valueRequired, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-secret-field' : '' })
 			.element;
 
 		this.addSecreteField(secretKeyField, targetForm, null, fieldName);
@@ -233,26 +366,7 @@ export class CatalogForm extends ViewComponent {
 		document.querySelector(`.${targetForm} ${subContainer}`).appendChild(div);
 	}
 
-	viewSecretValue(fieldContainer){
-
-		let type = 'catalog-form-secret-api', secretType = '-api';
-		if(this.dataBaseSettingType !== null && this.secretType != 2){
-			type = this.dataBaseSettingType == 1 ? 'catalog-form-db-fields' : 'catalog-form-secret-group';
-			secretType = this.dataBaseSettingType == 1 ? '-db' : '';
-		}
-
-		const clsName = fieldContainer == 'initial' ? `.initial-secret-field${secretType}` : `.${type} .${fieldContainer}`;
-		const currentVal = document.querySelector(`${clsName} input`).type;
-		
-		if(currentVal == 'text') {
-			document.querySelector(`${clsName} input`).type = 'password';
-			document.querySelector(`${clsName} img`).src = 'app/assets/imgs/view-svgrepo-com.svg';
-		}else{
-			document.querySelector(`${clsName} input`).type = 'text';
-			document.querySelector(`${clsName} img`).src = 'app/assets/imgs/view-hide-svgrepo-com.svg';
-		}
-
-	}
+	viewSecretValue = (fieldContainer) => viewSecretValue(fieldContainer, this.dataBaseSettingType, this.secretType);
 
 	removeField = (fieldName) => {
 		FormHelper.delField(this,this.formRef,fieldName);
@@ -299,11 +413,15 @@ export class CatalogForm extends ViewComponent {
 				if(updatingSecret.updatingId && this.isNewSecret){
 					return AppTemplate.toast.error(`Secret with name ${this.connectionName.value} already exists`);
 				}
-			}else
-				apiSettings = this.editor.getValue();
-			
+			}else{
+				apiSettings = {
+					...this.parseAPICatalogFields(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
+					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value, apiAuthType: this.apiAuthType
+				};
+			}
+			const connectionName = this.dataBaseSettingType != null ? this.connectionName.value : this.apiConnName.value;
 			const result = await WorkspaceService.createSecret({ 
-				env: this.getDynamicFields(), dbConfig, apiSettings, 'connectionName': this.connectionName.value 
+				env: this.getDynamicFields(), dbConfig, apiSettings, connectionName
 			});
 
 			if(result === true && this.dataBaseSettingType != null)
@@ -330,6 +448,76 @@ export class CatalogForm extends ViewComponent {
 		if(updatingId === null) updatedSecrets.push({ name: this.connectionName.value, host });
 		this.$parent.controller.leftTab.dbSecretsList = updatedSecrets;
 		this.resetForm();
+	}
+
+	onAPIAuthChange = (type = null) =>  this.apiAuthType = onAPIAuthChange(type);
+
+	/** @Prop */ useAuth = false;
+	setUseAuth = (value) => {
+		if(!value) {
+			this.apiKeyName = null;
+			this.apiKeyValue = null;
+			this.apiTknValue = null;
+			this.onAPIAuthChange(null);
+			document.querySelector('.use-auth-secret-input').value = '';
+		}
+		document.querySelector('.catalog-form-secret-api .use-auth-secret-input').style.display = value ? '' : 'none';
+	}
+
+	/** @param { CatalogEndpointType } details */
+	addEndpointFields = (details = null) => {
+		this.endpointCounter = this.endpointCounter.value + 1;
+		handleAddEndpointField(this.endpointCounter.value, this, details);
+	}
+
+	parseAPICatalogFields(){
+
+		const endPointsGroup = {
+			paginationStartField: [this.paginationStartField1.value],
+			paginationLimitField: [this.paginationLimitField1.value],
+			paginationRecPerPage: [this.paginationRecPerPage1.value],
+			apiEndpointPath: [this.apiEndpointPath1.value],
+			apiEndpointPathPK : [this.apiEndpointPathPK1.value],
+			apiEndpointDS : [this.apiEndpointDS1.value],
+			apiEndpointParams : [this.endPointEditorContent[1] || {}],
+		}
+
+		const dynamicFields = this.getDynamicFields();
+		const validFieldNames = [
+			'apiEndpointPath','apiEndpointPathPK','apiEndpointDS', 'paginationStartField',
+			'paginationLimitField','paginationRecPerPage',
+		];
+
+		let endpointOrderTrace = 2;
+		while(true){
+			const x = endpointOrderTrace++;
+			const apiPath = dynamicFields[`apiEndpointPath${x}`];
+			if(apiPath === null) continue;
+			if(apiPath === undefined) break;
+			
+			for(const field of validFieldNames){
+				const fieldValue = dynamicFields[`${field}${x}`] || '';
+				endPointsGroup[field].push(fieldValue);
+			}
+			endPointsGroup['apiEndpointParams'].push(this.endPointEditorContent[x] || {});
+		}
+
+		return { 
+			apiBaseUrl: this.apiBaseUrl.value, apiKeyName: this.apiKeyName.value,
+			apiKeyValue: this.apiKeyValue.value, apiTknValue: this.apiTknValue.value,
+			endPointsGroup
+		}
+	}
+
+	showPaginateEndpoint = () => showHidePaginateEndpoint(1, true);
+	hidePaginateEndpoint = () => {
+		this.paginationStartField1 = '', this.paginationLimitField1 = '', this.paginationRecPerPage1 = '';
+		showHidePaginateEndpoint(1, false);
+	}
+
+	markRequiredApiFields = (flag) => {
+		if(flag) document.querySelectorAll('.api-required-field').forEach(ipt => ipt.setAttribute('required',true));
+		else document.querySelectorAll('.api-required-field').forEach(ipt => ipt.removeAttribute('required'));
 	}
 
 }

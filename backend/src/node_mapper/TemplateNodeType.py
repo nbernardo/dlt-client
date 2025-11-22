@@ -8,6 +8,7 @@ class TemplateNodeType:
         self.template = None
         self.context = context
         self.component_id = None
+        self.parse_to_literal = []
 
 
     def run(self):

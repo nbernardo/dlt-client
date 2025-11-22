@@ -138,21 +138,136 @@
 
         <span (showIf)="self.secretType == 2">
             <span class="catalog-form-secret-api">
-              <div>
-                <label>Unique name</label>
-                <div style="margin-top: 5px;">
-                  <input (value)="connectionName" class="unique-api-name" type="text" placeholder="e.g. Inventory API - Products Endpoint">
+
+              <div class="modal-body">
+                <div>
+                  <label>Unique name</label>
+                  <div style="margin-top: 5px;">
+                    <input (value)="apiConnName" data="unique-api-name" class="unique-api-name api-required-field" type="text" placeholder="e.g. Inventory API">
+                  </div>
+                </div>
+                <div>
+                  <label>Base Url</label>
+                  <div style="margin-top: 5px;">
+                    <input (value)="apiBaseUrl" class="unique-api-url api-required-field" type="text" placeholder="e.g. https://api.mycompany.com">
+                  </div>
                 </div>
               </div>
 
               <div style="padding-top: 15px;">
-                <label>API Settings</label>
-                <div>
+                <label>API Settings - <b>@endpointCounter</b> Endpoint(s)</label>
+                <div (showIf)="self.hideCodeEditor">
                   <div id="@editorId" style="height: 150px; margin-top: 11px;"></div>
                 </div>
               </div>
 
+              <div class="endpoint-group-config">
+                <fieldset>
+                  <legend>Endpoint 1 <span style="font-weight: normal;">@fullEndpointPath</span></legend>
+                    <div class="endpoint-data-setting">
+                      <div class="form-group use-pagination-field">
+                        <label>
+                          Path 
+                          (<span class="add-api-param-btn" onclick="component.showEditor('1')">+ Params</span>)
+                        </label>
+                        <input type="text" class="endpoint-input api-required-field" (value)="apiEndpointPath1" placeholder="e.g. /transaction/paginate">
+                      </div>
+      
+                      <div class="form-group use-pagination-field">
+                        <label>Data Selector</label>
+                        <input type="text" (value)="apiEndpointDS1" placeholder="e.g. result">
+                      </div>
+      
+                      <div class="form-group use-pagination-field">
+                        <label>Primary key</label>
+                        <input type="text" class="endpoint-pk-input" (value)="apiEndpointPathPK1" placeholder="e.g. transactionId">
+                      </div>
+
+                      <div class="form-group use-pagination-check">
+                        <label>Use pagination</label>
+                        <div class="use-pagination-check-group">
+                          <input type="radio" onclick="component.showPaginateEndpoint()" name="userPagination1"> Yes
+                          <input type="radio" onclick="component.hidePaginateEndpoint()" name="userPagination1" checked> No
+                        </div>
+                      </div>
+                    </div>
+    
+                    <div class="endpoint-paginate-setting endpointFieldGrp1" style="display: none;">
+
+                      <span style="display: flex;">
+                        <div class="form-group use-pagination-field">
+                          <label>Offset field name</label>
+                          <input class="endpointField1" type="text" (value)="paginationStartField1" placeholder="e.g. offset">
+                        </div>
+        
+                        <div class="form-group use-pagination-field">
+                          <label>Limit field name</label>
+                          <input class="endpointField1" type="text" (value)="paginationLimitField1" placeholder="e.g. limit">
+                        </div>
+        
+                        <div class="form-group use-pagination-field">
+                          <label>Records per page</label>
+                          <input class="endpointField1" type="text" (value)="paginationRecPerPage1" placeholder="e.g. 1000">
+                        </div>
+                      </span>
+
+                    </div>
+                    
+                    <div class="api-code-editor-placeholder1"></div>
+                </fieldset>
+              </div>
+
+              <div>
+                <button style="margin-top: 5px;" class="add-btn-primary" (click)="addEndpointFields()">+ Endpoint</button>
+              </div>
+
               <div class="modal-body">
+
+                <!-- Pagination fields -->
+                <div class="form-group">
+                  <div class="use-authentication-check-group">
+                    <label class="bold-lbl">Use Authentication</label>
+                    <input type="checkbox" class="use-auth-checkbox" onclick="component.setUseAuth(this.checked)">
+
+                    <select style="width: 100%; display: none; margin-top: 9px;" class="use-auth-secret-input" onchange="component.onAPIAuthChange(this.value)">
+                      <option value="">Select Auth type</option>
+                      <option value="bearer-token">Bearer Token</option>
+                      <option value="api-key">API Key</option>
+                    </select>
+
+                  </div>
+                </div>
+                <div><!-- Only to create an empy colum --></div>
+                <!-- End Pagination fields -->
+
+                <!-- API Key fields -->
+                <div class="form-group">
+                  <label class="api-key-lbl">KEY Header name</label>
+                  <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Ket">
+                </div>
+                <div class="form-group">
+                  <label class="api-key-lbl">Key Hader value</label>
+                  <span class="hidden-secret-value initial-secret-field hidden-secret-value-api">
+                    <input type="password" (value)="apiKeyValue" class="api-key-value api-key-field" placeholder="Enter the secret value">
+                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-secret-value-api')">
+                  </span>
+                </div>
+                <!-- END API Key fields -->
+
+                <!-- API Token fields -->
+                <div class="form-group">
+                  <label class="api-tkn-lbl">API token name</label>
+                  <input type="text" value="API_TOKEN" disabled class="api-tkn-name api-tkn-field">
+                </div>
+                <div class="form-group">
+                  <label class="api-tkn-lbl">API token value</label>
+                  <span class="hidden-secret-value initial-secret-field hidden-tkn-secret-value-api">
+                    <input type="password" (value)="apiTknValue" class="api-tkn-value api-tkn-field" placeholder="Enter the secret value">
+                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-tkn-secret-value-api')">
+                  </span>
+                </div>
+                <!-- END API Token fields -->
+
               </div>
             </span>
         </span>
@@ -169,7 +284,46 @@
   </div>
 
   <style>
-  .unique-api-name{ width: 100%; }
+
+    .add-api-param-btn { color: blue; text-decoration: underline; cursor: pointer; }
+
+    .endpoint-group-config{
+      /* box-shadow: inset 0 10px 8px -10px rgba(0, 0, 0, 0.5), inset 0 -10px 8px -10px rgba(0, 0, 0, 0.5); */
+      max-height: 45vh; overflow-x: scroll;
+    }
+
+    .use-pagination-check{ 
+      margin-left: 10px; 
+      label { width: 100px; margin-top: 21px; }
+    }
+    .use-pagination-check-group{ 
+      display: flex;
+      width: 93px;
+      font-size: 12px;
+    }
+
+    .del-endpoint-setting-icon{
+      width: 78px;
+      text-align: center;
+      font-size: 10px;
+      color: red;
+      cursor: pointer;
+      font-weight: bold;
+      float: right;
+    }
+    fieldset { margin-top: 15px; border-radius: 3px; padding-bottom: 4px; }
+    fieldset label { margin-top: 3px; }
+    fieldset input { width: 100px; }
+    fieldset legend { margin-left: 8px; font-size: 14px; font-weight: bold; }
+
+    .use-pagination-field { margin-left: 5px; }
+    .endpoint-input { width: 190px; }
+    .endpoint-pk-input { width: 130px; }
+   .endpoint-data-setting, .endpoint-paginate-setting{ display: flex; margin: 5px; }
+   .endpoint-paginate-setting input{ width: 150px; }
+
+  .bold-lbl { font-weight: bold; }
+  .unique-api-name, .unique-api-url{ width: 100%; }
   .api-setting-content{ margin-top: 4px; width: 100%; }
 
 	.hidden-secret-value{
