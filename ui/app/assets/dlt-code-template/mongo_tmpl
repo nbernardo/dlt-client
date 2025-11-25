@@ -1,0 +1,26 @@
+import dlt
+from pymongo import MongoClient
+
+@dlt.source
+def mongodb_source(connection_string, database_name, collection_name):
+    @dlt.resource(
+        write_disposition="merge",
+        primary_key="_id"
+    )
+    def documents():
+        client = MongoClient(connection_string)
+        db = client[database_name]
+        collection = db[collection_name]
+        
+        print(f"Fetching documents from {database_name}.{collection_name}...")
+        
+        # Fetch all documents
+        for doc in collection.find():
+            # Convert ObjectId to string for compatibility
+            if '_id' in doc:
+                doc['_id'] = str(doc['_id'])
+            yield doc
+        
+        client.close()
+    
+    return documents

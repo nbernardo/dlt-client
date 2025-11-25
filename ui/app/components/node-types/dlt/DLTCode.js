@@ -1,6 +1,8 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
+import { Assets } from "../../../../@still/util/componentUtil.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
+import { loadTemplate } from "../util/codeTemplateUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class DLTCode extends ViewComponent {
@@ -24,8 +26,8 @@ export class DLTCode extends ViewComponent {
 		this.$parent.controller.loadMonacoEditorDependencies();
 	}
 
-	stAfterInit(){
-
+	async stAfterInit(){
+		
 		const container = document
 			.querySelector(`.${this.cmpInternalId} .code-editor-placeholder`);
 
@@ -44,6 +46,11 @@ export class DLTCode extends ViewComponent {
 		if(this.codeContent.length > 0){
 			this.codeEditor.setValue(this.codeContent);
 		}
+	}
+
+	async selectTemplate(templateName){
+		const code = await loadTemplate(templateName);
+		this.codeEditor.setValue(code);
 	}
 
 }

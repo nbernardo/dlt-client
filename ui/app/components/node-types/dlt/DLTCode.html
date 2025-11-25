@@ -16,9 +16,10 @@
 		<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">Code editor</div>
 		<span (showIf)="self.showEditor">
 			<div style="margin-top: 10px;">
-				<select name="" id="">
+				<select onchange="component.selectTemplate(this.value)">
 					<option value="">Code template</option>
-					<option value="kafka">Kafka Consumer</option>
+					<option value="kafka_tmpl">Kafka Consumer</option>
+					<option value="mongo_tmpl">Mongo DB</option>
 				</select>
 			</div>
 			<div
