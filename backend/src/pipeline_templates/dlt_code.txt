@@ -1,0 +1,23 @@
+import json
+import sys
+from pathlib import Path
+%template_code%
+
+#Adding root folder to allow import from src
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
+sys.path.insert(0, src_path)
+sys.path.insert(0, src_path+'/src')
+
+from src.services.workspace.Workspace import Workspace
+from src.services.workspace.SecretManager import SecretManager
+from src.utils.APIClientUtil import PaginateParam
+
+ppline_name, output_name = %pipeline_name%, %duckdb_dest%
+dest_folder = Workspace.get_duckdb_path_on_ppline()
+dest_db = dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')
+
+pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest_db,dataset_name=output_name)
+
+data = kafka_source()
+load_info = pipeline.run(data)
+print(load_info)

@@ -116,7 +116,7 @@ def create_new_ppline(fst_connection,
         if result['status'] is False: 
             success, message = False, result['message'] 
 
-        return { 'error': False, 'result': 'Pipeline created successfully' }
+        return { 'error': success, 'result': 'Pipeline created successfully' }
     except Exception as err:
         result = { 'message': str(err) }
         success, message = False, result['message']
@@ -125,7 +125,7 @@ def create_new_ppline(fst_connection,
         if success is False:
             revert_and_notify_failure(pipeline_instance, all_nodes, message)
 
-        return { 'error': False, 'result': message }
+        return { 'error': success, 'result': message }
 
 
 def create_new_version_ppline(fst_connection, 
