@@ -3,7 +3,7 @@ from kafka import KafkaConsumer
 import certifi
 
 @dlt.source
-def kafka_source():
+def data_source():
     @dlt.resource(
         write_disposition="merge",
         primary_key="id"

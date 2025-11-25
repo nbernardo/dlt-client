@@ -137,7 +137,7 @@ export class Template {
     **/
     static launchToast({ status, message, timeout } = {}) {
         const [uuid, stat] = [Template.getToastId(), status || 'Success'];
-        const msg = message || 'Operação realizada com sucesso';
+        const msg = message || 'Operation run successffuly';
         const icons = document.getElementsByClassName('toast-type-icon')[0].children;
         const statusId = ['success', 'Success'].includes(status) ? 0 
                             : ['warn', 'Warn'].includes(status) ? 2 : 1;

@@ -12,25 +12,23 @@
 		topPadding="50"
 		(label)="Loading the code..."/>
 	
-	<div class="box @formWrapClass">
-		<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">Code editor</div>
-		<span (showIf)="self.showEditor">
-			<div style="margin-top: 10px;">
-				<select onchange="component.selectTemplate(this.value)">
+	<form (formRef)="formRef">
+		<div class="box" style="padding: 8px;">
+			<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">See Code <span class="color: black;">@templateName</span></div>
+			<div style="margin-top: 10px;" (showIf)="self.showTemplateList">
+				<select (required)="true" (value)="selectedTemplate">
 					<option value="">Code template</option>
 					<option value="kafka_tmpl">Kafka Consumer</option>
 					<option value="mongo_tmpl">Mongo DB</option>
 				</select>
 			</div>
-			<div
-				style="height: 400px; width: 600px; position: absolute; margin-top: 5px; padding-top: 7px; background: rgba(0, 0, 0, 0.856);" 
-				class="code-editor-placeholder"></div>
-		</span>
-	</div>
+			<span (showIf)="self.showEditor">
+				<div
+					style="height: 400px; width: 600px; position: absolute; margin-top: 5px; padding-top: 7px; background: rgba(0, 0, 0, 0.856);" 
+					class="code-editor-placeholder"></div>
+			</span>
+		</div>
+	</form>
 </div>
 <style>
-
-	/* .parent-node .InputAPI { width: 200px; z-index: 1; } */
-
-	/* .input-endpoint-data { padding-top: 5px; } */
 </style>

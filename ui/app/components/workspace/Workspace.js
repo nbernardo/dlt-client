@@ -19,6 +19,7 @@ import { Assets } from "../../../@still/util/componentUtil.js";
 import { Header } from "../parts/Header.js";
 import { Grid } from "../grid/Grid.js";
 import { SqlEditor } from "../code/sqleditor/SqlEditor.js";
+import { DLTCode } from "../node-types/dlt/DLTCode.js";
 
 export class Workspace extends ViewComponent {
 
@@ -224,7 +225,7 @@ export class Workspace extends ViewComponent {
 			return AppTemplate.toast.error('Please enter a valid pipeline name');
 		}
 
-		if (this.wasDiagramSaved) return this.controller.twiceDiagramSaveAlert('save');
+		if (this.wasDiagramSaved && this.controller.pipelineSuccess) return this.controller.twiceDiagramSaveAlert('save');
 
 		const data = await this.preparePipelineContent();
 		if (data === null) return data;
@@ -244,7 +245,7 @@ export class Workspace extends ViewComponent {
 
 		if (!this.controller.isTherePipelineToSave()) return null;
 
-		if (this.wasDiagramSaved)
+		if (this.wasDiagramSaved && this.controller.pipelineSuccess)
 			return this.controller.twiceDiagramSaveAlert('update');
 
 		const isUpdate = true;
@@ -256,6 +257,7 @@ export class Workspace extends ViewComponent {
 
 	async preparePipelineContent(update = false) {
 
+		let data = this.editor.export();
 		let sqlPipelineDbEngine = null, isOldSQLNode = false;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
@@ -268,10 +270,15 @@ export class Workspace extends ViewComponent {
 				isOldSQLNode = castedCmp.isOldUI;
 				await castedCmp.getTables();
 			}
+
 			if (component.getName() === Transformation.name) {
 				const /** @type { Transformation } */ castedCmp = component;
-				castedCmp.parseTransformationCode();
-				return true;
+				return castedCmp.parseTransformationCode();
+			}
+
+			if (component.getName() === DLTCode.name) {
+				const /** @type { DLTCode } */ castedCmp = component;
+				castedCmp.getCode();
 			}
 
 			const form = component.formRef;
@@ -284,7 +291,6 @@ export class Workspace extends ViewComponent {
 		const isValidSubmission = this.handleSubmissionError(anyInvalidForm);
 		if (!isValidSubmission) return null;
 
-		let data = this.editor.export();
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
 		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid };

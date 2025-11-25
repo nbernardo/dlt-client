@@ -410,6 +410,7 @@ export class WorkSpaceController extends BaseController {
         console.log(JSON.stringify(exportResult, null, 4));
     }
 
+    pipelineSuccess = true;
     socketChannelSetup(io, socketData) {
 
         const wssAddr = StillAppSetup.config.get('websocketAddr');
@@ -428,6 +429,7 @@ export class WorkSpaceController extends BaseController {
             AppTemplate.toast.error(error.message);
             this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
             this.wSpaceComponent.wasDiagramSaved = false;
+            this.pipelineSuccess = false;
         });
 
         socket.on('pplineStepStart', ({ componentId, sid }) => {
@@ -441,6 +443,7 @@ export class WorkSpaceController extends BaseController {
             this.pplineSteps[sid].add(componentId);
             const nodeId = this.cmpIdToNodeIdMap[componentId];
             const node = WorkSpaceController.getNode(nodeId);
+            this.pipelineSuccess = true;
             if (Object.keys(node.outputs).length > 0)
                 WorkSpaceController.addPreSuccessStatus(componentId);
             this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
