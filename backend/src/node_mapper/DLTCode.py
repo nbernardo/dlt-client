@@ -23,6 +23,8 @@ class DLTCode(TemplateNodeType):
         # template_code is mapped in /pipeline_templates/dlt_code.txt
         self.template_code = data['dltCode']
 
+        self.notify_completion_to_ui()
+
 
     def run(self) -> None:
         """

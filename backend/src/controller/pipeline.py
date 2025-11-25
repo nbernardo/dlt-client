@@ -109,14 +109,13 @@ def create_new_ppline(fst_connection,
 
     try:
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
-
         if(result['status'] == True):
             pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl)
         
         if result['status'] is False: 
             success, message = False, result['message'] 
 
-        return { 'error': success, 'result': 'Pipeline created successfully' }
+        return { 'error': not(success), 'result': 'Pipeline created successfully' }
     except Exception as err:
         result = { 'message': str(err) }
         success, message = False, result['message']
@@ -125,7 +124,7 @@ def create_new_ppline(fst_connection,
         if success is False:
             revert_and_notify_failure(pipeline_instance, all_nodes, message)
 
-        return { 'error': success, 'result': message }
+        return { 'error': not(success), 'result': message }
 
 
 def create_new_version_ppline(fst_connection, 

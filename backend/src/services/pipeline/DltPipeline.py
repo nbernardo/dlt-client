@@ -67,8 +67,8 @@ class DltPipeline:
         """
         ppline_file = f'{file_path}/{file_name}.py'
         file_open_flag = 'x+'
+        
         self.curr_file = ppline_file
-
         if context.action_type == 'UPDATE':
             ppline_file = DltPipeline.create_new_pipline_version(file_name, file_path, data)
         else:
@@ -323,6 +323,8 @@ class DltPipeline:
         
 
     def revert_ppline(self):
+        print('THIS IS THE PATH')
+        print(self.curr_file)
         if(type(self.curr_file) == str):
             os.remove(self.curr_file)
 
