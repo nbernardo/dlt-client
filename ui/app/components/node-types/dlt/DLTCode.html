@@ -1,0 +1,35 @@
+<div class="@cmpInternalId">
+	<div class="title-box">
+		<div style="display: flex; align-items: center;">
+			<img src="app/assets/imgs/dlt-logo-colored.png" style="width: 20px; height: 20px;">
+			&nbsp;@label
+		</div>
+		<div class="statusicon"></div>
+	</div>
+	<st-loader 
+		small center
+		(showIf)="self.showLoading" 
+		topPadding="50"
+		(label)="Loading the code..."/>
+	
+	<div class="box @formWrapClass">
+		<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">Code editor</div>
+		<span (showIf)="self.showEditor">
+			<div style="margin-top: 10px;">
+				<select name="" id="">
+					<option value="">Code template</option>
+					<option value="kafka">Kafka Consumer</option>
+				</select>
+			</div>
+			<div
+				style="height: 400px; width: 600px; position: absolute; margin-top: 5px; padding-top: 7px; background: rgba(0, 0, 0, 0.856);" 
+				class="code-editor-placeholder"></div>
+		</span>
+	</div>
+</div>
+<style>
+
+	/* .parent-node .InputAPI { width: 200px; z-index: 1; } */
+
+	/* .input-endpoint-data { padding-top: 5px; } */
+</style>

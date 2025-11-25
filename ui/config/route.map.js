@@ -105,6 +105,10 @@ export const stillRoutesMap = {
             InputAPI: {
                 path: "app/components/node-types/api",
                 url: "/input-api"
+            },
+            DLTCode: {
+                path: "app/components/node-types/dlt",
+                url: "/dltc-ode"
             }
         },
         lazyInitial: {}

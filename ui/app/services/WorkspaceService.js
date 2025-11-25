@@ -6,6 +6,7 @@ import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
 import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
+import { DLTCode } from "../components/node-types/dlt/DLTCode.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
@@ -44,7 +45,7 @@ export class WorkspaceService extends BaseService {
         { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
         { imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
         { imgIcon: 'app/assets/imgs/api-source.svg', label: 'Source - API', typeName: InputAPI.name },
-        { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: null, disable: 'yes', name: 'DLT-class' },
+        { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
         { 
             imgIcon: 'app/assets/imgs/language-python-text-svgrepo-com.svg', 
             label: 'Code Transformation', 

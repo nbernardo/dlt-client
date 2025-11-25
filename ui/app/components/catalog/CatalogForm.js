@@ -112,7 +112,7 @@ export class CatalogForm extends ViewComponent {
 				prevContainer.innerHTML = '';
 			}
 			this.editorPlaceholder = placeId;
-			this.editor = this.$parent.controller.loadMonadoEditor(container, { lang: 'json' });
+			this.editor = this.$parent.controller.loadMonadoEditor(container, { lang: 'json', theme: 'vs-light' });
 			container.style="height: 80px; margin-top: 11px;"
 			let params = this.endPointEditorContent[placeId] || `{ \t"param1": "param1 value" }`;
 

@@ -749,10 +749,10 @@ export class WorkSpaceController extends BaseController {
         require(['vs/editor/editor.main'], () => window.monaco);
     }
 
-    loadMonadoEditor(container, { lang, fontSize } = { lang: 'sql', fontSize: 14 }){
+    loadMonadoEditor(container, { lang, fontSize, theme } = { lang: 'sql', fontSize: 14, theme: 'vs-light' }){
 		return monaco.editor.create(container, {
 			value: this.query, language: lang,
-			theme: 'vs-light', automaticLayout: true,
+			theme, automaticLayout: true,
 			minimap: { enabled: false }, scrollBeyondLastLine: false,
 			fontSize
 		});
