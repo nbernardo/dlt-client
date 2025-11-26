@@ -491,7 +491,7 @@ export class Workspace extends ViewComponent {
 
 	async viewScriptOnEditor() {
 		const fileName = this.leftMenuProxy.scriptListProxy.selectedFile;
-		const code = await this.service.readScriptFile(this.userEmail, fileName);
+		const code = await this.service.readScriptFile(await UserService.getNamespace(), fileName);
 		this.noteBookProxy.openFile = { fileName, code };
 		this.noteBookProxy.showNotebook = true;
 		this.showDrawFlow = false;

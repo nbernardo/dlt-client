@@ -1,5 +1,7 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
+import { UserService } from "../services/UserService.js";
 import { WorkspaceService } from "../services/WorkspaceService.js";
+import { WorkSpaceController } from "./WorkSpaceController.js";
 
 export class NoteBookController extends BaseController {
 
@@ -63,15 +65,10 @@ export class NoteBookController extends BaseController {
 		languageSelect.value = language;
 
 		const editorContainer = cellElement.querySelector('.monaco-editor-container');
-		const editor = monaco.editor.create(editorContainer, {
-			value: content,
-			language: language,
-			theme: 'vs-light',
-			automaticLayout: true,
-			minimap: { enabled: false },
-			scrollBeyondLastLine: false,
-			fontSize: 14
-		});
+		const editor = WorkSpaceController.get().loadMonadoEditor(
+			editorContainer, { fontSize: 14, lang: language }
+		);
+		editor.setValue(content);
 
 		this.cells[id] = { element: cellElement, editor };
 
@@ -124,7 +121,7 @@ export class NoteBookController extends BaseController {
     openFile(code, filename){
 		if(!this.filesOpened.has(filename)){
 			//monaco is a global object under window
-        	this.addCell(monaco,null,null,code, filename);
+        	this.addCell(window.monaco,null,null,code, filename);
 			this.filesOpened.add(filename);
 		}
     }
@@ -178,7 +175,7 @@ export class NoteBookController extends BaseController {
 				outputContainer.style.color = '#dc2626';
 			}
 		} else if(language === 'python') {
-            await (new WorkspaceService()).updatePpline(this.userFolder, fileName, code);
+            await (new WorkspaceService()).updatePpline(await UserService.getNamespace(), fileName, code);
 			//outputContainer.textContent = `Execution for ${language} is not supported yet.`;
 			//outputContainer.style.color = '#dc2626';
 		}
@@ -302,7 +299,6 @@ export class NoteBookController extends BaseController {
 
 
 function autoCompleteProvider() {
-
 	return [
 		{
 			label: 'def',
@@ -381,5 +377,4 @@ function autoCompleteProvider() {
 			insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 		}
 	];
-
 }
