@@ -1,8 +1,6 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { State } from "../../../@still/component/type/ComponentType.js";
-import { Assets } from "../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
-import { AppTemplate } from "../../../config/app-template.js";
 import { NoteBookController } from "../../controller/NoteBookController.js";
 import { Workspace } from "../workspace/Workspace.js";
 
@@ -44,9 +42,6 @@ export class NoteBook extends ViewComponent {
 		this.openFile.onChange(({fileName, code}) => this.controller.openFile(code, fileName));
 
 		if (window.monaco) {
-			window.monaco.languages.registerCompletionItemProvider('python', {
-				provideCompletionItems: (model, position) => ({ suggestions: this.controller.pythonAutoCompletionSetup() })
-			});
 			this.notebookContainer.classList.remove('hidden');
 			document.getElementById('loading-message').classList.add('hidden');
 		}

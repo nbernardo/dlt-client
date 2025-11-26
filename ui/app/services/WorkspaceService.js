@@ -324,7 +324,7 @@ export class WorkspaceService extends BaseService {
 
 
     /** @returns { Array<string> } */
-    static async listSecrets(type) {
+    static async listSecrets(type, cb = () => {}) {
 
         const namespace = await UserService.getNamespace();
         const url = '/secret/' + namespace;
@@ -343,8 +343,14 @@ export class WorkspaceService extends BaseService {
                 }
             })
             
-            if(type == 1 && Array.isArray(secretList?.db_secrets))
-				secretAndServerList = secretList.db_secrets.map(secret => ({ name: secret, host: secretList.metadata[secret] || 'None' }));
+            if(type == 1 && Array.isArray(secretList?.db_secrets)){
+                const secretNames = [];
+				secretAndServerList = secretList.db_secrets.map(secret => {
+                    if(!secretList.metadata[secret]) secretNames.push(secret);
+                    return { name: secret, host: secretList.metadata[secret] || 'None' };
+                });
+                cb({dbSecrets: secretAndServerList, secretNames});
+            }
 			
             return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
 
