@@ -148,6 +148,15 @@ class SecretManager(SecretManagerType):
         return data
 
 
+    def list_secrets_by_path(namespace, path):
+        secrets = SecretManager.vault_instance.secrets.kv.v2.list_secrets(
+            path=path,
+            mount_point=namespace
+        )
+        print(secrets)
+        return secrets['data']['keys']
+        
+
     def list_secret_names(namespace):
 
         if SecretManager.vault_instance == None:
@@ -198,6 +207,22 @@ class SecretManager(SecretManagerType):
         path = f'main/db/{connection_name}'
         return SecretManager.get_secret(namespace, path=path)
             
+
+    def get_from_references(namespace,references: list = []):
+        secrets = {secret: SecretManager.get_db_secret(namespace,secret)[secret] for secret in references}
+        
+        if(len(secrets) > 0):
+            from collections import namedtuple
+            Secrets = namedtuple('Secrets', secrets.keys())
+            return Secrets(**secrets)
+        else:
+            from types import SimpleNamespace
+            return SimpleNamespace()
+
+
+def referencedSecrets(namespace, secret_names):
+    SecretManager.ppline_connect_to_vault()
+    return SecretManager.get_from_references(namespace, secret_names)
 
 
 if __name__ == '__main__':
