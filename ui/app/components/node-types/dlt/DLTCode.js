@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { State, STForm } from "../../../../@still/component/type/ComponentType.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
+import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { CodeEditorUtil } from "../../../util/CodeEditorUtil.js";
 import { Workspace } from "../../workspace/Workspace.js";
@@ -19,15 +20,20 @@ export class DLTCode extends ViewComponent {
 	/** @Prop */ label = ' In - DLT code';
 	/** @Prop */ showEditor = false;
 
+	//To trace to previous code template when changing one
+	/** @Prop */ prevSelectedTemplate = null;
+
 	/** @type { Workspace } */ $parent;
 
 	/** @Prop */ codeEditor;
 	/** @Prop @type { STForm } */ formRef;
 	/** @Prop */ codeContent = '';
+	/** @Prop */ codeInitComment = '# Select a code template or Type your DLT python script code bellow'
 
 	/** @Prop */ templateMap = {
 		kafka_tmpl: 'Kafka',
-		mongo_tmpl: 'MongoDB'
+		kafka_tmpl_sasl: 'Kafka + SASL',
+		mongo_tmpl: 'MongoDB',
 	}
 
 	/** @type { State } */
@@ -68,13 +74,12 @@ export class DLTCode extends ViewComponent {
 				lang: 'python',
 				theme: 'vs-dark',
 				suggestions: CodeEditorUtil.pythonSuggestions,
-				suggestionType: 'secret'
+				suggestionType: 'secret',
+				fontSize: 14
 			}
 		);
 
-		this.codeEditor.onDidChangeModelContent(() => {
-			this.codeContent = this.codeEditor.getValue();
-		});
+		this.codeEditor.onDidChangeModelContent(() => this.codeContent = this.codeEditor.getValue());
 		this.onTemplateSelect();
 
 		if (this.importData.isImport) {
@@ -86,25 +91,45 @@ export class DLTCode extends ViewComponent {
 	async openEditor() {
 		this.showEditor = !this.showEditor;
 		this.showTemplateList = this.showEditor;
-		if (this.codeContent.length > 0)
-			this.codeEditor.setValue(this.codeContent);
+		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
+		if (this.codeContent.length > 0) this.codeEditor.setValue(this.codeContent);
+		else this.codeEditor.setValue(this.codeInitComment);
 	}
 
 	onTemplateSelect() {
 		this.selectedTemplate.onChange(async templateName => {
+			
+			if(templateName === this.prevSelectedTemplate) return;
+			
+			const self = this;
+			const prevCodeExists = WorkSpaceController.getNode(this.nodeId).data['dltCode'];
+			if(prevCodeExists){
+				this.$parent.controller.showDialog(
+					`By changing the code template you'll lose any changes you might've done in the code.`, 
+					{
+						title: 'Changing the code!',
+						onConfirm: async () => await handleTemplateSelection(),
+						onCancel: () => self.selectedTemplate = this.prevSelectedTemplate,
+					}
+				)
+			}else
+				await handleTemplateSelection();
+			
+			async function handleTemplateSelection(){
 
-			let code = '# Type your DLT python script code bellow';
-			if (templateName != '') {
-				code = await loadTemplate(templateName);
-				this.templateName = ` - <b>${this.templateMap[templateName]}</b>`;
-				this.codeContent = code;
-				WorkSpaceController.getNode(this.nodeId).data['templateName'] = templateName;
-				WorkSpaceController.getNode(this.nodeId).data['dltCode'] = code;
+				self.prevSelectedTemplate = templateName;
+				let code = self.codeInitComment;
+				if (templateName != '') {
+					code = await loadTemplate(templateName);
+					self.templateName = ` - <b>${self.templateMap[templateName]}</b>`;
+					self.codeContent = code;
+					WorkSpaceController.getNode(self.nodeId).data['templateName'] = templateName;
+					WorkSpaceController.getNode(self.nodeId).data['dltCode'] = code;
+				}
+				else
+					self.templateName = '';
+				self.codeEditor.setValue(code);
 			}
-			else
-				this.templateName = '';
-			this.codeEditor.setValue(code);
-
 		});
 	}
 
@@ -112,5 +137,4 @@ export class DLTCode extends ViewComponent {
 		this.showTemplateList = true;
 		WorkSpaceController.getNode(this.nodeId).data['dltCode'] = this.codeContent;
 	}
-
 }

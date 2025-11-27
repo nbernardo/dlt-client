@@ -1,7 +1,6 @@
 export class CodeEditorUtil {
 
     static activeLanguage = 'python';
-
     static pythonSuggestions = [];
 
     static getPythonSuggestions() {
@@ -83,9 +82,9 @@ export class CodeEditorUtil {
                 insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
             },
             {
-                label: 'SECRETS',
+                label: '__secrets',
                 kind: monaco.languages.CompletionItemKind.Keyword,
-                insertText: 'SECRETS',
+                insertText: '__secrets',
                 documentation: 'Provide access to the diferent Secrets.',
                 insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
             }
@@ -103,10 +102,9 @@ export class CodeEditorUtil {
                     endLineNumber: position.lineNumber, endColumn: position.column
                 });
                 
-                const isMatch = text.match(/SECRETS\.([a-zA-Z0-9_]*)$/);
+                const isMatch = text.match(/__secrets\.([a-zA-Z0-9_]*)$/);
                 if (!isMatch) return { suggestions: [] };
 
-                console.log(suggestions);
                 return { suggestions };
             }
         });

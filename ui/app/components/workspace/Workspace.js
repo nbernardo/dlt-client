@@ -257,7 +257,6 @@ export class Workspace extends ViewComponent {
 
 	async preparePipelineContent(update = false) {
 
-		let data = this.editor.export();
 		let sqlPipelineDbEngine = null, isOldSQLNode = false;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
@@ -278,7 +277,7 @@ export class Workspace extends ViewComponent {
 
 			if (component.getName() === DLTCode.name) {
 				const /** @type { DLTCode } */ castedCmp = component;
-				castedCmp.getCode();
+				await castedCmp.getCode();
 			}
 
 			const form = component.formRef;
@@ -293,6 +292,7 @@ export class Workspace extends ViewComponent {
 
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
+		let data = this.editor.export();
 		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid };
 		
 		if(sqlPipelineDbEngine) data.initDbengine = sqlPipelineDbEngine;
