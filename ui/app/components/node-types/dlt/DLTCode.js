@@ -54,15 +54,16 @@ export class DLTCode extends ViewComponent {
 
 		const container = document
 			.querySelector(`.${this.cmpInternalId} .code-editor-placeholder`);
-
+		
+		const codeSuggestions = [];
 		await WorkspaceService.listSecrets(1, ({secretNames} = { secretNames: [] }) => {
 			for(const secretName of secretNames){
-				CodeEditorUtil.pythonSuggestions.push(
+				//CodeEditorUtil.pythonSuggestions.push(
+				codeSuggestions.push(
 					{
 						label: secretName,
-						kind: monaco.languages.CompletionItemKind.Keyword,
+						kind: monaco.languages.CompletionItemKind.Snippet,
 						insertText: secretName,
-						documentation: '',
 						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
 					}
 				);
@@ -73,7 +74,7 @@ export class DLTCode extends ViewComponent {
 			container, {
 				lang: 'python',
 				theme: 'vs-dark',
-				suggestions: CodeEditorUtil.pythonSuggestions,
+				suggestions: codeSuggestions/*CodeEditorUtil.pythonSuggestions*/,
 				suggestionType: 'secret',
 				fontSize: 14
 			}

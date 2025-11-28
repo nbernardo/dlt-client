@@ -91,11 +91,24 @@ export class CodeEditorUtil {
         ]
     }
 
+    static loadedSuggestions = new Set();
     static addSecretSugestion(lang, suggestions) {
 
+        if(CodeEditorUtil.loadedSuggestions.has(lang))
+            return;
+        
+        CodeEditorUtil.loadedSuggestions.add(lang);
         window.monaco.languages.registerCompletionItemProvider(lang, {
             triggerCharacters: ['.'],
             provideCompletionItems(model, position) {
+
+                const word = model.getWordUntilPosition(position);
+                const range = {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: word.startColumn,
+                    endColumn: word.endColumn
+                };
 
                 const text = model.getValueInRange({
                     startLineNumber: position.lineNumber, startColumn: 1,
@@ -103,9 +116,9 @@ export class CodeEditorUtil {
                 });
                 
                 const isMatch = text.match(/__secrets\.([a-zA-Z0-9_]*)$/);
-                if (!isMatch) return { suggestions: [] };
+                if (!isMatch) return { suggestions: [] };                
 
-                return { suggestions };
+                return { suggestions: suggestions.map(s => ({ ...s, range })) };
             }
         });
     }
