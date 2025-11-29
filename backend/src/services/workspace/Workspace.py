@@ -459,6 +459,13 @@ class Workspace:
 
     schedule_jobs = dict()        
 
+
+    @staticmethod
+    def get_oracle_dn(hostname, port):
+        from utils.SQLDatabase import SQLConnection
+        return SQLConnection.get_oracle_dn(hostname, port)
+
+
     @staticmethod
     def schedule_pipeline_job():
         result = Workspace.get_ppline_schedule()
@@ -510,6 +517,3 @@ class Workspace:
     @staticmethod
     def remove_code_file(file):
         os.remove(file)
-
-    
-

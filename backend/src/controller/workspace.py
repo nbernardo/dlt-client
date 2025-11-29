@@ -463,3 +463,30 @@ def get_fields_from_db(namespace, dbengine, connection_name, table_name):
     else:
         return { 'error': True, 'result': 'No secrete found for current namespace' }
     
+
+@workspace.route('/db/connection/<host>/<port>', methods=['GET'])
+def get_ssl_dn(host, port):
+    try:
+        ssl_dn = Workspace.get_oracle_dn(host, port)
+        return { 'error': False, 'result': ssl_dn }
+    except Exception as err:
+        return { 'error': True, 'result': str(err) }
+
+
+@workspace.route('/workspace/connection/test', methods=['POST'])
+def test_sql_db_connections():
+
+    payload = request.get_json()
+    config = payload['dbConfig']
+
+    if('val1-db' in payload['env']):
+        config['password'] = payload['env']['val1-db']
+
+    if('key1-secret' in payload['env']):
+        config['password'] = payload['env']['key1-secret']
+    
+    dbengine = str(config['plugin_name']).split('-')[0]
+
+    result = SQLDatabase.test_sql_connection(dbengine, config)
+    
+    return result

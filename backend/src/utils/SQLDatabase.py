@@ -1,6 +1,7 @@
 import pandas as pd
 from sqlalchemy import create_engine, inspect, MetaData, Engine, Table
 from sqlalchemy.engine import reflection
+from sqlalchemy.exc import SQLAlchemyError
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import traceback
 import platform
@@ -144,6 +145,21 @@ class SQLDatabase:
         ...
 
 
+    @staticmethod
+    def test_sql_connection(dbengine, config):
+        from utils.database_secret import parse_connection_string
+        query_string = parse_connection_string(dbengine, config)
+
+        success, error = False, None
+        try:
+            with create_engine(query_string).connect() as conn:
+                success = True
+        except SQLAlchemyError as e:
+            print('Error while trying to connect to Database')
+        finally:
+            return { 'result': success, 'error': error }
+
+
 class SQLConnection:
 
     def mysql_connect(namespace, connection_name, secret = None) -> Engine:
@@ -228,3 +244,54 @@ class SQLConnection:
         if platform.system() != 'Windows':
             driver = '?driver=ODBC%20Driver%2018%20for%20SQL%20Server&Encrypt=yes&TrustServerCertificate=yes'
         return driver
+
+
+    def get_oracle_dn(hostname, port):
+        """
+        TODO: Analyse the suitable scenario (e.g. OCI Autonomous DB) that it would bee needed to use DN
+        Connects to a TLS/SSL server, retrieves its certificate,
+        and returns the full DN string (CN, O, L, ST, C).
+        """
+        import ssl
+        import socket
+        context = ssl.create_default_context()
+
+        cert, dn_string = {}, None
+        with socket.create_connection((hostname, port)) as sock:
+            with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+                cert = ssock.getpeercert()
+
+        if 'subject' in cert:
+            dn_string = 'CN={CN},O={O},L={L},ST={ST},C={C}'
+            for item in cert['subject']:
+                key, value = item[0]
+                if key == 'commonName':
+                    dn_string = dn_string.replace('{CN}',value)
+                elif key == 'organizationName':
+                    dn_string = dn_string.replace('{O}',value)
+                elif key == 'localityName':
+                    dn_string = dn_string.replace('{L}',value)
+                elif key == 'stateOrProvinceName':
+                    dn_string = dn_string.replace('{ST}',value)
+                elif key == 'countryName':
+                    dn_string = dn_string.replace('{C}',value)
+
+        return dn_string
+
+
+    def parse_oracle_dsn(hostname, port, database):
+        dsn_template = """
+        (DESCRIPTION=
+            (RETRY_COUNT=20)
+            (RETRY_DELAY=3)
+            (ADDRESS=(PROTOCOL=tcps)(HOST={host})(PORT={port}))
+            (CONNECT_DATA=(SERVICE_NAME={service_name}))
+            (SECURITY=(SSL_SERVER_CERT_DN_MATCH=YES))
+        )
+        """
+
+        return dsn_template.format(
+            host=hostname,
+            port=port,
+            service_name=f'{database}.{hostname}'
+        )
