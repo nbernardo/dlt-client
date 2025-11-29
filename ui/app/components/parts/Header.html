@@ -20,8 +20,7 @@
 				style="cursor: pointer; border: none;">
 				<img src="app/assets/imgs/routine.png" width="25" alt="">
 				<span>
-					<output (showIf)="self.showScheduleCounter">@scheduledPipelinesCount</output>
-					
+					<output (showIf)="self.showScheduleCounter">@scheduledPipelinesCount</output>					
 					@if(this.scheduledPipelinesCount === -1)
 						<div class="mini-loader-container">
 							<div class="mini-loader-dot"></div>

@@ -302,7 +302,6 @@ export class WorkspaceService extends BaseService {
         return { ...result, error: null };
     }
 
-
     /** @returns { { result: { result, fields, actual_query, db_file } } } */
     static async createSecret(secret) {
 
@@ -317,6 +316,40 @@ export class WorkspaceService extends BaseService {
         if (response.ok && !result.error){
             AppTemplate.toast.success('Secrete created successfully');
             return true;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    /** @returns { { result: { result, fields, actual_query, db_file } } } */
+    static async testDbConnection(secret) {
+
+        const url = '/workspace/connection/test';
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
+            headers: { 'content-type': 'Application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && !result.error && result.result === true){
+            AppTemplate.toast.success('DB Connection was successful');
+            return true;
+        }
+        else
+            AppTemplate.toast.error('DB Connection failed');
+    }
+
+    /** @returns { { result: { result, fields, actual_query, db_file } } } */
+    static async getOracleDN(host, port) {
+
+        const url = `/db/connection/${host}/${port}`;
+        const response = await $still.HTTPClient.get(url);
+        
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            AppTemplate.toast.success('Oracle DN loaded successfully');
+            return result?.result;
         }
         else
             AppTemplate.toast.error(result.result);
