@@ -35,10 +35,10 @@ credentials = ConnectionStringCredentials(connection_string)
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()
     ppline_name = %pipeline_name%
-    dest_db = dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')
+    dest = dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')
     pipeline = dlt.pipeline(
         pipeline_name=ppline_name,
-        destination=dest_db,
+        destination=dest,
         # Bellow mapping: duckdb_dest = DuckDBOutput.duckdb_dest
         dataset_name=%duckdb_dest%
     )
