@@ -37,7 +37,7 @@ def load_select_tables_from_db():
 
     dest_folder = Workspace.get_duckdb_path_on_ppline()
     ppline_name = %pipeline_name%
-    dest_db = dlt.destinations.duckdb(f'{dest_folder}/facebook_25690644623870471/{ppline_name}.duckdb')
+    dest_db = dlt.destinations.duckdb(f'{dest_folder}/{namespace}/{ppline_name}.duckdb')
     pipeline = dlt.pipeline(
         pipeline_name=ppline_name,
         destination=dest_db,
