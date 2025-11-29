@@ -331,12 +331,12 @@ export class WorkspaceService extends BaseService {
         
         const result = await response.json();
         
-        if (response.ok && !result.error && result.result === true){
+        if (response.ok && !result.error){
             AppTemplate.toast.success('DB Connection was successful');
             return true;
         }
         else
-            AppTemplate.toast.error('DB Connection failed');
+            AppTemplate.toast.error(result.result);
     }
 
     /** @returns { { result: { result, fields, actual_query, db_file } } } */

@@ -39,6 +39,7 @@ export class CatalogForm extends ViewComponent {
 	dbName;
 	dbUser;
 	dbConnectionParams = '';
+	checkConnection = '';
 	walletPassword;
 	walletFile;
 	connectionName;
@@ -275,6 +276,7 @@ export class CatalogForm extends ViewComponent {
 		this.dbUser = '';
 		this.dbEngine = '';
 		if(document.querySelector('.first-secret-field')) document.querySelector('.first-secret-field').value = '';
+		document.querySelector('.connectio-test-status').style.background = 'rgb(182, 182, 182)';
 	}
 
 	showDialog(reset = false, type = null){		
@@ -318,6 +320,7 @@ export class CatalogForm extends ViewComponent {
 			self.isNewSecret = false;
 			self.showTestConnection = false;
 			self.markRequiredApiFields(false);
+			document.querySelector('.connectio-test-status').style.background = 'rgb(182, 182, 182)';
 			
 			for(const btn of self.dynamicEndpointsDelButtons)
 				btn.click();
@@ -384,14 +387,13 @@ export class CatalogForm extends ViewComponent {
 	};
 
 	async testConnection(){
-
-		const connectionName = this.dataBaseSettingType != null ? this.connectionName.value : this.apiConnName.value;
-		const result = await WorkspaceService.testDbConnection({ 
-			env: this.getDynamicFields(), dbConfig: this.getDBConfig(), connectionName
-		});
-
-		console.log(`CONNECTION TEST RESULT IS: `,result);		
-
+		const btn = document.querySelector('.connectio-test-status');
+		btn.parentElement.disabled = true;
+		this.checkConnection = 'in-progress';
+		const result = await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()});
+		btn.style.background = result == true ? 'green' : 'red';
+		this.checkConnection = '';
+		btn.parentElement.disabled = false;
 	}
 
 	async createSecret(){

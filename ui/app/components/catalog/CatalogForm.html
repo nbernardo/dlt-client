@@ -320,11 +320,25 @@
         
 
         <div class="modal-footer">
-          <button 
+          <button style="width: 50vw;" 
             (showIf)="self.showTestConnection"
             type="button" 
             onclick="component.testConnection()" 
-            class="btn btn-light-blue save-secret-btn">Test connection</button>
+            class="btn btn-light-blue save-secret-btn">
+              @if(this.checkConnection == 'in-progress')
+                <div class="mini-loader-container oracle-dn-loader">
+                  <div class="mini-loader-dot"></div>
+                  <div class="mini-loader-dot"></div>
+                  <div class="mini-loader-dot"></div>
+                </div>
+              @endif
+              Test connection
+            <div 
+              class="connectio-test-status"
+              style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
+              &nbsp;
+            </div>
+          </button>
           <button 
             type="button" 
             onclick="component.createSecret()" 
@@ -338,7 +352,7 @@
     span[data="get-oracle-dn-btn"] { float: left; margin-top: 0;  }
     .oracle-dn-loader {
         display: flex; width: 29px; margin-top: 0; padding: 0; margin-left: 10px; float: right; margin-top: 0;
-        .mini-loader-dot { background-color: red; width: 12px; height: 9px; }
+        .mini-loader-dot { background-color: white; width: 12px; height: 9px; }
     }
 
     .add-api-param-btn { color: blue; text-decoration: underline; cursor: pointer; }
