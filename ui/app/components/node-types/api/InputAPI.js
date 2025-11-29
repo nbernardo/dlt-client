@@ -35,7 +35,7 @@ export class InputAPI extends ViewComponent {
 		this.secretsList = await WorkspaceService.listSecrets(2);
 		this.showLoading = false;
 
-		if(this.importData){			
+		if(this.importData?.isImport){			
 			this.host = this.importData.baseUrl;
 			this.selectedSecret = this.importData.connectionName;
 			const selectedSecret = this.secretsList.value.find(obj => obj.name === this.selectedSecret.value);

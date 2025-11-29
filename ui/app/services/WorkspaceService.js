@@ -44,7 +44,7 @@ export class WorkspaceService extends BaseService {
         { icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
         { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
         { imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
-        { imgIcon: 'app/assets/imgs/api-source.svg', label: 'Source - API', typeName: InputAPI.name },
+        { imgIcon: 'app/assets/imgs/api-source.svg', label: 'Input - API', typeName: InputAPI.name },
         { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
         { 
             imgIcon: 'app/assets/imgs/language-python-text-svgrepo-com.svg', 
