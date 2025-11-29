@@ -24,6 +24,7 @@ def create_sql_db_secret(namespace, config, sec_managet: SecretManagerType, dben
 def parse_connection_string(dbengine, config):
 
     query_string, oracle_dsn_descrptr = '', False
+    connection_url = None
     if(len(config['dbConnectionParams']) > 0):
         if dbengine == 'oracle':
             query_string = f'?{config['dbConnectionParams']}'

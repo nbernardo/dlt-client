@@ -150,14 +150,19 @@ class SQLDatabase:
         from utils.database_secret import parse_connection_string
         query_string = parse_connection_string(dbengine, config)
 
-        success, error = False, None
+        if dbengine == 'mssql':
+            query_string = query_string+f'{SQLConnection.get_mssql_driver()}'
+
+        message, error = '', False
         try:
-            with create_engine(query_string).connect() as conn:
-                success = True
+            with create_engine(query_string).connect():
+                error = False
         except SQLAlchemyError as e:
-            print('Error while trying to connect to Database')
+            error = True
+            message = f'Error while trying to connect to Database {str(e)}'
+            print(message)
         finally:
-            return { 'result': success, 'error': error }
+            return { 'result': f'{message}', 'error': error }
 
 
 class SQLConnection:
