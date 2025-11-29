@@ -40,9 +40,9 @@
                 <li class="left-menu-item" onclick="component.selectTab('content-data-source')">
                     <label for="tab-data-source">
                         <span class="icon">
-                            <img src="app/assets/imgs/left-menu/db-white.svg" width="23" alt="">
+                            <img src="app/assets/imgs/left-menu/connection.png" width="25" alt="">
                         </span>
-                        <span class="text">Data Source</span>
+                        <span class="text">Connection Settings</span>
                     </label>
                 </li>
                 <li class="left-menu-item" id="dataFilesLeftMenu" style="min-width: 250px;"
@@ -106,7 +106,7 @@
             </div>
 
             <div class="content-panel content-data-source">
-                <h3>Database Catalog</h3>
+                <h3>Connections Catalog</h3>
                 <!-- <div class="under-contruction-feature">
                     <img src="@underContructionImg">
                     Feature under construction
@@ -115,7 +115,7 @@
                     </div>
                 </div> -->
                 <div class="catalog-db-addnew" onclick="component.openSecretForm()">
-                    <img src="app/assets/imgs/left-menu/add-database.svg" width="20" height="20"> &nbsp;New DB settings
+                    <img src="app/assets/imgs/left-menu/add-database.svg" width="20" height="20"> &nbsp;New settings
                 </div>
 
                 <span (showIf)="self.showLoading == 1">
@@ -125,7 +125,7 @@
                             <div class="mini-loader-dot"></div>
                             <div class="mini-loader-dot"></div>
                         </div>
-                        Fetching DB secrets...
+                        Fetching secrets settings...
                     </div>
                 </span>
 

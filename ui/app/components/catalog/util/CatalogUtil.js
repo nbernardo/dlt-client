@@ -383,3 +383,19 @@ export function showHidePaginateEndpoint(endpointCounter, show = false){
     }
 }
 
+export function generateDsnDescriptor(host,port,serviceName){
+    return `(DESCRIPTION=(RETRY_COUNT=20)(RETRY_DELAY=3)(ADDRESS=(PROTOCOL=tcps)(HOST=${host})(PORT=${port}))(CONNECT_DATA=(SERVICE_NAME=${serviceName}))(SECURITY=(SSL_SERVER_CERT_DN_MATCH=YES)))`;
+}
+
+export function handleShowHideWalletFields(show = null){    
+    document.querySelectorAll('.oracle-wallet-element').forEach(elm => {
+        if(show === true){
+            elm.style.display = '';
+            elm.setAttribute('required',true);
+        }else{            
+            elm.style.display = 'none';
+            elm.removeAttribute('required');
+            elm.removeAttribute('(required)');
+        }
+    });
+}

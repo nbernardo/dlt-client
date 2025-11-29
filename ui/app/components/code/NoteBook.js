@@ -1,8 +1,6 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { State } from "../../../@still/component/type/ComponentType.js";
-import { Assets } from "../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
-import { AppTemplate } from "../../../config/app-template.js";
 import { NoteBookController } from "../../controller/NoteBookController.js";
 import { Workspace } from "../workspace/Workspace.js";
 
@@ -28,18 +26,9 @@ export class NoteBook extends ViewComponent {
 	/** @Prop */ monacoEditorWrap;
 	/** @Prop */ showdownConverter;
 
-	async stBeforeInit() {
+	async stBeforeInit() {}
 
-		if (window.monaco) return;
-		
-		await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js' });
-		await Assets.import({ path: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js' });
-
-		require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } });
-		require(['vs/editor/editor.main'], () => window.monaco);
-		this.showdownConverter = new showdown.Converter();
-
-	}
+	async stOnRender(){}
 
 	async stAfterInit() {
 
@@ -52,10 +41,7 @@ export class NoteBook extends ViewComponent {
 
 		this.openFile.onChange(({fileName, code}) => this.controller.openFile(code, fileName));
 
-		if (monaco) {
-			monaco.languages.registerCompletionItemProvider('python', {
-				provideCompletionItems: (model, position) => ({ suggestions: this.controller.pythonAutoCompletionSetup() })
-			});
+		if (window.monaco) {
 			this.notebookContainer.classList.remove('hidden');
 			document.getElementById('loading-message').classList.add('hidden');
 		}

@@ -1,0 +1,49 @@
+import dlt
+from kafka import KafkaConsumer
+import certifi
+import json
+
+@dlt.source
+def data_source():
+    @dlt.resource(
+        write_disposition="merge",
+        primary_key=None
+    )
+    def messages():
+        consumer = KafkaConsumer(
+            '<topic-name>',
+            bootstrap_servers=['<server-addr>'],
+            security_protocol="SSL",
+            ssl_cafile=certifi.where(),
+            ssl_check_hostname=True,
+            auto_offset_reset="earliest",  
+            consumer_timeout_ms=5000
+        )
+        
+        for msg in consumer:
+            try:
+
+                message = json.loads(msg.value.decode('utf-8'))
+                data = message.get('<data_selector>', [])
+
+                yield from (
+                    {
+                        **record,
+                        '_kafka_offset': msg.offset,
+                        '_kafka_partition': msg.partition,
+                        '_kafka_timestamp': msg.timestamp,
+                        '_kafka_topic': msg.topic
+                    }
+                    for record in data
+                )
+                                
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                print(f"Skipping non-JSON message at offset {msg.offset}: {e}")
+                continue
+            except Exception as e:
+                print(f"Error processing message at offset {msg.offset}: {e}")
+                continue
+        
+        consumer.close()
+    
+    return messages

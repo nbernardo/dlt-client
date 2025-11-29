@@ -68,9 +68,9 @@ class DltPipeline:
         ppline_file = f'{file_path}/{file_name}.py'
         file_open_flag = 'x+'
         
+        self.curr_file = ppline_file
         if context.action_type == 'UPDATE':
             ppline_file = DltPipeline.create_new_pipline_version(file_name, file_path, data)
-            self.curr_file = ppline_file
         else:
             # Create python file with pipeline code
             with open(ppline_file, file_open_flag, encoding='utf-8') as file:
@@ -141,7 +141,7 @@ class DltPipeline:
 
         result.kill()
 
-        if error_messages != None:
+        if error_messages != None or result.returncode == 1:
             status = False
         else:
             status = status if len(result.stderr.read()) > 0 else True
@@ -284,6 +284,20 @@ class DltPipeline:
         with open(f'{file_name}', 'r', encoding='utf-8') as file:
             tplt = file.read()
 
+        return tplt    
+
+
+    @staticmethod
+    def get_dlt_code_template():
+        """
+        This is template handling method
+        """
+        tplt = ''
+        file_name = f'{template_dir}/dlt_code.txt'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
         return tplt
 
 
@@ -311,6 +325,8 @@ class DltPipeline:
     def revert_ppline(self):
         if(type(self.curr_file) == str):
             os.remove(self.curr_file)
+        ...
+
 
     @staticmethod
     def get_template_from_existin_ppline(ppline_path):

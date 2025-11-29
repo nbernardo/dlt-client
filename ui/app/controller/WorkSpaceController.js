@@ -9,6 +9,15 @@ import { LeftTabs } from "../components/navigation/left/LeftTabs.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
+import { CodeEditorUtil } from "../util/CodeEditorUtil.js";
+
+const monacoLoadInitVal = { 
+    lang: 'sql', 
+    fontSize: 14, 
+    theme: 'vs-light', 
+    suggestions: [],
+    suggestionType: null 
+};
 
 class NodeType {
     tmplt; data;
@@ -79,6 +88,11 @@ export class WorkSpaceController extends BaseController {
 
     /** @type { LeftTabs } */
     leftTab;
+
+    constructor(){
+        super();
+        (async () => await this.loadMonacoEditorDependencies())();
+    }
 
     resetEdges() {
         this.edgeTypeAdded = {};
@@ -410,6 +424,7 @@ export class WorkSpaceController extends BaseController {
         console.log(JSON.stringify(exportResult, null, 4));
     }
 
+    pipelineSuccess = true;
     socketChannelSetup(io, socketData) {
 
         const wssAddr = StillAppSetup.config.get('websocketAddr');
@@ -428,6 +443,7 @@ export class WorkSpaceController extends BaseController {
             AppTemplate.toast.error(error.message);
             this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
             this.wSpaceComponent.wasDiagramSaved = false;
+            this.pipelineSuccess = false;
         });
 
         socket.on('pplineStepStart', ({ componentId, sid }) => {
@@ -441,6 +457,7 @@ export class WorkSpaceController extends BaseController {
             this.pplineSteps[sid].add(componentId);
             const nodeId = this.cmpIdToNodeIdMap[componentId];
             const node = WorkSpaceController.getNode(nodeId);
+            this.pipelineSuccess = true;
             if (Object.keys(node.outputs).length > 0)
                 WorkSpaceController.addPreSuccessStatus(componentId);
             this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
@@ -740,19 +757,33 @@ export class WorkSpaceController extends BaseController {
     }
 
     async loadMonacoEditorDependencies(){
-        if (window.monaco) return;
         
+        if (window.monaco) return;
+
         await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js' });
         await Assets.import({ path: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js' });
 
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } });
-        require(['vs/editor/editor.main'], () => window.monaco);
+        require(['vs/editor/editor.main'], (monaco) => {
+
+            monaco.languages.registerCompletionItemProvider('python', {
+                provideCompletionItems: (model, position) => {
+                    return { suggestions: CodeEditorUtil.getPythonSuggestions() };
+                },
+            });
+
+            window.monaco
+        });
     }
 
-    loadMonadoEditor(container, { lang, fontSize } = { lang: 'sql', fontSize: 14 }){
-		return monaco.editor.create(container, {
+    loadMonacoEditor(container, params = monacoLoadInitVal){
+		
+        const { lang, fontSize, theme, suggestions, suggestionType } = params;
+        if(suggestionType === 'secret') CodeEditorUtil.addSecretSugestion(lang, suggestions)
+
+		return window.monaco.editor.create(container, {
 			value: this.query, language: lang,
-			theme: 'vs-light', automaticLayout: true,
+			theme, automaticLayout: true,
 			minimap: { enabled: false }, scrollBeyondLastLine: false,
 			fontSize
 		});

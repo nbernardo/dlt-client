@@ -2,6 +2,7 @@ import { ViewComponent } from "../../../../@still/component/super/ViewComponent.
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { StillTreeView } from "../../../../@still/vendors/treeview/StillTreeView.js";
 import { AppTemplate } from "../../../../config/app-template.js";
+import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { FileList } from "../../filelist/FileList.js";
 import { FileUpload } from "../../fileupload/FileUpload.js";
@@ -237,7 +238,7 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	async getPplineFiles(){
-		const ppLinefiles = await this.$parent.service.listPplineFiles(this.$parent.userEmail);
+		const ppLinefiles = await this.$parent.service.listPplineFiles(await UserService.getNamespace());
 		if(ppLinefiles == null) return null;
 		else return ppLinefiles;
 	}

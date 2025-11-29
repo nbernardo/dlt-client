@@ -38,7 +38,7 @@ export const FormHelper = {
                 const mn = `${min ? `min="${min}"` : ''}`, mx = `${max ? `max="${max}"` : ''}`;
                 const req = `${required ? ' (required)="true" ' : ''}`, wrn = `${warn ? ` (validator-warn)="${warn}"` : ''}`;
                 const checked = `${ ['checkbox','radio'].includes(type) && value === true ? `checked="true"` : "" }`;
-                const evt = ['checkbox','radio'].includes(type) ? `onclick` : `onkeyup`;
+                const evt = ['checkbox','radio'].includes(type) ? `onclick` : `oninput`;
                 
                 const validatorClass = required ? BehaviorComponent.setOnValueInput(req, cmp, fName, (formRef?.name || null)) : '';
                 const validateEvt = `${evt}="$still.c.ref('${cmp.cmpInternalId}').onValueInput(event,'${fName}',this, '${formRef.name}')"`;

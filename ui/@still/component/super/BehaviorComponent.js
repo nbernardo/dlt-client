@@ -68,7 +68,7 @@ export class BehaviorComponent {
 
         const isOptList = ['radio','checkbox'].includes(fieldType);
         if (e && !isOptList) 
-            if (BehaviorComponent.ignrKeys.includes(e.key.toString().toLowerCase())) return;
+            if (BehaviorComponent.ignrKeys.includes(e?.key?.toString()?.toLowerCase())) return;
          
         let pattern = inpt.getAttribute('(validator)');
         let required = inpt.getAttribute('required') ? inpt.getAttribute('required') : inpt.getAttribute('(required)');

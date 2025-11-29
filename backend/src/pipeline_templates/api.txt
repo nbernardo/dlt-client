@@ -15,11 +15,11 @@ from src.utils.APIClientUtil import PaginateParam
 
 # Bellow mapping: connection_name = InputAPI.connection_name
 connection_name = %connection_name%
-print('connecting to secrets vault')
+print('connecting to secrets vault', flush=True)
 SecretManager.ppline_connect_to_vault()
 # Bellow mapping: namespace = InputAPI.namespace
 namespace = %namespace%
-print(f'fetching "{connection_name}" secrets for DB connection')
+print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
 secret = SecretManager.get_secret(namespace, connection_name)
 
 resource_names = %resource_names%
@@ -78,15 +78,15 @@ def get_api_data():
                     
                     start += page.batch_size
                     end = start + (page.batch_size - 1)
-                    print(f'Fetched data from {full_path} endpoint')
+                    print(f'Fetched data from {full_path} endpoint', flush=True)
                 
-                print(f'Completed data fetch from {path} endpoint')
+                print(f'Completed data fetch from {path} endpoint', flush=True)
 
             except requests.exceptions.RequestException as err:
                 if data_fetch:
-                    print(f'No result found for {full_path}')
+                    print(f'RUNTIME_ERROR:No result found for {full_path}', flush=True)
                 else:
-                    print('Error while fetching API data for resource: ', resource_name)
+                    print('RUNTIME_ERROR:Error while fetching API data for resource: ', resource_name, flush=True)
 
         return fetch_api_data(path, data_selector, page_param)
     
@@ -102,4 +102,4 @@ dest_db = dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.du
 pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest_db, dataset_name=output_name)
 
 load_info = pipeline.run(get_api_data())
-print(load_info)
+print(load_info, flush=True)

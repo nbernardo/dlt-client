@@ -26,8 +26,11 @@ class InputAPI(TemplateNodeType):
 
             # Every field in this list will be parse and considerd as pure python code
             self.parse_to_literal = ['paginate_params','auth_config','auth_strategy','endpoints_params']
-
+            
             self.context = context
+
+            # Bellow fields (connection_name, base_url, component_id, namespace)
+            # are mapped in /pipeline_templates/api.txt
             self.connection_name = data['connectionName']
             self.base_url = data['baseUrl']
             self.component_id = data['componentId']
@@ -36,6 +39,8 @@ class InputAPI(TemplateNodeType):
             SecretManager.ppline_connect_to_vault()
             secret = SecretManager.get_secret(self.namespace, self.connection_name)
 
+            # Bellow fields (resource_names, primary_keys, data_selectors, endpoints_params)
+            # are mapped in /pipeline_templates/api.txt
             self.resource_names = secret['apiSettings']['endPointsGroup']['apiEndpointPath']
             self.primary_keys = secret['apiSettings']['endPointsGroup']['apiEndpointPathPK']
             self.data_selectors = secret['apiSettings']['endPointsGroup']['apiEndpointDS']
@@ -47,9 +52,11 @@ class InputAPI(TemplateNodeType):
             url_status, url_call_error = InputAPI.check_base_url_exists(secret['apiSettings']['apiBaseUrl'])
             if url_status == False:
                 return self.notify_failure_to_ui('InputAPI',url_call_error)
-
+            
+            # Bellow field (paginate_params) is mapped in /pipeline_templates/api.txt
             self.paginate_params = self.get_paginate_params(secret).replace('"','')
             
+            # Bellow field (auth_config) is mapped in /pipeline_templates/api.txt
             self.auth_config, self.auth_strategy = self.parse_connection_strategy(secret)
 
             self.notify_completion_to_ui()

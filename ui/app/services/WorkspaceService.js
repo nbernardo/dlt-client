@@ -6,6 +6,7 @@ import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
 import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
+import { DLTCode } from "../components/node-types/dlt/DLTCode.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
@@ -43,8 +44,8 @@ export class WorkspaceService extends BaseService {
         { icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
         { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
         { imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
-        { imgIcon: 'app/assets/imgs/api-source.svg', label: 'Source - API', typeName: InputAPI.name },
-        { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: null, disable: 'yes', name: 'DLT-class' },
+        { imgIcon: 'app/assets/imgs/api-source.svg', label: 'Input - API', typeName: InputAPI.name },
+        { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
         { 
             imgIcon: 'app/assets/imgs/language-python-text-svgrepo-com.svg', 
             label: 'Code Transformation', 
@@ -301,7 +302,6 @@ export class WorkspaceService extends BaseService {
         return { ...result, error: null };
     }
 
-
     /** @returns { { result: { result, fields, actual_query, db_file } } } */
     static async createSecret(secret) {
 
@@ -321,9 +321,43 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
     }
 
+    /** @returns { { result: { result, fields, actual_query, db_file } } } */
+    static async testDbConnection(secret) {
+
+        const url = '/workspace/connection/test';
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
+            headers: { 'content-type': 'Application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            AppTemplate.toast.success('DB Connection was successful');
+            return true;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    /** @returns { { result: { result, fields, actual_query, db_file } } } */
+    static async getOracleDN(host, port) {
+
+        const url = `/db/connection/${host}/${port}`;
+        const response = await $still.HTTPClient.get(url);
+        
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            AppTemplate.toast.success('Oracle DN loaded successfully');
+            return result?.result;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
 
     /** @returns { Array<string> } */
-    static async listSecrets(type) {
+    static async listSecrets(type, cb = () => {}) {
 
         const namespace = await UserService.getNamespace();
         const url = '/secret/' + namespace;
@@ -342,8 +376,14 @@ export class WorkspaceService extends BaseService {
                 }
             })
             
-            if(type == 1 && Array.isArray(secretList?.db_secrets))
-				secretAndServerList = secretList.db_secrets.map(secret => ({ name: secret, host: secretList.metadata[secret] || 'None' }));
+            if(type == 1 && Array.isArray(secretList?.db_secrets)){
+                const secretNames = [];
+				secretAndServerList = secretList.db_secrets.map(secret => {
+                    if(!secretList.metadata[secret]) secretNames.push(secret);
+                    return { name: secret, host: secretList.metadata[secret] || 'None' };
+                });
+                cb({dbSecrets: secretAndServerList, secretNames});
+            }
 			
             return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
 

@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { CatalogEndpointType, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, viewSecretValue } from "./util/CatalogUtil.js";
+import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -29,6 +29,8 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop @type { Array<HTMLElement> } */ dynamicEndpointsDelButtons = [];
 	/** @type { Workspace } */ $parent;
 	/** @Prop */ editorPlaceholder = null;
+	/** @Prop */ showKeyFileFields = false;
+	/** @Prop */ showTestConnection = false;
 
 	// DB catalog/secrets fields
 	dbEngine;
@@ -36,6 +38,10 @@ export class CatalogForm extends ViewComponent {
 	dbPort;
 	dbName;
 	dbUser;
+	dbConnectionParams = '';
+	checkConnection = '';
+	walletPassword;
+	walletFile;
 	connectionName;
 	
 	// Bellow State variables are shared between API and DB secret creation
@@ -68,6 +74,7 @@ export class CatalogForm extends ViewComponent {
 		this.endPointEditorContent = {};
 		this.editorPlaceholder = null;
 		this.showServiceNameLbl = false;
+		this.showTestConnection = false;
 		this.dynamicEndpointsDelButtons = [];
 		this.modal = document.getElementById('modal');
 		//this.openModal = document.getElementById('openModal');
@@ -92,7 +99,7 @@ export class CatalogForm extends ViewComponent {
 				return this.showServiceNameLbl = true;
 			this.showServiceNameLbl = false;
 		});
-
+		
 		this.onEndpointUpdate();
 	}
 
@@ -112,7 +119,7 @@ export class CatalogForm extends ViewComponent {
 				prevContainer.innerHTML = '';
 			}
 			this.editorPlaceholder = placeId;
-			this.editor = this.$parent.controller.loadMonadoEditor(container, { lang: 'json' });
+			this.editor = this.$parent.controller.loadMonacoEditor(container, { lang: 'json', theme: 'vs-light' });
 			container.style="height: 80px; margin-top: 11px;"
 			let params = this.endPointEditorContent[placeId] || `{ \t"param1": "param1 value" }`;
 
@@ -123,7 +130,6 @@ export class CatalogForm extends ViewComponent {
 					this.endPointEditorContent[placeId] = {};
 				else
 					this.endPointEditorContent[placeId] = this.editor.getValue();
-				//console.log(`TYPED VALUE IS: `, this.editor.getValue());
 			});
 		}
 	}
@@ -151,6 +157,7 @@ export class CatalogForm extends ViewComponent {
 		
 		if(this.secretType == 1){
 			let selectedOption = 0;
+			this.showTestConnection = true;
 			this.showDialog();
 			if(!('connection_url' in secretData)){
 				selectedOption = 1;
@@ -229,7 +236,6 @@ export class CatalogForm extends ViewComponent {
 
 			this.apiBaseUrl = secretData.apiSettings.apiBaseUrl;
 			this.apiConnName = secretData.connectionName;
-
 			this.showDialog();
 			document.querySelector('.unique-api-name').disabled = true;
 			//document.querySelector('.catalog-form-secret-api .first-secret-field').value = secretData.env['val1-secret'];
@@ -250,16 +256,19 @@ export class CatalogForm extends ViewComponent {
 				inpt.removeAttribute('required');
 				inpt.removeAttribute('(required)');
 			});
+			this.showTestConnection = true;
 		}else{
 			document.querySelectorAll('.catalog-form-db-fields input, .catalog-form-db-fields select').forEach(inpt => {
 				inpt.removeAttribute('required');
 				inpt.removeAttribute('(required)');
 			});
 			document.querySelectorAll('.catalog-form-secret-group input').forEach(inpt => inpt.setAttribute('required', true));
+			this.showTestConnection = false;
 		}
 	}
 
 	resetForm(){
+		this.showTestConnection = false;
 		this.connectionName = '';
 		this.dbHost = '';
 		this.dbPort = '';
@@ -267,14 +276,13 @@ export class CatalogForm extends ViewComponent {
 		this.dbUser = '';
 		this.dbEngine = '';
 		if(document.querySelector('.first-secret-field')) document.querySelector('.first-secret-field').value = '';
+		document.querySelector('.connectio-test-status').style.background = 'rgb(182, 182, 182)';
 	}
 
 	showDialog(reset = false, type = null){		
 		if(type === 'api') this.markRequiredApiFields(true);
-		if(reset){
-			this.isNewSecret = true, this.resetForm();
-		}
-
+		if(reset) this.isNewSecret = true, this.resetForm();
+		
 		document.querySelector('.db-connection-name').disabled = false;
 		document.querySelectorAll('.database-settings-type input').forEach(opt => opt.disabled = false);
 		if(this.modal.style.display !== 'flex')
@@ -310,13 +318,17 @@ export class CatalogForm extends ViewComponent {
 			document.querySelectorAll('input[name="userPagination1"]')[1].click();
 			document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.checked = false);
 			self.isNewSecret = false;
+			self.showTestConnection = false;
 			self.markRequiredApiFields(false);
+			document.querySelector('.connectio-test-status').style.background = 'rgb(182, 182, 182)';
 			
 			for(const btn of self.dynamicEndpointsDelButtons)
 				btn.click();
 			self.dynamicEndpointsDelButtons = [];
 		}
 	}
+
+	showHideWalletFields = (show) => handleShowHideWalletFields(show);
 
 	addSecreteGroup(initial = false, valueRequired = true){
 		
@@ -373,11 +385,21 @@ export class CatalogForm extends ViewComponent {
 		FormHelper.delField(this,this.formRef,fieldName.replace('val','key'));
 		document.querySelectorAll(`.remove-dyn-field-${fieldName}`).forEach(itm => itm.remove());
 	};
-	
+
+	async testConnection(){
+		const btn = document.querySelector('.connectio-test-status');
+		btn.parentElement.disabled = true;
+		this.checkConnection = 'in-progress';
+		const result = await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()});
+		btn.style.background = result == true ? 'green' : 'red';
+		this.checkConnection = '';
+		btn.parentElement.disabled = false;
+	}
 
 	async createSecret(){
 		const validate = await this.formRef.validate(); 
 		let dbConfig = null, apiSettings = null, updatingSecret;
+		console.log('Good good: ',(await this.formRef).errorCount);
 		
 		if(this.secretType != 2 && this.dataBaseSettingType == null) 
 			return AppTemplate.toast.error('Please select the secret type');
@@ -396,23 +418,12 @@ export class CatalogForm extends ViewComponent {
 						]
 					};
 				}else{
-					dbConfig = {
-						'plugin_name': this.dbEngine.value,
-						'connection_url': 'postgresql://{{username}}:{{password}}@{{host}}:{{port}}/{{dbname}}',
-						'verify_connection': false,
-						'username': this.dbUser.value,
-						'password': this.firstValue.value,
-						'dbname': this.dbName.value,
-						'host': this.dbHost.value,
-						'port': this.dbPort.value,
-						'connectionName': this.connectionName.value
-					}
+					dbConfig = this.getDBConfig();
 				}
 				updatingSecret = this.getUpdatingSecret();
-
-				if(updatingSecret.updatingId && this.isNewSecret){
+				if(updatingSecret.updatingId && this.isNewSecret)
 					return AppTemplate.toast.error(`Secret with name ${this.connectionName.value} already exists`);
-				}
+				
 			}else{
 				apiSettings = {
 					...this.parseAPICatalogFields(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
@@ -429,7 +440,33 @@ export class CatalogForm extends ViewComponent {
 		}else{
 			AppTemplate.toast.error('Please fill all required field');
 		}
-		
+	}
+
+	getDBConfig = () => ({
+		'plugin_name': this.dbEngine.value,
+		'connection_url': 'postgresql://{{username}}:{{password}}@{{host}}:{{port}}/{{dbname}}',
+		'verify_connection': false,
+		'username': this.dbUser.value,
+		'password': this.firstValue.value,
+		'dbname': this.dbName.value,
+		'host': this.dbHost.value,
+		'port': this.dbPort.value,
+		'connectionName': this.connectionName.value,
+		'dbConnectionParams': this.dbConnectionParams.value,
+	})
+
+	getOracleDN = async () => {
+		if(this.dbHost.value == '' || this.dbPort.value == '' || this.dbName.value == '')
+			return AppTemplate.toast.error('Fill <b>Host</b>, <b>Port</b> and <b>Database</b> to field to fetch oracle DN',7000);
+		this,this.dbConnectionParams = generateDsnDescriptor(this.dbHost.value,this.dbPort.value,this.dbName.value);
+		//document.querySelector('.db-connection-params').disabled = true;
+
+		//this.dbConnectionParams = 'searching';
+		//const oracleDN = await WorkspaceService.getOracleDN(this.dbHost.value, this.dbPort.value);
+		//if(oracleDN != null) this.dbConnectionParams = `ssl_server_cert_dn=${oracleDN}&ssl_server_dn_match=True&protocol=tcps`;
+		//else this.dbConnectionParams = '';
+
+		document.querySelector('.db-connection-params').disabled = false;
 	}
 
 	getUpdatingSecret(){

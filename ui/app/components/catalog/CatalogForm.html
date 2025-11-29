@@ -37,7 +37,7 @@
       <div class="modal-header">
 
         <div (showIf)="self.secretType == 1">
-          <h3>Register New Database Settings</h3>
+          <h3>Create New Settings</h3>
         </div>
 
         <div (showIf)="self.secretType == 2">
@@ -107,8 +107,42 @@
                   <input type="text" (value)="dbHost" placeholder="db.example.com">
                 </div>
                 <div class="form-group required-db-field">
-                  <label>Port</label>
-                  <input type="number" (value)="dbPort" value="5432">
+                  <table>
+                    <tr>
+                      <td><label>Port</label></td>
+                      <td>
+                        <label style="display: flex;">
+                          Params&nbsp;
+                          <span (showIf)="self.showServiceNameLbl" data="get-oracle-dn-btn">
+                            <div>
+                              @if(this.dbConnectionParams == 'searching')
+                                <div class="mini-loader-container oracle-dn-loader">
+                                  <div class="mini-loader-dot"></div>
+                                  <div class="mini-loader-dot"></div>
+                                  <div class="mini-loader-dot"></div>
+                                </div>
+                              @endif
+                              @if(this.dbConnectionParams != 'searching')
+                              - <span style="color: blue; font-weight: bold; cursor: pointer; font-size: 12px;">
+                                Get Oracle DN <input type="checkbox" onclick="component.getOracleDN()">
+                                </span>
+                              @endif
+                            </div>
+                          </span>
+                        </label>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><input type="number" style="width: 70px;" (value)="dbPort" value="5432"></td>
+                      <td>
+                        <input 
+                            style="width: 208px; font-size: 14px;"
+                            (value)="dbConnectionParams"
+                            placeholder="e.g. ssl_ca=/etc/mysql/ca.pem"
+                            class="no-required db-connection-params">
+                      </td>
+                    </tr>
+                  </table>
                 </div>
                 <div class="form-group required-db-field">
                   <label (showIf)="!self.showServiceNameLbl">Database Name</label>
@@ -118,6 +152,18 @@
                 <div class="form-group">
                   <label>Database user</label>
                   <input (value)="dbUser" type="text" placeholder="e.g. dbreaduser">
+                </div>
+
+                <div class="form-group" (showIf)="self.showKeyFileFields">
+                  <label>
+                    Auth files
+                    <input type="checkbox" onclick="component.showHideWalletFields(this.checked)">
+                  </label>
+                  <input class="oracle-wallet-element no-required" (value)="walletFile" style="height: 33px; padding: 4px; display: none;" type="file">
+                </div>
+                <div class="form-group" (showIf)="self.showKeyFileFields">
+                  <label class="oracle-wallet-element no-required" style="display: none;">Passphrase</label>
+                  <input class="oracle-wallet-element no-required" style="display: none;" (value)="walletPassword" type="password">
                 </div>
     
                 <div style="margin-top: 8px; font-weight: bold;">SECRETS</div>
@@ -274,6 +320,25 @@
         
 
         <div class="modal-footer">
+          <button style="width: 50vw;" 
+            (showIf)="self.showTestConnection"
+            type="button" 
+            onclick="component.testConnection()" 
+            class="btn btn-light-blue save-secret-btn">
+              @if(this.checkConnection == 'in-progress')
+                <div class="mini-loader-container oracle-dn-loader">
+                  <div class="mini-loader-dot"></div>
+                  <div class="mini-loader-dot"></div>
+                  <div class="mini-loader-dot"></div>
+                </div>
+              @endif
+              Test connection
+            <div 
+              class="connectio-test-status"
+              style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
+              &nbsp;
+            </div>
+          </button>
           <button 
             type="button" 
             onclick="component.createSecret()" 
@@ -284,6 +349,11 @@
   </div>
 
   <style>
+    span[data="get-oracle-dn-btn"] { float: left; margin-top: 0;  }
+    .oracle-dn-loader {
+        display: flex; width: 29px; margin-top: 0; padding: 0; margin-left: 10px; float: right; margin-top: 0;
+        .mini-loader-dot { background-color: white; width: 12px; height: 9px; }
+    }
 
     .add-api-param-btn { color: blue; text-decoration: underline; cursor: pointer; }
 
