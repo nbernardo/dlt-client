@@ -14,8 +14,8 @@ from src.services.workspace.SecretManager import referencedSecrets
 
 ppline_name, output_name = %pipeline_name%, %duckdb_dest%
 dest_folder = Workspace.get_duckdb_path_on_ppline()
-dest = dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')
-
+%dest_secret_code%
+dest = %destination_string%
 print(f"Staring '{ppline_name}' pipeline creation", flush=True)
 pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)
 

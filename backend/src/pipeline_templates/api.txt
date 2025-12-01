@@ -29,8 +29,7 @@ paginate_params = %paginate_params%
 endpoints_params = %endpoints_params%
 
 api_client = RESTClient(
-    base_url=%base_url%,
-    %auth_config%
+    base_url=%base_url%,%auth_config%
 )
 
 @dlt.source
@@ -97,8 +96,8 @@ def get_api_data():
 
 ppline_name, output_name = %pipeline_name%, %duckdb_dest%
 dest_folder = Workspace.get_duckdb_path_on_ppline()
-dest = dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')
-
+%dest_secret_code%
+dest = %destination_string%
 pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest, dataset_name=output_name)
 
 load_info = pipeline.run(get_api_data())

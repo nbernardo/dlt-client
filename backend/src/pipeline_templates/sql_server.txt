@@ -37,12 +37,10 @@ def load_select_tables_from_db():
 
     dest_folder = Workspace.get_duckdb_path_on_ppline()
     ppline_name = %pipeline_name%
-    dest = dlt.destinations.duckdb(f'{dest_folder}/{namespace}/{ppline_name}.duckdb')
-    pipeline = dlt.pipeline(
-        pipeline_name=ppline_name,
-        destination=dest,
-        dataset_name="destsqlserver"
-    )
+    ppline_name, output_name = %pipeline_name%, %duckdb_dest%
+    %dest_secret_code%
+    dest = %destination_string%
+    pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest,dataset_name=output_name)
 
     # Bellow mapping: source_tables = SqlDBComponent.source_tables
     tables = %source_tables%
