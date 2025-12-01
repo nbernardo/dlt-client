@@ -11,7 +11,6 @@ sys.path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
-from src.utils.SQLDatabase import SQLConnection
 from src.utils import SQLServerUtil
 
 # Bellow mapping: namespace = SqlDBComponent.namespace
@@ -26,7 +25,7 @@ SecretManager.ppline_connect_to_vault()
 print(f'fetching "{connection_name}" secrets for DB connection')
 secret = SecretManager.get_db_secret(namespace, connection_name)
 
-connection_string = secret['connection_url']+f'{SQLConnection.get_mssql_driver()}'
+connection_string = secret['connection_url']
 
 # Bellow mapping: source_database = SqlDBComponent.source_database
 database_to_connect = %source_database%

@@ -473,18 +473,25 @@ def get_ssl_dn(host, port):
         return { 'error': True, 'result': str(err) }
 
 
+@workspace.route('/workspace/connection/<exists_conn>/test', methods=['POST'])
 @workspace.route('/workspace/connection/test', methods=['POST'])
-def test_sql_db_connections():
+def test_sql_db_connections(exists_conn = None):
 
     payload = request.get_json()
     config = payload['dbConfig']
 
-    if('val1-db' in payload['env']):
-        config['password'] = payload['env']['val1-db']
+    if(exists_conn == None):
+        if('val1-db' in payload['env']):
+            config['password'] = payload['env']['val1-db']
 
-    if('key1-secret' in payload['env']):
-        config['password'] = payload['env']['key1-secret']
+        if('key1-secret' in payload['env']):
+            config['password'] = payload['env']['key1-secret']
     
+    # To handle edge case of retesting existing 
+    # connection/secret that is not Oracle type
+    if 'dbConnectionParams' not in config:
+        config['dbConnectionParams'] = ''
+
     dbengine = str(config['plugin_name']).split('-')[0]
 
     result = SQLDatabase.test_sql_connection(dbengine, config)

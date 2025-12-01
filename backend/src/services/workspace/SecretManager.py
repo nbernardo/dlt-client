@@ -5,6 +5,7 @@ from hvac.exceptions import InvalidPath, InvalidRequest
 import traceback
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import utils.database_secret as DBSecret
+from utils.SQLDatabase import SQLConnection
 
 class SecretManager(SecretManagerType):
     """
@@ -205,7 +206,12 @@ class SecretManager(SecretManagerType):
 
     def get_db_secret(namespace, connection_name):
         path = f'main/db/{connection_name}'
-        return SecretManager.get_secret(namespace, path=path)
+        secret = SecretManager.get_secret(namespace, path=path)
+
+        if secret['dbengine'] == 'mssql':
+            secret['connection_url'] = secret['connection_url']+f'{SQLConnection.get_mssql_driver()}'
+
+        return secret
             
 
     def get_from_references(namespace,references: list = []):
