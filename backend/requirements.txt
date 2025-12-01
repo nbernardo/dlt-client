@@ -179,3 +179,5 @@ boto3
 s3transfer==0.14.0
 hvac
 kafka-python
+dlt[sqlalchemy]
+oracledb
