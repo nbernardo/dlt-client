@@ -17,12 +17,15 @@ class Bucket(TemplateNodeType):
         
         try:
             self.bucket_path_prefix = ""
+            self.template_type = 'has_duckdb_path'
             self.template = DltPipeline.get_s3_no_auth_template()
 
             if(context.is_cloud_url != True):
                 self.template = DltPipeline.get_template()\
                                     if context.transformation == None else DltPipeline.get_transform_template()
             
+            self.template = self.parse_destination_string(self.template)
+
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself
             if data is None: return None

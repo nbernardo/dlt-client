@@ -12,15 +12,20 @@ class SqlDBComponent(TemplateNodeType):
         """
         Initialize the instance
         """
-
+        
+        self.context = context
+        self.template_type = None
+        template = ''
         if data['dbengine'] == 'mssql':
-            self.template = DltPipeline.get_mssql_db_template()
+            template = DltPipeline.get_mssql_db_template()
         else:
             if 'old_template' in data:
                 if data['old_template']:
-                    self.template = DltPipeline.get_sql_db_template('sql_db_old.txt')
+                    template = DltPipeline.get_sql_db_template('sql_db_old.txt')
             else:
-                self.template = DltPipeline.get_sql_db_template()
+                template = DltPipeline.get_sql_db_template()
+
+        self.template = self.parse_destination_string(template)
 
         # When instance is created only to get the template 
         # Nothing more takes place except for the template itself
@@ -29,7 +34,6 @@ class SqlDBComponent(TemplateNodeType):
                 return None
 
         self.schema = False
-        self.context = context
         self.component_id = data['componentId']
         self.context.emit_start(self, '')
 

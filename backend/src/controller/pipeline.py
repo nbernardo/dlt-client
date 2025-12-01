@@ -25,7 +25,7 @@ def create():
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
-    start_node_id, node_params = pepeline_init_param(payload)
+    start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
     node_params = parse_transformation_task(node_params, context)
 
     start_node = node_params.get(f'{start_node_id}')
@@ -46,6 +46,7 @@ def create():
     context.pipeline_lbl = pipeline_lbl
     context.connections = connections
     context.node_params = node_params
+    context.sql_destinations = sql_destinations
     context.is_cloud_url = True if is_cloud_bucket_req else False
 
     if(context.action_type == 'UPDATE'):
@@ -189,9 +190,10 @@ def create_new_version_ppline(fst_connection,
 def pepeline_init_param(payload):
     grid = payload['drawflow'] if 'drawflow' in payload else ''
     start_id = payload['startNode'] if 'startNode' in payload else ''
+    sql_destinations = payload['sqlDestinations'] if 'sqlDestinations' in payload else ''
     node_params = grid['Home']['data']
     
-    return start_id, node_params
+    return start_id, node_params, sql_destinations
 
 
 def parse_transformation_task(node_params, context: RequestContext):
@@ -371,7 +373,7 @@ def update_ppline(user, filename):
     pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
     ppline_path = BasePipeline.folder+'/pipeline/'+user
 
-    _, node_params = pepeline_init_param(payload)
+    _1, node_params, _2 = pepeline_init_param(payload)
     context = RequestContext(pipeline_name, payload['socketSid'])
     
     pipeline_instance = DltPipeline()

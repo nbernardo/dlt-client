@@ -16,8 +16,9 @@ class InputAPI(TemplateNodeType):
         """
         
         try:
-
-            self.template = DltPipeline.get_api_templete()
+            self.template_type = None
+            template = DltPipeline.get_api_templete()
+            self.template = self.parse_destination_string(template)
             
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself
@@ -58,7 +59,7 @@ class InputAPI(TemplateNodeType):
             
             # Bellow field (auth_config) is mapped in /pipeline_templates/api.txt
             self.auth_config, self.auth_strategy = self.parse_connection_strategy(secret)
-
+            
             self.notify_completion_to_ui()
 
         except Exception as error:
@@ -101,11 +102,11 @@ class InputAPI(TemplateNodeType):
             connection_type = secret['apiSettings']['apiAuthType']
 
             if connection_type == 'bearer-token':
-                auth_config = "auth=BearerTokenAuth(token=secret['apiSettings']['apiTknValue'])"
+                auth_config = "\nauth=BearerTokenAuth(token=secret['apiSettings']['apiTknValue'])"
                 auth_strategy = 'from dlt.sources.helpers.rest_client.auth import BearerTokenAuth'
             
             if connection_type == 'api-key':
-                auth_config = f"auth=APIKeyAuth(name='{secret['apiSettings']['apiKeyName']}', api_key=secret['apiSettings']['apiKeyValue'], location='header')"
+                auth_config = f"\nauth=APIKeyAuth(name='{secret['apiSettings']['apiKeyName']}', api_key=secret['apiSettings']['apiKeyValue'], location='header')"
                 auth_strategy = 'from dlt.sources.helpers.rest_client.auth import APIKeyAuth'
 
         return auth_config, auth_strategy
