@@ -64,22 +64,18 @@ export class DatabaseOutput extends ViewComponent {
 	}
 
 	setupOnChangeListen(){
-		this.database.onChange(newValue => WorkSpaceController.getNode(this.nodeId).data['database'] = newValue);
-		this.selectedDbEngine.onChange(value => WorkSpaceController.getNode(this.nodeId).data['dbengine'] = value);
 
 		this.selectedSecret.onChange(async secretName => {
 			this.showLoading = true;
 			let database = '', dbengine = '', host = '';
 			if(secretName != ''){
 				const data = await WorkspaceService.getConnectionDetails(secretName);
-
 				const detail = data['secret_details'];
 				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
-				WorkSpaceController.getNode(this.nodeId).data['host'] = host;
+				WorkSpaceController.getNode(this.nodeId).data['outDBconnectionName'] = secretName;
+				WorkSpaceController.getNode(this.nodeId).data['databaseName'] = database;
 			}
-			this.database = database;
-			this.selectedDbEngine = dbengine;
-			this.hostName = host;
+			this.database = database, this.selectedDbEngine = dbengine, this.hostName = host;
 			this.showLoading = false;
 		})
 	}
