@@ -299,6 +299,8 @@ export class Workspace extends ViewComponent {
 		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);
 
+		data.sqlDestinations = Object.values(this.controller.pipelineDestinationTrace.sql);
+
 		if (update === true) data.update = true;
 		return data;
 

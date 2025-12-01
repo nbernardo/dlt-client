@@ -8,6 +8,7 @@ import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DLTCode } from "../components/node-types/dlt/DLTCode.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
+import { DatabaseOutput } from "../components/node-types/output/DatabaseOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
 import { UserService } from "./UserService.js";
@@ -19,6 +20,7 @@ export class ObjectDataTypes {
     imgIcon;
     source;//Can it be a source of stream
     dest;//Can it be a dest of stream
+    name;
 };
 
 export class WorkspaceService extends BaseService {
@@ -53,11 +55,8 @@ export class WorkspaceService extends BaseService {
             disable: 'yes' 
         },
         { icon: 'fas fa-cogs', label: 'Transformation', typeName: Transformation.name },
-        {
-            imgIcon: 'app/assets/imgs/duckdb-icon.svg',
-            label: 'Out-DBFile (.duckdb)',
-            typeName: DuckDBOutput.name
-        },
+        { imgIcon: 'app/assets/imgs/duckdb-icon.svg', label: 'Out-DBFile (.duckdb)', typeName: DuckDBOutput.name },
+        { imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Out-Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
     ]
 
     static async getNamespace(){

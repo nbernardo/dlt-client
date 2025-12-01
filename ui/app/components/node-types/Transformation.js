@@ -77,6 +77,10 @@ export class Transformation extends ViewComponent {
 		}
 	}
 
+	onOutputConnection(){
+		return null;
+	}
+
 	async addNewField(data = null, inTheLoop = false) {
 
 		const obj = this;

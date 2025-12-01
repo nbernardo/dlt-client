@@ -5,9 +5,10 @@ import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
+import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { addSQLComponentTableField } from "./util/formUtil.js";
 
-
+/** @implements { NodeTypeInterface } */
 export class SqlDBComponent extends ViewComponent {
 
 	isPublic = true;
@@ -20,20 +21,13 @@ export class SqlDBComponent extends ViewComponent {
 		{ name: 'SQL Server', dialect: 'mssql' }
 	]
 
-	/** @Prop */
-	inConnectors = 1;
-	/** @Prop */
-	outConnectors = 1;
-	/** @Prop */
-	nodeId;
-	/** @Prop */
-	dbInputCounter = 1;
-	/** @Prop @type { STForm } */	
-	formRef;
-	/** @Prop */	
-	isOldUI;
-	/** @Prop @type { TableAndPKType } */	
-	dynamicFields;
+	/** @Prop */ inConnectors = 1;
+	/** @Prop */ outConnectors = 1;
+	/** @Prop */ nodeId;
+	/** @Prop */ dbInputCounter = 1;
+	/** @Prop @type { STForm } */ formRef;
+	/** @Prop */ isOldUI;
+	/** @Prop @type { TableAndPKType } */ dynamicFields;
 
 	selectedSecretTableList = [];
 	selectedTableList = [];
@@ -224,6 +218,11 @@ export class SqlDBComponent extends ViewComponent {
 		await this.formRef.validate();
 		console.log(this.formRef.errorCount);
 	}
+
+	onOutputConnection(){
+		return null;
+	}
+
 }
 
 
