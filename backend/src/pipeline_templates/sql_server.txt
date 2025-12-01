@@ -37,7 +37,7 @@ def load_select_tables_from_db():
 
     dest_folder = Workspace.get_duckdb_path_on_ppline()
     ppline_name = %pipeline_name%
-    ppline_name, output_name = %pipeline_name%, %duckdb_dest%
+    ppline_name, output_name = %pipeline_name%, %output_dest_name%
     %dest_secret_code%
     dest = %destination_string%
     pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest,dataset_name=output_name)

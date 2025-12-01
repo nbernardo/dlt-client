@@ -17,8 +17,8 @@ if %primary_key% != 'UNDEFINED':
 %dest_secret_code%
 dest = %destination_string%
 
-ppline_name, output_name = %pipeline_name%, %duckdb_dest%
-# Bellow mapping: schema = DuckDBOutput.duckdb_dest
+ppline_name, output_name = %pipeline_name%, %output_dest_name%
+# Bellow mapping: schema = DuckDBOutput.output_dest_name
 pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest,dataset_name=output_name)
 
 info = pipeline.run(reader,write_disposition="merge")

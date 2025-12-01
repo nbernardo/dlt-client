@@ -43,7 +43,14 @@ class TemplateNodeType:
                 # TODO: Implement this scenario
                 ...
             else:
-                secret_code = f"\ndbconnection_name = '{destinations[0]}'\ndbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name)['connection_url']"
+                # n variable is to add a new line and alikely space * 4 (corresponding to tab)
+                n = '\n    ' if template_type == 'sql_database' else '\n'
+                
+                connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
+                dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
+                dbconnecting_log = f"{n}print('Connecting to destination Database', flush=True){n}"
+
+                secret_code = f"{connaction_name_var}{dbcredentials_var}{dbconnecting_log}"
                 template = template.replace('%dest_secret_code%',secret_code)
                 destination_string = "dlt.destinations.sqlalchemy(credentials=dbcredentials)"
 

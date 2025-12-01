@@ -14,7 +14,7 @@ class SqlDBComponent(TemplateNodeType):
         """
         
         self.context = context
-        self.template_type = None
+        self.template_type = 'sql_database'
         template = ''
         if data['dbengine'] == 'mssql':
             template = DltPipeline.get_mssql_db_template()
@@ -68,6 +68,8 @@ class SqlDBComponent(TemplateNodeType):
               {self.source_database} and {self.source_tables}\
               and DBEngine is {self.source_dbengine}')
         self.check_db_and_tables(self.source_tables)
+
+        self.notify_completion_to_ui()
 
 
     def parse_tables_and_schema(self):

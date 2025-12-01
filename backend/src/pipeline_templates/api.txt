@@ -94,7 +94,7 @@ def get_api_data():
         yield generate_source(path, selector, pk, page_params, path_params)
 
 
-ppline_name, output_name = %pipeline_name%, %duckdb_dest%
+ppline_name, output_name = %pipeline_name%, %output_dest_name%
 dest_folder = Workspace.get_duckdb_path_on_ppline()
 %dest_secret_code%
 dest = %destination_string%

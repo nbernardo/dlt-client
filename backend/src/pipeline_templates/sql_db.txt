@@ -19,10 +19,10 @@ namespace = %namespace%
 # Bellow mapping: connection_name = SqlDBComponent.connection_name
 connection_name = %connection_name%
 
-print('connecting to secrets vault')
+print('connecting to secrets vault', flush=True)
 SecretManager.ppline_connect_to_vault()
 
-print(f'fetching "{connection_name}" secrets for DB connection')
+print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
 secret = SecretManager.get_db_secret(namespace, connection_name)
 
 connection_string = secret['connection_url']
@@ -34,16 +34,16 @@ credentials = ConnectionStringCredentials(connection_string)
 
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()
-    ppline_name, output_name = %pipeline_name%, %duckdb_dest%
+    ppline_name, output_name = %pipeline_name%, %output_dest_name%
     %dest_secret_code%
     dest = %destination_string%
-    # Bellow mapping: duckdb_dest = DuckDBOutput.duckdb_dest
+    # Bellow mapping: output_dest_name = DuckDBOutput.output_dest_name
     pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)
 
-    # Bellow mapping: source_tables = SqlDBComponent.source_tables
+    # Bellow mapping: tables = SqlDBComponent.source_tables
     tables = %source_tables%
 
-    # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
+    # Bellow mapping: tables_pk = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
 
     # Bellow mapping: schema = SqlDBComponent.schema
@@ -53,13 +53,12 @@ def load_select_tables_from_db():
         source = []
         for idx in range(len(tables)):
             schema_name, table_name = tables[idx].split('.')
-
             db_table = sql_table(
                 table=table_name,  credentials=credentials, schema=schema_name
             ).apply_hints(
                 primary_key=tables_pk[idx]
             )
-            
+
             source.append(db_table)
 
     else:
@@ -67,7 +66,8 @@ def load_select_tables_from_db():
         for idx in range(len(tables)):
             getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
 
+    print('Starting pipeline run', flush=True)
     info = pipeline.run(source, write_disposition='merge')
-    print(info)
+    print(info, flush=True)
 
 load_select_tables_from_db()

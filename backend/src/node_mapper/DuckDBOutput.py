@@ -24,7 +24,7 @@ class DuckDBOutput(TemplateNodeType):
 
         self.context.emit_start(self, '')
         # database is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
-        self.duckdb_dest = data['database']
+        self.output_dest_name = data['database']
         # table_name is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
         self.duck_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
 
@@ -34,7 +34,7 @@ class DuckDBOutput(TemplateNodeType):
         Run the initial steps
         """
         super().run()
-        print(f'Inited DuckDB with : {self.duckdb_dest} and {self.duck_dest_table}')
+        print(f'Inited DuckDB with : {self.output_dest_name} and {self.duck_dest_table}')
         self.check_table()
 
     def check_table(self) -> None:

@@ -40,8 +40,8 @@ try:
     %dest_secret_code%
     dest = %destination_string%
 
-    # Bellow mapping: schema = DuckDBOutput.duckdb_dest
-    ppline_name, output_name = %pipeline_name%, %duckdb_dest%
+    # Bellow mapping: schema = DuckDBOutput.output_dest_name
+    ppline_name, output_name = %pipeline_name%, %output_dest_name%
     pipeline = dlt.pipeline(pipeline_name=ppline_name, dataset_name=output_name,  destination=dest)
 
     info = pipeline.run(transformed_source, write_disposition="merge")
