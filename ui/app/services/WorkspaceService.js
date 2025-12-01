@@ -321,9 +321,9 @@ export class WorkspaceService extends BaseService {
     }
 
     /** @returns { { result: { result, fields, actual_query, db_file } } } */
-    static async testDbConnection(secret) {
+    static async testDbConnection(secret, existing) {
 
-        const url = '/workspace/connection/test';
+        const url = existing ? '/workspace/connection/exists/test' : '/workspace/connection/test';
         const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
             headers: { 'content-type': 'Application/json' }
         });
