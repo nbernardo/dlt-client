@@ -37,10 +37,14 @@ def run_code(user):
 
 
 @workspace.route('/workcpace/duckdb/list/<user>/<socket_id>', methods=['POST'])
-def list_duck_dbs(user, socket_id):
+def list_pipelines(user, socket_id):
 
-    duckdb_path = BasePipeline.folder+'/duckdb/'+user+'/'
-    dbs = Workspace.list_duck_dbs(duckdb_path, user)
+    ppelines_path = BasePipeline.folder+'/pipeline/'+user+'/'
+    duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+user+'/'
+
+    ppelines = Workspace.list_pipeline_from_files(ppelines_path)
+    duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user)
+    
     errors_list = None
 
     if((user in Workspace.duckdb_open_errors)):
@@ -54,8 +58,8 @@ def list_duck_dbs(user, socket_id):
                 'message': 'Failed to connect some of the DuckDb, check the logs for details',
                 'trace': errors_list
             }
-            
-    return dbs
+
+    return { **ppelines, **duckdb_ppelines }
 
 
 @workspace.route('/workcpace/duckdb/connect', methods=['POST'])

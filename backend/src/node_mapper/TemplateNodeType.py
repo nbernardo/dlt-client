@@ -43,7 +43,8 @@ class TemplateNodeType:
                 # TODO: Implement this scenario
                 ...
             else:
-
+                # This'll add a section in the top of the template file with the %source_tables% placeholder
+                # which is then filled by any input node type (Backet, InputAPI, SQLDBComponent, etc.)
                 metadata_section = f'# METADATA: dest_tables=%source_tables%\n'
                 template = template.replace('%metadata_section%',metadata_section)
 
