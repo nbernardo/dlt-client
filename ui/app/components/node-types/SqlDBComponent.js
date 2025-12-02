@@ -64,16 +64,18 @@ export class SqlDBComponent extends ViewComponent {
 	 * will be passed
 	 * */
 	stOnRender(data){		
-		const { nodeId, isImport, tables, primaryKeys, database, dbengine } = data;
+		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName } = data;
+		
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.tables = tables;
 		this.primaryKeys = primaryKeys;	
-		this.importFields = { database, dbengine };
+		this.importFields = { database, dbengine, connectionName };
 		if(data?.host) this.importFields.host = data.host;
 	}
 
 	async stAfterInit(){
+		await this.getDBSecrets();
 		this.isOldUI = this.templateUrl?.includes('SqlDBComponent_old.html');
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
@@ -97,14 +99,12 @@ export class SqlDBComponent extends ViewComponent {
 			allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
 			this.dbInputCounter = allTables.length;
 			this.selectedDbEngine = this.importFields.dbengine;
-			this.selectedSecret = this.importFields.database;
+			this.selectedSecret = this.importFields.connectionName;
 			this.hostName = this.importFields.host || 'None';
 			document.querySelector('.add-table-buttons').disabled = true;
 		}
 
 		this.setupOnChangeListen();
-		await this.getDBSecrets();
-
 		const htmlTableInputSelector = 'input[data-id="firstTable"]', 
 			  htmlPkInputSelector = 'input[data-id="firstPK"]';
 

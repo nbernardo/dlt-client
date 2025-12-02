@@ -42,29 +42,27 @@ export class DatabaseOutput extends ViewComponent {
 	/**
 	 * The id will be passed when instantiating SqlDBComponent dinamically through
 	 * the Component.new(type, param) where for para nodeId will be passed */
-	stOnRender(data){		
-		const { nodeId, isImport, database, dbengine } = data;
+	stOnRender(data){				
+		const { nodeId, isImport, database, dbengine, outDBconnectionName, databaseName, host } = data;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
-		this.importFields = { database, dbengine };
+		this.importFields = { database, dbengine, outDBconnectionName, databaseName, host, dbengine };
 		if(data?.host) this.importFields.host = data.host;
 	}
 
 	async stAfterInit(){
-
+		await this.getDBSecrets();
 		if(this.isImport === true){	
 			this.selectedDbEngine = this.importFields.dbengine;
-			this.selectedSecret = this.importFields.database;
+			this.selectedSecret = this.importFields.outDBconnectionName;
+			this.database = this.importFields.databaseName;
 			this.hostName = this.importFields.host || 'None';
+			document.querySelector(`.${this.cmpInternalId} select[data-dropdown]`).disabled = true;
 		}
-
-		this.setupOnChangeListen();
-		await this.getDBSecrets();
-
+		this.setupOnChangeListen(); 
 	}
 
 	setupOnChangeListen(){
-
 		this.selectedSecret.onChange(async secretName => {
 			this.showLoading = true;
 			let database = '', dbengine = '', host = '';
@@ -74,10 +72,12 @@ export class DatabaseOutput extends ViewComponent {
 				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
 				WorkSpaceController.getNode(this.nodeId).data['outDBconnectionName'] = secretName;
 				WorkSpaceController.getNode(this.nodeId).data['databaseName'] = database;
+				WorkSpaceController.getNode(this.nodeId).data['host'] = host;
+				WorkSpaceController.getNode(this.nodeId).data['dbengine'] = dbengine;
 			}
 			this.database = database, this.selectedDbEngine = dbengine, this.hostName = host;
 			this.showLoading = false;
-		})
+		});
 	}
 
 	async getDBSecrets(){
