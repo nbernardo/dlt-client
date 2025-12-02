@@ -1,4 +1,4 @@
-import dlt
+%metadata_section%import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
 from pathlib import Path
 import sys

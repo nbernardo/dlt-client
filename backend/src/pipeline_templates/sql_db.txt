@@ -1,4 +1,4 @@
-import dlt
+%metadata_section%import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
 from dlt.sources.sql_database import sql_database, sql_table
 from os import getenv as env

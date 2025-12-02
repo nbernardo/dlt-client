@@ -43,9 +43,13 @@ class TemplateNodeType:
                 # TODO: Implement this scenario
                 ...
             else:
+
+                metadata_section = f'# METADATA: dest_tables=%source_tables%\n'
+                template = template.replace('%metadata_section%',metadata_section)
+
                 # n variable is to add a new line and alikely space * 4 (corresponding to tab)
                 n = '\n    ' if template_type == 'sql_database' else '\n'
-                
+
                 connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
                 dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
                 dbconnecting_log = f"{n}print('Connecting to destination Database', flush=True){n}"
@@ -55,6 +59,7 @@ class TemplateNodeType:
                 destination_string = "dlt.destinations.sqlalchemy(credentials=dbcredentials)"
 
         else:
+            template = template.replace('%metadata_section%','')
             if self.template_type == 'has_duckdb_path':
                 destination_string = 'dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb")'
             else:
