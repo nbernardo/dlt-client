@@ -6,7 +6,7 @@ import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { FileList } from "../../filelist/FileList.js";
 import { FileUpload } from "../../fileupload/FileUpload.js";
-import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableToTerminaIcon, viewpplineIcon } from "../../workspace/icons/database.js";
+import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableIconOpaqued, tableToTerminaIcon, viewpplineIcon } from "../../workspace/icons/database.js";
 import { Workspace } from "../../workspace/Workspace.js";
 
 export class LeftTabs extends ViewComponent {
@@ -122,7 +122,7 @@ export class LeftTabs extends ViewComponent {
 				if(tableData){
 					const tableToQuery = `${tableData.dbname}.${tableData.table}`;
 					const table = this.dbTreeviewProxy.addNode({ 
-						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile),
+						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, !(tableData.dest == 'sql')),
 					});
 					dbSchema.addChild(table);
 				}
@@ -160,32 +160,31 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.expandDataTableView(null, dbname, dbfile)
 	}
 
-	async refreshTree(){
-		await this.showHideDatabase();
-	}
+	refreshTree = async () => await this.showHideDatabase();
 
-	databaseTreeViewTemplate(tableData, tableToQuery, dbfile){
-		return `<div class="table-in-treeview">
-					<span>${tableIcon} ${tableData.table}</span>
-					<span class="tables-icn-container">
-						<span tooltip-x="-140" tooltip="Copy table path to clipboard"
-							  onclick="self.copyToClipboard('${tableToQuery}')"
-						>
-							${copyClipboardIcin}
-						</span>
-						<span 
-							onclick="self.queryTable('${dbfile}.duckdb.${tableToQuery}','${dbfile}')"
-							tooltip-x="-130" tooltip="Query ${tableData.table} table"
-						>
-							${tableToTerminaIcon}
-						</span>
+	databaseTreeViewTemplate(tableData, tableToQuery, dbfile, showIcons = true){
+		let tableRow = `<span>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</span>`;
+		if(showIcons === true) {
+			tableRow += `
+				<span class="tables-icn-container">
+					<span tooltip-x="-140" tooltip="Copy table path to clipboard"
+						  onclick="self.copyToClipboard('${tableToQuery}')"
+					>
+						${copyClipboardIcin}
 					</span>
-				</div>`;
+					<span 
+						onclick="self.queryTable('${dbfile}.duckdb.${tableToQuery}','${dbfile}')"
+						tooltip-x="-130" tooltip="Query ${tableData.table} table"
+					>
+						${tableToTerminaIcon}
+					</span>
+				</span>`;
+		};
+
+		return `<div class="table-in-treeview">${tableRow}</div>`;
 	}
 
-	genInitialDBQuery(table, dbfile){
-		this.$parent.genInitialDBQuery(table, dbfile)
-	}
+	genInitialDBQuery = (table, dbfile) => this.$parent.genInitialDBQuery(table, dbfile)
 
 	openSecretForm = async (secretName, secretType) => {
 		if(!secretName || !secretType)
