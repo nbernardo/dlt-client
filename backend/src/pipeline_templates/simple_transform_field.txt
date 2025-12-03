@@ -3,7 +3,7 @@ from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
 from typing import Iterator, Any
 import pandas as pd
-
+%import_from_src%
 """
 The pipeline run in a different process/sub-process
 hence the different print statement as this is how it

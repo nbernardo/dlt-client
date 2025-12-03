@@ -16,8 +16,9 @@ class Bucket(TemplateNodeType):
         """
         
         try:
+            self.context = context
             self.bucket_path_prefix = ""
-            self.template_type = 'has_duckdb_path'
+            self.template_type = 'non_database_source'
             self.template = DltPipeline.get_s3_no_auth_template()
 
             if(context.is_cloud_url != True):
@@ -31,7 +32,6 @@ class Bucket(TemplateNodeType):
             if data is None: return None
             if len(data.keys()) == 0: return None
 
-            self.context = context
             self.component_id = data['componentId']
             user_folder = BaseUpload.upload_folder+'/'+context.user
 

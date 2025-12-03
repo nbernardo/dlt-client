@@ -1,6 +1,6 @@
-import dlt
+%metadata_section%import dlt
 from dlt.sources.filesystem import filesystem, read_csv
-
+%import_from_src%
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
 files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
 print('Files/Bucket loaded', flush=True)

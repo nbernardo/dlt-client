@@ -16,6 +16,7 @@ class InputAPI(TemplateNodeType):
         """
         
         try:
+            self.context = context
             self.template_type = None
             template = DltPipeline.get_api_templete()
             self.template = self.parse_destination_string(template)
@@ -28,8 +29,6 @@ class InputAPI(TemplateNodeType):
             # Every field in this list will be parse and considerd as pure python code
             self.parse_to_literal = ['paginate_params','auth_config','auth_strategy','endpoints_params']
             
-            self.context = context
-
             # Bellow fields (connection_name, base_url, component_id, namespace)
             # are mapped in /pipeline_templates/api.txt
             self.connection_name = data['connectionName']
