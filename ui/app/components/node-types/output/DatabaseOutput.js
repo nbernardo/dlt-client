@@ -2,6 +2,7 @@ import { ViewComponent } from "../../../../@still/component/super/ViewComponent.
 import { STForm } from "../../../../@still/component/type/ComponentType.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { Bucket } from "../Bucket.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 
 /** @implements { NodeTypeInterface } */
@@ -34,6 +35,10 @@ export class DatabaseOutput extends ViewComponent {
 	/** @Prop */ showLoading = false;
 	/** @Prop */ importFields;
 
+	//This is only used in case the source 
+	// is not a Database (e.g. Bucket, InputAPI)
+	/** @Prop */ tableName; 
+
 	/**
 	 * @Inject @Path services/
 	 * @type { WorkSpaceController } */
@@ -50,6 +55,7 @@ export class DatabaseOutput extends ViewComponent {
 	}
 
 	async stAfterInit(){
+		this.tableName = null;
 		await this.getDBSecrets();
 		if(this.isImport === true){	
 			this.selectedDbEngine = this.importFields.dbengine;
@@ -76,7 +82,7 @@ export class DatabaseOutput extends ViewComponent {
 			}
 			this.database = database, this.selectedDbEngine = dbengine, this.hostName = host;
 			this.showLoading = false;
-			this.updateConnection(secretName);
+			this.updateConnection();
 		});
 	}
 
@@ -84,7 +90,10 @@ export class DatabaseOutput extends ViewComponent {
 		this.secretList = (await WorkspaceService.listSecrets(1)).filter(itm => itm.host != 'None');
 	}
 
-	updateConnection(connectionName){
+	updateConnection(){
+		const connectionName = this.tableName || this.selectedSecret.value;
+		console.log(`NEW DESTINATION NAME ID: `, connectionName);
+		
 		if(this.isConnected){
 			if(connectionName === '')
 				delete this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId];
@@ -93,12 +102,31 @@ export class DatabaseOutput extends ViewComponent {
 		}
 	}
 
-	onInputConnection(){
+	onInputConnection({data: { sourceNode }, type}){
+		if(type == Bucket.name){
+			/** @type { Bucket } */
+			const sourceNodeObj = sourceNode;
+			this.tableName = sourceNodeObj.filePattern.value;
+
+			/** This will be triggered in case the source connection is
+			 *  bucket or file system and the file name was changed */
+			sourceNodeObj.filePattern.onChange(value => {
+				const table = String(value).split('.');
+				this.tableName = table.slice(0, table.length - 1).join('');
+				this.updateConnection();
+			});
+		}
 		this.isConnected = true;
-		this.updateConnection(this.selectedSecret.value);
+		this.updateConnection();
 	}
 
 	stOnUnload(){
 		delete this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId];
 	}
+
+	onConectionDelete(sourceType){
+		if(sourceType === Bucket.name)
+			this.tableName = null;
+	}
+	
 }

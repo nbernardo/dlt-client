@@ -380,6 +380,18 @@ export class WorkSpaceController extends BaseController {
 
             if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
                 obj.edgeTypeAdded[input_id].delete(output_id);
+
+            const { data: nodeIn } = WorkSpaceController.getNode(input_id);
+            const { data: nodeOut } = WorkSpaceController.getNode(output_id);
+
+            const destCmpId = nodeIn.componentId, srcCmpId = nodeOut.componentId;
+
+            const /** @type { NodeTypeInterface } */ destCmp = Components.ref(destCmpId) || {};
+            const /** @type { NodeTypeInterface } */ srcCmp = Components.ref(srcCmpId) || {};
+            
+            const sourceType = ('getName' in srcCmp) ? srcCmp.getName() : 'Start/End node';
+            if ('onConectionDelete' in destCmp) destCmp.onConectionDelete(sourceType);
+
         });
 
         editor.on('mouseMove', function (position) {

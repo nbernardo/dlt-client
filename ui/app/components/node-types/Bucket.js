@@ -2,6 +2,7 @@ import { ViewComponent } from "../../../@still/component/super/ViewComponent.js"
 import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { Components } from "../../../@still/setup/components.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
@@ -65,6 +66,7 @@ export class Bucket extends ViewComponent {
 
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
+		data['namespace'] = await UserService.getNamespace();
 		const result = await this.wspaceService.listFiles();
 		this.filesFromList = (result || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
 		
@@ -107,7 +109,7 @@ export class Bucket extends ViewComponent {
 			if(this.showBucketUrlInput == 2){
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
 			}else{
-				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('(required)',true);
+				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('required',true);
 			}
 			this.setNodeData('bucketFileSource', newValue);
 		});
@@ -211,7 +213,10 @@ export class Bucket extends ViewComponent {
 	}
 
 	onOutputConnection() {
-		return this.filesFromList.value;
+		return {
+			tables: this.filesFromList.value,
+			sourceNode: this
+		};
 	}
 
 	notifyReadiness = () => 

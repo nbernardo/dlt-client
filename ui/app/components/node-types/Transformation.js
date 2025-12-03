@@ -70,10 +70,10 @@ export class Transformation extends ViewComponent {
 
 	}
 
-	onInputConnection({ data, type }) {
+	onInputConnection({ data: { tables }, type }) {
 		if (type === Bucket.name) {
-			this.databaseList = data;
-			[...this.fieldRows].forEach(([_, row]) => row.dataSourceList = data);
+			this.databaseList = tables;
+			[...this.fieldRows].forEach(([_, row]) => row.dataSourceList = tables);
 		}
 	}
 
