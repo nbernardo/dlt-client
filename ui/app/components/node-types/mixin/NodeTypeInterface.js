@@ -7,6 +7,7 @@ export class NodeTypeInterface {
 	inConnectors;
 	outConnectors;
 	formRef;
+	componentId;
 
 	/** Implemented at each node as needed, but the call is automatically
 	 *  through WorkspaceController when specific node recieces connection */

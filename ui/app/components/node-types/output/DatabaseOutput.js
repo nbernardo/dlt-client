@@ -39,8 +39,7 @@ export class DatabaseOutput extends ViewComponent {
 	 * @type { WorkSpaceController } */
 	wSpaceController;
 
-	/**
-	 * The id will be passed when instantiating SqlDBComponent dinamically through
+	/** The id will be passed when instantiating SqlDBComponent dinamically through
 	 * the Component.new(type, param) where for para nodeId will be passed */
 	stOnRender(data){				
 		const { nodeId, isImport, database, dbengine, outDBconnectionName, databaseName, host } = data;
@@ -77,6 +76,7 @@ export class DatabaseOutput extends ViewComponent {
 			}
 			this.database = database, this.selectedDbEngine = dbengine, this.hostName = host;
 			this.showLoading = false;
+			this.updateConnection(secretName);
 		});
 	}
 
@@ -85,8 +85,12 @@ export class DatabaseOutput extends ViewComponent {
 	}
 
 	updateConnection(connectionName){
-		if(this.isConnected)
-			this.wSpaceController.pipelineDestinationTrace.sql[this.componentId] = connectionName;
+		if(this.isConnected){
+			if(connectionName === '')
+				delete this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId];
+			else
+				this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId] = connectionName;
+		}
 	}
 
 	onInputConnection(){
@@ -95,6 +99,6 @@ export class DatabaseOutput extends ViewComponent {
 	}
 
 	stOnUnload(){
-		delete this.wSpaceController.pipelineDestinationTrace.sql[this.componentId];
+		delete this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId];
 	}
 }
