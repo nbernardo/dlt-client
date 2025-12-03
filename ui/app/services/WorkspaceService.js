@@ -122,7 +122,7 @@ export class WorkspaceService extends BaseService {
     }
 
     async deletefile(fileName) {
-        const user = UserUtil.email;
+        const user = await UserService.getNamespace();
         const response = await $still.HTTPClient.delete('/file/' + user + '/' + fileName);
         if (response.ok)
             return await response.json();
@@ -175,10 +175,10 @@ export class WorkspaceService extends BaseService {
     }
 
     async listFiles() {
-        let filesList = null;
-        const response = await $still.HTTPClient.get('/files/' + UserUtil.email);
+        let filesList = null, namespace = await UserService.getNamespace();
+        const response = await $still.HTTPClient.get('/files/' + namespace);
         if (response.status === 404) {
-            AppTemplate.toast.warn('No data file found under ' + UserUtil.email);
+            AppTemplate.toast.warn('No data file found under ' + namespace);
         } else if (response.ok) {
             filesList = await response.json();
         }
@@ -186,10 +186,10 @@ export class WorkspaceService extends BaseService {
     }
 
     async getCsvFileFields(filename) {
-        let filesList = null;
-        const response = await $still.HTTPClient.get(`/ppline/data/csv/${UserUtil.email}/${filename}`);
+        let filesList = null, namespace = await UserService.getNamespace();;
+        const response = await $still.HTTPClient.get(`/ppline/data/csv/${namespace}/${filename}`);
         if (response.status === 404)
-            AppTemplate.toast.warn('No data file found under ' + UserUtil.email);
+            AppTemplate.toast.warn('No data file found under ' + namespace);
         else if (response.ok)
             filesList = (await response.text());
 
@@ -222,7 +222,7 @@ export class WorkspaceService extends BaseService {
     }
 
     async schedulePipeline(payload) {
-        const namespace = UserUtil.email;
+        const namespace = await UserService.getNamespace();
         const url = '/workcpace/ppline/schedule/' + namespace;
         const headers = { 'Content-Type': 'application/json' };
         const response = await $still.HTTPClient.post(url, payload, { headers });
