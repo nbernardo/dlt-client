@@ -32,6 +32,8 @@ class Bucket(TemplateNodeType):
             if data is None: return None
             if len(data.keys()) == 0: return None
 
+            self.namespace = data['namespace']
+
             self.component_id = data['componentId']
             user_folder = BaseUpload.upload_folder+'/'+context.user
 
@@ -62,6 +64,7 @@ class Bucket(TemplateNodeType):
         super().run()
         print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
         return self.check_bucket_url()
+
 
     def check_bucket_url(self):
         is_cloud_url = str(self.bucket_url).replace(' ','').__contains__('://')

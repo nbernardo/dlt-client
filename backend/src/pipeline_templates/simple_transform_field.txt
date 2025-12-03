@@ -28,8 +28,8 @@ def read_csv_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterato
 print('Starting the pipeline', flush=True)
 
 try:
-    # Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
-    transformed_source = (files | read_csv_and_transform_fields()).with_name(%duck_dest_table%)
+    # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+    transformed_source = (files | read_csv_and_transform_fields()).with_name(%ppline_dest_table%)
 
     if %primary_key% != 'UNDEFINED':
         # Bellow mapping: primary_key = Bucket.primary_key

@@ -8,8 +8,8 @@ import fnmatch
 s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
 # Bellow mapping: primary_key = Bucket.primary_key
-# Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
-@dlt.resource(name=%duck_dest_table%, primary_key=%primary_key%)
+# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+@dlt.resource(name=%ppline_dest_table%, primary_key=%primary_key%)
 def stream_s3():
 
     # Bellow mapping: pattern = Bucket.file_pattern

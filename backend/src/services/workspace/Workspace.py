@@ -366,7 +366,7 @@ class Workspace:
             tables = None
             with open(file, mode='r', encoding='utf-8') as content:
                 first_metadata_row = content.readlines()[0]
-                tables = first_metadata_row.split('dest_tables=')[1]
+                tables = first_metadata_row.split('ppline_dest_tables=')[1]
                 tables = tables\
                             .replace('[','')\
                             .replace(']','')\

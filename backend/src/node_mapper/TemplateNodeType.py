@@ -36,13 +36,13 @@ class TemplateNodeType:
         template_type = None
 
         if self.__dict__.__contains__('template_type'):
-             template_type = self.template_type
+            template_type = self.template_type
 
         if len(destinations) > 0:
             destination_string = "dlt.destinations.sqlalchemy(credentials=dbcredentials)"
             if template_type == 'non_database_source':
                 # TODO: Implement this scenario
-                template = self.parse_duckdb_pipeline_template(template, template_type)
+                template = self.parse_nondb_source_pipeline_template(template, template_type, destinations)
             else:
                 template = self.parse_pipeline_template(template, template_type)
 
@@ -80,16 +80,20 @@ class TemplateNodeType:
         return template.replace('%dest_secret_code%',secret_code)
             
 
-    def parse_duckdb_pipeline_template(self, template, template_type):
+    def parse_nondb_source_pipeline_template(self, template, template_type, destinations):
+        
+        dest_table_name = str(destinations[0]).lower().strip().replace(' ','_')
+
         # This'll add a section in the top of the template file with the %source_tables% placeholder
         # which is then filled by any input node type (Backet, InputAPI, SQLDBComponent, etc.)
-        metadata_section = f'# METADATA: dest_tables=%source_tables%\n'
+        metadata_section = f"# METADATA: dest_tables=['{dest_table_name}']\n"
         template = template.replace('%metadata_section%',metadata_section)
 
         # n variable is to add a new line and alikely space * 4 (corresponding to tab)
         n = '\n    ' if template_type == 'sql_database' else '\n'
 
         src_path_add = '#Adding root folder to allow import  from src'
+        src_path_add += f"{n}from pathlib import Path{n}import sys"
         src_path_add += f"{n}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')"
         src_path_add += f"{n}sys.path.insert(0, src_path){n}sys.path.insert(0, src_path+'/src')"
 
@@ -98,10 +102,16 @@ class TemplateNodeType:
 
         template = template.replace('%import_from_src%', add_path_and_import_secret_manager)
 
+        # This replacement only happen if pipeline destination is Database otherwise
+        # the replacement is done by the specialized source (e.g. InputAPI, Bucket)
+        template = template.replace('%ppline_dest_table%', f"'{dest_table_name}'")
+        
+        namespace_var = f"{n}namespace = %namespace%"
+        connect_secret_vault = f"{n}SecretManager.ppline_connect_to_vault()"
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
         dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
         dbconnecting_log = f"{n}print('Connecting to destination Database', flush=True){n}"
 
-        secret_code = f"{connaction_name_var}{dbcredentials_var}{dbconnecting_log}"
+        secret_code = f"{namespace_var}{connect_secret_vault}{connaction_name_var}{dbcredentials_var}{dbconnecting_log}"
         return template.replace('%dest_secret_code%',secret_code)
         

@@ -5,8 +5,8 @@ from dlt.sources.filesystem import filesystem, read_csv
 files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
 print('Files/Bucket loaded', flush=True)
 
-# Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
-reader = (files | read_csv()).with_name(%duck_dest_table%)
+# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+reader = (files | read_csv()).with_name(%ppline_dest_table%)
 
 if %primary_key% != 'UNDEFINED':
     # Bellow mapping: primary_key = Bucket.primary_key
