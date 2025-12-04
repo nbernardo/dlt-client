@@ -7,7 +7,9 @@ import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { Workspace } from "../workspace/Workspace.js";
 import { Bucket } from "./Bucket.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
+import { SqlDBComponent } from "./SqlDBComponent.js";
 import { TRANFORM_ROW_PREFIX, TransformRow } from "./transform/TransformRow.js";
+import { InputConnectionType } from "./types/InputConnectionType.js";
 
 /** @implements { NodeTypeInterface } */
 export class Transformation extends ViewComponent {
@@ -22,6 +24,7 @@ export class Transformation extends ViewComponent {
 	/** @Prop */ showLoading = false;
 	/** @Prop */ confirmModification = false;
 	/** @Prop */ sourceNode = null;
+	/** @Prop */ dataSourceType = null;
 
 	/** This will hold all applied transformations
 	 * @Prop @type { Map<TransformRow> } */
@@ -30,7 +33,7 @@ export class Transformation extends ViewComponent {
 	databaseList = [{ name: '' }];
 
 	/** This will hold all added transform
-	 * @Prop @type { Map<TransformRow> } */
+	 * @Prop @type { Map<TransformRow>|Array<TransformRow> } */
 	fieldRows = new Map();
 
 	/** This will only hold the row when importive/viewing 
@@ -71,17 +74,39 @@ export class Transformation extends ViewComponent {
 
 	}
 
+	/** @param { InputConnectionType<SqlDBComponent|Bucket> } */
 	onInputConnection({ data: { tables, sourceNode }, type }) {
-		if (type === Bucket.name) {
+		
+		this.dataSourceType = null;
+		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
+
 			this.databaseList = tables;
 			[...this.fieldRows].forEach(([_, row]) => row.dataSourceList = tables);
 			// This is the bucket component itself
 			this.sourceNode = sourceNode;
+
+			// In case the SQL Database changes, it proliferates downstream 
+			// thereby updating the Transformation and different added transformations
+			if(SqlDBComponent.name == type){
+				
+				this.dataSourceType = 'SQL';
+				this.sourceNode.selectedSecretTableList.onChange(value => {
+					value = value.map(table => ({ name: table, file: table }))
+					this.databaseList = value;
+					[...this.fieldRows].forEach(([_, row]) => {
+						row.dataSourceList = value
+						row.databaseFields = this.sourceNode.tablesFieldsMap;
+					});
+				});
+
+			}
+
 		}
 	}
 
+	/** @returns { InputConnectionType } */
 	onOutputConnection(){
-		//This will emit the source node as Bucket to the node it'll connect
+		//This will emit the source node as Bucket or SQLDB to the node it'll connect
 		return { sourceNode: this.sourceNode };
 	}
 

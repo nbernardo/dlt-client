@@ -160,8 +160,8 @@ export class SqlDBComponent extends ViewComponent {
 
 				const detail = data['secret_details'];
 				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
-				this.selectedSecretTableList = Object.keys(data.tables);
 				this.tablesFieldsMap = data.tables;
+				this.selectedSecretTableList = Object.keys(data.tables);
 				
 				WorkSpaceController.getNode(this.nodeId).data['host'] = host;
 				this.dynamicFields.tables.forEach(tbl => {
@@ -224,7 +224,8 @@ export class SqlDBComponent extends ViewComponent {
 
 	onOutputConnection(){
 		return {
-			tables: this.selectedSecretTableList.value.map(table => ({ name: table, file: table }))
+			tables: this.selectedSecretTableList.value.map(table => ({ name: table, file: table })),
+			sourceNode: this
 		};
 	}
 
