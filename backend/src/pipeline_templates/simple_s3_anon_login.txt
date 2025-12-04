@@ -1,4 +1,4 @@
-import dlt
+%metadata_section%import dlt
 import pandas as pd
 import boto3
 from botocore import UNSIGNED

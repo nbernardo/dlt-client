@@ -1,4 +1,4 @@
-import dlt
+%metadata_section%import dlt
 from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
 from typing import Iterator, Any

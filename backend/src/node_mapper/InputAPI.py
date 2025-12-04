@@ -42,6 +42,7 @@ class InputAPI(TemplateNodeType):
             # Bellow fields (resource_names, primary_keys, data_selectors, endpoints_params)
             # are mapped in /pipeline_templates/api.txt
             self.resource_names = secret['apiSettings']['endPointsGroup']['apiEndpointPath']
+            self.source_tables = str(secret['apiSettings']['endPointsGroup']['apiEndpointPath']).replace('/','')
             self.primary_keys = secret['apiSettings']['endPointsGroup']['apiEndpointPathPK']
             self.data_selectors = secret['apiSettings']['endPointsGroup']['apiEndpointDS']
             self.endpoints_params = str(secret['apiSettings']['endPointsGroup']['apiEndpointParams'])\

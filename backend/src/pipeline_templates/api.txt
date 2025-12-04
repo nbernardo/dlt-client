@@ -1,4 +1,4 @@
-import dlt
+%metadata_section%import dlt
 from dlt.sources.helpers.rest_client import RESTClient
 import requests
 from pathlib import Path
