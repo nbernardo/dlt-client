@@ -420,11 +420,13 @@ export class WorkspaceService extends BaseService {
         if (response.ok && !result.error){
             if(result.result.tables?.schema_based){
                 delete result.result.tables?.schema_based;
-                const allTables = [], schemas = Object.entries(result.result.tables);
-                for(const [schema, tables] of schemas){
-                    for(const table of tables){
-                        allTables.push(`${schema}.${table}`);
-                    }
+                result.result.schema_based = true;
+                const allTables = {}, schemas = Object.entries(result.result.tables);
+
+                for(const [schema, tableList] of schemas){
+                    const tables = Object.entries(tableList);
+                    for(const [table, fields] of tables)
+                        allTables[`${schema}.${table}`] = fields;
                 }
                 result.result['tables'] = allTables;
             }
