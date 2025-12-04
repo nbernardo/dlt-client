@@ -21,6 +21,7 @@ export class Transformation extends ViewComponent {
 	/** @Prop */ uniqueId = '_' + UUIDUtil.newId();
 	/** @Prop */ showLoading = false;
 	/** @Prop */ confirmModification = false;
+	/** @Prop */ sourceNode = null;
 
 	/** This will hold all applied transformations
 	 * @Prop @type { Map<TransformRow> } */
@@ -70,15 +71,18 @@ export class Transformation extends ViewComponent {
 
 	}
 
-	onInputConnection({ data: { tables }, type }) {
+	onInputConnection({ data: { tables, sourceNode }, type }) {
 		if (type === Bucket.name) {
 			this.databaseList = tables;
 			[...this.fieldRows].forEach(([_, row]) => row.dataSourceList = tables);
+			// This is the bucket component itself
+			this.sourceNode = sourceNode;
 		}
 	}
 
 	onOutputConnection(){
-		return null;
+		//This will emit the source node as Bucket to the node it'll connect
+		return { sourceNode: this.sourceNode };
 	}
 
 	async addNewField(data = null, inTheLoop = false) {

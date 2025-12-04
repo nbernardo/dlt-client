@@ -2,8 +2,10 @@ import { ViewComponent } from "../../../../@still/component/super/ViewComponent.
 import { STForm } from "../../../../@still/component/type/ComponentType.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { InputAPI } from "../api/InputAPI.js";
 import { Bucket } from "../Bucket.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
+import { Transformation } from "../Transformation.js";
 
 /** @implements { NodeTypeInterface } */
 export class DatabaseOutput extends ViewComponent {
@@ -91,7 +93,7 @@ export class DatabaseOutput extends ViewComponent {
 	}
 
 	updateConnection(){
-		const connectionName = this.tableName || this.selectedSecret.value;
+		const connectionName = this.tableName !== null ? this.tableName : this.selectedSecret.value;
 		console.log(`NEW DESTINATION NAME ID: `, connectionName);
 		
 		if(this.isConnected){
@@ -102,8 +104,9 @@ export class DatabaseOutput extends ViewComponent {
 		}
 	}
 
-	onInputConnection({data: { sourceNode }, type}){
-		if(type == Bucket.name){
+	onInputConnection({data, type}){
+		const sourceNode = data?.sourceNode;
+		if((type == Bucket.name || type == Transformation.name) && sourceNode){
 			/** @type { Bucket } */
 			const sourceNodeObj = sourceNode;
 			this.tableName = sourceNodeObj.filePattern.value;
@@ -112,10 +115,13 @@ export class DatabaseOutput extends ViewComponent {
 			 *  bucket or file system and the file name was changed */
 			sourceNodeObj.filePattern.onChange(value => {
 				const table = String(value).split('.');
-				this.tableName = table.slice(0, table.length - 1).join('');
+				this.tableName = table.slice(0, table.length - 1).join('').replace('-','_');
 				this.updateConnection();
 			});
 		}
+
+		if(type === InputAPI.name) this.tableName = 'API';
+
 		this.isConnected = true;
 		this.updateConnection();
 	}
@@ -125,7 +131,7 @@ export class DatabaseOutput extends ViewComponent {
 	}
 
 	onConectionDelete(sourceType){
-		if(sourceType === Bucket.name)
+		if(sourceType === Bucket.name || sourceType === InputAPI.name)
 			this.tableName = null;
 	}
 	
