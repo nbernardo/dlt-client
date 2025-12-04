@@ -81,8 +81,8 @@ class TemplateNodeType:
             
 
     def parse_nondb_source_pipeline_template(self, template, template_type, destinations):
-        
         dest_table_name = str(destinations[0]).lower().strip().replace(' ','_')
+        has_tranformation = self.context.transformation != None
 
         # This'll add a section in the top of the template file with the %source_tables% placeholder
         # which is then filled by any input node type (Backet, InputAPI, SQLDBComponent, etc.)
@@ -90,14 +90,17 @@ class TemplateNodeType:
         template = template.replace('%metadata_section%',metadata_section)
 
         # n variable is to add a new line and alikely space * 4 (corresponding to tab)
-        n = '\n    ' if template_type == 'sql_database' else '\n'
+        n = '\n    ' if (template_type == 'sql_database' or has_tranformation) else '\n'
+
+        # Edge case for when the pipeline has transformation
+        ni = '\n' if has_tranformation else n
 
         src_path_add = '#Adding root folder to allow import  from src'
-        src_path_add += f"{n}from pathlib import Path{n}import sys"
-        src_path_add += f"{n}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')"
-        src_path_add += f"{n}sys.path.insert(0, src_path){n}sys.path.insert(0, src_path+'/src')"
+        src_path_add += f"{ni}from pathlib import Path{ni}import sys"
+        src_path_add += f"{ni}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')"
+        src_path_add += f"{ni}sys.path.insert(0, src_path){ni}sys.path.insert(0, src_path+'/src')"
 
-        import_secret_manager = f'{n}{n}from src.services.workspace.SecretManager import SecretManager'
+        import_secret_manager = f'{ni}{ni}from src.services.workspace.SecretManager import SecretManager'
         add_path_and_import_secret_manager = f'{src_path_add}{import_secret_manager}'
 
         template = template.replace('%import_from_src%', add_path_and_import_secret_manager)

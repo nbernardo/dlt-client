@@ -34,9 +34,6 @@ try:
     if %primary_key% != 'UNDEFINED':
         # Bellow mapping: primary_key = Bucket.primary_key
         transformed_source.apply_hints(primary_key=%primary_key%)
-
-    # Usr_folder: The user name sent in the request
-    # Dbfile_name: This is also mapped to the pipeline_name
     %dest_secret_code%
     dest = %destination_string%
 
