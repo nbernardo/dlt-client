@@ -62,6 +62,7 @@ export class CatalogForm extends ViewComponent {
 	apiEndpointDS1; //To specify the field on the API response where data lies
 	fullEndpointPath = '';
 	/** @Prop */ endPointEditorContent;
+	/** @Prop */ isDbConnEditing = false;
 
 	endpointCounter = 1;
 
@@ -175,11 +176,14 @@ export class CatalogForm extends ViewComponent {
 				this.dbName = secretData.database;
 				this.dbUser = secretData.username;
 				this.dbEngine = secretData?.dbengine+'-database-plugin';
-				
+				this.firstValue = secretData.password;
+				this.dbConnectionParams = secretData.dbConnectionParams;
+
 				document.querySelector('.first-secret-field').value = secretData.password;
 				document.querySelector('.db-connection-name').disabled = true;
 				document.querySelectorAll('.database-settings-type input')[selectedOption == 1 ? 0 : 1].disabled = true;
 			}
+			this.isDbConnEditing = true;
 		}
 
 		if(this.secretType == 2){
@@ -275,6 +279,7 @@ export class CatalogForm extends ViewComponent {
 		this.dbName = '';
 		this.dbUser = '';
 		this.dbEngine = '';
+		this.isDbConnEditing = false;
 		if(document.querySelector('.first-secret-field')) document.querySelector('.first-secret-field').value = '';
 		document.querySelector('.connectio-test-status').style.background = 'rgb(182, 182, 182)';
 	}
@@ -312,6 +317,7 @@ export class CatalogForm extends ViewComponent {
 			self.apiKeyValue = '', self.apiTknValue = '';
 			self.endpointCounter = 1;
 			self.endPointEditorContent = {};
+			self.isDbConnEditing = false;
 			self.onAPIAuthChange(null);
 			document.querySelector('.use-auth-checkbox').checked = false;
 			document.querySelector('.use-auth-secret-input').style.display = 'none';
@@ -390,7 +396,7 @@ export class CatalogForm extends ViewComponent {
 		const btn = document.querySelector('.connectio-test-status');
 		btn.parentElement.disabled = true;
 		this.checkConnection = 'in-progress';
-		const result = await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()});
+		const result = await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()}, true);
 		btn.style.background = result == true ? 'green' : 'red';
 		this.checkConnection = '';
 		btn.parentElement.disabled = false;

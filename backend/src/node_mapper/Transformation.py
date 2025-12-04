@@ -8,7 +8,7 @@ class Transformation(TemplateNodeType):
     def __init__(self, data: dict = None, context: RequestContext = None, component_id = None):
         """
         When called on the parse_node, this node type is only for transition to the next step, 
-        (e.g. Load data to Duckdb) nothing gets exdcuted here, hece run returns Ture
+        (e.g. Load data to Duckdb) nothing gets exdcuted here, hence run returns Ture without any logic
         """
         self.component_id = None
         self.context = None
@@ -26,5 +26,6 @@ class Transformation(TemplateNodeType):
             self.component_id = component_id
             self.context = context
         
+
     def run(self):
         return True

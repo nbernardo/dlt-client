@@ -16,8 +16,10 @@ class InputAPI(TemplateNodeType):
         """
         
         try:
-
-            self.template = DltPipeline.get_api_templete()
+            self.context = context
+            self.template_type = None
+            template = DltPipeline.get_api_templete()
+            self.template = self.parse_destination_string(template)
             
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself
@@ -27,8 +29,6 @@ class InputAPI(TemplateNodeType):
             # Every field in this list will be parse and considerd as pure python code
             self.parse_to_literal = ['paginate_params','auth_config','auth_strategy','endpoints_params']
             
-            self.context = context
-
             # Bellow fields (connection_name, base_url, component_id, namespace)
             # are mapped in /pipeline_templates/api.txt
             self.connection_name = data['connectionName']
@@ -42,6 +42,7 @@ class InputAPI(TemplateNodeType):
             # Bellow fields (resource_names, primary_keys, data_selectors, endpoints_params)
             # are mapped in /pipeline_templates/api.txt
             self.resource_names = secret['apiSettings']['endPointsGroup']['apiEndpointPath']
+            self.source_tables = str(secret['apiSettings']['endPointsGroup']['apiEndpointPath']).replace('/','')
             self.primary_keys = secret['apiSettings']['endPointsGroup']['apiEndpointPathPK']
             self.data_selectors = secret['apiSettings']['endPointsGroup']['apiEndpointDS']
             self.endpoints_params = str(secret['apiSettings']['endPointsGroup']['apiEndpointParams'])\
@@ -58,7 +59,7 @@ class InputAPI(TemplateNodeType):
             
             # Bellow field (auth_config) is mapped in /pipeline_templates/api.txt
             self.auth_config, self.auth_strategy = self.parse_connection_strategy(secret)
-
+            
             self.notify_completion_to_ui()
 
         except Exception as error:
@@ -101,11 +102,11 @@ class InputAPI(TemplateNodeType):
             connection_type = secret['apiSettings']['apiAuthType']
 
             if connection_type == 'bearer-token':
-                auth_config = "auth=BearerTokenAuth(token=secret['apiSettings']['apiTknValue'])"
+                auth_config = "\nauth=BearerTokenAuth(token=secret['apiSettings']['apiTknValue'])"
                 auth_strategy = 'from dlt.sources.helpers.rest_client.auth import BearerTokenAuth'
             
             if connection_type == 'api-key':
-                auth_config = f"auth=APIKeyAuth(name='{secret['apiSettings']['apiKeyName']}', api_key=secret['apiSettings']['apiKeyValue'], location='header')"
+                auth_config = f"\nauth=APIKeyAuth(name='{secret['apiSettings']['apiKeyName']}', api_key=secret['apiSettings']['apiKeyValue'], location='header')"
                 auth_strategy = 'from dlt.sources.helpers.rest_client.auth import APIKeyAuth'
 
         return auth_config, auth_strategy

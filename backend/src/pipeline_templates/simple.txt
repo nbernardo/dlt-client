@@ -1,12 +1,12 @@
-import dlt
+%metadata_section%import dlt
 from dlt.sources.filesystem import filesystem, read_csv
-
+%import_from_src%
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
 files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
 print('Files/Bucket loaded', flush=True)
 
-# Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
-reader = (files | read_csv()).with_name(%duck_dest_table%)
+# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+reader = (files | read_csv()).with_name(%ppline_dest_table%)
 
 if %primary_key% != 'UNDEFINED':
     # Bellow mapping: primary_key = Bucket.primary_key
@@ -14,10 +14,12 @@ if %primary_key% != 'UNDEFINED':
 
 # Usr_folder: The user name sent in the request
 # Dbfile_name: This is also mapped to the pipeline_name
-dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
+%dest_secret_code%
+dest = %destination_string%
 
-# Bellow mapping: schema = DuckDBOutput.duckdb_dest
-pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%, destination=dest)
+ppline_name, output_name = %pipeline_name%, %output_dest_name%
+# Bellow mapping: schema = DuckDBOutput.output_dest_name
+pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest,dataset_name=output_name)
 
 info = pipeline.run(reader,write_disposition="merge")
 print(info, flush=True)

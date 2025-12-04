@@ -1,9 +1,9 @@
-import dlt
+%metadata_section%import dlt
 from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
 from typing import Iterator, Any
 import pandas as pd
-
+%import_from_src%
 """
 The pipeline run in a different process/sub-process
 hence the different print statement as this is how it
@@ -28,19 +28,18 @@ def read_csv_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterato
 print('Starting the pipeline', flush=True)
 
 try:
-    # Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
-    transformed_source = (files | read_csv_and_transform_fields()).with_name(%duck_dest_table%)
+    # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+    transformed_source = (files | read_csv_and_transform_fields()).with_name(%ppline_dest_table%)
 
     if %primary_key% != 'UNDEFINED':
         # Bellow mapping: primary_key = Bucket.primary_key
         transformed_source.apply_hints(primary_key=%primary_key%)
+    %dest_secret_code%
+    dest = %destination_string%
 
-    # Usr_folder: The user name sent in the request
-    # Dbfile_name: This is also mapped to the pipeline_name
-    dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
-
-    # Bellow mapping: schema = DuckDBOutput.duckdb_dest
-    pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%,  destination=dest)
+    # Bellow mapping: schema = DuckDBOutput.output_dest_name
+    ppline_name, output_name = %pipeline_name%, %output_dest_name%
+    pipeline = dlt.pipeline(pipeline_name=ppline_name, dataset_name=output_name,  destination=dest)
 
     info = pipeline.run(transformed_source, write_disposition="merge")
     print(info, flush=True)

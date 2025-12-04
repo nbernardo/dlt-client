@@ -121,12 +121,13 @@
 	}
 
 	.ppline-treeview img {
-		width: 33px; height: 33px;
+		width: 33px;
+		height: 29px;
 		position: relative;
 		z-index: 1000;
-		padding-right: 4px;
+		padding-right: 8px;
 		background: white;
-		margin-left: -4px;
+		margin-left: 0px;
 	}
 
 	/** Dialog styling */

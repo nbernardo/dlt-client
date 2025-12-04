@@ -54,4 +54,8 @@ export class InputAPI extends ViewComponent {
 		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 	}
 
+	onOutputConnection(){
+		return null;
+	}
+
 }

@@ -8,6 +8,7 @@ import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DLTCode } from "../components/node-types/dlt/DLTCode.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
+import { DatabaseOutput } from "../components/node-types/output/DatabaseOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
 import { UserService } from "./UserService.js";
@@ -19,6 +20,7 @@ export class ObjectDataTypes {
     imgIcon;
     source;//Can it be a source of stream
     dest;//Can it be a dest of stream
+    name;
 };
 
 export class WorkspaceService extends BaseService {
@@ -53,11 +55,8 @@ export class WorkspaceService extends BaseService {
             disable: 'yes' 
         },
         { icon: 'fas fa-cogs', label: 'Transformation', typeName: Transformation.name },
-        {
-            imgIcon: 'app/assets/imgs/duckdb-icon.svg',
-            label: 'Out-DBFile (.duckdb)',
-            typeName: DuckDBOutput.name
-        },
+        { imgIcon: 'app/assets/imgs/duckdb-icon.svg', label: 'Out-DBFile (.duckdb)', typeName: DuckDBOutput.name },
+        { imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Out-Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
     ]
 
     static async getNamespace(){
@@ -123,7 +122,7 @@ export class WorkspaceService extends BaseService {
     }
 
     async deletefile(fileName) {
-        const user = UserUtil.email;
+        const user = await UserService.getNamespace();
         const response = await $still.HTTPClient.delete('/file/' + user + '/' + fileName);
         if (response.ok)
             return await response.json();
@@ -176,10 +175,10 @@ export class WorkspaceService extends BaseService {
     }
 
     async listFiles() {
-        let filesList = null;
-        const response = await $still.HTTPClient.get('/files/' + UserUtil.email);
+        let filesList = null, namespace = await UserService.getNamespace();
+        const response = await $still.HTTPClient.get('/files/' + namespace);
         if (response.status === 404) {
-            AppTemplate.toast.warn('No data file found under ' + UserUtil.email);
+            AppTemplate.toast.warn('No data file found under ' + namespace);
         } else if (response.ok) {
             filesList = await response.json();
         }
@@ -187,10 +186,10 @@ export class WorkspaceService extends BaseService {
     }
 
     async getCsvFileFields(filename) {
-        let filesList = null;
-        const response = await $still.HTTPClient.get(`/ppline/data/csv/${UserUtil.email}/${filename}`);
+        let filesList = null, namespace = await UserService.getNamespace();;
+        const response = await $still.HTTPClient.get(`/ppline/data/csv/${namespace}/${filename}`);
         if (response.status === 404)
-            AppTemplate.toast.warn('No data file found under ' + UserUtil.email);
+            AppTemplate.toast.warn('No data file found under ' + namespace);
         else if (response.ok)
             filesList = (await response.text());
 
@@ -223,7 +222,7 @@ export class WorkspaceService extends BaseService {
     }
 
     async schedulePipeline(payload) {
-        const namespace = UserUtil.email;
+        const namespace = await UserService.getNamespace();
         const url = '/workcpace/ppline/schedule/' + namespace;
         const headers = { 'Content-Type': 'application/json' };
         const response = await $still.HTTPClient.post(url, payload, { headers });
@@ -322,9 +321,9 @@ export class WorkspaceService extends BaseService {
     }
 
     /** @returns { { result: { result, fields, actual_query, db_file } } } */
-    static async testDbConnection(secret) {
+    static async testDbConnection(secret, existing) {
 
-        const url = '/workspace/connection/test';
+        const url = existing ? '/workspace/connection/exists/test' : '/workspace/connection/test';
         const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
             headers: { 'content-type': 'Application/json' }
         });

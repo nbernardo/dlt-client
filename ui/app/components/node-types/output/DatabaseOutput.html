@@ -1,0 +1,56 @@
+<div class="@cmpInternalId" style="z-index: -1;">
+	<div class="title-box">
+		<div class="workspace-node-type-header">
+			<img src="app/assets/imgs/writetodatabase.png" style="float: left; margin-top: 10px;" width="40">
+			@label
+		</div>
+		<div class="statusicon"></div>
+	</div>
+	<div class="box @formWrapClass">
+
+		<st-loader 
+			small center
+			(showIf)="self.showLoading" 
+			topPadding="50"
+			(label)="Loading DB setting..."/>
+
+		<span (showIf)="!self.showLoading">
+			<b>Host:</b> @hostName
+			<form (formRef)="formRef" onsubmit="return false;">
+				<select
+						(required)="true" 
+						(forEach)="secretList"
+						(value)="selectedSecret"
+						placeholder="DB Connection Name"
+						data-dropdown
+						>
+					<option each="item" value="{item.name}">{item.name}</option>
+				</select>
+				<p class="label-name"><b>Database Engine:</b> @selectedDbEngine</p>
+				<p class="label-name"><b>Database Name:</b></p>
+				<div style="word-wrap: anywhere;">@database</div>
+			</form>
+		</span>
+
+	</div>
+</div>
+<style>
+	.workspace-node-type-header { width: 82%; img{ margin-left: -10px; padding-right: 10px; } }
+	.add-table-buttons { margin-top: 5px; }
+	.parent-node .DatabaseOutput { width: 275px; z-index: 1; }
+	.DatabaseOutput .label-name { margin-top: 15px !important; }
+	.DatabaseOutput input:not([placeholder="PK Field"]){ width: 129px; font-size: 12px; }
+	.DatabaseOutput input[placeholder="PK Field"]{ width: 100px; font-size: 12px; padding-left: 3px; }
+	.DatabaseOutput select[data-dropdown]{ width: 100%; padding-left: 3px; margin-top: 5px; }
+	.DatabaseOutput input[data-id="firstPK"], .DatabaseOutput input[data-id="firstTable"] { padding-left: 3px; }
+	.DatabaseOutput input[placeholder="Database Name"], .dynamic-db-table-field{ width: 100%; padding-left: 3px; }
+	.remove-dyn-field{ 
+		float: right;
+		position: absolute;
+		right: 7px;
+		margin-top: -23px;
+		font-weight: bold;
+		color: red;
+		cursor: pointer; 
+  	}
+</style>

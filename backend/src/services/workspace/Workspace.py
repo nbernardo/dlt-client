@@ -154,7 +154,7 @@ class Workspace:
 
 
     @staticmethod
-    def list_duck_dbs(files_path, user):
+    def list_duckdb_dest_pipelines(files_path, user):
 
         if(not os.path.exists(files_path)):
             return {'no_data': True }
@@ -215,6 +215,63 @@ class Workspace:
 
                         else:
                             result[_file][k]['fields'].append({ 'name': col_name, 'type': col_type })
+
+                    prev_key = k
+                k = None
+
+        return result
+
+
+    @staticmethod
+    def list_pipeline_from_files(files_path):
+
+        if(not os.path.exists(files_path)):
+            return {}
+                
+        file_list = os.listdir(files_path)
+        result = { 'db_path': files_path } 
+        tables = None
+        k = None
+        prev_key = None
+
+        for _file_name in file_list:
+
+            _file = _file_name
+
+            if _file.endswith('|withmetadata|.py'):
+                ppline_name =_file.replace('|withmetadata|.py', '')
+                if _file not in result:
+                    result[ppline_name] = {}
+
+                tables_list = Workspace.get_tables_in_metadata(f'{files_path}/{_file}')
+
+                if 'error' in tables_list: 
+                    continue
+                
+                tables = tables_list['tables']
+
+                for table in tables:
+
+                    table_name = table.strip().replace("'",'')
+
+                    if table_name == '':
+                        continue
+
+                    k = f'{ppline_name}-{table_name}'
+
+                    if(k != prev_key):
+                        result[ppline_name][table_name] = { 
+                            'ppline': '',
+                            'dbname': '',
+                            'table': table_name, 
+                            'db_size': '',
+                            'col_count': '',
+                            'fields': [],
+                            'dest': 'sql'
+                        }
+
+                    else:
+                        result[ppline_name][table_name]['fields'].append({ })
 
                     prev_key = k
                 k = None
@@ -301,6 +358,23 @@ class Workspace:
 
             Workspace.duckdb_open_errors[user].append(str(err))
             return { 'error': True, 'error_list': Workspace.duckdb_open_errors[user] }
+
+
+    @staticmethod
+    def get_tables_in_metadata(file = None):
+        try:
+            tables = None
+            with open(file, mode='r', encoding='utf-8') as content:
+                first_metadata_row = content.readlines()[0]
+                tables = first_metadata_row.strip().replace("'",'').replace('"','').split('dest_tables=')[1]
+                tables = tables\
+                            .replace('[','')\
+                            .replace(']','')\
+                            .replace('\n','').split(',')
+            
+            return { 'tables': tables }
+        except Exception as err:
+            return { 'error': True, 'error_list': str(err) }
 
 
     @staticmethod

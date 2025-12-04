@@ -11,6 +11,12 @@ export const tableIcon = `
     </i>
 `;
 
+export const tableIconOpaqued = `
+    <i class='fas fa-table' 
+        style='margin-left: -20px; position:absolute; z-index: 1000; opacity: 0.2;'>
+    </i>
+`;
+
 export const connectIcon = `
     <i class='fas fa-plug' 
         style='

@@ -7,14 +7,19 @@ export class NodeTypeInterface {
 	inConnectors;
 	outConnectors;
 	formRef;
+	componentId;
 
 	/** Implemented at each node as needed, but the call is automatically
 	 *  through WorkspaceController when specific node recieces connection */
-	onInputConnection(sourceNode, data){}
+	onInputConnection({ data, type }){}
 
 	/** Implemented at each node as needed, but the call is automatically
 	 * through the WorkspaceController when connecting to specific node */
 	onOutputConnection(){}
+
+	/** Implemented at each node as needed, but the call is automatically
+	 * through the WorkspaceController when connecting to specific node */
+	onConectionDelete(){}
 
 	/** This method is being implemented for every nodeType that needs to hold the auto-call
 	 *  of onOutputConnection() which notifies the node receiveng connection through

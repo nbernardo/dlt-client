@@ -7,8 +7,12 @@ class DLTCode(TemplateNodeType):
     """ DLTCode type mapping class """
 
     def __init__(self, data: dict, context: RequestContext):
+
         """ Initialize the instance """
-        self.template = DltPipeline.get_dlt_code_template()
+
+        self.template_type = None
+        template = DltPipeline.get_dlt_code_template()
+        self.template = self.parse_destination_string(template)
 
         # When instance is created only to get the template 
         # Nothing more takes place except for the template itself
@@ -26,7 +30,6 @@ class DLTCode(TemplateNodeType):
 
         referenced_secrets = self.parse__secrets(data['namespace'])
         if len(referenced_secrets) > 0:
-
             self.template_code = f"""\nnamespace = '{data['namespace']}'\nsecret_names = {referenced_secrets}\n__secrets = referencedSecrets(namespace, secret_names)\n{self.template_code}\n\n"""
 
         self.notify_completion_to_ui()

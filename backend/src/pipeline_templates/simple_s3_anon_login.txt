@@ -1,15 +1,15 @@
-import dlt
+%metadata_section%import dlt
 import pandas as pd
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
 import fnmatch
-
+%import_from_src%
 s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
 # Bellow mapping: primary_key = Bucket.primary_key
-# Bellow mapping: duck_dest_table = DuckDBOutput.duck_dest_table
-@dlt.resource(name=%duck_dest_table%, primary_key=%primary_key%)
+# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+@dlt.resource(name=%ppline_dest_table%, primary_key=%primary_key%)
 def stream_s3():
 
     # Bellow mapping: pattern = Bucket.file_pattern
@@ -42,10 +42,11 @@ def stream_s3():
     if total_match == 0:
         print(f'RUNTIME_WARNING:No file matching pattern {pattern} was found. No data will be loaded.', flush=True)
 
-dest = dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb");
-
-# Bellow mapping: schema = DuckDBOutput.duckdb_dest
-pipeline = dlt.pipeline(pipeline_name=%pipeline_name%, dataset_name=%duckdb_dest%, destination=dest)
+ppline_name, output_name = %pipeline_name%, %output_dest_name%
+%dest_secret_code%
+dest = %destination_string%
+# Bellow mapping: schema = DuckDBOutput.output_dest_name
+pipeline = dlt.pipeline(pipeline_name=ppline_name, dataset_name=output_name, destination=dest)
 info = pipeline.run(stream_s3(), write_disposition="merge")
 
 print(info, flush=True)

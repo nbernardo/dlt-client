@@ -16,19 +16,24 @@ class Bucket(TemplateNodeType):
         """
         
         try:
+            self.context = context
             self.bucket_path_prefix = ""
+            self.template_type = 'non_database_source'
             self.template = DltPipeline.get_s3_no_auth_template()
 
             if(context.is_cloud_url != True):
                 self.template = DltPipeline.get_template()\
                                     if context.transformation == None else DltPipeline.get_transform_template()
             
+            self.template = self.parse_destination_string(self.template)
+
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself
             if data is None: return None
             if len(data.keys()) == 0: return None
 
-            self.context = context
+            self.namespace = data['namespace']
+
             self.component_id = data['componentId']
             user_folder = BaseUpload.upload_folder+'/'+context.user
 
@@ -59,6 +64,7 @@ class Bucket(TemplateNodeType):
         super().run()
         print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
         return self.check_bucket_url()
+
 
     def check_bucket_url(self):
         is_cloud_url = str(self.bucket_url).replace(' ','').__contains__('://')

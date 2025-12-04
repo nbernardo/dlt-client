@@ -70,6 +70,8 @@ export class WorkSpaceController extends BaseController {
     btnPipelineSchedule;
     dropMenu;
 
+    pipelineDestinationTrace = { sql: {}, duckdb: {} };
+
     /** 
      * When loading/importing an existing diagram 
      * the nodes are re-created in the diagram as 
@@ -102,6 +104,8 @@ export class WorkSpaceController extends BaseController {
         this.cmpIdToNodeIdMap = {};
         this.pplineStatus = {};
         this.editor.nodeId = 1;
+        this.pipelineDestinationTrace = { sql: {}, duckdb: {} }
+        this.nodeIdToComponentIdMap = {}
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */
@@ -326,16 +330,21 @@ export class WorkSpaceController extends BaseController {
             || this.edgeTypeAdded[NodeTypeEnum.END] == id;
     }
 
+    nodeIdToComponentIdMap = {};
     handleListeners(editor) {
 
         // Events!
         const obj = this;
         editor.on('nodeCreated', function (id) {
             console.log("Node created " + id);
+            obj.nodeIdToComponentIdMap[id] = WorkSpaceController.getNode(id).data.componentId;
         });
 
         editor.on('nodeRemoved', function (id) {
 
+            Components.ref(obj.nodeIdToComponentIdMap[id]).stOnUnload();
+            delete obj.nodeIdToComponentIdMap[id];
+            
             if(obj.currentTotalNodes() === 0) obj.wSpaceComponent.resetWorkspace();
             
             if (id == obj.edgeTypeAdded[NodeTypeEnum.START])
@@ -344,7 +353,7 @@ export class WorkSpaceController extends BaseController {
             if (id == obj.edgeTypeAdded[NodeTypeEnum.END])
                 return delete obj.edgeTypeAdded[NodeTypeEnum.END];
 
-            //Remove the form so it does not gets considered 
+            //Remove the form so it does not gets considered
             //when validating the pipeline submittions/save
             obj.formReferences.delete(Number(id));
             delete obj.edgeTypeAdded[id];
@@ -371,6 +380,18 @@ export class WorkSpaceController extends BaseController {
 
             if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
                 obj.edgeTypeAdded[input_id].delete(output_id);
+
+            const { data: nodeIn } = WorkSpaceController.getNode(input_id);
+            const { data: nodeOut } = WorkSpaceController.getNode(output_id);
+
+            const destCmpId = nodeIn.componentId, srcCmpId = nodeOut.componentId;
+
+            const /** @type { NodeTypeInterface } */ destCmp = Components.ref(destCmpId) || {};
+            const /** @type { NodeTypeInterface } */ srcCmp = Components.ref(srcCmpId) || {};
+            
+            const sourceType = ('getName' in srcCmp) ? srcCmp.getName() : 'Start/End node';
+            if ('onConectionDelete' in destCmp) destCmp.onConectionDelete(sourceType);
+
         });
 
         editor.on('mouseMove', function (position) {

@@ -65,7 +65,8 @@ class DltPipeline:
         """
         This is the pipeline new version creation
         """
-        ppline_file = f'{file_path}/{file_name}.py'
+        filename_suffixe = '|withmetadata|' if len(context.sql_destinations) > 0 else ''
+        ppline_file = f'{file_path}/{file_name}{filename_suffixe}.py'
         file_open_flag = 'x+'
         
         self.curr_file = ppline_file
@@ -73,7 +74,7 @@ class DltPipeline:
             ppline_file = DltPipeline.create_new_pipline_version(file_name, file_path, data)
         else:
             # Create python file with pipeline code
-            with open(ppline_file, file_open_flag, encoding='utf-8') as file:
+            with open(ppline_file, file_open_flag, encoding='utf-8') as file:                    
                 file.write(data)
 
         # Run pipeline generater above by passing the python file

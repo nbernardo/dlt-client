@@ -21,6 +21,7 @@ class RequestContext:
     namespace = '/pipeline'
     ppline_success = 'pplineSuccess'
     ppline_trace = 'pplineTrace'
+    sql_destinations = []
     FAILED = 'FAILED'
 
     def __init__(self, ppline_name=None, socket_sid=None, file_manager: FileVersionManager  = None):

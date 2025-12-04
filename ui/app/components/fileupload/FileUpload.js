@@ -4,7 +4,6 @@ import { StillAppSetup } from "../../../config/app-setup.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
-import { UserUtil } from "../auth/UserUtil.js";
 
 export class FileUpload extends ViewComponent {
 
@@ -139,7 +138,7 @@ export class FileUpload extends ViewComponent {
 				formData.append('files', file);
 			}
 
-			formData.append('user', UserUtil.email);
+			formData.append('user', await UserService.getNamespace());
 
 			try {
 				let response = await $still.HTTPClient.post('/upload', formData);

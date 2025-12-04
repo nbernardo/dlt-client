@@ -117,16 +117,20 @@ export class BaseComponent extends BehaviorComponent {
     static importScripts() { }
     static importAssets() { }
     parseEvents = (content) => {
-        //This is for treeview component edge
-        if(content?.content){
-            content.content = content.content
+        try{
+            //This is for treeview component edge
+            if(content?.content){
+                content.content = content.content
+                    ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
+                    ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+                return content;
+            }
+            return content
                 ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
                 ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+        }catch(error){
             return content;
         }
-        return content
-            ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
-            ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
     };
 
     /** @param { BaseController } controller */
