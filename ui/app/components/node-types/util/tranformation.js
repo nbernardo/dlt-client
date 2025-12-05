@@ -180,21 +180,28 @@ export class DatabaseTransformation {
     static parseCodeOnDf(transform, field) {
 
         let matchCount = 0, addSpace = '', isThereBitwhise = false, totalCondition = 0;
+        let prevStrManipulation = null;
         const isMultiConditionCode = [' and ', ' or '].includes(transform);
-        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z]{1,}\(|s{0,}\'[\sA-Z]{1,}\'|\s{0,}[A-Z]{1,}/ig;
+        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z\_]{1,}\(|s{0,}\'[\sA-Z]{1,}\'|\s{0,}[A-Z]{1,}/ig;
         const hasSplit = transform.indexOf('.split(') > 0;
+        let wasThenAdded = false;
 
         const parsePieces = (wrd, pos, transform, side = null) => {
             matchCount++;
 
-            // In case split is being used
-            if (wrd.indexOf('.split(') == 0 && wrd.endsWith(']'))
-                return wrd.replace('.', '.str.').replace(')[', ').str[');
+            let splitSnippet = wrd.indexOf('.split(') == 0 && wrd.endsWith(']');
+            const wrdStartPos = pos + wrd.length;
+            const isReplaceContent = 
+                transform.slice(pos - 8).startsWith('replace(')
+                || transform.slice(pos - 8).startsWith('ace_all(')
+                || transform.replaceAll(' ','').slice(pos - 1).startsWith(',');
 
+            if(transform.slice(wrdStartPos, wrdStartPos + 10).startsWith('.split')){
+                prevStrManipulation = wrd;
+                return '';
+            }
             if (wrd.startsWith('.') && wrd.endsWith('('))
                 return wrd.replace('.', '.str.');
-
-            if (wrd.trim() == "' '") return wrd
 
             const isWordBitwise = ['and', 'or'].includes(wrd.trim());
             if (isWordBitwise) {
@@ -208,15 +215,35 @@ export class DatabaseTransformation {
                 //|| pos > 0 && !transform[pos - 1]?.startsWith("'") && !transform[pos - 1]?.startsWith("\"")
             ){
                 totalCondition++;
+                if(isReplaceContent)
+                    return wrd.trim();
                 return `${addSpace}pl.col('${wrd.trim()}')`;
             }
             else {
                 const isLiteral = (wrd.startsWith("'") && wrd.endsWith("'")) || (wrd.endsWith('"') && wrd.startsWith("'"))
 
-                if (hasSplit && side == 'right' && !isLiteral)
-                    return `df.loc[condition, '${wrd.trim()}']`;
-                else if (isLiteral || (transform[pos - 1]?.startsWith("'") || transform[pos - 1]?.startsWith("\"")))
+                if (side == 'right' && !isLiteral && splitSnippet){
+                    wasThenAdded = true;
                     return wrd
+                            .replace('.split(',`.then(pl.col('${prevStrManipulation}').str.split(`)
+                            .replace('[','.arr.get(')
+                            .replace(']',')');
+                }
+                if (side == 'right' && isLiteral){
+                    if(isReplaceContent)
+                        return wrd.trim();
+                    else{
+                        if(wasThenAdded){
+                            return `pl.lit(${wrd == "" ? '' : wrd.trim()})`;
+                        }
+                        wasThenAdded = true;
+                        return `.then(pl.lit(${wrd.trim()}))`;
+                        //return `.then(pl.lit(${wrd.trim()}))\n.otherwise('${field}')\n.alias('${field}')`;
+                    }
+                }
+                else if (isLiteral || (transform[pos - 1]?.startsWith("'") || transform[pos - 1]?.startsWith("\""))){
+                    return wrd
+                }
 
                 totalCondition++;
                 return `pl.col('${wrd.trim()}')`;
@@ -227,7 +254,7 @@ export class DatabaseTransformation {
 
         const isConditionWrapped = leftSide.trim().startsWith('(') && leftSide.trim().endsWith(')')
         leftSide = leftSide?.trim()?.replace(regex, (wrd, pos) => {
-            return parsePieces(wrd, pos, transform, 'left', isConditionWrapped);
+            return parsePieces(wrd, pos, leftSide, 'left', isConditionWrapped);
         });
 
         matchCount = 0, addSpace = '';
@@ -236,8 +263,25 @@ export class DatabaseTransformation {
         });
         
         if (totalCondition < 2 || (totalCondition == 2 && isConditionWrapped))
-            return `pl.when(${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`, `'`)})`;
-        return `pl.when((${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`, `'`)}))`;
+            leftSide = `pl.when(${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`, `'`)})`;
+        else
+            leftSide = `pl.when((${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`, `'`)}))`;
+
+        //Addressing no space concatenation
+        rightSide = rightSide.replace(/\s{0,}\+\'\'/g,`+pl.lit('')`);
+        //Address change case from the code
+        rightSide = rightSide.replaceAll('.lower()','.to_lowercase()');
+        rightSide = rightSide.replaceAll('.upper()','.to_uppercase()');
+        //Additional string manipulation
+        rightSide = rightSide.replaceAll('.strip(','.strip_chars(');
+        //rightSide = rightSide.replaceAll('.replace()','.to_uppercase()');
+        //rightSide = rightSide.replaceAll('.upper()','.to_uppercase()');
+        //rightSide = rightSide.replaceAll('.upper()','.to_uppercase()');
+
+        //strip_chars, replace, replace_all, slice, lengths
+
+
+        return `${leftSide}\n${rightSide}`;
 
 
         //let condition = `condition = ${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`, `'`)}`;
