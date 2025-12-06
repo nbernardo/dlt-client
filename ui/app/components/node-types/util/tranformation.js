@@ -144,26 +144,35 @@ export class NonDatabaseSourceTransform {
 
 export class DatabaseTransformation {
 
+    /** @type { Object<Array> } */
+    static transformations = {};
+
     static sourceTransformation(transformPieces, rowsConfig = []) {
-        let finalCode = '';
+        let finalCode = '', comma = null;
+        DatabaseTransformation.transformations = {};
         for (const [_, code] of [...transformPieces]) {
     
-            let { type, field, transform } = code;
+            let { type, field, transform, table } = code;
     
             rowsConfig.push(code);
-            field = `df['${field}']`;
-    
+            comma = finalCode.length > 0 ? ',\n' : '';
+            
             if (type === 'CODE')
-                finalCode += `\n${DatabaseTransformation.parseCodeOnDf(transform, code.field)}`;
+                finalCode += `${comma}\n${DatabaseTransformation.parseCodeOnDf(transform, code.field)}`;
     
-            //if (type === 'CASING')
-            //    finalCode += `\n${this.parseCasing(transform, code.field)}`;
+            if (type === 'CASING')
+                finalCode += `${comma}\n${DatabaseTransformation.parseCasing(transform, code.field)}`;
     
-            //if (type === 'CALCULATE')
-            //    finalCode += `\n${field} = ${this.parseCalculate(transform)}`;
+            if (type === 'CALCULATE'){
+                finalCode += `${comma}\n(${DatabaseTransformation.parseCalculate(transform)}).alias('${code.field}')`
+                        .replaceAll('( ','(',)
+                        .replaceAll(') ',')',)
+                        .replace(/\s{2,}/g,' ');
+            }
     
-            //if (type === 'SPLIT')
-            //    finalCode += `\n${this.parseSplit(field, code.sep, transform)}`;
+            if (type === 'SPLIT')
+                finalCode += `${comma}\n${DatabaseTransformation.parseSplit(field, code.sep, transform)}`;
+            
     
             //if (type === 'DEDUP')
             //    finalCode += `\ndf.drop_duplicates(subset=['${code.field}'], inplace=True)`;
@@ -172,18 +181,59 @@ export class DatabaseTransformation {
             //    if (transform === 'date') finalCode += `\n${field} = pd.to_datetime(${field})`;
             //    else finalCode += `\n${field} = ${field}.astype(${transform})`;
             //}
+
+            if(!(table in DatabaseTransformation.transformations))
+                DatabaseTransformation.transformations[table] = []
+
+            const prevVal = DatabaseTransformation.transformations[table];
+            DatabaseTransformation.transformations[table] = [...prevVal, finalCode];
     
         }
         return finalCode;
+    }
+
+    static parseCasing(transform, field) {
+        
+		return 'UPPER' === transform
+			? `pl.col('${field}').str.to_uppercase().alias('${field}')`
+			: 'LOWER' === transform ? `pl.col('${field}').str.to_lowercase().alias('${field}')`
+				: `# pl.col('${field}') Unchenged case`;
+	}
+
+    static parseCalculate(transform) {
+        return transform.replace(/\s{0,}[A-Z]{1,}/ig, (wrd, pos) => {
+            if (pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\""))
+                return ` pl.col('${wrd.trim()}') `;
+            else if (pos > 0 && !transform[pos - 1].startsWith("'") && !transform[pos - 1].startsWith("\""))
+                return ` pl.col('${wrd.trim()}') `;
+            else return wrd;
+
+        });
+    }
+
+    static parseSplit(field, sep, vars) {
+        vars = vars.replace(/\[|\]/g, '').split(',');
+        let content = ''//`${vars} = ${field}.str.split('${sep}', n=${vars.length})\n`;
+
+        let x = 0, total = vars.length, c = '';
+        for (const newField of vars){
+            c = content.length > 0 ? ',\n' : ''
+            const fname = newField.trim();
+            if((x + 1) === total)
+                content += `${c}pl.col('${field}').str.split('${sep}').arr.slice(${x}).alias('${fname}')`
+            else
+                content += `${c}pl.col('${field}').str.split('${sep}').arr.slice(${x},${x+1}).alias('${fname}')`
+            x++;
+        }
+
+        return `${content}`;
     }
 
     static parseCodeOnDf(transform, field) {
 
         let matchCount = 0, addSpace = '', isThereBitwhise = false, totalCondition = 0;
         let prevStrManipulation = null;
-        const isMultiConditionCode = [' and ', ' or '].includes(transform);
         const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z\_]{1,}\(|s{0,}\'[\sA-Z]{1,}\'|\s{0,}[A-Z]{1,}/ig;
-        const hasSplit = transform.indexOf('.split(') > 0;
         let wasThenAdded = false;
 
         const parsePieces = (wrd, pos, transform, side = null) => {
@@ -200,8 +250,11 @@ export class DatabaseTransformation {
                 prevStrManipulation = wrd;
                 return '';
             }
-            if (wrd.startsWith('.') && wrd.endsWith('('))
+            if (wrd.startsWith('.') && wrd.endsWith('(')){
+                if(wrd.includes('is_null') || wrd.includes('is_not_null'))
+                    return wrd;
                 return wrd.replace('.', '.str.');
+            }
 
             const isWordBitwise = ['and', 'or'].includes(wrd.trim());
             if (isWordBitwise) {
@@ -225,7 +278,7 @@ export class DatabaseTransformation {
                 if (side == 'right' && !isLiteral && splitSnippet){
                     wasThenAdded = true;
                     return wrd
-                            .replace('.split(',`.then(pl.col('${prevStrManipulation}').str.split(`)
+                            .replace('.split(',`pl.col('${prevStrManipulation}').str.split(`)
                             .replace('[','.arr.get(')
                             .replace(']',')');
                 }
@@ -233,12 +286,7 @@ export class DatabaseTransformation {
                     if(isReplaceContent)
                         return wrd.trim();
                     else{
-                        if(wasThenAdded){
-                            return `pl.lit(${wrd == "" ? '' : wrd.trim()})`;
-                        }
-                        wasThenAdded = true;
-                        return `.then(pl.lit(${wrd.trim()}))`;
-                        //return `.then(pl.lit(${wrd.trim()}))\n.otherwise('${field}')\n.alias('${field}')`;
+                        return `pl.lit(${wrd == "" ? '' : wrd.trim()})`;
                     }
                 }
                 else if (isLiteral || (transform[pos - 1]?.startsWith("'") || transform[pos - 1]?.startsWith("\""))){
@@ -274,19 +322,11 @@ export class DatabaseTransformation {
         rightSide = rightSide.replaceAll('.upper()','.to_uppercase()');
         //Additional string manipulation
         rightSide = rightSide.replaceAll('.strip(','.strip_chars(');
-        //rightSide = rightSide.replaceAll('.replace()','.to_uppercase()');
-        //rightSide = rightSide.replaceAll('.upper()','.to_uppercase()');
-        //rightSide = rightSide.replaceAll('.upper()','.to_uppercase()');
 
-        //strip_chars, replace, replace_all, slice, lengths
+        if(!rightSide.includes('.then(')) rightSide = `.then(${rightSide}`;
 
+        return `${leftSide}\n${rightSide})\n.otherwise(pl.col('${field}'))\n.alias('${field}')`;
 
-        return `${leftSide}\n${rightSide}`;
-
-
-        //let condition = `condition = ${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`, `'`)}`;
-        //if (isThereBitwhise) condition = `${condition})`.replace('condition = ', 'condition = (');
-        //return `${condition}\ndf.loc[condition, '${field}'] = ${rightSide}`.replaceAll('( ', '(').replaceAll(') ', ')').replaceAll('  ', ' ');
     }
 }
 
