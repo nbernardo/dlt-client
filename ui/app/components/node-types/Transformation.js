@@ -79,10 +79,14 @@ export class Transformation extends ViewComponent {
 		this.dataSourceType = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
 
-			this.databaseList = tables;
-			[...this.fieldRows].forEach(([_, row]) => row.dataSourceList = tables);
 			// This is the bucket component itself
 			this.sourceNode = sourceNode;
+			
+			this.databaseList = tables;
+			[...this.fieldRows].forEach(([_, row]) => {
+				row.dataSourceList = tables;
+				row.databaseFields = this.sourceNode.tablesFieldsMap;
+			});
 
 			// In case the SQL Database changes, it proliferates downstream 
 			// thereby updating the Transformation and different added transformations
@@ -120,7 +124,11 @@ export class Transformation extends ViewComponent {
 		async function handleAddField() {
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
-			const initialData = { dataSources: obj.databaseList.value, rowId, importFields: data };
+			const initialData = { dataSources: obj.databaseList.value, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap };
+			//console.log(`DATA NOW:`);
+			//console.log(obj.sourceNode?.tablesFieldsMap);
+			
+			
 
 			// Create a new instance of TransformRow component
 			const { component, template } = await Components.new('TransformRow', initialData, parentId);
@@ -150,7 +158,7 @@ export class Transformation extends ViewComponent {
 			finalCode = util.sourceTransformation(this.transformPieces, rowsConfig);
 		}
 		
-		console.log(`VALUE IS: `, finalCode);
+		console.log(`VALUE IS: `, DatabaseTransformation.transformations);
 
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['code'] = finalCode;

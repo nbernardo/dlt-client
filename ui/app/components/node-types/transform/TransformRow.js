@@ -31,8 +31,10 @@ export class TransformRow extends ViewComponent {
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId, importFields }) {
+	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap }) {
 		this.dataSourceList = dataSources;
+		this.fieldList = tablesFieldsMap;
+		this.databaseFields = tablesFieldsMap;
 		this.rowId = rowId;
 
 		if (importFields) this.configData = importFields;
@@ -62,6 +64,7 @@ export class TransformRow extends ViewComponent {
 		this.selectedField.onChange(field => this.updateTransformValue({ field }));
 		this.transformation.onChange(value => this.updateTransformValue({ transform: value.trim() }));
 		this.separatorChar.onChange(value => this.updateTransformValue({ sep: value.trim() }));
+		this.selectedSource.onChange(table => this.updateTransformValue({ table }));
 
 		this.selectedType.onChange(value => {
 			this.transformType = value.trim();
