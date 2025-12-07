@@ -148,19 +148,22 @@ export class Transformation extends ViewComponent {
 
 	parseTransformationCode() {
 		let finalCode = "", rowsConfig = [];
-		
+		const data = WorkSpaceController.getNode(this.nodeId).data;
+		data['dataSourceType'] = null;
+
 		if(this.dataSourceType != 'SQL'){
 			const util = NonDatabaseSourceTransform;
 			finalCode = util.sourceTransformation(this.transformPieces, rowsConfig);
 		}
 		else{
 			const util = DatabaseTransformation;
-			finalCode = util.sourceTransformation(this.transformPieces, rowsConfig);
+			util.sourceTransformation(this.transformPieces, rowsConfig);
+			finalCode = DatabaseTransformation.transformations;
+			data['dataSourceType'] = 'SQL';
 		}
 		
 		console.log(`VALUE IS: `, DatabaseTransformation.transformations);
 
-		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['code'] = finalCode;
 		data['rows'] = rowsConfig;
 

@@ -155,23 +155,23 @@ export class DatabaseTransformation {
             let { type, field, transform, table } = code;
     
             rowsConfig.push(code);
-            comma = finalCode.length > 0 ? ',\n' : '';
+            comma = '';//finalCode.length > 0 ? ',\n' : '';
             
             if (type === 'CODE')
-                finalCode += `${comma}\n${DatabaseTransformation.parseCodeOnDf(transform, code.field)}`;
+                finalCode = `${comma}${DatabaseTransformation.parseCodeOnDf(transform, code.field)}`;
     
             if (type === 'CASING')
-                finalCode += `${comma}\n${DatabaseTransformation.parseCasing(transform, code.field)}`;
+                finalCode = `${comma}${DatabaseTransformation.parseCasing(transform, code.field)}`;
     
             if (type === 'CALCULATE'){
-                finalCode += `${comma}\n(${DatabaseTransformation.parseCalculate(transform)}).alias('${code.field}')`
+                finalCode = `${comma}(${DatabaseTransformation.parseCalculate(transform)}).alias('${code.field}')`
                         .replaceAll('( ','(',)
                         .replaceAll(') ',')',)
                         .replace(/\s{2,}/g,' ');
             }
     
             if (type === 'SPLIT')
-                finalCode += `${comma}\n${DatabaseTransformation.parseSplit(field, code.sep, transform)}`;
+                finalCode = `${comma}${DatabaseTransformation.parseSplit(field, code.sep, transform)}`;
             
     
             //if (type === 'DEDUP')
@@ -217,7 +217,7 @@ export class DatabaseTransformation {
 
         let x = 0, total = vars.length, c = '';
         for (const newField of vars){
-            c = content.length > 0 ? ',\n' : ''
+            c = content.length > 0 ? ',' : ''
             const fname = newField.trim();
             if((x + 1) === total)
                 content += `${c}pl.col('${field}').str.split('${sep}').arr.slice(${x}).alias('${fname}')`
@@ -325,7 +325,7 @@ export class DatabaseTransformation {
 
         if(!rightSide.includes('.then(')) rightSide = `.then(${rightSide}`;
 
-        return `${leftSide}\n${rightSide})\n.otherwise(pl.col('${field}'))\n.alias('${field}')`;
+        return `${leftSide}${rightSide}).otherwise(pl.col('${field}')).alias('${field}')`;
 
     }
 }
