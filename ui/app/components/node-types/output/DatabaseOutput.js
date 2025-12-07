@@ -107,17 +107,19 @@ export class DatabaseOutput extends ViewComponent {
 	onInputConnection({data, type}){
 		const sourceNode = data?.sourceNode;
 		if((type == Bucket.name || type == Transformation.name) && sourceNode){
-			/** @type { Bucket } */
-			const sourceNodeObj = sourceNode;
-			this.tableName = sourceNodeObj.filePattern.value;
-
-			/** This will be triggered in case the source connection is
-			 *  bucket or file system and the file name was changed */
-			sourceNodeObj.filePattern.onChange(value => {
-				const table = String(value).split('.');
-				this.tableName = table.slice(0, table.length - 1).join('').replace('-','_');
-				this.updateConnection();
-			});
+			if(sourceNode.filePattern){
+				/** @type { Bucket } */
+				const sourceNodeObj = sourceNode;
+				this.tableName = sourceNodeObj.filePattern.value;
+	
+				/** This will be triggered in case the source connection is
+				 *  bucket or file system and the file name was changed */
+				sourceNodeObj.filePattern.onChange(value => {
+					const table = String(value).split('.');
+					this.tableName = table.slice(0, table.length - 1).join('').replace('-','_');
+					this.updateConnection();
+				});
+			}
 		}
 
 		if(type === InputAPI.name) this.tableName = 'API';
