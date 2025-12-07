@@ -1,4 +1,4 @@
-import dlt
+%metadata_section%import dlt
 import polars as pl
 from sqlalchemy import create_engine
 from pathlib import Path
