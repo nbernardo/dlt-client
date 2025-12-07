@@ -31,6 +31,7 @@ class RequestContext:
         self.socket_sid = socket_sid
         self.user = None
         self.transformation = None
+        self.transformation_type = None
         self.monitor_file_name = None
         self.file_manager: FileVersionManager = file_manager
         self.action_type = None

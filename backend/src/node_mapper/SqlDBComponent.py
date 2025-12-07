@@ -23,7 +23,10 @@ class SqlDBComponent(TemplateNodeType):
                 if data['old_template']:
                     template = DltPipeline.get_sql_db_template('sql_db_old.txt')
             else:
-                template = DltPipeline.get_sql_db_template()
+                if context.transformation_type == 'SQL':
+                    template = DltPipeline.get_sql_db_template('sql_db_transform.txt')
+                else:
+                    template = DltPipeline.get_sql_db_template()
 
         self.template = self.parse_destination_string(template)
 
@@ -34,6 +37,7 @@ class SqlDBComponent(TemplateNodeType):
                 return None
 
         self.schema = False
+        self.schemas = []
         self.component_id = data['componentId']
         self.context.emit_start(self, '')
 
