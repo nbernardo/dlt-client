@@ -1,0 +1,83 @@
+import dlt
+import polars as pl
+from sqlalchemy import create_engine
+from pathlib import Path
+import sys
+
+#Adding root folder to allow import  from src
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
+sys.path.insert(0, src_path)
+sys.path.insert(0, src_path+'/src')
+
+from src.services.workspace.SecretManager import SecretManager
+from src.services.workspace.Workspace import Workspace
+
+# Bellow mapping: namespace = SqlDBComponent.namespace
+namespace = %namespace%
+
+# Bellow mapping: connection_name = SqlDBComponent.connection_name
+connection_name = %connection_name%
+
+print('connecting to secrets vault', flush=True)
+SecretManager.ppline_connect_to_vault()
+
+print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
+secret = SecretManager.get_db_secret(namespace, connection_name)
+
+connection_string = secret['connection_url']
+
+# SQLEngine for Polars .read_database()
+engine = create_engine(connection_string)
+
+# Bellow mapping: tables = SqlDBComponent.source_tables
+tables = %source_tables%
+
+# Bellow mapping: tables_pk = SqlDBComponent.primary_keys
+tables_pk = %primary_keys%
+
+# Bellow mapping: schemas = SqlDBComponent.schemas
+schemas = %schemas%
+
+# Bellow mapping is parse on transformation 
+# controller.pipeline.template_final_parsing
+transformations = %transformation%
+
+@dlt.source
+def polars_db_source(tables: list[str], tables_pk: list[str]):
+
+    def generate_resource(table_name, pk):
+
+        @dlt.resource(name=table_name)
+        def load_table():
+            df = pl.read_database(f"SELECT * FROM {table_name}", engine)
+            print(f'fetch data from {table_name}', flush=True)
+
+            # Apply table-specific transformations
+            df = df.with_columns(transformations[table_name])
+            print(f'applied transformation for {table_name}', flush=True)
+
+            for row in df.iter_rows(named=True):
+                yield row
+
+        return load_table.apply_hints(primary_key=pk)
+
+    print(f'fetching data from source tables', flush=True)
+    return [
+        generate_resource(table_name, pk)
+        for table_name, pk in zip(tables, tables_pk)
+    ]
+
+dest_folder = Workspace.get_duckdb_path_on_ppline()
+ppline_name, output_name = %pipeline_name%, %output_dest_name%
+
+# -------- Running the pipeline ----------%dest_secret_code%
+dest = %destination_string%
+
+pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)
+
+source = polars_db_source(tables, tables_pk)
+
+print(f'Running the pipeline', flush=True)
+load_info = pipeline.run(source)
+
+print(load_info)

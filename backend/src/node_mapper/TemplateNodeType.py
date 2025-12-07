@@ -21,6 +21,11 @@ class TemplateNodeType:
             self.context.emit_success(self, success)
 
 
+    def notify_completion_to_ui_node(self, componentId):
+            success = {'componentId': componentId}
+            self.context.emit_success_to_ui_component_by_id(self, success, componentId)
+
+
     def notify_failure_to_ui(self, type, err, add_exception = True):
             error = {'message': f'{err}', 'componentId': self.component_id}
             if(add_exception):

@@ -1,6 +1,5 @@
 from .TemplateNodeType import TemplateNodeType
 from controller.RequestContext import RequestContext
-from connectors.db.mysql import get_mysql_connection
 from services.pipeline.DltPipeline import DltPipeline
 
 class SqlDBComponent(TemplateNodeType):
@@ -35,6 +34,12 @@ class SqlDBComponent(TemplateNodeType):
         if data: 
             if 'componentId' not in data:
                 return None
+
+        # In case there is transformation step after the extraction node, 
+        # first thing it'll do before SqlDBComponent run itself will be 
+        # to notify the UI the completion of the Transformation step
+        if context.transformation_type == 'SQL':
+            self.notify_completion_to_ui_node(context.transformation_ui_node_id)
 
         self.schema = False
         self.schemas = []

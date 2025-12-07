@@ -217,6 +217,7 @@ def parse_transformation_task(node_params, context: RequestContext):
             transformation_str = None
 
             if source_type == 'SQL':
+                context.transformation_ui_node_id = node_data['componentId']
                 context.transformation_type = source_type
                 tables = list(node_data['code'].keys())
                 transformation_str = '{'
