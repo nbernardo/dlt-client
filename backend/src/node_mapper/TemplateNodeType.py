@@ -21,6 +21,11 @@ class TemplateNodeType:
             self.context.emit_success(self, success)
 
 
+    def notify_completion_to_ui_node(self, componentId):
+            success = {'componentId': componentId}
+            self.context.emit_success_to_ui_component_by_id(self, success, componentId)
+
+
     def notify_failure_to_ui(self, type, err, add_exception = True):
             error = {'message': f'{err}', 'componentId': self.component_id}
             if(add_exception):
@@ -70,7 +75,10 @@ class TemplateNodeType:
         template = template.replace('%metadata_section%',metadata_section)
 
         # n variable is to add a new line and alikely space * 4 (corresponding to tab)
-        n = '\n    ' if template_type == 'sql_database' else '\n'
+        if self.context.transformation_type == 'SQL':
+            n = '\n'
+        else:
+            n = '\n    ' if template_type == 'sql_database' else '\n'
 
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
         dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
@@ -90,7 +98,10 @@ class TemplateNodeType:
         template = template.replace('%metadata_section%',metadata_section)
 
         # n variable is to add a new line and alikely space * 4 (corresponding to tab)
-        n = '\n    ' if (template_type == 'sql_database' or has_tranformation) else '\n'
+        if self.context.transformation_type == 'SQL':
+             n = '\n'
+        else:
+            n = '\n    ' if (template_type == 'sql_database' or has_tranformation) else '\n'
 
         # Edge case for when the pipeline has transformation
         ni = '\n' if has_tranformation else n

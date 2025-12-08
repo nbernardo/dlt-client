@@ -7,9 +7,9 @@ class DLTCode(TemplateNodeType):
     """ DLTCode type mapping class """
 
     def __init__(self, data: dict, context: RequestContext):
-
         """ Initialize the instance """
-
+        
+        self.context = context
         self.template_type = None
         template = DltPipeline.get_dlt_code_template()
         self.template = self.parse_destination_string(template)
@@ -19,7 +19,12 @@ class DLTCode(TemplateNodeType):
         if data is None: return None
         if len(data.keys()) == 0: return None
 
-        self.parse_to_literal = ['template_code']
+        self.parse_to_literal = ['template_code','secret_manager_import']
+        self.secret_manager_import = ''
+        
+        if len(self.context.sql_destinations) > 0:
+            self.secret_manager_import = ',SecretManager'
+
 
         self.context = context
         self.component_id = data['componentId']

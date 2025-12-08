@@ -1,5 +1,5 @@
-import pandas as pd
-from sqlalchemy import create_engine, inspect, MetaData, Engine, Table
+import json
+from sqlalchemy import create_engine, inspect, MetaData, Engine, Table, text
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import SQLAlchemyError
 from services.workspace.supper.SecretManagerType import SecretManagerType
@@ -23,48 +23,116 @@ class SQLDatabase:
 
 
     def get_mysql_tables(namespace, connection_name, secret):
-        mysql_conection = SQLConnection\
-                    .mysql_connect(namespace, connection_name, secret)
-        return inspect(mysql_conection).get_table_names()
+
+        mysql_conection, database = SQLConnection\
+                                        .mysql_connect(namespace, connection_name, secret)
+        
+        query_string = f'''
+            SELECT table_name, column_name, CONCAT('"', COLUMN_TYPE, '"') AS quoted_type
+            FROM information_schema.columns
+            WHERE table_schema = :schema
+            ORDER BY table_name, ORDINAL_POSITION
+        '''
+
+        tables = {}
+        result = mysql_conection.connect().execute(text(query_string), { 'schema': database })
+        for table_name, column_name, col_type in result.fetchall():
+            if table_name not in tables:
+                tables[table_name] = []
+            tables[table_name].append({ 'column': column_name, 'type':  col_type  })
+
+        return tables
 
 
     def get_pgsql_tables(namespace, connection_name, secret):
         
-        pgsql_conection = SQLConnection\
-                    .pgsql_connect(namespace, connection_name, secret)
-        schemas = inspect(pgsql_conection).get_schema_names()
+        pgsql_conection, database = SQLConnection\
+                                        .pgsql_connect(namespace, connection_name, secret)
 
-        inspector = inspect(pgsql_conection)
+        query_string = """
+            SELECT
+                table_catalog AS database_name,
+                table_schema AS schema_name,
+                table_name AS table_name,
+                column_name AS column_name,
+                '"' || data_type || '"' AS quoted_type
+            FROM information_schema.columns
+            WHERE table_catalog = :database_name
+            ORDER BY table_schema, table_name, ordinal_position;
+        """
 
-        tables_per_schema = { schma_name: inspector.get_table_names(schema=schma_name) for schma_name in schemas if schma_name != 'information_schema' }
-        tables_per_schema['schema_based'] = True
+        tables = {}
+        result = pgsql_conection.connect().execute(text(query_string), { 'database_name': database })
+        for dbo, table_schema, table_name, column_name, col_type in result.fetchall():
+   
+            if table_schema not in tables:
+                tables[table_schema] = {}
 
-        return tables_per_schema
+            if table_name not in tables[table_schema]:
+                tables[table_schema][table_name] = []
+
+            tables[table_schema][table_name].append({ 'column': column_name, 'type':  col_type  })
+
+        tables['schema_based'] = True
+        return tables
 
 
     def get_mssql_tables(namespace, connection_name, secret):
         
-        mssql_conection = SQLConnection\
+        mssql_conection, database = SQLConnection\
                     .mssql_connect(namespace, connection_name, secret)
-        schemas = inspect(mssql_conection).get_schema_names()
 
-        inspector = inspect(mssql_conection)
-        system_schemas = {"dbo", "guest", "sys", "INFORMATION_SCHEMA"}
+        query_string = """
+            SELECT 
+                TABLE_CATALOG AS database_name,
+                TABLE_SCHEMA AS schema_name,
+                TABLE_NAME AS table_name,
+                COLUMN_NAME AS column_name,
+                '"' + DATA_TYPE + '"' AS quoted_type
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_CATALOG = :database_name
+            ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;
+        """
 
-        tables_per_schema = { 
-            schma_name: inspector.get_table_names(schema=schma_name) 
-            for schma_name in schemas if schma_name not in system_schemas and not schma_name.startswith("db_")
-        }
-        
-        tables_per_schema['schema_based'] = True
-        return tables_per_schema
+        tables = {}
+        result = mssql_conection.connect().execute(text(query_string), { 'database_name': database })
+        for dbo, table_schema, table_name, column_name, col_type in result.fetchall():
+   
+            if table_schema not in tables:
+                tables[table_schema] = {}
+
+            if table_name not in tables[table_schema]:
+                tables[table_schema][table_name] = []
+
+            tables[table_schema][table_name].append({ 'column': column_name, 'type':  col_type  })
+
+        tables['schema_based'] = True
+        return tables
 
 
     def get_oracle_tables(namespace, connection_name, secret):
         
-        oracle_conection = SQLConnection\
-                    .oracle_connect(namespace, connection_name, secret)
-        return inspect(oracle_conection).get_table_names()
+        oracle_conection, owner = SQLConnection\
+                                        .oracle_connect(namespace, connection_name, secret)
+        
+        query_string = """
+            SELECT 
+                TABLE_NAME AS table_name,
+                COLUMN_NAME AS column_name,
+                '"' || DATA_TYPE || '"' AS quoted_type
+            FROM ALL_TAB_COLUMNS
+            WHERE OWNER = :schema
+            ORDER BY TABLE_NAME, COLUMN_ID
+        """
+
+        tables = {}
+        result = oracle_conection.connect().execute(text(query_string), { 'schema': owner })
+        for table_name, column_name, col_type in result.fetchall():
+            if table_name not in tables:
+                tables[table_name] = []
+            tables[table_name].append({ 'column': column_name, 'type':  col_type  })
+
+        return tables
 
 
     def get_tables_list(namespace, connection_name):
@@ -104,16 +172,16 @@ class SQLDatabase:
             fields = []
             db_conection = None
             if(dbengine == 'mysql'):
-                db_conection = SQLConnection.mysql_connect(namespace, connection_name, None)
+                db_conection, _ = SQLConnection.mysql_connect(namespace, connection_name, None)
 
             if(dbengine == 'postgresql'):
-                db_conection = SQLConnection.pgsql_connect(namespace, connection_name, None)
+                db_conection, _ = SQLConnection.pgsql_connect(namespace, connection_name, None)
 
             if(dbengine == 'mssql'):
-                db_conection = SQLConnection.mssql_connect(namespace, connection_name, None)
+                db_conection, _ = SQLConnection.mssql_connect(namespace, connection_name, None)
 
             if(dbengine == 'oracle'):
-                db_conection = SQLConnection.oracle_connect(namespace, connection_name, None)
+                db_conection, _ = SQLConnection.oracle_connect(namespace, connection_name, None)
             
             if not metadata:
 
@@ -180,9 +248,10 @@ class SQLConnection:
         connection_string = secret['connection_url']
         connection = create_engine(connection_string)
 
-        SQLDatabase.connections['mysql'][connection_key] = connection
+        database = secret['database']
+        SQLDatabase.connections['mysql'][connection_key] = connection, database
 
-        return connection
+        return connection, database
 
 
     def pgsql_connect(namespace, connection_name, secret = None) -> Engine:
@@ -195,6 +264,7 @@ class SQLConnection:
             secret = SQLDatabase.secret_manager.get_db_secret(namespace,connection_name)
 
         connection_string = secret['connection_url']
+        database = secret['database']
 
         postgress_prefix = 'postgresql://'
         psycopa2_driver_prefix = 'postgresql+psycopg2://'
@@ -202,9 +272,9 @@ class SQLConnection:
         connection_string = str(connection_string).replace(postgress_prefix,psycopa2_driver_prefix)
 
         connection = create_engine(connection_string)
-        SQLDatabase.connections['postgresql'][connection_key] = connection
+        SQLDatabase.connections['postgresql'][connection_key] = connection, database
 
-        return connection
+        return connection, database
 
 
     def oracle_connect(namespace, connection_name, secret = None) -> Engine:
@@ -218,10 +288,11 @@ class SQLConnection:
 
         connection_string = secret['connection_url']
 
+        owner = secret['username']
         connection = create_engine(connection_string)
-        SQLDatabase.connections['oracle'][connection_key] = connection
+        SQLDatabase.connections['oracle'][connection_key] = connection, owner
 
-        return connection
+        return connection, owner
     
 
 
@@ -238,10 +309,11 @@ class SQLConnection:
 
         connection_string = secret['connection_url']+driver
 
+        database = secret['database']
         connection = create_engine(connection_string)
-        SQLDatabase.connections['mssql'][connection_key] = connection
+        SQLDatabase.connections['mssql'][connection_key] = connection, database
 
-        return connection
+        return connection, database
     
 
     def get_mssql_driver():

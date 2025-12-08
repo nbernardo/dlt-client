@@ -205,28 +205,59 @@ def parse_transformation_task(node_params, context: RequestContext):
     """
     
     code = ''
+    context.transformation_type = None
+
     transformation_count = 0
     for id in node_params:
         if node_params[id]['name'] == 'Transformation':
+            
             transformation_count = transformation_count + 1
             node_data = node_params[id]['data']
-            code_lines = node_data['code'].split('\n')
-            # Generate the transformation code line 
-            # by line and assign to code variable
-            line_counter = 0
-            for line in code_lines:
-                line_counter = line_counter + 1
-                # Adds 12 spaces (3 tabs) in each line
-                if line_counter == 1:
-                    code += ' ' * 12  +line.replace('\n','').expandtabs(8)
-                else:
-                    code += '\n'+ ' ' * 12  +line.expandtabs(8)
-            
-            code += '\n'+ ' ' * 12 + f"# Bellow line is to notify the UI/Frontend that transformation step has completed"
-            code += '\n'+ ' ' * 12 + f"print('{node_data['componentId']}', flush=True)"
-            code += '\n'+ ' ' * 12 + f"print('Transformation #{transformation_count} process completed', flush=True)"
+            source_type = node_data['dataSourceType']
+            transformation_str = None
+
+            if source_type == 'SQL':
+                context.transformation_ui_node_id = node_data['componentId']
+                context.transformation_type = source_type
+                tables = list(node_data['code'].keys())
+                transformation_str = '{'
+
+                for table in tables:
+                    pl_script = str(node_data['code'][table])\
+                                    .replace('["','|inBracket|')\
+                                    .replace('"]','|outBracket|')+','
+                    
+                    transformation_str += f"\n'{table}': {pl_script}"
+                    
+                transformation_str = transformation_str\
+                                            .replace('|inBracket|','[')\
+                                            .replace('|outBracket|',']')\
+                                            .replace(')"',')')\
+                                            .replace('"pl','pl')
+                                            
+            else:
+                code_lines = node_data['code'].split('\n')
+                # Generate the transformation code line 
+                # by line and assign to code variable
+                line_counter = 0
+                for line in code_lines:
+                    line_counter = line_counter + 1
+                    # Adds 12 spaces (3 tabs) in each line
+                    if line_counter == 1:
+                        code += ' ' * 12  +line.replace('\n','').expandtabs(8)
+                    else:
+                        code += '\n'+ ' ' * 12  +line.expandtabs(8)
+                
+                code += '\n'+ ' ' * 12 + f"# Bellow line is to notify the UI/Frontend that transformation step has completed"
+                code += '\n'+ ' ' * 12 + f"print('{node_data['componentId']}', flush=True)"
+                code += '\n'+ ' ' * 12 + f"print('Transformation #{transformation_count} process completed', flush=True)"
     
-    context.transformation = None if code == '' else code
+                context.transformation = None if code == '' else code
+            
+            if transformation_str != None:
+                transformation_str = transformation_str[0:-1] + '\n}'
+                context.transformation = transformation_str
+
     return node_params
 
 

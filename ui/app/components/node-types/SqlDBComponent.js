@@ -28,6 +28,7 @@ export class SqlDBComponent extends ViewComponent {
 	/** @Prop @type { STForm } */ formRef;
 	/** @Prop */ isOldUI;
 	/** @Prop @type { TableAndPKType } */ dynamicFields;
+	/** @Prop */ tablesFieldsMap;
 
 	selectedSecretTableList = [];
 	selectedTableList = [];
@@ -125,10 +126,10 @@ export class SqlDBComponent extends ViewComponent {
 			boundComponent: this,
 			componentFieldName: tableFieldName,
 			onSelect: async (table, self) => {
-				const data = await WorkspaceService.getDBTableDetails(this.selectedDbEngine.value, this.selectedSecret.value ,table);
-								
+				const data = this.tablesFieldsMap[table];
+				
 				const pkRelatedField = self.relatedFields[0];
-				pkRelatedField.setDataSource(data.fields);
+				pkRelatedField.setDataSource(data.map(col => col.column));
 			}
 		});
 
@@ -159,10 +160,12 @@ export class SqlDBComponent extends ViewComponent {
 
 				const detail = data['secret_details'];
 				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
-				this.selectedSecretTableList = data.tables;
+				this.tablesFieldsMap = data.tables;
+				this.selectedSecretTableList = Object.keys(data.tables);
+				
 				WorkSpaceController.getNode(this.nodeId).data['host'] = host;
 				this.dynamicFields.tables.forEach(tbl => {
-					tbl.setDataSource(data.tables);
+					tbl.setDataSource(this.selectedSecretTableList.value);
 				});
 
 			}
@@ -220,7 +223,10 @@ export class SqlDBComponent extends ViewComponent {
 	}
 
 	onOutputConnection(){
-		return null;
+		return {
+			tables: this.selectedSecretTableList.value.map(table => ({ name: table, file: table })),
+			sourceNode: this
+		};
 	}
 
 }

@@ -20,28 +20,29 @@ def data_source():
             consumer_timeout_ms=5000
         )
         
-        for msg in consumer:
+        for message in consumer:
             try:
 
-                message = json.loads(msg.value.decode('utf-8'))
-                data = message.get('<data_selector>', [])
+                data = json.loads(message.value.decode('utf-8'))
+                if type(message) == dict:
+                    data = message.get('<data_selector>', message)
 
                 yield from (
                     {
                         **record,
-                        '_kafka_offset': msg.offset,
-                        '_kafka_partition': msg.partition,
-                        '_kafka_timestamp': msg.timestamp,
-                        '_kafka_topic': msg.topic
+                        '_kafka_offset': message.offset,
+                        '_kafka_partition': message.partition,
+                        '_kafka_timestamp': message.timestamp,
+                        '_kafka_topic': message.topic
                     }
                     for record in data
                 )
                                 
             except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                print(f"Skipping non-JSON message at offset {msg.offset}: {e}")
+                print(f"Skipping non-JSON message at offset {message.offset}: {e}")
                 continue
             except Exception as e:
-                print(f"Error processing message at offset {msg.offset}: {e}")
+                print(f"Error processing message at offset {message.offset}: {e}")
                 continue
         
         consumer.close()

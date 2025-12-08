@@ -1,9 +1,11 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { Transformation } from "../Transformation.js";
 
 export const TRANFORM_ROW_PREFIX = 'transformRow';
 
+/** @implements { NodeTypeInterface } */
 export class TransformRow extends ViewComponent {
 
 	isPublic = true;
@@ -15,6 +17,7 @@ export class TransformRow extends ViewComponent {
 
 	/** @Prop */ rowId;
 	/** @Prop */ transformType;
+	/** @Prop */ databaseFields; //This is in particular when the data source is DB (e.g. SQL)
 	/** @Prop */ configData = null; // This is only used when importing/reviewing a previous created node
 
 	dataSourceList;
@@ -28,12 +31,13 @@ export class TransformRow extends ViewComponent {
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId, importFields }) {
+	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap }) {
 		this.dataSourceList = dataSources;
+		this.fieldList = tablesFieldsMap;
+		this.databaseFields = tablesFieldsMap;
 		this.rowId = rowId;
 
-		if (importFields)
-			this.configData = importFields;
+		if (importFields) this.configData = importFields;
 
 	}
 
@@ -42,9 +46,17 @@ export class TransformRow extends ViewComponent {
 		this.$parent.transformPieces.set(this.rowId, {})
 
 		this.selectedSource.onChange(async (newValue) => {
-			const dataSource = newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
-			await this.wspaceService.handleCsvSourceFields(dataSource)
-			const fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
+
+			let fieldList = null, dataSource;
+
+			dataSource = newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
+			if(this.$parent.dataSourceType !== 'SQL'){
+				await this.wspaceService.handleCsvSourceFields(dataSource)
+				fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
+			}else{				
+				fieldList = this.databaseFields[newValue].map(itm => ({ name: itm.column }))
+			}
+			
 			this.fieldList = fieldList;
 			this.updateTransformValue({ dataSource });
 		});
@@ -52,14 +64,14 @@ export class TransformRow extends ViewComponent {
 		this.selectedField.onChange(field => this.updateTransformValue({ field }));
 		this.transformation.onChange(value => this.updateTransformValue({ transform: value.trim() }));
 		this.separatorChar.onChange(value => this.updateTransformValue({ sep: value.trim() }));
+		this.selectedSource.onChange(table => this.updateTransformValue({ table }));
 
 		this.selectedType.onChange(value => {
 			this.transformType = value.trim();
 			this.updateTransformValue({ type: this.transformType });
 		});
 
-		if (this.configData !== null)
-			this.handleConfigData();
+		if (this.configData !== null) this.handleConfigData();
 
 	}
 
@@ -90,4 +102,9 @@ export class TransformRow extends ViewComponent {
 		handleDeletion(this);
 	}
 
+	async getSQLTableFields(){
+		const data = await WorkspaceService.getDBTableDetails(this.selectedDbEngine.value, this.selectedSecret.value ,table);
+		const pkRelatedField = self.relatedFields[0];
+		pkRelatedField.setDataSource(data.fields);
+	}
 }

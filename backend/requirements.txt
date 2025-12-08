@@ -181,3 +181,4 @@ hvac
 kafka-python
 dlt[sqlalchemy]
 oracledb
+polars

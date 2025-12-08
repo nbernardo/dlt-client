@@ -31,6 +31,8 @@ class RequestContext:
         self.socket_sid = socket_sid
         self.user = None
         self.transformation = None
+        self.transformation_ui_node_id = None
+        self.transformation_type = None
         self.monitor_file_name = None
         self.file_manager: FileVersionManager = file_manager
         self.action_type = None
@@ -79,6 +81,21 @@ class RequestContext:
         emit(
             RequestContext.step_success,
             {'componentId': obj.component_id,
+                'data': data, 'sid': self.socket_sid, 'time': self.get_time()},
+            to=self.socket_sid,
+            namespace=RequestContext.namespace
+        )
+        socketio.sleep(0)
+
+
+    def emit_success_to_ui_component_by_id(self, obj: object, data, component_id):
+        """
+        This emit Websocket success message for a
+        specific pipeline execution step
+        """
+        emit(
+            RequestContext.step_success,
+            {'componentId': component_id,
                 'data': data, 'sid': self.socket_sid, 'time': self.get_time()},
             to=self.socket_sid,
             namespace=RequestContext.namespace

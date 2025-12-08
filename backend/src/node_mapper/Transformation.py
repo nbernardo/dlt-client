@@ -9,6 +9,10 @@ class Transformation(TemplateNodeType):
         """
         When called on the parse_node, this node type is only for transition to the next step, 
         (e.g. Load data to Duckdb) nothing gets exdcuted here, hence run returns Ture without any logic
+
+        
+        IMPORTANT: If transformation is used in an SQL Database data extraction, 
+                   the Transformation step in UI is notified by SqlDBComponent
         """
         self.component_id = None
         self.context = None
