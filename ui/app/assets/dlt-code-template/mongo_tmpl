@@ -2,7 +2,7 @@ import dlt
 from pymongo import MongoClient
 
 @dlt.source
-def mongodb_source(connection_string, database_name, collection_name):
+def data_source(connection_string, database_name, collection_name):
     @dlt.resource(
         write_disposition="merge",
         primary_key="_id"

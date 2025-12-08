@@ -208,8 +208,9 @@ class SecretManager(SecretManagerType):
         path = f'main/db/{connection_name}'
         secret = SecretManager.get_secret(namespace, path=path)
 
-        if secret['dbengine'] == 'mssql':
-            secret['connection_url'] = secret['connection_url']+f'{SQLConnection.get_mssql_driver()}'
+        if 'dbengine' in secret:
+            if secret['dbengine'] == 'mssql':
+                secret['connection_url'] = secret['connection_url']+f'{SQLConnection.get_mssql_driver()}'
 
         return secret
             

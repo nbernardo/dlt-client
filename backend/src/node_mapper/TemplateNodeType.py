@@ -76,7 +76,7 @@ class TemplateNodeType:
 
         # n variable is to add a new line and alikely space * 4 (corresponding to tab)
         if self.context.transformation_type == 'SQL':
-             n = '\n'
+            n = '\n'
         else:
             n = '\n    ' if template_type == 'sql_database' else '\n'
 
