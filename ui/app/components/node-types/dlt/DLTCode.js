@@ -138,4 +138,8 @@ export class DLTCode extends ViewComponent {
 		this.showTemplateList = true;
 		WorkSpaceController.getNode(this.nodeId).data['dltCode'] = this.codeContent;
 	}
+
+	onOutputConnection(){
+		return {};
+	}
 }
