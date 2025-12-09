@@ -36,6 +36,7 @@ export class DatabaseOutput extends ViewComponent {
 	/** @Prop @type { STForm } */ anotherForm;
 	/** @Prop */ showLoading = false;
 	/** @Prop */ importFields;
+	/** @Prop */ secretedSecretTrace = null;
 
 	//This is only used in case the source 
 	// is not a Database (e.g. Bucket, InputAPI)
@@ -71,6 +72,10 @@ export class DatabaseOutput extends ViewComponent {
 
 	setupOnChangeListen(){
 		this.selectedSecret.onChange(async secretName => {
+			// To prevent running through the bellow steps in case the secret is the same
+			if(this.secretedSecretTrace == secretName) return;
+
+			this.secretedSecretTrace = secretName
 			this.showLoading = true;
 			let database = '', dbengine = '', host = '';
 			if(secretName != ''){
