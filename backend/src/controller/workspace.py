@@ -8,7 +8,7 @@ from flask_cors import cross_origin
 import threading
 import requests
 import time
-from services.DataQueryAIAssistent import DataQueryAIAssistent as Agent
+from services.agents.DataQueryAIAssistent import DataQueryAIAssistent as Agent
 from typing import List
 import traceback
 from flask import abort, send_file

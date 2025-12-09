@@ -24,7 +24,7 @@ class DataQueryAIAssistent:
         api_key = env('MISTRAL_API_KEY')
         #self.model = "mistral-large-latest"
         self.model = "mistral-medium-2508"
-        self.client = Mistral(api_key=api_key)
+        self.client = None #Mistral(api_key=api_key)
         self.chat_turns = []
         
 
@@ -176,9 +176,10 @@ class DataQueryAIAssistent:
 
     def cloud_groq_call(self, user_prompt):
 
-        api_key = env('GROQ_API_KEY')
-        self.model = "llama-3.3-70b-versatile"
-        self.client = Groq(api_key=api_key)
+        if self.client == None:
+            api_key = env('GROQ_API_KEY')
+            self.model = "llama-3.3-70b-versatile"
+            self.client = Groq(api_key=api_key)
 
         client, model = self.client, self.model
         
