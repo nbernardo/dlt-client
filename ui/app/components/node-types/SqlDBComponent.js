@@ -45,6 +45,7 @@ export class SqlDBComponent extends ViewComponent {
 
 	/** @Prop @type { STForm } */ anotherForm;
 	/** @Prop */ showLoading = false;
+	/** @Prop */ secretedSecretTrace = null;
 	
 
 
@@ -152,6 +153,10 @@ export class SqlDBComponent extends ViewComponent {
 		});
 
 		this.selectedSecret.onChange(async secretName => {
+			// To prevent running through the bellow steps in case the secret is the same
+			if(this.secretedSecretTrace == secretName) return;
+
+			this.secretedSecretTrace = secretName;
 			this.clearSelectedTablesAndPk();
 			this.showLoading = true;
 			let database = '', dbengine = '', host = '';
