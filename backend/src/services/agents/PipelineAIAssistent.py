@@ -40,7 +40,8 @@ class PipelineAIAssistent:
                 model=model,
                 messages=self.messages,
                 stream=False,
-                temperature=0.3
+                temperature=0.3,
+                max_tokens=1000
             )
 
             pipeline_content = pipeline_create_request.choices[0].message.content
