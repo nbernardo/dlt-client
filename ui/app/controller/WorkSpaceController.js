@@ -106,6 +106,8 @@ export class WorkSpaceController extends BaseController {
         this.editor.nodeId = 1;
         this.pipelineDestinationTrace = { sql: {}, duckdb: {} }
         this.nodeIdToComponentIdMap = {}
+        this.drawnNodeList = [];
+        this.drawnNodes = 0;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */
@@ -217,6 +219,36 @@ export class WorkSpaceController extends BaseController {
         const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false, template }, parentId);
         this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
 
+    }
+
+    drawnNodes = 0;
+    drawnNodeList = [];
+    async createNode(type){
+        const add = this.drawnNodes > 0 ? 100 : 0;
+        const nodeId = this.getNodeId();
+        const parentId = this.wSpaceComponent.cmpInternalId;
+        const { template: tmpl, component } = await Components.new(type, { }, parentId);
+        const pos_x = (307 * this.drawnNodes++) + add, pos_y = (183);
+        await this.handleAddNode(component, nodeId, type, pos_x, pos_y, tmpl);
+        this.drawnNodeList.push(nodeId);
+    }
+
+    async linkAgentCreatedNodes(){
+
+        let currentNode = this.drawnNodeList.shift();
+        let nextNode = this.drawnNodeList[0];
+        this.editor.addConnection(currentNode, nextNode, 'output_1', 'input_1');
+
+        while(this.drawnNodeList.length){
+            currentNode = this.drawnNodeList.shift();
+            nextNode = this.drawnNodeList[0];
+            this.editor.addConnection(currentNode, nextNode, 'output_1', 'input_1');
+        }
+    }
+
+    /** @returns { WorkSpaceController } */
+    static instance(){
+        return WorkSpaceController.get();
     }
 
     async processImportingNodes(nodeData) {

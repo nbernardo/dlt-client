@@ -133,7 +133,7 @@ export class AIAgent extends ViewComponent {
 			}
 
 			let dataTable = null;
-			this.createMessageBubble(message, 'user');
+			//this.createMessageBubble(message, 'user');
 			this.scrollToBottom();
 						
 			if(this.startedInstance === null){
@@ -151,8 +151,12 @@ export class AIAgent extends ViewComponent {
 			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
 
 			let response = null;
+			
 			if (success === false) response = errMessage;
-			else response = result?.result;
+			else if(result?.result.indexOf('"1": {') > -1 && result?.result.indexOf('"2": {') > -1){
+				this.setAgentLastMessage(`Pipeline creation executed.`, dataTable);
+				return this.controller.parsePipelineCreationContent(result.result);
+			}else response = result?.result;
 
 			if (result.fields) {
 				const { db_file, fields, actual_query } = result;
@@ -170,10 +174,13 @@ export class AIAgent extends ViewComponent {
 			}
 
 			if (this.isThereAgentMessage === false) this.isThereAgentMessage = true;
-			
-			AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph')
-			AIAgent.lastAgentParagraph.innerHTML = dataTable === null ? markdownToHtml(response) : dataTable;
+			this.setAgentLastMessage(response, dataTable);
 		}
+	}
+
+	setAgentLastMessage(response, dataTable = null){
+		AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph')
+		AIAgent.lastAgentParagraph.innerHTML = dataTable === null ? markdownToHtml(response) : dataTable;
 	}
 
 	async sendAIAgentMessage(message){

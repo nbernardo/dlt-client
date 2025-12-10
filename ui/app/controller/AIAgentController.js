@@ -1,5 +1,6 @@
 import { AIResponseLinterUtil } from "../components/agent/AIResponseLinterUtil.js";
 import { Workspace } from "../components/workspace/Workspace.js";
+import { WorkSpaceController } from "./WorkSpaceController.js";
 
 export class AIAgentController {
 
@@ -65,6 +66,17 @@ export class AIAgentController {
         },0);
 
         return actualTable;
+
+    }
+
+    async parsePipelineCreationContent(content){
+        WorkSpaceController.instance().wSpaceComponent.resetWorkspace();
+        content = JSON.parse(content);      
+        for(const node of Object.values(content)){
+            const { nodeName } = node;
+            await WorkSpaceController.instance().createNode(nodeName);
+        }
+        await WorkSpaceController.instance().linkAgentCreatedNodes();
 
     }
 
