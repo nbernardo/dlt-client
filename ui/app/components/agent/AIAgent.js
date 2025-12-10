@@ -5,7 +5,7 @@ import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { content, unkwonRequest } from "./chatbotbrain/main.js";
+import { content as chatBotBrain, unkwonRequest } from "./chatbotbrain/main.js";
 
 export class AIAgent extends ViewComponent {
 
@@ -51,8 +51,11 @@ export class AIAgent extends ViewComponent {
 
 			this.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow('data-query'));
 			this.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow('pipeline'));
+			this.botInstance.setSubroutine('displayIAAgentOptions', () => {
+				console.log(`WILL DISPLAY THE OPTIONS`);
+			});
 
-			await this.botInstance.stream(content);
+			await this.botInstance.stream(chatBotBrain);
 			await this.botInstance.sortReplies();
 		},0);
 	}
@@ -126,16 +129,13 @@ export class AIAgent extends ViewComponent {
 			const message = event.target.value;
 
 			const botResponse = await this.botMessage(event);
+			this.controller.setAgentRoute(botResponse);
+			
 			const isFlowNotSet = this.controller.getActiveFlow() == null;
-			if(botResponse.startsWith(unkwonRequest) && isFlowNotSet){
-				event.target.value = '';
+			if(botResponse.includes(unkwonRequest) && isFlowNotSet)
 				return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
-			}
-
-			let dataTable = null;
-			//this.createMessageBubble(message, 'user');
-			this.scrollToBottom();
-						
+			
+			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
 				this.startNewAgent(true); /** This will retry to connect with the Agent Backend */
 
@@ -149,8 +149,6 @@ export class AIAgent extends ViewComponent {
 			this.createMessageBubble(this.loadingContent(), 'agent');
 			this.sentMessagesCount = this.sentMessagesCount.value + 1;
 			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
-
-			let response = null;
 			
 			if (success === false) response = errMessage;
 			else if(result?.result.indexOf('"1": {') > -1 && result?.result.indexOf('"2": {') > -1){
@@ -281,6 +279,7 @@ export class AIAgent extends ViewComponent {
 		document.getElementById('ai-chat-user-input').focus();
 	}
 
+	/** @returns { Promise<String> } */
 	async botMessage(event){
 
 		const message = event.target.value;
