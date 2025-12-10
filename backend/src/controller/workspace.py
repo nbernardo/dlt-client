@@ -15,6 +15,7 @@ from flask import abort, send_file
 from utils.cache_util import DuckDBCache
 from datetime import datetime
 from utils.SQLDatabase import SQLDatabase
+from utils.workspace_util import handle_conversasion_turn_limit
 
 
 workspace = Blueprint('workspace', __name__)
@@ -196,29 +197,9 @@ def start_ai_agent_with_username(namespace, username):
 def message_ai_agent(namespace):
 
     try:
-        today_date = datetime.now().strftime('%d/%m/%Y')
-        ip = get_request_ip(request)
-        k_plus_ip = f'{today_date}/{ip}/{namespace}'
-        k = f'{today_date}/{namespace}'
-
-        total_conversation_turns = DuckDBCache.get(k_plus_ip)
-        total_conversation_turns1 = DuckDBCache.get(k)
-
-        if DuckDBCache.get(k_plus_ip) == None:
-            DuckDBCache.set(k_plus_ip,1)
-            DuckDBCache.set(k,1)
-
-        else:
-            total_conversation_turns = int(total_conversation_turns)
-            total_conversation_turns1 = int(total_conversation_turns1)
-            daily_limit = int(env('CONVERSATION_TURN_LIMIT'))
-            
-            if(((total_conversation_turns >= daily_limit) or (total_conversation_turns1 >= daily_limit))\
-                and not(daily_limit == -1)):
-                return { 'error': True, 'result': { 'result': 'Exceeded the free Daily limit' }, 'exceed_limit': True }
-            
-            DuckDBCache.set(k_plus_ip,total_conversation_turns + 1)
-            DuckDBCache.set(k,total_conversation_turns1 + 1)
+        message_turn_limit = handle_conversasion_turn_limit(request, namespace)
+        if message_turn_limit.get('error', None):
+            return message_turn_limit
 
         payload = request.get_json()
         message = payload['message']
@@ -236,7 +217,7 @@ def message_ai_agent(namespace):
               if str(error).strip() == namespace else 'Could not load details about your namespace.'
         return { 'error': True, 'result': { 'result': result } }
     
-
+    
 @workspace.route('/workcpace/agent/<namespace>/<username>', methods=['POST'])
 def message_ai_agent_with_username(namespace, username):
     
@@ -323,7 +304,7 @@ def debounce_call_scheduled_job():
     task.start()
 
 
-agents_list: List[Agent] = {}
+agents_list: List[Agent] = {} 
 def setup_agent(user, namespace = None):
 
     try:
@@ -367,14 +348,6 @@ def send_message_to_agent_wit_groq(message, namespace, user_id = None):
     if(not os.path.exists(agent.db_path)):
         return { 'success': False, 'result': 'No data, pipeline found in your name space.' }
     return { 'success': True, 'result': agent.cloud_groq_call(message) }
-
-
-def get_request_ip(request):
-
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    if ',' in ip:
-        ip = ip.split(',')[0].strip()
-    return ip
 
 
 @workspace.route('/secret/<namespace>', methods=['POST'])

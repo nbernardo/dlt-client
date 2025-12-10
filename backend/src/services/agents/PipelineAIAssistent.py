@@ -12,9 +12,9 @@ class PipelineAIAssistent:
 
         self.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-        api_key = env('MISTRAL_API_KEY')
+        #api_key = env('MISTRAL_API_KEY')
         self.model = "mistral-medium-2508"
-        self.client = Mistral(api_key=api_key)
+        self.client = None #Mistral(api_key=api_key)
         self.chat_turns = []
 
 
@@ -28,8 +28,9 @@ class PipelineAIAssistent:
 
         if self.client == None:
             api_key = env('GROQ_API_KEY')
-            self.model = "llama-3.3-70b-versatile"
+            self.model = "openai/gpt-oss-120b"
             self.client = Groq(api_key=api_key)
+            self.client
 
         client, model = self.client, self.model
         
@@ -38,7 +39,8 @@ class PipelineAIAssistent:
             pipeline_create_request = client.chat.completions.create(
                 model=model,
                 messages=self.messages,
-                stream=False
+                stream=False,
+                temperature=0.3
             )
 
             pipeline_content = pipeline_create_request.choices[0].message.content

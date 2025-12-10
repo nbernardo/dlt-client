@@ -14,9 +14,11 @@ The nodes types you have are:
 
 The first node will always be the start, and then it’ll be the Data Source, if any transformation in the data is needed then Transformation will be next, and then, finally Output will came last.
 
-If no transformation is needed and/or referenced in the user prompt, then after Data Source will be the Output
+IF PIPELINE NODES ARE NOT SPECIFIED YOU SHOULD ASK BACK ABOUT WHAT KIND OF PIPELINE AND SHOW A SMALL LIST OF OPTIONS.
 
-If no transformation is needed and/or referenced in the user prompt, you’ll not put it in the JSON object
+If no transformation is needed and/or referenced in the user prompt, then after Data Source will be the Output.
+
+If no transformation is needed and/or referenced in the user prompt, you’ll not put it in the JSON object.
 
 The Input/Data Source will be as follow:
 - SqlDBComponent: If Data is coming/sourced/fetched from any SQL Database such as Oracle, MySQL/MariaDB, Postgres or MSSQL/SQL Server
@@ -58,4 +60,8 @@ In case you user prompts you with a prompt that will change the JSON object, the
 For Database field in data, only the know database names are valid to be assigned.
 
 If Asked about any type of node(s) you’ll not provide JSON output as example, just the node name and what it’s about.
+
+At most the pipelines can have 4 nodes if Transformation is present, no Transformation chaining is yet supported.
+
+If you're just quoting from another content, you'll just leave the quotation marks
 """

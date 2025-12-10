@@ -6,6 +6,10 @@ from node_mapper.TemplateNodeType import TemplateNodeType
 import os
 import pandas as pd
 from utils.duckdb_util import DuckdbUtil
+from utils.workspace_util import handle_conversasion_turn_limit
+import traceback
+from services.agents.PipelineAIAssistent import PipelineAIAssistent as Agent
+from typing import List
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -441,3 +445,45 @@ def read_csv_file_fields(user, filename):
     df = pd.read_csv(file_path, nrows=1)
     return str(df.columns)
     
+agents_list: List[Agent] = {}
+def send_message_to_pipeline_agent_wit_groq(message, namespace, user_id = None):
+    user = user_id if user_id != None else namespace
+    if(not(user in agents_list)):
+        try:
+            agents_list[user] = Agent()
+        
+        except Exception as err:
+            return { 
+                'success': False, 
+                'result': f"Error while starting Pipeline agent: {str(err)}",
+                'started': False
+            }
+    
+    agent: Agent = agents_list[user]
+    return { 'success': True, 'result': agent.cloud_groq_call(message) }
+
+
+@pipeline.route('/pipeline/agent/<namespace>', methods=['POST'])
+def message_ai_agent(namespace):
+
+    try:
+
+        message_turn_limit = handle_conversasion_turn_limit(request, namespace)
+        if message_turn_limit.get('error', None):
+            return message_turn_limit
+
+        payload = request.get_json()
+        message = payload['message']
+
+        if(os.path.exists(namespace)):
+            result = 'No agent was started since no data found in the Namespace.'
+            return { 'error': False, 'result': { 'result': result } }
+        
+        return send_message_to_pipeline_agent_wit_groq(message, namespace)
+    except Exception as error:
+        print(f'AI Agent error while processing your request {str(error)}')
+        print(error)
+        traceback.print_exc()
+        result = 'No medatata was loaded about your namespace.'\
+              if str(error).strip() == namespace else 'Could not load details about your namespace.'
+        return { 'error': True, 'result': { 'result': result } }
