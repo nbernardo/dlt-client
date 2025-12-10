@@ -3,7 +3,9 @@ import { Assets } from "../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
+import { content, unkwonRequest } from "./chatbotbrain/main.js";
 
 export class AIAgent extends ViewComponent {
 
@@ -22,6 +24,7 @@ export class AIAgent extends ViewComponent {
     /** @Prop */ isThereAgentMessage = false;
     /** @Prop */ startedInstance = null;
     /** @Prop */ showLimitReachedWarn = null;
+    /** @Prop */ botInstance = null;
 
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
@@ -41,6 +44,17 @@ export class AIAgent extends ViewComponent {
 
 	async stBeforeInit() {
 		await Assets.import({ path: '/app/assets/css/agent.css' });
+		await Assets.import({ path: 'https://unpkg.com/rivescript@latest/dist/rivescript.min.js', type:'js' });
+
+		setTimeout(async () => {
+			this.botInstance = new RiveScript();
+
+			this.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow('data-query'));
+			this.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow('pipeline'));
+
+			await this.botInstance.stream(content);
+			await this.botInstance.sortReplies();
+		},0);
 	}
 
 	stOnRender({totalMessages, messageCountLimit}){		
@@ -77,17 +91,48 @@ export class AIAgent extends ViewComponent {
 			if(this.startedInstance.start === false && retry === false){
 				this.createMessageBubble(`<div class="agent-no-start-error">${this.startedInstance.error}</div>`, 'agent', 'DLT Workspace');
 				this.startedInstance = null;
+			}else{
+				const initialMessage = 'Hey, I\'m more than happy to help you.<br><br>'
+									   +'<div style="margin-top: -7px;">Which of the bellow categories to you want to talk about?</div>';
+				let content = `
+					<div class='start-agent-orientation-msg' style='margin-top: -28px'>${initialMessage}</div>
+					<div class="ai-agent-options" style='margin-top: -23px'>
+						<div class='ai-flow-option' onclick="inner.setAgentFlow('pipeline')">
+							<img class='icon-image' src='app/assets/imgs/ai/pipeline-icon.svg'>
+							<div class="agent-flow-icon">1. Pipeline</div>
+						</div>
+						<div class='ai-flow-option' onclick="inner.setAgentFlow('data-query')">
+							<img class='icon-image' src='app/assets/imgs/ai/dbquery-icon.svg'>
+							<div class="agent-flow-icon">2. Data query</div>
+						</div>
+					</div>
+				`;
+				content = this.parseEvents(content);
+				this.createMessageBubble(`${content}`, 'agent', 'DLT Workspace');
 			}
 		} catch (error) { }
 	}
 
+	setAgentFlow = (flowName) => {
+		this.createMessageBubble(flowName, 'user');
+		const initMessage = this.controller.initAgentActiveFlow(flowName);
+		this.createMessageBubble(`${initMessage}`, 'agent', 'DLT Workspace');
+	};
+
 	async sendChatRequest(event) {
 		if (event.key === 'Enter') {
 
-			let dataTable = null;
 			event.preventDefault();
 			const message = event.target.value;
-			event.target.value = '';
+
+			const botResponse = await this.botMessage(event);
+			const isFlowNotSet = this.controller.getActiveFlow() == null;
+			if(botResponse.startsWith(unkwonRequest) && isFlowNotSet){
+				event.target.value = '';
+				return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
+			}
+
+			let dataTable = null;
 			this.createMessageBubble(message, 'user');
 			this.scrollToBottom();
 						
@@ -103,7 +148,7 @@ export class AIAgent extends ViewComponent {
 
 			this.createMessageBubble(this.loadingContent(), 'agent');
 			this.sentMessagesCount = this.sentMessagesCount.value + 1;
-			const { result, error: errMessage, success } = await WorkspaceService.sendAgentMessage(message);
+			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
 
 			let response = null;
 			if (success === false) response = errMessage;
@@ -125,10 +170,17 @@ export class AIAgent extends ViewComponent {
 			}
 
 			if (this.isThereAgentMessage === false) this.isThereAgentMessage = true;
-
+			
 			AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph')
-			AIAgent.lastAgentParagraph.innerHTML = dataTable === null ? response : dataTable;
+			AIAgent.lastAgentParagraph.innerHTML = dataTable === null ? markdownToHtml(response) : dataTable;
 		}
+	}
+
+	async sendAIAgentMessage(message){
+		if(this.controller.getActiveFlow() === 'data-query')
+			return WorkspaceService.sendDataQueryAgentMessage(message);
+		if(this.controller.getActiveFlow() === 'pipeline')
+			return WorkspaceService.sendPipelineAgentMessage(message);
 	}
 
 	createMessageBubble(text, role, alternateRole = null) {
@@ -152,6 +204,7 @@ export class AIAgent extends ViewComponent {
 		bubble.appendChild(textP);
 		row.appendChild(bubble);
 		this.outputContainer.appendChild(row);
+		this.scrollToBottom();
 	}
 
 	scrollToBottom() {
@@ -219,6 +272,23 @@ export class AIAgent extends ViewComponent {
 	setUserPrompt = (content) => {
 		document.getElementById('ai-chat-user-input').value = content;
 		document.getElementById('ai-chat-user-input').focus();
+	}
+
+	async botMessage(event){
+
+		const message = event.target.value;
+		this.createMessageBubble(message, 'user');
+
+		event.target.value = '';
+		if (!message) return;
+
+		console.log(`You: ${message}`);
+
+		const reply = await this.botInstance.reply("local-user", message);
+		console.log(`Bot: ${reply}`);
+
+		return reply;
+
 	}
 
 }

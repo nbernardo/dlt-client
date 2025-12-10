@@ -3,6 +3,27 @@ import { Workspace } from "../components/workspace/Workspace.js";
 
 export class AIAgentController {
 
+    static agentActiveFlow = null;
+
+    initAgentActiveFlow(flowName){
+        AIAgentController.agentActiveFlow = flowName;
+        return this.initAgentFLowMessage(flowName);
+    }
+
+    initAgentFLowMessage(flowName){
+        const message = 'Great, what do you want about'
+        const flowMessage = {
+            'pipeline': message+ ' Pipeline?',
+            'data-query': message+ ' Data query?'
+        };
+        return flowMessage[flowName];
+    }
+
+    /** @returns { null|'pipeline'|'data-query' } */
+    getActiveFlow(){
+        return AIAgentController.agentActiveFlow;
+    }
+
     /** 
      * @param {string} fields
      * @param { Array<Array> } data

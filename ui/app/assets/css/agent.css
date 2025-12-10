@@ -201,6 +201,7 @@
     color: #1f2937; /* Dark text */
     border-bottom-left-radius: 0.25rem;
     overflow: auto;
+    line-height: normal;
 }
 
 .bubble-message-paragraph {
@@ -357,3 +358,39 @@
             color: red;
         }
 /** End of AIAgent Output table Styling */
+
+/** AI init message display styling */
+
+.ai-agent-options{
+    display: flex; width: 30vw; justify-content: space-around;
+    .ai-flow-option {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    .icon-image {
+        width: 50px; padding-bottom: 10px; align-self: center;
+        cursor: pointer;
+    }
+}
+
+.pipeline-ai-agent-response {
+    table { border-collapse: collapse; width: 100%; }
+
+    th, td { text-align: left; padding: 8px; border: 1px solid #ddd; }
+
+    tr:nth-child(even) { background-color: #f2f2f2; }
+
+    tr:nth-child(odd) { background-color: #ffffff; }
+
+    th { background-color: grey; color: white; }
+}
+
+/** End of AI init message display styling */
+
+
+
+/** 
