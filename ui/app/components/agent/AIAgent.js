@@ -309,4 +309,18 @@ export class AIAgent extends ViewComponent {
 
 	stickAgentFlow = (flowName = null) => this.stickyAgentFlow = flowName;
 
+	shrinkChatSize(){
+		if(document.querySelector('.ai-agent-placeholder').classList.contains('ai-agent-placeholder-shrinked')){
+			this.unshrinkChatSize();
+		}else{
+			document.querySelector('.ai-agent-placeholder').classList.add('ai-agent-placeholder-shrinked');
+			document.querySelector('.ai-agent-sent-messages-count-placehoder').style.flexDirection = 'column';
+		}
+	}
+
+	unshrinkChatSize(){
+		document.querySelector('.ai-agent-placeholder').classList.remove('ai-agent-placeholder-shrinked');
+		document.querySelector('.ai-agent-sent-messages-count-placehoder').style.flexDirection = 'row';
+	}
+
 }

@@ -46,9 +46,8 @@ export class SqlDBComponent extends ViewComponent {
 	/** @Prop @type { STForm } */ anotherForm;
 	/** @Prop */ showLoading = false;
 	/** @Prop */ secretedSecretTrace = null;
+	/** @Prop */ aiGenerated = null;
 	
-
-
 	// tables and primaryKeys hold all tables name when importing/reading
 	// An existing pipeline by calling the API
 	/** @Prop @type { Map } */ tables;
@@ -66,8 +65,10 @@ export class SqlDBComponent extends ViewComponent {
 	 * will be passed
 	 * */
 	stOnRender(data){		
-		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName } = data;
+		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName, aiGenerated } = data;
+		console.log(`THE DATA GOT FOR SQL: `, data);
 		
+		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.tables = tables;
@@ -79,39 +80,44 @@ export class SqlDBComponent extends ViewComponent {
 	async stAfterInit(){
 		await this.getDBSecrets();
 		this.isOldUI = this.templateUrl?.includes('SqlDBComponent_old.html');
-		// When importing, it might take some time for things to be ready, the the subcrib to on change
-		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
-		//if(this.isImport !== false){
-		//	this.setupOnChangeListen();
-		//}
+		this.selectedSecretTableList = [];
+
 		this.dynamicFields = new TableAndPKType();
-		if(this.isImport === true){	
-			// At this point the WorkSpaceController was loaded by WorkSpace component
-			// hance no this.wSpaceController.on('load') subscrtiption is needed
-			this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
-
-			const disable = true;
-			const allTables = Object.values(this.tables);
-			const allKeys = Object.values(this.primaryKeys);
-
-			// Assign the first table
-			this.tableName = this.tables['tableName'];
-			this.primaryKey = allKeys[0];
-			// Assign remaining tables if more than one in the pipeline
-			allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
-			this.dbInputCounter = allTables.length;
-			this.selectedDbEngine = this.importFields.dbengine;
-			this.selectedSecret = this.importFields.connectionName;
-			this.hostName = this.importFields.host || 'None';
-			document.querySelector('.add-table-buttons').disabled = true;
-		}
-
 		this.setupOnChangeListen();
+
+		if(this.isImport === true) this.handleImportAssignement();
+		if(this.aiGenerated === true) this.handleAiGenerated();
+		
 		const htmlTableInputSelector = 'input[data-id="firstTable"]', 
 			  htmlPkInputSelector = 'input[data-id="firstPK"]';
 
 		if(!this.isOldUI) this.handleTableFieldsDropdown(htmlTableInputSelector, htmlPkInputSelector);
 
+	}
+
+	handleImportAssignement(){
+		// At this point the WorkSpaceController was loaded by WorkSpace component
+		// hance no this.wSpaceController.on('load') subscrtiption is needed
+		this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+
+		const disable = true;
+		const allTables = Object.values(this.tables);
+		const allKeys = Object.values(this.primaryKeys);
+
+		// Assign the first table
+		this.tableName = this.tables['tableName'];
+		this.primaryKey = allKeys[0];
+		// Assign remaining tables if more than one in the pipeline
+		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
+		this.dbInputCounter = allTables.length;
+		this.selectedDbEngine = this.importFields.dbengine;
+		this.selectedSecret = this.importFields.connectionName;
+		this.hostName = this.importFields.host || 'None';
+		document.querySelector('.add-table-buttons').disabled = true;
+	}
+
+	handleAiGenerated(){
+		this.selectedSecret = this.importFields.connectionName || '';
 	}
 
 	handleTableFieldsDropdown(tableSelecter, pkSelecter, tableFieldName, pkFieldName){
@@ -229,7 +235,7 @@ export class SqlDBComponent extends ViewComponent {
 
 	onOutputConnection(){
 		return {
-			tables: this.selectedSecretTableList.value.map(table => ({ name: table, file: table })),
+			tables: this.selectedSecretTableList?.value?.map(table => ({ name: table, file: table })),
 			sourceNode: this
 		};
 	}

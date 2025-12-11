@@ -256,6 +256,12 @@
 	background: transparent;
 	z-index: 10;
 }
+
+.ai-agent-placeholder-shrinked{
+	width: 20vw !important;
+	bottom: -24px !important;
+	height: 95vh !important;		
+}
         
 .add-info{
     font-size: 10px;

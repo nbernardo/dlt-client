@@ -37,6 +37,7 @@ export class DatabaseOutput extends ViewComponent {
 	/** @Prop */ showLoading = false;
 	/** @Prop */ importFields;
 	/** @Prop */ secretedSecretTrace = null;
+	/** @Prop */ aiGenerated = null;
 
 	//This is only used in case the source 
 	// is not a Database (e.g. Bucket, InputAPI)
@@ -50,15 +51,18 @@ export class DatabaseOutput extends ViewComponent {
 	/** The id will be passed when instantiating SqlDBComponent dinamically through
 	 * the Component.new(type, param) where for para nodeId will be passed */
 	stOnRender(data){				
-		const { nodeId, isImport, database, dbengine, outDBconnectionName, databaseName, host } = data;
+		const { nodeId, isImport, database, dbengine, outDBconnectionName, connectionName, databaseName, host, aiGenerated } = data;
+		
 		this.nodeId = nodeId;
 		this.isImport = isImport;
-		this.importFields = { database, dbengine, outDBconnectionName, databaseName, host, dbengine };
+		this.aiGenerated = aiGenerated;
+		this.importFields = { database, dbengine, outDBconnectionName, databaseName, host, dbengine, connectionName };
 		if(data?.host) this.importFields.host = data.host;
 	}
 
 	async stAfterInit(){
 		this.tableName = null;
+		this.selectedSecretTableList = [];
 		await this.getDBSecrets();
 		if(this.isImport === true){	
 			this.selectedDbEngine = this.importFields.dbengine;
@@ -67,7 +71,12 @@ export class DatabaseOutput extends ViewComponent {
 			this.hostName = this.importFields.host || 'None';
 			document.querySelector(`.${this.cmpInternalId} select[data-dropdown]`).disabled = true;
 		}
-		this.setupOnChangeListen(); 
+		this.setupOnChangeListen();
+		if(this.aiGenerated) this.handleAiGenerated();
+	}
+
+	handleAiGenerated(){
+		this.selectedSecret = this.importFields.connectionName || '';
 	}
 
 	setupOnChangeListen(){

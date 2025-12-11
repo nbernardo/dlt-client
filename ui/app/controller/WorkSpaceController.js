@@ -223,11 +223,11 @@ export class WorkSpaceController extends BaseController {
 
     drawnNodes = 0;
     drawnNodeList = [];
-    async createNode(type){
+    async createNode(type, data){
         const add = this.drawnNodes > 0 ? 100 : 0;
         const nodeId = this.getNodeId();
         const parentId = this.wSpaceComponent.cmpInternalId;
-        const { template: tmpl, component } = await Components.new(type, { }, parentId);
+        const { template: tmpl, component } = await Components.new(type, { ...data, aiGenerated: true, nodeId }, parentId);
         const pos_x = (307 * this.drawnNodes++) + add, pos_y = (183);
         await this.handleAddNode(component, nodeId, type, pos_x, pos_y, tmpl);
         this.drawnNodeList.push(nodeId);

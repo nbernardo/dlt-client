@@ -76,8 +76,8 @@ export class AIAgentController {
         WorkSpaceController.instance().wSpaceComponent.resetWorkspace();
         content = JSON.parse(content);      
         for(const node of Object.values(content)){
-            const { nodeName } = node;
-            await WorkSpaceController.instance().createNode(nodeName);
+            const { nodeName, data } = node;
+            await WorkSpaceController.instance().createNode(nodeName, (data || {}));
         }
         await WorkSpaceController.instance().linkAgentCreatedNodes();
 
