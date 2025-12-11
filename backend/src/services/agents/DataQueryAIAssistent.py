@@ -298,31 +298,43 @@ class DataQueryAIAssistent(AbstractAgent):
 
     def handle_response(self, client: Mistral | Groq, model, strategy = 'mistral'):
 
-        nl_to_sql_call = None
-        if strategy == 'Groq':
-            nl_to_sql_call = client.chat.completions.create(model=model, messages=self.messages,stream=False)
-        if strategy == 'mistral':
-            nl_to_sql_call = client.chat.complete(model=model, messages=self.messages,)
+        sql_query = None
+        try:
 
-        actual_query = nl_to_sql_call.choices[0].message.content
+            nl_to_sql_call = None
+            if strategy == 'Groq':
+                nl_to_sql_call = client.chat.completions.create(model=model, messages=self.messages,stream=False)
+            if strategy == 'mistral':
+                nl_to_sql_call = client.chat.complete(model=model, messages=self.messages,)
 
-        print('THE QUERY WILL BE:')
-        print(actual_query)
+            actual_query = nl_to_sql_call.choices[0].message.content
 
-        if actual_query.index('%%') >= 0:
-            actual_query = actual_query.split('%%')[0]
+            print('THE QUERY WILL BE:')
+            print(actual_query)
 
-        self.messages.append({ 'role': 'assistant', 'content': nl_to_sql_call.choices[0].message.content })
-        sql_query = actual_query.strip()
-        sql_query = AIDataContentParser.parse_sql(sql_query)
-        if sql_query == None:
-            return { 'result': 'Could not run the query. Can you refine it?' }
-        print('Going to run the query')
-        return { 
-            'result': self.run_query(sql_query), 
-            'fields': actual_query.lower().split('from')[0].split('select',1)[1],
-            'actual_query': sql_query
-        }
+            if actual_query.index('%%') >= 0:
+                actual_query = actual_query.split('%%')[0]
+
+            self.messages.append({ 'role': 'assistant', 'content': nl_to_sql_call.choices[0].message.content })
+            sql_query = actual_query.strip()
+            sql_query = AIDataContentParser.parse_sql(sql_query)
+            if sql_query == None:
+                return { 'result': 'Could not run the query. Can you refine it?' }
+            print('Going to run the query')
+            return { 
+                'result': self.run_query(sql_query), 
+                'fields': actual_query.lower().split('from')[0].split('select',1)[1],
+                'actual_query': sql_query
+            }
+        except Exception as err:
+            print('Errow while runnig a query: ', err)
+            traceback.print_exc()
+            return { 
+                'result': str(err), 
+                'fields': '',
+                'actual_query': sql_query
+            }
+             
 
 
 
