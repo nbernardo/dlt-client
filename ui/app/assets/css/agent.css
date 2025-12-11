@@ -394,3 +394,19 @@
 
 
 /** 
+
+
+
+/** Stick tot AIAgent flow Style */
+.stick-agent-flow{
+    margin-top: -35px;
+    width: 250px;
+    justify-content: space-around;
+    background: #2c3e50;
+    padding: 3px;
+    color: white;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    font-size: 12px;
+}
+/** Stick tot AIAgent flow Style */

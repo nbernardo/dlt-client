@@ -5,7 +5,7 @@ import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { content as chatBotBrain, unkwonRequest } from "./chatbotbrain/main.js";
+import { content as chatBotBrain, dontFollow, dontFollowAgentFlow, unkwonRequest } from "./chatbotbrain/main.js";
 
 export class AIAgent extends ViewComponent {
 
@@ -25,6 +25,7 @@ export class AIAgent extends ViewComponent {
     /** @Prop */ startedInstance = null;
     /** @Prop */ showLimitReachedWarn = null;
     /** @Prop */ botInstance = null;
+    /** @Prop */ stickyAgentFlow = null;
 
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
@@ -41,6 +42,7 @@ export class AIAgent extends ViewComponent {
 	sentMessagesCount = 0;
 
 	/** @Prop */ maxAllowedMessages = -1;
+	/** @Prop */ dontFollowAgentFlag = null;
 
 	async stBeforeInit() {
 		await Assets.import({ path: '/app/assets/css/agent.css' });
@@ -51,6 +53,7 @@ export class AIAgent extends ViewComponent {
 
 			this.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow('data-query'));
 			this.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow('pipeline'));
+			this.botInstance.setSubroutine('setDontFollowAgent', (_, args) => this.dontFollowAgentFlag = args[0]);
 			this.botInstance.setSubroutine('displayIAAgentOptions', () => {
 				console.log(`WILL DISPLAY THE OPTIONS`);
 			});
@@ -128,11 +131,12 @@ export class AIAgent extends ViewComponent {
 			event.preventDefault();
 			const message = event.target.value;
 
-			const botResponse = await this.botMessage(event);
-			this.controller.setAgentRoute(botResponse);
+			let botResponse = await this.botMessage(event);
+			const cannotContinue = (botResponse.includes(unkwonRequest) || botResponse.includes(dontFollowAgentFlow))
+			botResponse = this.controller.setAgentRoute(botResponse, this.stickyAgentFlow);
 			
 			const isFlowNotSet = this.controller.getActiveFlow() == null;
-			if(botResponse.includes(unkwonRequest) && isFlowNotSet)
+			if(cannotContinue && isFlowNotSet)
 				return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
 			
 			let dataTable = null, response = null;						
@@ -282,7 +286,13 @@ export class AIAgent extends ViewComponent {
 	/** @returns { Promise<String> } */
 	async botMessage(event){
 
-		const message = event.target.value;
+		let message = event.target.value, complementMessage = '';
+
+		if(this.dontFollowAgentFlag == dontFollow.transform 
+			&& this.$parent.checkActiveDiagram() === false){
+			complementMessage = ' no pipeline transformation'
+		}
+
 		this.createMessageBubble(message, 'user');
 
 		event.target.value = '';
@@ -290,11 +300,13 @@ export class AIAgent extends ViewComponent {
 
 		console.log(`You: ${message}`);
 
-		const reply = await this.botInstance.reply("local-user", message);
+		const reply = await this.botInstance.reply("local-user", message+''+complementMessage);
 		console.log(`Bot: ${reply}`);
 
 		return reply;
 
 	}
+
+	stickAgentFlow = (flowName = null) => this.stickyAgentFlow = flowName;
 
 }

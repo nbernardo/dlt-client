@@ -1,4 +1,5 @@
 import { AIResponseLinterUtil } from "../components/agent/AIResponseLinterUtil.js";
+import { agentOptions, dontFollowAgentFlow } from "../components/agent/chatbotbrain/main.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { WorkSpaceController } from "./WorkSpaceController.js";
 
@@ -19,6 +20,8 @@ export class AIAgentController {
         };
         return flowMessage[flowName];
     }
+
+    setAgentFlow = (flowName) => this.initAgentActiveFlow(flowName);
 
     /** @returns { null|'pipeline'|'data-query' } */
     getActiveFlow(){
@@ -78,6 +81,26 @@ export class AIAgentController {
         }
         await WorkSpaceController.instance().linkAgentCreatedNodes();
 
+    }
+
+    /** @param {String} botResponse */
+    setAgentRoute(botResponse, stickyFlow = null){
+
+        if(stickyFlow !== null){
+            this.setAgentFlow('pipeline');
+        }else{
+            if (botResponse.includes(agentOptions.pipeline) && this.getActiveFlow() != 'pipeline')
+                this.setAgentFlow('pipeline');
+            
+            if(botResponse.includes(agentOptions.dataQuery) && this.getActiveFlow() != 'data-query')
+                this.setAgentFlow('data-query');
+        }
+
+        // Cleans up the AI Agent flow type if present
+		return botResponse
+            .replace(agentOptions.pipeline, '')
+            .replace(agentOptions.dataQuery, '')
+            .replace(dontFollowAgentFlow, '')
     }
 
 }

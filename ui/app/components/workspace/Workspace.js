@@ -462,10 +462,14 @@ export class Workspace extends ViewComponent {
 		}
 	}
 
+	checkActiveDiagram(){
+		return this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0;
+	}
+
 	async viewPipelineDiagram(event, pplineName) {
 		event.preventDefault();
 		const self = this;
-		if (this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0)
+		if (this.checkActiveDiagram())
 			return this.controller.moreThanOnePipelineOpenAlert(openDiagram);
 
 		async function openDiagram(reset = null){
