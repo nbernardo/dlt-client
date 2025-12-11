@@ -2,13 +2,19 @@ from mistralai import Mistral
 from os import getenv as env
 from groq import Groq, RateLimitError, BadRequestError
 from services.agents.prompts.pipeline import SYSTEM_PROMPT
+from services.agents.AbstractAgent import AbstractAgent
 
-class PipelineAIAssistent:
+class PipelineAIAssistent(AbstractAgent):
 
+    agent_factory = None
     prev_answered = 'PREV_ANSWER:'
     generate_sql_query = "'generate_sql_query_signal'"
 
     def __init__(self):
+
+        if (PipelineAIAssistent.agent_factory == None):
+            from services.agents import AgentFactory
+            PipelineAIAssistent.agent_factory = AgentFactory
 
         self.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
@@ -45,7 +51,13 @@ class PipelineAIAssistent:
             )
 
             pipeline_content = pipeline_create_request.choices[0].message.content
-            return { 'answer': 'final', 'result': pipeline_content }
+           
+            if str(pipeline_content).__contains__(PipelineAIAssistent.agent_factory.agents_type_list['data']):
+                last_user_prompt = self.messages[-1]
+                data_query_agent_reply = self.call_data_query_agent(last_user_prompt['content'])
+                return data_query_agent_reply
+            else:
+                return { 'answer': 'final', 'result': pipeline_content }
 
         except RateLimitError as e:
             print(f"\nInternal error occurred: {str(e)}")
@@ -61,3 +73,8 @@ class PipelineAIAssistent:
             print(f"\nInternal error occurred: {error}")
             return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {error}" }
             
+
+    def call_data_query_agent(self, message):
+        return PipelineAIAssistent.\
+            agent_factory.\
+            get_data_agent(self.namespace).cloud_groq_call(message)

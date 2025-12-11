@@ -8,8 +8,6 @@ import pandas as pd
 from utils.duckdb_util import DuckdbUtil
 from utils.workspace_util import handle_conversasion_turn_limit
 import traceback
-from services.agents.PipelineAIAssistent import PipelineAIAssistent as Agent
-from typing import List
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -445,21 +443,21 @@ def read_csv_file_fields(user, filename):
     df = pd.read_csv(file_path, nrows=1)
     return str(df.columns)
     
-agents_list: List[Agent] = {}
+
+
+from services.agents import AgentFactory
+
 def send_message_to_pipeline_agent_wit_groq(message, namespace, user_id = None):
     user = user_id if user_id != None else namespace
-    if(not(user in agents_list)):
-        try:
-            agents_list[user] = Agent()
-        
-        except Exception as err:
-            return { 
-                'success': False, 
-                'result': f"Error while starting Pipeline agent: {str(err)}",
-                'started': False
-            }
-    
-    agent: Agent = agents_list[user]
+    agent = AgentFactory.get_pipeline_agent(user)
+
+    if(agent == None):
+        return { 
+            'success': False, 
+            'result': f"Error while starting Pipeline agent",
+            'started': False
+        }
+
     return { 'success': True, 'result': agent.cloud_groq_call(message) }
 
 

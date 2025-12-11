@@ -6,14 +6,22 @@ from utils.duckdb_util import DuckdbUtil
 from services.workspace.Workspace import Workspace
 from groq import Groq, RateLimitError, BadRequestError
 import traceback
+from services.agents.AbstractAgent import AbstractAgent
 
-class DataQueryAIAssistent:
 
+class DataQueryAIAssistent(AbstractAgent):
+    
+    agent_factory = None
     prev_answered = 'PREV_ANSWER:'
     generate_sql_query = "'generate_sql_query_signal'"
     IN_CASE_OF_PIPELINE_PROMPT = "- If you're prompted with some questions concerning pipeline creation, types of pipelines, pipelines node types (e.g. Source, Input, Output, Destination, Dump), you'll simply respond with 'pipeline-agent'"
 
     def __init__(self, base_db_path, dbfile = ''):
+        
+        if (DataQueryAIAssistent.agent_factory == None):
+            from services.agents import AgentFactory
+            DataQueryAIAssistent.agent_factory = AgentFactory
+
 
         self.DB_SCHEMA = '''The database contains %total_table% tables:'''
         self.db_path = base_db_path
@@ -161,11 +169,18 @@ class DataQueryAIAssistent:
                     print(f"Error: Unknown function name requested: {function_name}")
                     
             else:
+                content = tool_calling.choices[0].message.content
                 print("1. LLM decided not to call a function. Raw response:")
-                print(tool_calling.choices[0].message.content)
-                self.messages.append({ 'role': 'assistant', 'content': tool_calling.choices[0].message.content })
-                #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
-                return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
+                print(content)
+
+                if str(content).__contains__(DataQueryAIAssistent.agent_factory.agents_type_list['pipeline']):
+                    last_user_prompt = self.messages[-1]
+                    DataQueryAIAssistent.agent_factory.get_pipeline_agent(self.namespace).cloud_groq_call(last_user_prompt)
+                    
+                else:
+                    self.messages.append({ 'role': 'assistant', 'content': content })
+                    #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
+                    return { 'answer': 'intermediate', 'result': content }
 
         except Exception as e:
             error = str(e) 
@@ -246,11 +261,19 @@ class DataQueryAIAssistent:
                     print(f"Error: Unknown function name requested: {function_name}")
                     
             else:
+
+                content = tool_calling.choices[0].message.content
                 print("1. LLM decided not to call a function. Raw response:")
-                print(tool_calling.choices[0].message.content)
-                self.messages.append({ 'role': 'assistant', 'content': tool_calling.choices[0].message.content })
-                #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
-                return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
+                print(content)
+
+                if str(content).__contains__(DataQueryAIAssistent.agent_factory.agents_type_list['pipeline']):
+                    last_user_prompt = self.messages[-1]
+                    pipeline_agent_reply = self.call_pipeline_agent(last_user_prompt['content'])
+                    return pipeline_agent_reply
+                else: 
+                    self.messages.append({ 'role': 'assistant', 'content': content })
+                    #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
+                    return { 'answer': 'intermediate', 'result': content }
 
         except RateLimitError as e:
             print(f"\nInternal error occurred: {e}")
@@ -265,7 +288,13 @@ class DataQueryAIAssistent:
             error = str(e) 
             print(f"\nInternal error occurred: {e}")
             return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
-            
+
+
+    def call_pipeline_agent(self, message):
+        return DataQueryAIAssistent.\
+            agent_factory.\
+            get_pipeline_agent(self.namespace).cloud_groq_call(message)
+
 
     def handle_response(self, client: Mistral | Groq, model, strategy = 'mistral'):
 

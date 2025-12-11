@@ -304,20 +304,21 @@ def debounce_call_scheduled_job():
     task.start()
 
 
-agents_list: List[Agent] = {} 
+from services.agents import AgentFactory
+
 def setup_agent(user, namespace = None):
 
     try:
-        if(not(user in agents_list)):
-            selected_namespace = namespace if namespace != None else user
-            namespace_folder = BasePipeline.folder+f'/duckdb/{selected_namespace}'
-            if(not os.path.exists(namespace_folder)):
-                return { 
-                    'success': False, 
-                    'error': f'Could not start the Agent, as no data about the namespace exists.', 
-                    'start': False
-                }
-            agents_list[user] = Agent(namespace_folder)
+        selected_namespace = namespace if namespace != None else user
+        namespace_folder = BasePipeline.folder+f'/duckdb/{selected_namespace}'
+        agent = AgentFactory.get_data_agent(user, namespace, namespace_folder)
+
+        if agent == None:
+            return { 
+                'success': False, 
+                'error': f'Could not start the Agent, as no data about the namespace exists.', 
+                'start': False
+            }
 
         return { 'error': False, 'success': True }
     except Exception as err:
@@ -329,21 +330,23 @@ def setup_agent(user, namespace = None):
 
 def send_message_to_agent(message, namespace, user_id = None):
     user = user_id if user_id != None else namespace
-    agent: Agent = agents_list[user]
+    agent = AgentFactory.get_data_agent(user)
 
     return { 'success': True, 'result': agent.cloud_mistral_call(message) }    
 
 
 def send_message_to_agent_wit_groq(message, namespace, user_id = None):
+
     user = user_id if user_id != None else namespace
-    if(not(user in agents_list)):
+    agent = AgentFactory.get_data_agent(user)
+
+    if(agent == None):
         return { 
             'success': False, 
             'result': "No agent was initiated since you don't/didn't have data in the namespace. I can update myself if you ask.",
             'started': False
         }
     
-    agent: Agent = agents_list[user]
 
     if(not os.path.exists(agent.db_path)):
         return { 'success': False, 'result': 'No data, pipeline found in your name space.' }
