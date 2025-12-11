@@ -92,12 +92,8 @@ export class AIAgent extends ViewComponent {
 
 	async startNewAgent(retry = false) {
 		try {
-			this.startedInstance = await WorkspaceService.startChatConversation();
-			
-			if(this.startedInstance.start === false && retry === false){
-				this.createMessageBubble(`<div class="agent-no-start-error">${this.startedInstance.error}</div>`, 'agent', 'DLT Workspace');
-				this.startedInstance = null;
-			}else{
+
+			if(this.startedInstance === null){
 				const initialMessage = 'Hey, I\'m more than happy to help you.<br><br>'
 									   +'<div style="margin-top: -7px;">Which of the bellow categories to you want to talk about?</div>';
 				let content = `
@@ -115,6 +111,13 @@ export class AIAgent extends ViewComponent {
 				`;
 				content = this.parseEvents(content);
 				this.createMessageBubble(`${content}`, 'agent', 'DLT Workspace');
+			}
+
+			this.startedInstance = await WorkspaceService.startChatConversation();
+			
+			if(this.startedInstance.start === false && retry === false){
+				this.createMessageBubble(`<div class="agent-no-start-error">${this.startedInstance.error}</div>`, 'agent', 'DLT Workspace');
+				this.startedInstance = null;
 			}
 		} catch (error) { }
 	}

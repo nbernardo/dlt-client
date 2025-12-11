@@ -7,6 +7,7 @@ import { AIAgent } from "../components/agent/AIAgent.js";
 import { CatalogForm } from "../components/catalog/CatalogForm.js";
 import { LeftTabs } from "../components/navigation/left/LeftTabs.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
+import { Transformation } from "../components/node-types/Transformation.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { CodeEditorUtil } from "../util/CodeEditorUtil.js";
@@ -223,14 +224,23 @@ export class WorkSpaceController extends BaseController {
 
     drawnNodes = 0;
     drawnNodeList = [];
+    currentNodePositionX;
+    prevAiDrawnNode;
+
     async createNode(type, data){
-        const add = this.drawnNodes > 0 ? 100 : 0;
+
+        const add = this.drawnNodes > 0 ? 20 : 0;
+        const addToNodePosx = this.prevAiDrawnNode == Transformation.name ? 1.25 : 0;
+
         const nodeId = this.getNodeId();
         const parentId = this.wSpaceComponent.cmpInternalId;
         const { template: tmpl, component } = await Components.new(type, { ...data, aiGenerated: true, nodeId }, parentId);
-        const pos_x = (307 * this.drawnNodes++) + add, pos_y = (183);
+        const pos_x = (307 * ((this.drawnNodes++) + addToNodePosx)) + add, pos_y = (183);
+        this.currentNodePositionX = pos_x;
+        this.prevAiDrawnNode = type;
         await this.handleAddNode(component, nodeId, type, pos_x, pos_y, tmpl);
         this.drawnNodeList.push(nodeId);
+
     }
 
     async linkAgentCreatedNodes(){
