@@ -3,6 +3,7 @@ export const dontFollowAgentFlow = `dont-follow-agent-flow`;
 export const botSubRoutineCall = `bot-routing-call-only`;
 export const aiStartSuggestions = `You can say <b>Pipeline</b> or <b>Query data</b> to initiate a corresponding flow.`
 export const aiStartOptions = `Bellow are some options I can perform for you.`
+export const usingSecretPrompt = `using-secret-prompt`
 
 const bringMeRequest = '(get me the|get me the list of|get|bring me|fetch|fetch me)';
 const showMeRequest = '(show|show me|list|display|what|whats|which|tell me what|tell me whats|tell me which)';
@@ -124,7 +125,22 @@ export const content = `
 - ${unkwonRequest} <set unknow_count=1>
 
 
+
+
 // Secrets questions/asks
+> object check_secret_request_api javascript
+    ${functionSecretContent('API',2)}
+< object
+
+> object check_secret_request_db javascript
+    ${functionSecretContent('Database',1)}
+< object
+
+> object check_secret_request javascript
+    ${functionSecretContent('','all')}
+< object
+
+
 + ${secretAskPipeline1}
 - ${pipelineFlowMessage} PPLINE <call>setPipelineFlow</call>
 
@@ -135,25 +151,41 @@ export const content = `
 - ${pipelineFlowMessage} PPLINE <call>setPipelineFlow</call>
 
 + ${secretAsk3}
-- ${botSubRoutineCall}<call>showSerets "Follow the list of API secrets:" "2"</call>
+- ${botSubRoutineCall}<call>check_secret_request_api</call>
 
 + ${secretAsk4}
-- ${botSubRoutineCall}<call>showSerets "Follow the list of API secrets:" "2"</call>
+- ${botSubRoutineCall}<call>check_secret_request_api</call>
 
 + ${secretAsk5}
-- ${botSubRoutineCall}<call>showSerets "Follow the list of Database secrets:" "1"</call>
+- ${botSubRoutineCall}<call>check_secret_request_db</call>
 
 + ${secretAsk6}
-- ${botSubRoutineCall}<call>showSerets "Follow the list of Database secrets:" "1"</call>
+- ${botSubRoutineCall}<call>check_secret_request_db</call>
 
 + ${secretAsk0}
-- ${botSubRoutineCall}<call>showSerets "Follow the list of secrets:"</call>
+- ${botSubRoutineCall}<call>check_secret_request</call>
 
 + ${secretAsk1}
-- ${botSubRoutineCall}<call>showSerets "Follow the list of secrets:"</call>
+- ${botSubRoutineCall}<call>check_secret_request</call>
 
 + ${secretAsk2}
-- ${botSubRoutineCall}<call>showSerets "Follow the list of secrets:"</call>
+- ${botSubRoutineCall}<call>check_secret_request</call>
 
 
 `;
+
+
+function functionSecretContent(type, typeId){
+    return `
+    const userMessage = getLastUserPromp().toLowerCase();
+
+    const isSecrets = userMessage.indexOf('secrets');
+    const isSecret = userMessage.indexOf('secret');
+    const isUseSecret = userMessage.indexOf('use');
+
+    if((isUseSecret > -1) && (isUseSecret < isSecrets || isUseSecret < isSecret))
+        return "${usingSecretPrompt}";
+
+    return "${dontFollowAgentFlow}showSerets %sep% Follow the list of ${type} secrets: %sep% ${typeId}";
+    `;
+}

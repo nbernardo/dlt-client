@@ -1,3 +1,4 @@
+import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
 import { AIResponseLinterUtil } from "../components/agent/AIResponseLinterUtil.js";
 import { agentOptions, aiStartOptions, botSubRoutineCall, dontFollowAgentFlow, unkwonRequest } from "../components/agent/chatbotbrain/main.js";
@@ -5,12 +6,18 @@ import { Workspace } from "../components/workspace/Workspace.js";
 import { WorkspaceService } from "../services/WorkspaceService.js";
 import { WorkSpaceController } from "./WorkSpaceController.js";
 
-export class AIAgentController {
+export class AIAgentController extends BaseController {
 
     static agentActiveFlow = null;
 
     /** @type { AIAgent } */
     agentInstance = null;
+
+    secretsData = { 'api': null, 'db': '' };
+    lastUserMessage = null;
+
+    /** @returns { AIAgentController } */
+    static instance = () => AIAgentController.get()
 
     initAgentActiveFlow(flowName){
         AIAgentController.agentActiveFlow = flowName;
@@ -152,31 +159,17 @@ export class AIAgentController {
         }
     }
 
-    /** @param {AIAgent} agentInstance */
-    setupBotSubRoutine(agentInstance){
+    /** @param {AIAgent} self */
+    setupBotSubRoutine(self){
 
-        const self = agentInstance;
         self.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow('data-query'));
         self.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow('pipeline'));
         self.botInstance.setSubroutine('setDontFollowAgent', (_, args) => self.dontFollowAgentFlag = args[0]);
-
-        self.botInstance.setSubroutine('showSerets', (_, args) => {
-            (async () => {										
-                let foundSecrets = await WorkspaceService.listSecrets(args[1] || 'all'), secrets = '';
-
-                if(Object.keys((foundSecrets['db'] || {})).length > 0)
-                    secrets += this.dataToTable(foundSecrets['db'], 'Database Secrets');
-
-                if(Object.keys((foundSecrets['api'] || {})).length > 0)
-                    secrets += this.dataToTable(foundSecrets['api'], 'API Secrets');
-
-                if(Array.isArray(foundSecrets) && args[1])
-                    secrets += this.dataToTable(foundSecrets, `${args[1] == 1 ? 'Database' : 'API'} Secrets`);
-
-                self.setAgentLastMessage(args[0], secrets, true);
-            })();
-        });
         
+        self.botInstance.setSubroutine('showSerets', (_, args) => {
+            (async () => this.handleSecretsPrompt(self, [], args) )();
+        });
+
         self.botInstance.setSubroutine('displayIAAgentOptions', () => {
             const complementMessage = `${unkwonRequest}<br>${aiStartOptions}`
             const content = this.initialAiAgentOptions(complementMessage, this.agentInstance);
@@ -214,4 +207,43 @@ export class AIAgentController {
 		`;
 	}
 
+    /** @param {AIAgent} self */
+    async handleBotFunctionCall(self, content = ''){
+        if(content.includes('showSerets'))
+            await this.handleSecretsPrompt(self,content);
+    }
+
+    /** @param {AIAgent} self */
+    async handleSecretsPrompt(self, content, args = null){
+
+        if(args == null) args = this.parseBotFunctionCall(content).params;
+        
+        let foundSecrets = await WorkspaceService.listSecrets(args[1] || 'all'), secrets = '';        
+        console.log(`the arguments are: `, args);
+
+        if(Object.keys((foundSecrets['db'] || {})).length > 0){
+            secrets += this.dataToTable(foundSecrets['db'], 'Database Secrets');
+            this.secretsData.db = foundSecrets['db'];
+        }
+
+        if(Object.keys((foundSecrets['api'] || {})).length > 0){
+            secrets += this.dataToTable(foundSecrets['api'], 'API Secrets');
+            this.secretsData.api = foundSecrets['api'];
+        }
+
+        if(Array.isArray(foundSecrets) && args[1])
+            secrets += this.dataToTable(foundSecrets, `${args[1] == 1 ? 'Database' : 'API'} Secrets`);
+
+        self.setAgentLastMessage(args[0], secrets, true);
+    };
+
+    parseBotFunctionCall(content = ''){
+        const [funcitionName, ...params] = content.split('%sep%');
+        return { funcitionName, params: params.map(param => param.trim()) }
+    }
+
+}
+
+window.getLastUserPromp = () => {
+    return AIAgentController.instance().lastUserMessage;
 }

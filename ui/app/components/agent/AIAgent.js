@@ -5,7 +5,7 @@ import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { aiStartOptions, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, unkwonRequest } from "./chatbotbrain/main.js";
+import { aiStartOptions, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, unkwonRequest, usingSecretPrompt } from "./chatbotbrain/main.js";
 
 export class AIAgent extends ViewComponent {
 
@@ -108,16 +108,22 @@ export class AIAgent extends ViewComponent {
 		if (event.key === 'Enter') {
 
 			event.preventDefault();
-			const message = event.target.value;
+			let message = event.target.value;
+			this.controller.lastUserMessage = message;
 
 			let botResponse = await this.botMessage(event);
+			if(botResponse.includes(aiStartOptions)) return;
+
 			const cannotContinue = (botResponse.includes(unkwonRequest) || botResponse.includes(dontFollowAgentFlow))
 			const botFunctionCall = (botResponse.includes(botSubRoutineCall));
 
-			if(botResponse.includes(aiStartOptions)) return;
-
 			botResponse = this.controller.setAgentRoute(botResponse);
-			
+
+			// In case there is function call bot instruction this call will handle it
+			this.controller.handleBotFunctionCall(this, botResponse);
+
+			message = this.augmentAgentKnowledge(botResponse, message);
+
 			const isFlowNotSet = this.controller.getActiveFlow() == null;
 			if((cannotContinue && isFlowNotSet) || botFunctionCall)
 				return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
@@ -138,6 +144,7 @@ export class AIAgent extends ViewComponent {
 
 			this.createMessageBubble(this.controller.loadingContent(), 'agent');
 			this.sentMessagesCount = this.sentMessagesCount.value + 1;
+
 			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
 			
 			if (success === false) response = errMessage;
@@ -164,6 +171,16 @@ export class AIAgent extends ViewComponent {
 			if (this.isThereAgentMessage === false) this.isThereAgentMessage = true;
 			this.setAgentLastMessage(response, dataTable);
 		}
+	}
+
+	augmentAgentKnowledge(botResponse, message){
+		if(botResponse.includes(usingSecretPrompt)){
+			const augmentedRequest = `YOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
+			console.log(`THIS IS THE REQUEST CONTENT`);
+			console.log(augmentedRequest);
+			return augmentedRequest;
+		}
+		return message;
 	}
 
 	setAgentLastMessage(response, dataTable = null, anchor = false){
