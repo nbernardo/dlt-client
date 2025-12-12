@@ -5,7 +5,7 @@ import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { content as chatBotBrain, dontFollow, dontFollowAgentFlow, unkwonRequest } from "./chatbotbrain/main.js";
+import { aiStartOptions, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, unkwonRequest } from "./chatbotbrain/main.js";
 
 export class AIAgent extends ViewComponent {
 
@@ -25,7 +25,7 @@ export class AIAgent extends ViewComponent {
     /** @Prop */ startedInstance = null;
     /** @Prop */ showLimitReachedWarn = null;
     /** @Prop */ botInstance = null;
-    /** @Prop */ stickyAgentFlow = null;
+    /** @Prop */ lastMessageAnchor = null;
 
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
@@ -50,14 +50,7 @@ export class AIAgent extends ViewComponent {
 
 		setTimeout(async () => {
 			this.botInstance = new RiveScript();
-
-			this.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow('data-query'));
-			this.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow('pipeline'));
-			this.botInstance.setSubroutine('setDontFollowAgent', (_, args) => this.dontFollowAgentFlag = args[0]);
-			this.botInstance.setSubroutine('displayIAAgentOptions', () => {
-				console.log(`WILL DISPLAY THE OPTIONS`);
-			});
-
+			this.controller.setupBotSubRoutine(this);
 			await this.botInstance.stream(chatBotBrain);
 			await this.botInstance.sortReplies();
 		},0);
@@ -73,7 +66,7 @@ export class AIAgent extends ViewComponent {
 	}
 
 	async stAfterInit() {
-
+		this.controller.agentInstance = this;
 		this.appContainer = document.querySelector('.ai-app-container');
 		this.outputContainer = document.getElementById(this.outputContainerId);
 		this.resizeHandle = document.querySelector('.ai-agent-height-resize');
@@ -92,27 +85,7 @@ export class AIAgent extends ViewComponent {
 
 	async startNewAgent(retry = false) {
 		try {
-
-			if(this.startedInstance === null){
-				const initialMessage = 'Hey, I\'m more than happy to help you.<br><br>'
-									   +'<div style="margin-top: -7px;">Which of the bellow categories to you want to talk about?</div>';
-				let content = `
-					<div class='start-agent-orientation-msg' style='margin-top: -28px'>${initialMessage}</div>
-					<div class="ai-agent-options" style='margin-top: -23px'>
-						<div class='ai-flow-option' onclick="inner.setAgentFlow('pipeline')">
-							<img class='icon-image' src='app/assets/imgs/ai/pipeline-icon.svg'>
-							<div class="agent-flow-icon">1. Pipeline</div>
-						</div>
-						<div class='ai-flow-option' onclick="inner.setAgentFlow('data-query')">
-							<img class='icon-image' src='app/assets/imgs/ai/dbquery-icon.svg'>
-							<div class="agent-flow-icon">2. Data query</div>
-						</div>
-					</div>
-				`;
-				content = this.parseEvents(content);
-				this.createMessageBubble(`${content}`, 'agent', 'DLT Workspace');
-			}
-
+			this.controller.displayInitialChatOptions(this);
 			this.startedInstance = await WorkspaceService.startChatConversation();
 			
 			if(this.startedInstance.start === false && retry === false){
@@ -122,10 +95,13 @@ export class AIAgent extends ViewComponent {
 		} catch (error) { }
 	}
 
-	setAgentFlow = (flowName) => {
+	setAgentFlow(flowName){
 		this.createMessageBubble(flowName, 'user');
-		const initMessage = this.controller.initAgentActiveFlow(flowName);
-		this.createMessageBubble(`${initMessage}`, 'agent', 'DLT Workspace');
+		if(this.controller.getActiveFlow() === null){
+			const initMessage = this.controller.initAgentActiveFlow(flowName);
+			this.createMessageBubble(`${initMessage}`, 'agent', 'DLT Workspace');
+		}else
+			this.controller.setAgentFlow(flowName);
 	};
 
 	async sendChatRequest(event) {
@@ -136,11 +112,18 @@ export class AIAgent extends ViewComponent {
 
 			let botResponse = await this.botMessage(event);
 			const cannotContinue = (botResponse.includes(unkwonRequest) || botResponse.includes(dontFollowAgentFlow))
-			botResponse = this.controller.setAgentRoute(botResponse, this.stickyAgentFlow);
+			const botFunctionCall = (botResponse.includes(botSubRoutineCall));
+
+			if(botResponse.includes(aiStartOptions)) return;
+
+			botResponse = this.controller.setAgentRoute(botResponse);
 			
 			const isFlowNotSet = this.controller.getActiveFlow() == null;
-			if(cannotContinue && isFlowNotSet)
+			if((cannotContinue && isFlowNotSet) || botFunctionCall)
 				return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
+
+			if(botFunctionCall) 
+				this.createMessageBubble(this.loadingContent(), 'agent', 'DLT Workspace');
 			
 			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
@@ -183,9 +166,17 @@ export class AIAgent extends ViewComponent {
 		}
 	}
 
-	setAgentLastMessage(response, dataTable = null){
-		AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph')
-		AIAgent.lastAgentParagraph.innerHTML = dataTable === null ? markdownToHtml(response) : dataTable;
+	setAgentLastMessage(response, dataTable = null, anchor = false){
+		this.lastMessageAnchor = null;
+		AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph');
+		let finalContent = dataTable === null ? markdownToHtml(response) : dataTable;
+		if(anchor){
+			this.lastMessageAnchor = 'lastMessageAnchor'+UUIDUtil.newId();
+		}
+		finalContent = `<h2 id="${this.lastMessageAnchor}"></h2>${finalContent}`;
+		AIAgent.lastAgentParagraph.innerHTML = finalContent;
+
+		if(this.lastMessageAnchor !== null) this.scrollToBottom(true);
 	}
 
 	async sendAIAgentMessage(message){
@@ -216,12 +207,21 @@ export class AIAgent extends ViewComponent {
 		bubble.appendChild(textP);
 		row.appendChild(bubble);
 		this.outputContainer.appendChild(row);
-		this.scrollToBottom();
+		this.scrollToBottom(false);
 	}
 
-	scrollToBottom() {
+	scrollToBottom(ancor = false) {
 		setTimeout(() => {
-			this.outputContainer.scrollTop = this.outputContainer.scrollHeight;
+			if(ancor){
+				const element = document.getElementById(this.lastMessageAnchor);
+				if (element) {
+					element.scrollIntoView({
+					behavior: 'smooth', // Optional: adds a smooth scroll animation
+					block: 'start'      // Optional: aligns the top of the element to the top of the viewport
+					});
+				}
+			} 
+			else this.outputContainer.scrollTop = this.outputContainer.scrollHeight;
 		}, 200);
 	}
 
@@ -309,8 +309,6 @@ export class AIAgent extends ViewComponent {
 		return reply;
 
 	}
-
-	stickAgentFlow = (flowName = null) => this.stickyAgentFlow = flowName;
 
 	shrinkChatSize(){
 		if(document.querySelector('.ai-agent-placeholder').classList.contains('ai-agent-placeholder-shrinked')){

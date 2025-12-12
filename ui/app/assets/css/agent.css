@@ -207,7 +207,7 @@
 .bubble-message-paragraph {
     padding-top: 0px;
     padding-bottom: 0px !important;
-    line-height: 18px;
+    line-height: normal;
     font-size: 13px;
 }
 

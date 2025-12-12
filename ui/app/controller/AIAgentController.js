@@ -1,11 +1,16 @@
+import { AIAgent } from "../components/agent/AIAgent.js";
 import { AIResponseLinterUtil } from "../components/agent/AIResponseLinterUtil.js";
-import { agentOptions, dontFollowAgentFlow } from "../components/agent/chatbotbrain/main.js";
+import { agentOptions, aiStartOptions, botSubRoutineCall, dontFollowAgentFlow, unkwonRequest } from "../components/agent/chatbotbrain/main.js";
 import { Workspace } from "../components/workspace/Workspace.js";
+import { WorkspaceService } from "../services/WorkspaceService.js";
 import { WorkSpaceController } from "./WorkSpaceController.js";
 
 export class AIAgentController {
 
     static agentActiveFlow = null;
+
+    /** @type { AIAgent } */
+    agentInstance = null;
 
     initAgentActiveFlow(flowName){
         AIAgentController.agentActiveFlow = flowName;
@@ -21,13 +26,11 @@ export class AIAgentController {
         return flowMessage[flowName];
     }
 
-    setAgentFlow = (flowName) => this.initAgentActiveFlow(flowName);
+    setAgentFlow = (flowName) => AIAgentController.agentActiveFlow = flowName;
 
     /** @returns { null|'pipeline'|'data-query' } */
-    getActiveFlow(){
-        return AIAgentController.agentActiveFlow;
-    }
-
+    getActiveFlow = () => AIAgentController.agentActiveFlow;
+    
     /** 
      * @param {string} fields
      * @param { Array<Array> } data
@@ -80,27 +83,106 @@ export class AIAgentController {
             await WorkSpaceController.instance().createNode(nodeName, (data || {}));
         }
         await WorkSpaceController.instance().linkAgentCreatedNodes();
-
     }
 
     /** @param {String} botResponse */
-    setAgentRoute(botResponse, stickyFlow = null){
+    setAgentRoute(botResponse){
 
-        if(stickyFlow !== null){
+        if (botResponse.includes(agentOptions.pipeline) && this.getActiveFlow() != 'pipeline')
             this.setAgentFlow('pipeline');
-        }else{
-            if (botResponse.includes(agentOptions.pipeline) && this.getActiveFlow() != 'pipeline')
-                this.setAgentFlow('pipeline');
             
-            if(botResponse.includes(agentOptions.dataQuery) && this.getActiveFlow() != 'data-query')
-                this.setAgentFlow('data-query');
-        }
-
+        if(botResponse.includes(agentOptions.dataQuery) && this.getActiveFlow() != 'data-query')
+            this.setAgentFlow('data-query');
+        
         // Cleans up the AI Agent flow type if present
 		return botResponse
             .replace(agentOptions.pipeline, '')
             .replace(agentOptions.dataQuery, '')
             .replace(dontFollowAgentFlow, '')
+            .replace(botSubRoutineCall, '')
+    }
+
+    dataToTable(data, title = null){
+
+        const headerStyle = 'style="background: #808080b5; color: white; font-weight: bold;"';
+        let rows = Object.values(Object.values(data)), tableBody = '';
+        const fields = Object.keys(rows[0]);
+        const header = `${fields.map(field => `<td>${field}</td>`).join('')}`;
+        title = title != null ? `<tr ${headerStyle}><td colspan="${fields.length}">${title}</td></tr>` : '';
+
+        for(const row of rows)
+            tableBody += `<tr>${fields.map(field => `<td>${row[field]}</td>`).join('')}</tr>`;
+        
+        return `<table>
+                    <thead>
+                        ${title}
+                        <tr ${headerStyle}>${header}</tr>
+                    </thead>
+                    <tbody>${tableBody}</tbody>
+                </table>
+                `;
+
+    }
+
+    initialAiAgentOptions(complementMessage, agentInstance){
+        let content = `
+                <div class='start-agent-orientation-msg' style='margin-top: -28px'>${complementMessage}</div>
+                <div class="ai-agent-options" style='margin-top: -23px'>
+                    <div class='ai-flow-option' onclick="inner.setAgentFlow('pipeline')">
+                        <img class='icon-image' src='app/assets/imgs/ai/pipeline-icon.svg'>
+                        <div class="agent-flow-icon">1. Pipeline</div>
+                    </div>
+                    <div class='ai-flow-option' onclick="inner.setAgentFlow('data-query')">
+                        <img class='icon-image' src='app/assets/imgs/ai/dbquery-icon.svg'>
+                        <div class="agent-flow-icon">2. Data query</div>
+                    </div>
+                </div>
+            `;
+        return agentInstance.parseEvents(content);
+    }
+
+    /** @param {AIAgent} agentInstance */
+    displayInitialChatOptions(agentInstance){        
+        if(agentInstance.startedInstance === null){
+            const initialMessage = 'Hey, I\'m more than happy to help you.<br><br>'
+            +'<div style="margin-top: -7px;">Which of the bellow categories to you want to talk about?</div>';
+            
+            const content = this.initialAiAgentOptions(initialMessage, agentInstance);
+            agentInstance.createMessageBubble(`${content}`, 'agent', 'DLT Workspace');
+        }
+    }
+
+    /** @param {AIAgent} agentInstance */
+    setupBotSubRoutine(agentInstance){
+
+        const self = agentInstance;
+        self.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow('data-query'));
+        self.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow('pipeline'));
+        self.botInstance.setSubroutine('setDontFollowAgent', (_, args) => self.dontFollowAgentFlag = args[0]);
+
+        self.botInstance.setSubroutine('showSerets', (_, args) => {
+            (async () => {										
+                let foundSecrets = await WorkspaceService.listSecrets(args[1] || 'all'), secrets = '';
+
+                if(Object.keys((foundSecrets['db'] || {})).length > 0)
+                    secrets += this.dataToTable(foundSecrets['db'], 'Database Secrets');
+
+                if(Object.keys((foundSecrets['api'] || {})).length > 0)
+                    secrets += this.dataToTable(foundSecrets['api'], 'API Secrets');
+
+                if(Array.isArray(foundSecrets) && args[1])
+                    secrets += this.dataToTable(foundSecrets, `${args[1] == 1 ? 'Database' : 'API'} Secrets`);
+
+                self.setAgentLastMessage(args[0], secrets, true);
+            })();
+        });
+        
+        self.botInstance.setSubroutine('displayIAAgentOptions', () => {
+            const complementMessage = `${unkwonRequest}<br>${aiStartOptions}`
+            const content = this.initialAiAgentOptions(complementMessage, this.agentInstance);
+            self.createMessageBubble(null,'agent','DLT Workspace');
+            self.setAgentLastMessage(null, content, true);
+        });
     }
 
 }
