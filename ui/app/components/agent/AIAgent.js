@@ -116,6 +116,7 @@ export class AIAgent extends ViewComponent {
 
 			const cannotContinue = (botResponse.includes(unkwonRequest) || botResponse.includes(dontFollowAgentFlow))
 			const botFunctionCall = (botResponse.includes(botSubRoutineCall));
+			const useSecretPrompt = (botResponse.includes(usingSecretPrompt));
 
 			botResponse = this.controller.setAgentRoute(botResponse);
 
@@ -125,12 +126,11 @@ export class AIAgent extends ViewComponent {
 			message = this.augmentAgentKnowledge(botResponse, message);
 
 			const isFlowNotSet = this.controller.getActiveFlow() == null;
-			if((cannotContinue && isFlowNotSet) || botFunctionCall)
+
+			if(useSecretPrompt){ /** continue */ }
+			else if((cannotContinue && isFlowNotSet) || botFunctionCall)
 				return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
 
-			if(botFunctionCall) 
-				this.createMessageBubble(this.controller.loadingContent(), 'agent', 'DLT Workspace');
-			
 			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
 				this.startNewAgent(true); /** This will retry to connect with the Agent Backend */
@@ -175,7 +175,7 @@ export class AIAgent extends ViewComponent {
 
 	augmentAgentKnowledge(botResponse, message){
 		if(botResponse.includes(usingSecretPrompt)){
-			const augmentedRequest = `YOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
+			const augmentedRequest = `ROUTE(pipeline-agent)\n\nYOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
 			console.log(`THIS IS THE REQUEST CONTENT`);
 			console.log(augmentedRequest);
 			return augmentedRequest;

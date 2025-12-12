@@ -125,8 +125,6 @@ export const content = `
 - ${unkwonRequest} <set unknow_count=1>
 
 
-
-
 // Secrets questions/asks
 > object check_secret_request_api javascript
     ${functionSecretContent('API',2)}
@@ -184,7 +182,7 @@ function functionSecretContent(type, typeId){
     const isUseSecret = userMessage.indexOf('use');
 
     if((isUseSecret > -1) && (isUseSecret < isSecrets || isUseSecret < isSecret))
-        return "${usingSecretPrompt}";
+        return "${agentOptions.pipeline}${usingSecretPrompt}";
 
     return "${dontFollowAgentFlow}showSerets %sep% Follow the list of ${type} secrets: %sep% ${typeId}";
     `;
