@@ -123,7 +123,7 @@ export class AIAgent extends ViewComponent {
 				return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
 
 			if(botFunctionCall) 
-				this.createMessageBubble(this.loadingContent(), 'agent', 'DLT Workspace');
+				this.createMessageBubble(this.controller.loadingContent(), 'agent', 'DLT Workspace');
 			
 			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
@@ -136,7 +136,7 @@ export class AIAgent extends ViewComponent {
 				}
 			}
 
-			this.createMessageBubble(this.loadingContent(), 'agent');
+			this.createMessageBubble(this.controller.loadingContent(), 'agent');
 			this.sentMessagesCount = this.sentMessagesCount.value + 1;
 			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
 			
@@ -212,15 +212,9 @@ export class AIAgent extends ViewComponent {
 
 	scrollToBottom(ancor = false) {
 		setTimeout(() => {
-			if(ancor){
-				const element = document.getElementById(this.lastMessageAnchor);
-				if (element) {
-					element.scrollIntoView({
-					behavior: 'smooth', // Optional: adds a smooth scroll animation
-					block: 'start'      // Optional: aligns the top of the element to the top of the viewport
-					});
-				}
-			} 
+			const element = document.getElementById(this.lastMessageAnchor);
+			if(ancor && element)
+				element.scrollIntoView({behavior: 'smooth', block: 'start'}); 
 			else this.outputContainer.scrollTop = this.outputContainer.scrollHeight;
 		}, 200);
 	}
@@ -269,22 +263,8 @@ export class AIAgent extends ViewComponent {
 		obj.resizeHandle.style.backgroundColor = '#d1d5db';
 	}
 
-	loadingContent() {
-		return `
-			<div class="mini-loader-container">
-				<div class="mini-loader-dot" style="background: black;"></div>
-				<div class="mini-loader-dot" style="background: black;"></div>
-				<div class="mini-loader-dot" style="background: black;"></div>
-			</div>
-		`;
-	}
-
 	hideAgentUI = () => this.$parent.showOrHideAgent();
-
-	setUserPrompt = (content) => {
-		document.getElementById('ai-chat-user-input').value = content;
-		document.getElementById('ai-chat-user-input').focus();
-	}
+	setUserPrompt = (content) => this.controller.setUserPrompt(content)
 
 	/** @returns { Promise<String> } */
 	async botMessage(event){
@@ -310,18 +290,6 @@ export class AIAgent extends ViewComponent {
 
 	}
 
-	shrinkChatSize(){
-		if(document.querySelector('.ai-agent-placeholder').classList.contains('ai-agent-placeholder-shrinked')){
-			this.unshrinkChatSize();
-		}else{
-			document.querySelector('.ai-agent-placeholder').classList.add('ai-agent-placeholder-shrinked');
-			document.querySelector('.ai-agent-sent-messages-count-placehoder').style.flexDirection = 'column';
-		}
-	}
-
-	unshrinkChatSize(){
-		document.querySelector('.ai-agent-placeholder').classList.remove('ai-agent-placeholder-shrinked');
-		document.querySelector('.ai-agent-sent-messages-count-placehoder').style.flexDirection = 'row';
-	}
+	shrinkChatSize = () => this.controller.shrinkChatSize()
 
 }

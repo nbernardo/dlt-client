@@ -185,4 +185,33 @@ export class AIAgentController {
         });
     }
 
+	shrinkChatSize(){
+		if(document.querySelector('.ai-agent-placeholder').classList.contains('ai-agent-placeholder-shrinked')){
+			this.unshrinkChatSize();
+		}else{
+			document.querySelector('.ai-agent-placeholder').classList.add('ai-agent-placeholder-shrinked');
+			document.querySelector('.ai-agent-sent-messages-count-placehoder').style.flexDirection = 'column';
+		}
+	}
+
+	unshrinkChatSize(){
+		document.querySelector('.ai-agent-placeholder').classList.remove('ai-agent-placeholder-shrinked');
+		document.querySelector('.ai-agent-sent-messages-count-placehoder').style.flexDirection = 'row';
+	}
+
+	setUserPrompt(content){
+		document.getElementById('ai-chat-user-input').value = content;
+		document.getElementById('ai-chat-user-input').focus();
+	}
+
+	loadingContent() {
+		return `
+			<div class="mini-loader-container">
+				<div class="mini-loader-dot" style="background: black;"></div>
+				<div class="mini-loader-dot" style="background: black;"></div>
+				<div class="mini-loader-dot" style="background: black;"></div>
+			</div>
+		`;
+	}
+
 }
