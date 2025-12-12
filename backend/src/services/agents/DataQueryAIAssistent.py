@@ -14,7 +14,11 @@ class DataQueryAIAssistent(AbstractAgent):
     agent_factory = None
     prev_answered = 'PREV_ANSWER:'
     generate_sql_query = "'generate_sql_query_signal'"
-    IN_CASE_OF_PIPELINE_PROMPT = "- If you're prompted with some questions concerning pipeline creation, types of pipelines, pipelines node types (e.g. Source, Input, Output, Destination, Dump), you'll simply respond with 'pipeline-agent'"
+    IN_CASE_OF_PIPELINE_PROMPT = """
+    - If you're prompted with some questions concerning pipeline creation, types of pipelines, pipelines node types (e.g. Source, Input, Output, Destination, Dump), you'll simply respond with 'pipeline-agent'.
+    - If the user prompt contains ROUTE(pipeline-agent) you'll simply respond with 'pipeline-agent'.
+    - If the user prompt contains words suggesting using/use secret/connection/assign to pipeline you'll simply respond with 'pipeline-agent'.
+    """
 
     def __init__(self, base_db_path, dbfile = ''):
         
@@ -24,7 +28,7 @@ class DataQueryAIAssistent(AbstractAgent):
 
 
         self.DB_SCHEMA = '''The database contains %total_table% tables:'''
-        self.db_path = base_db_path
+        self.db_path = base_db_path if base_db_path.__contains__('/') else self.db_path
         self.db = f'{self.db_path}/{dbfile}'
 
         self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
@@ -101,10 +105,17 @@ class DataQueryAIAssistent(AbstractAgent):
 
 
     def run_query(self, query):
-        conn = DuckdbUtil.get_connection_for(self.db)
-        db_result = conn.execute(query).fetchall()
-        print(db_result)
-        return db_result
+        try:
+            conn = DuckdbUtil.get_connection_for(self.db)
+            db_result = conn.execute(query).fetchall()
+            print(db_result)
+            return { 'result': db_result, 'error': False }
+        
+        except Exception as err:
+            return {
+                'result': f'Could not execute the query, some error happen while trying: {str(err)}',
+                'error': True
+            }
         
 
     def generate_sql_query_signal(self, natural_language_question: str) -> str:
@@ -321,9 +332,12 @@ class DataQueryAIAssistent(AbstractAgent):
             if sql_query == None:
                 return { 'result': 'Could not run the query. Can you refine it?' }
             print('Going to run the query')
+
+            query_result = self.run_query(sql_query)
+            
             return { 
-                'result': self.run_query(sql_query), 
-                'fields': actual_query.lower().split('from')[0].split('select',1)[1],
+                'result': query_result.get('result'), 
+                'fields': actual_query.lower().split('from')[0].split('select',1)[1] if query_result.get('error') == False else '',
                 'actual_query': sql_query
             }
         except Exception as err:

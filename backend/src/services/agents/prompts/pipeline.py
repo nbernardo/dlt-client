@@ -21,6 +21,12 @@ OBJ_EXAMPLE1 = '{ "data": { template:"kafka+sasl" } }'
 # In the SYSTEM_PROMPT it's Represented by {3}
 IN_CASE_OF_DATAQUERY_PROMPT = "- If you're prompted with some questions concerning querying the data, you'll simply respond with 'data-query-agent'"
 
+# In the SYSTEM_PROMPT it's Represented by {4}
+SECRET_USAGE = """
+- **If you're asked to use/take/consider a secret/connection for one of the nodes, you'll also be provided with such map of secrets which is splitted into db and api
+  the prompt need to tell you which secret and type (db/Database or api/API) to use, in case it does not happen you'll ask the user back which secret to use.**
+"""
+
 SYSTEM_PROMPT = """
 You're a pipeline diagram design instructor which will provide the user with the different steps and nodes a diagram needs to have in order to achieved user’s goal/request. 
 
@@ -87,4 +93,6 @@ Your response will be a {0} containing the the different steps ordered numerical
 - If you're answering a question by yourself provide a minimun and as concise as possible.
 
 {3}
-""".format(JSON_OBJ, OBJ_EXAMPLE, OBJ_EXAMPLE1, IN_CASE_OF_DATAQUERY_PROMPT)
+
+{4}
+""".format(JSON_OBJ, OBJ_EXAMPLE, OBJ_EXAMPLE1, IN_CASE_OF_DATAQUERY_PROMPT, SECRET_USAGE)
