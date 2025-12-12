@@ -312,7 +312,7 @@ class DataQueryAIAssistent(AbstractAgent):
             print('THE QUERY WILL BE:')
             print(actual_query)
 
-            if actual_query.index('%%') >= 0:
+            if actual_query.__contains__('%%') >= 0:
                 actual_query = actual_query.split('%%')[0]
 
             self.messages.append({ 'role': 'assistant', 'content': nl_to_sql_call.choices[0].message.content })
