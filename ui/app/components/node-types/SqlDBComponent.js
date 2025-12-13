@@ -141,7 +141,6 @@ export class SqlDBComponent extends ViewComponent {
 		});
 
 		tableField.relatedFields.push(pkField);
-
 		this.dynamicFields.tables.push(tableField);
 		this.dynamicFields.fields.push(pkField);
 
@@ -170,9 +169,11 @@ export class SqlDBComponent extends ViewComponent {
 				const data = await WorkspaceService.getConnectionDetails(secretName);
 
 				const detail = data['secret_details'];
-				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
-				this.tablesFieldsMap = data.tables;
-				this.selectedSecretTableList = Object.keys(data.tables);
+				if('secret_details' in data){
+					database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
+					this.tablesFieldsMap = data.tables;
+					this.selectedSecretTableList = Object.keys(data.tables);
+				}
 				
 				WorkSpaceController.getNode(this.nodeId).data['host'] = host;
 				this.dynamicFields.tables.forEach(tbl => {

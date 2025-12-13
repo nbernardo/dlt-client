@@ -1,4 +1,10 @@
+export const BOT = { lastUserMessage: null };
+
+window._WorkspaceBOT_ = {};
+window._WorkspaceBOT_.getLastUserPrompt = () =>  BOT.lastUserMessage;
+
 export const unkwonRequest = `I didn't understand your request, can you be more clear?`;
+export const ifExistingFlowUseIt = `if-existing-flow-use-it`;
 export const dontFollowAgentFlow = `dont-follow-agent-flow`;
 export const botSubRoutineCall = `bot-routing-call-only`;
 export const aiStartSuggestions = `You can say <b>Pipeline</b> or <b>Query data</b> to initiate a corresponding flow.`
@@ -120,9 +126,10 @@ export const content = `
 
 // Any other type of query not related to DataQuery of Pipeline
 + *
-* <get unknow_count> == 1 => ${unkwonRequest} <br><br><p>${aiStartSuggestions}</p> <set unknow_count=2>
-* <get unknow_count> >= 2 => ${unkwonRequest} <br><br><p>${aiStartOptions}</p> <set unknow_count=3><call>displayIAAgentOptions</call>
-- ${unkwonRequest} <set unknow_count=1>
+* <get unknow_count> == 1 => ${ifExistingFlowUseIt}${unkwonRequest} <br><br><p>${aiStartSuggestions}</p> <set unknow_count=2>
+* <get unknow_count> == 2 => ${ifExistingFlowUseIt}${unkwonRequest} <br><br><p>${aiStartOptions}</p> <set unknow_count=3><call>displayIAAgentOptions</call>
+* <get unknow_count> == 3 => ${ifExistingFlowUseIt}${unkwonRequest}<set unknow_count=1>
+- ${ifExistingFlowUseIt}${unkwonRequest} <set unknow_count=1>
 
 
 // Secrets questions/asks
@@ -175,13 +182,12 @@ export const content = `
 
 function functionSecretContent(type, typeId){
     return `
-    const userMessage = getLastUserPromp().toLowerCase();
+    const userMessage = _WorkspaceBOT_.getLastUserPrompt();
 
-    const isSecrets = userMessage.indexOf('secrets');
-    const isSecret = userMessage.indexOf('secret');
-    const isUseSecret = userMessage.indexOf('use');
+    const isSecrets = userMessage.search(/secrets|secret|connection/);
+    const isUseSecret = userMessage.search(/use|used|using/);
 
-    if((isUseSecret > -1) && (isUseSecret < isSecrets || isUseSecret < isSecret))
+    if((isUseSecret > -1) && (isUseSecret < isSecrets))
         return "${agentOptions.pipeline}${usingSecretPrompt}";
 
     return "${dontFollowAgentFlow}showSerets %sep% Follow the list of ${type} secrets: %sep% ${typeId}";

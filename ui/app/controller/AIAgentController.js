@@ -1,7 +1,7 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
 import { AIResponseLinterUtil } from "../components/agent/AIResponseLinterUtil.js";
-import { agentOptions, aiStartOptions, botSubRoutineCall, dontFollowAgentFlow, unkwonRequest } from "../components/agent/chatbotbrain/main.js";
+import { agentOptions, aiStartOptions, botSubRoutineCall, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt } from "../components/agent/chatbotbrain/main.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { WorkspaceService } from "../services/WorkspaceService.js";
 import { WorkSpaceController } from "./WorkSpaceController.js";
@@ -15,6 +15,7 @@ export class AIAgentController extends BaseController {
 
     secretsData = { 'api': null, 'db': '' };
     lastUserMessage = null;
+    preRoutePrefix = { data: '__pre-routed-for-data-query__\n', pipeline: '__pre-routed-for-pipeline__\n' };
 
     /** @returns { AIAgentController } */
     static instance = () => AIAgentController.get()
@@ -94,19 +95,44 @@ export class AIAgentController extends BaseController {
 
     /** @param {String} botResponse */
     setAgentRoute(botResponse){
-
-        if (botResponse.includes(agentOptions.pipeline) && this.getActiveFlow() != 'pipeline')
-            this.setAgentFlow('pipeline');
-            
-        if(botResponse.includes(agentOptions.dataQuery) && this.getActiveFlow() != 'data-query')
-            this.setAgentFlow('data-query');
         
+        if(botResponse.includes(ifExistingFlowUseIt) && this.getActiveFlow() != null){
+            // continue with the active flow
+        }else{
+            if (botResponse.includes(agentOptions.pipeline) && this.getActiveFlow() != 'pipeline')
+                this.setAgentFlow('pipeline');
+                
+            if(botResponse.includes(agentOptions.dataQuery) && this.getActiveFlow() != 'data-query')
+                this.setAgentFlow('data-query');
+        }
+
         // Cleans up the AI Agent flow type if present
 		return botResponse
             .replace(agentOptions.pipeline, '')
             .replace(agentOptions.dataQuery, '')
             .replace(dontFollowAgentFlow, '')
             .replace(botSubRoutineCall, '')
+            .replace(ifExistingFlowUseIt, '');
+    }
+
+
+    agentPreRoute(userPrompt = ''){
+        let botResponse = ''
+        if(userPrompt.trim().search(/data[\s\-]{0,}query\s{0,}\:|query[\s\-]{0,}data\s{0,}\:|DQ\{0,}\s:/i) == 0){
+            userPrompt = this.preRoutePrefix.data + userPrompt;
+            this.setAgentFlow('data-query')
+        }
+
+        if(userPrompt.trim().search(/pipeline\s{0,}\:|pline\s{0,}\:|pl\{0,}\s:/i) == 0){
+            userPrompt = this.preRoutePrefix.pipeline + userPrompt;
+            this.setAgentFlow('pipeline');
+        }
+
+        const isSecrets = userPrompt.search(/secrets|secret|connection/), isUseSecret = userPrompt.search(/use|used|using/);
+
+        if((isUseSecret > -1) && (isUseSecret < isSecrets)) botResponse = usingSecretPrompt;
+
+        return { message: userPrompt, botResponse };
     }
 
     dataToTable(data, title = null){
@@ -219,7 +245,6 @@ export class AIAgentController extends BaseController {
         if(args == null) args = this.parseBotFunctionCall(content).params;
         
         let foundSecrets = await WorkspaceService.listSecrets(args[1] || 'all'), secrets = '';        
-        console.log(`the arguments are: `, args);
 
         if(Object.keys((foundSecrets['db'] || {})).length > 0){
             secrets += this.dataToTable(foundSecrets['db'], 'Database Secrets');
@@ -242,8 +267,4 @@ export class AIAgentController extends BaseController {
         return { funcitionName, params: params.map(param => param.trim()) }
     }
 
-}
-
-window.getLastUserPromp = () => {
-    return AIAgentController.instance().lastUserMessage;
 }

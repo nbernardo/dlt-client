@@ -5,7 +5,7 @@ import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { aiStartOptions, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, unkwonRequest, usingSecretPrompt } from "./chatbotbrain/main.js";
+import { aiStartOptions, BOT, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt } from "./chatbotbrain/main.js";
 
 export class AIAgent extends ViewComponent {
 
@@ -108,29 +108,32 @@ export class AIAgent extends ViewComponent {
 		if (event.key === 'Enter') {
 
 			event.preventDefault();
-			let message = event.target.value;
-			this.controller.lastUserMessage = message;
-
-			let botResponse = await this.botMessage(event);
-			if(botResponse.includes(aiStartOptions)) return;
-
-			const cannotContinue = (botResponse.includes(unkwonRequest) || botResponse.includes(dontFollowAgentFlow))
-			const botFunctionCall = (botResponse.includes(botSubRoutineCall));
-			const useSecretPrompt = (botResponse.includes(usingSecretPrompt));
-
-			botResponse = this.controller.setAgentRoute(botResponse);
-
-			// In case there is function call bot instruction this call will handle it
-			this.controller.handleBotFunctionCall(this, botResponse);
+			let { message, botResponse } = this.controller.agentPreRoute(event.target.value);
+			
+			if(botResponse == ''){
+				botResponse = await this.botMessage(event);
+				if(botResponse.includes(aiStartOptions)) return;
+	
+				const cannotContinue = (botResponse.includes(unkwonRequest) || botResponse.includes(dontFollowAgentFlow))
+				const botFunctionCall = botResponse.includes(botSubRoutineCall);
+				const useSecretPrompt = botResponse.includes(usingSecretPrompt);
+				const stickToPrevFlow = botResponse.includes(ifExistingFlowUseIt);
+	
+				botResponse = this.controller.setAgentRoute(botResponse);
+	
+				// In case there is function call bot instruction this call will handle it
+				this.controller.handleBotFunctionCall(this, botResponse);
+	
+				const isFlowNotSet = this.controller.getActiveFlow() == null;
+	
+				if(useSecretPrompt){ /** continue */ }
+				else if((cannotContinue && isFlowNotSet) || botFunctionCall){
+					if(!(stickToPrevFlow && this.controller.getActiveFlow() != null))
+						return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
+				}
+			}
 
 			message = this.augmentAgentKnowledge(botResponse, message);
-
-			const isFlowNotSet = this.controller.getActiveFlow() == null;
-
-			if(useSecretPrompt){ /** continue */ }
-			else if((cannotContinue && isFlowNotSet) || botFunctionCall)
-				return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
-
 			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
 				this.startNewAgent(true); /** This will retry to connect with the Agent Backend */
@@ -160,7 +163,7 @@ export class AIAgent extends ViewComponent {
 				);
 			} else {
 				if ((response || []).length === 0)
-					response = 'No data found for the submitted query. Do you want to send another query?';
+					response = 'Your request was not processed, do you want to be clear about your it?';
 				else if (String(response).trim() === this.unloadNamespaceMsg) {
 					// Auto-reconnect to the chats
 					this.$parent.leftMenuProxy.startAIAssistant(true);
@@ -178,7 +181,7 @@ export class AIAgent extends ViewComponent {
 			const augmentedRequest = `ROUTE(pipeline-agent)\n\nYOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
 			console.log(`THIS IS THE REQUEST CONTENT`);
 			console.log(augmentedRequest);
-			return augmentedRequest;
+			return augmentedRequest.replace(usingSecretPrompt, '');
 		}
 		return message;
 	}
@@ -287,6 +290,7 @@ export class AIAgent extends ViewComponent {
 	async botMessage(event){
 
 		let message = event.target.value, complementMessage = '';
+		BOT.lastUserMessage = message;
 
 		if(this.dontFollowAgentFlag == dontFollow.transform 
 			&& this.$parent.checkActiveDiagram() === false){
