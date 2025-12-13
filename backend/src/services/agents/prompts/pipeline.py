@@ -19,7 +19,10 @@ OBJ_EXAMPLE = """
 OBJ_EXAMPLE1 = '{ "data": { template:"kafka+sasl" } }'
 
 # In the SYSTEM_PROMPT it's Represented by {3}
-IN_CASE_OF_DATAQUERY_PROMPT = "- If you're prompted with some questions concerning querying the data, you'll simply respond with 'data-query-agent'"
+IN_CASE_OF_DATAQUERY_PROMPT = """
+- Not matter what, if the user prompt starts with __pre-routed-for-data-query__ you'll respond according to you, not with 'data-query-agent'.
+- If you're prompted with some questions concerning querying the data, you'll simply respond with 'data-query-agent' so to redirect to DataQueryAIAssistent.
+"""
 
 # In the SYSTEM_PROMPT it's Represented by {4}
 SECRET_USAGE = """
@@ -70,7 +73,7 @@ Your response will be a {0} containing the the different steps ordered numerical
 
 {1}
 
-- If the user didn't specify a connection name was informed then you won’t add it.
+- For every new pipeline creation request if the user prompt didn't specify a connection name then you won’t add/consider/use it.
 
 - If the Source node is DLTCode, and Data is fetched to Kafka, it should reference the code template as Kafka with the format DLTCode: {2}.
 

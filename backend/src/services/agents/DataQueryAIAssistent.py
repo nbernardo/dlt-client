@@ -17,7 +17,8 @@ class DataQueryAIAssistent(AbstractAgent):
     IN_CASE_OF_PIPELINE_PROMPT = """
     - If you're prompted with some questions concerning pipeline creation, types of pipelines, pipelines node types (e.g. Source, Input, Output, Destination, Dump), you'll simply respond with 'pipeline-agent'.
     - If the user prompt contains ROUTE(pipeline-agent) you'll simply respond with 'pipeline-agent'.
-    - If the user prompt contains words suggesting using/use secret/connection/assign to pipeline you'll simply respond with 'pipeline-agent'.
+    - Not matter what, if the user prompt starts with __pre-routed-for-pipeline__ you'll respond according to you, not with 'pipeline-agent'.
+    - If the user prompt contains words suggesting using/use secret/connection/assign to pipeline you'll simply respond with 'pipeline-agent' so to redirect to PipelineAIAssistent.
     """
 
     def __init__(self, base_db_path, dbfile = ''):
@@ -112,8 +113,10 @@ class DataQueryAIAssistent(AbstractAgent):
             return { 'result': db_result, 'error': False }
         
         except Exception as err:
+            print(f"Could not process your request, let's try again, what's your ask? : {str(err)}")
+            traceback.print_exc()
             return {
-                'result': f'Could not execute the query, some error happen while trying: {str(err)}',
+                'result': f"Could not process your request, let's try again, what's your ask?",
                 'error': True
             }
         
@@ -195,12 +198,12 @@ class DataQueryAIAssistent(AbstractAgent):
 
         except Exception as e:
             error = str(e) 
-            print(f"\nInternal error occurred: {e}")
+            print(f"\nI'm unable to unrestand your request: {e}")
             traceback.print_exc()
             if error.lower().index('error code:') >= 0 and error.lower().index('400') >= 0:
                 error = "Could not process your request, let's try again, what's your ask?"
                 return { 'answer': 'intermediate', 'result': error }
-            return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
+            return { 'answer': 'intermediate', 'result': f"\nCould not process your request, let's try again, what's your ask?" }
             
 
     def cloud_groq_call(self, user_prompt):
@@ -287,18 +290,18 @@ class DataQueryAIAssistent(AbstractAgent):
                     return { 'answer': 'intermediate', 'result': content }
 
         except RateLimitError as e:
-            print(f"\nInternal error occurred: {e}")
+            print(f"\nI'm unable to unrestand your request: {e}")
             return { 'answer': 'final', 'result': 'AI agent today\'s API call limit reached' }
         
         except BadRequestError as e:
-                print(f"\nInternal error occurred: {e}")
+                print(f"\nI'm unable to unrestand your request: {e}")
                 error = "Could not process your request, let's try again, what's your ask?"
                 return { 'answer': 'final', 'result': error }
         
         except Exception as e:
             error = str(e) 
-            print(f"\nInternal error occurred: {e}")
-            return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
+            print(f"\nI'm unable to unrestand your request: {e}")
+            return { 'answer': 'intermediate', 'result': f"\nCould not process your request, let's try again, what's your ask?" }
 
 
     def call_pipeline_agent(self, message):

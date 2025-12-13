@@ -60,18 +60,18 @@ class PipelineAIAssistent(AbstractAgent):
                 return { 'answer': 'final', 'result': pipeline_content }
 
         except RateLimitError as e:
-            print(f"\nInternal error occurred: {str(e)}")
+            print(f"\nI'm unable to unrestand your request: {str(e)}")
             return { 'answer': 'final', 'result': 'AI agent today\'s API call limit reached' }
         
         except BadRequestError as e:
-                print(f"\nInternal error occurred: {str(e)}")
+                print(f"\nI'm unable to unrestand your request: {str(e)}")
                 error = "Could not process your request, let's try again, what's your ask?"
                 return { 'answer': 'final', 'result': error }
         
         except Exception as e:
             error = str(e) 
-            print(f"\nInternal error occurred: {error}")
-            return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {error}" }
+            print(f"\nI'm unable to unrestand your request: {error}")
+            return { 'answer': 'intermediate', 'result': f"\nCould not process your request, let's try again, what's your ask? {error}" }
             
 
     def call_data_query_agent(self, message):
