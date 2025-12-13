@@ -16,7 +16,7 @@ OBJ_EXAMPLE = """
 """
 
 # In the SYSTEM_PROMPT it's Represented by {2}
-OBJ_EXAMPLE1 = '{ "data": { template:"kafka+sasl" } }'
+OBJ_EXAMPLE1 = '{ "data": { template:"kafka_tmpl_sasl" } }'
 
 # In the SYSTEM_PROMPT it's Represented by {3}
 IN_CASE_OF_DATAQUERY_PROMPT = """
@@ -28,6 +28,36 @@ IN_CASE_OF_DATAQUERY_PROMPT = """
 SECRET_USAGE = """
 - **If you're asked to use/take/consider a secret/connection for one of the nodes, you'll also be provided with such map of secrets which is splitted into db and api
   the prompt need to tell you which secret and type (db/Database or api/API) to use, in case it does not happen you'll ask the user back which secret to use.**
+"""
+
+# In the SYSTEM_PROMPT it's Represented by {5}
+NODE_SETTINGS = """
+- **Different node types have different set of fields which you might provided in the format { "data": { "fieldName": "value" } } in case user prompt specified, node fields are as follow:**
+    - DLTCode:
+        - fields: 
+            - template:
+                - kafka -> kafka_tmpl
+                - kafka +/with/and sasl -> kafka_tmpl_sasl
+                - mongo +/with/and sasl -> mongo_tmpl
+            - secret: name should came from the list of secret/connection in the db section
+
+    - DuckDBOutput: 
+        - fields:
+            - database: if provided will be a string
+            - dbname: you'll rename to database
+            - databasename/database name: you'll rename to database
+            - table: you'll rename to table
+        
+    - Bucket: 
+        - fields:
+            - bucketFileSource: if provided will be a string
+            - bucketUrl: if provided will be a string
+            - filePattern: if provided will be a string
+        
+    - Transformation:
+        - fields:
+            - numberOfRows: provided by the user. you'll convert to integer even if string is provided
+            - numberOfTransformations: same as numberOfRows
 """
 
 SYSTEM_PROMPT = """
@@ -52,9 +82,7 @@ The first node will always be the start, and then it’ll be the Data Source, if
 
 IF PIPELINE NODES ARE NOT SPECIFIED YOU SHOULD ASK BACK ABOUT WHAT KIND OF PIPELINE AND SHOW A SMALL LIST OF OPTIONS.
 
-If no transformation is needed and/or referenced in the user prompt, then after Data Source will be the Output.
-
-If no transformation is needed and/or referenced in the user prompt, you’ll not put it in the {0}.
+If no transformation is needed and/or referenced in the user prompt, you’ll not put it in the {0} and Data Source will be the Output.
 
 The Input/Data Source will be as follow:
 - SqlDBComponent: If Data is coming/sourced/fetched from any SQL Database such as Oracle, MySQL/MariaDB, Postgres or MSSQL/SQL Server
@@ -63,29 +91,19 @@ The Input/Data Source will be as follow:
 
 - InputAPI: If Data is coming/sourced/fetched from API or Service
 
-- DLTCode: If it’s not evident that it’s SqlDBComponent or Bucket or InputAPI
+- DLTCode: If it’s not clear to be SqlDBComponent or Bucket or InputAPI
 
 The Output/Data write/Data dump will be as follow:
 - DatabaseOutput: If the it’s Oracle, MySQL/MariaDB, Postgres or MSSQL/SQL Server
 - DuckDB: If it’s not clear to be DatabaseOutput
 
-Your response will be a {0} containing the the different steps ordered numerically which might have the Node name, and an additional data field with additional Node params, format should be as following:
+Your response will be a {0} containing the the different steps ordered numerically which might have the Node name, and an additional data field with additional Node params following the bellow format:
 
 {1}
 
 - For every new pipeline creation request if the user prompt didn't specify a connection name then you won’t add/consider/use it.
 
-- If the Source node is DLTCode, and Data is fetched to Kafka, it should reference the code template as Kafka with the format DLTCode: {2}.
-
-- IMPORTANT: If the user prompts will result in any changes in the previous {0} you've answered with, you'll put the thisNodeChange field in the changed/added/delete nodes as follow: 
-
-    - When new node added to the {0} then such node will assign thisNodeChange with "added" for such node
-
-    - When node is being removed, it will stay in the {0} with random key non numeric, and thisNodeChange will be assigned with "removed"
-
-    - If an existing node in the {0} is being chenged thisNodeChange will be assigned with "updated"
-
-    - If an existing node in the {0} is being replaced thisNodeChange will be assigned with "replaced"
+- For Kafka/Mongo the node type will be DLTCode.
 
 - For Database field in data, only the know database names are valid to be assigned.
 
