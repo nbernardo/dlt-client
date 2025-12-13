@@ -3,6 +3,7 @@ export const BOT = { lastUserMessage: null };
 window._WorkspaceBOT_ = {};
 window._WorkspaceBOT_.getLastUserPrompt = () =>  BOT.lastUserMessage;
 
+export const whatAboutData = 'What do you want about the data?';
 export const unkwonRequest = `I didn't understand your request, can you be more clear?`;
 export const ifExistingFlowUseIt = `if-existing-flow-use-it`;
 export const dontFollowAgentFlow = `dont-follow-agent-flow`;
@@ -15,6 +16,7 @@ const bringMeRequest = '(get me the|get me the list of|get|bring me|fetch|fetch 
 const showMeRequest = '(show|show me|list|display|what|whats|which|tell me what|tell me whats|tell me which)';
 
 export const dontFollow = { transform: 'transformation' }
+export const agentOptions = { pipeline: `'it-is-pipeline-flow'`, dataQuery: `'it-is-data_query-flow'` }
 
 export const secretAsk0 = '[*] (the secrets|the secret|the connection|the connections|the available secrets|the available secret|the available connection|the available connections) [*]';
 export const secretAsk1 = `[*] [${bringMeRequest}] [*] (secret|secrets|connection|connectios) [*]`;
@@ -43,10 +45,8 @@ export const dataQueryPrompt2 = `[*] ${bringMeRequest} [*] (tables|table|from) [
 export const dataQueryPrompt3 = `[*] ${showMeRequest} [*] (data|records|table item|items) [*]`;
 export const dataQueryPrompt4 = `[*] [${showMeRequest}] [*] (data|database|db) [*] (table|tables|items) [*]`;
 
-export const agentOptions = { pipeline: `'it-is-pipeline-flow'`, dataQuery: `'it-is-data_query-flow'` }
-
 export const pipelineFlowMessage = `Let's go for pipeline flow. ${agentOptions.pipeline}`;
-export const dataQueryFlowMessage = `Whats do you want about the data? ${agentOptions.dataQuery}`;
+export const dataQueryFlowMessage = `${whatAboutData} ${agentOptions.dataQuery}`;
 
 
 export const content = `

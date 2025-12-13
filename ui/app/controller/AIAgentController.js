@@ -16,6 +16,7 @@ export class AIAgentController extends BaseController {
     secretsData = { 'api': null, 'db': '' };
     lastUserMessage = null;
     preRoutePrefix = { data: '__pre-routed-for-data-query__\n', pipeline: '__pre-routed-for-pipeline__\n' };
+    flowPrefix = { data: 'data-query', pipeline: 'pipeline' };
 
     /** @returns { AIAgentController } */
     static instance = () => AIAgentController.get()
@@ -28,8 +29,8 @@ export class AIAgentController extends BaseController {
     initAgentFLowMessage(flowName){
         const message = 'Great, what do you want about'
         const flowMessage = {
-            'pipeline': message+ ' Pipeline?',
-            'data-query': message+ ' Data query?'
+            [this.flowPrefix.pipeline]: message+ ' Pipeline?',
+            [this.flowPrefix.data]: message+ ' Data query?'
         };
         return flowMessage[flowName];
     }
@@ -99,11 +100,11 @@ export class AIAgentController extends BaseController {
         if(botResponse.includes(ifExistingFlowUseIt) && this.getActiveFlow() != null){
             // continue with the active flow
         }else{
-            if (botResponse.includes(agentOptions.pipeline) && this.getActiveFlow() != 'pipeline')
-                this.setAgentFlow('pipeline');
+            if (botResponse.includes(agentOptions.pipeline) && this.getActiveFlow() != this.flowPrefix.pipeline)
+                this.setAgentFlow(this.flowPrefix.pipeline);
                 
-            if(botResponse.includes(agentOptions.dataQuery) && this.getActiveFlow() != 'data-query')
-                this.setAgentFlow('data-query');
+            if(botResponse.includes(agentOptions.dataQuery) && this.getActiveFlow() != this.flowPrefix.data)
+                this.setAgentFlow(this.flowPrefix.data);
         }
 
         // Cleans up the AI Agent flow type if present
@@ -120,12 +121,12 @@ export class AIAgentController extends BaseController {
         let botResponse = ''
         if(userPrompt.trim().search(/data[\s\-]{0,}query\s{0,}\:|query[\s\-]{0,}data\s{0,}\:|DQ\{0,}\s:/i) == 0){
             userPrompt = this.preRoutePrefix.data + userPrompt;
-            this.setAgentFlow('data-query')
+            this.setAgentFlow(this.flowPrefix.data);
         }
 
         if(userPrompt.trim().search(/pipeline\s{0,}\:|pline\s{0,}\:|pl\{0,}\s:/i) == 0){
             userPrompt = this.preRoutePrefix.pipeline + userPrompt;
-            this.setAgentFlow('pipeline');
+            this.setAgentFlow(this.flowPrefix.pipeline);
         }
 
         const isSecrets = userPrompt.search(/secrets|secret|connection/), isUseSecret = userPrompt.search(/use|used|using/);
@@ -188,8 +189,8 @@ export class AIAgentController extends BaseController {
     /** @param {AIAgent} self */
     setupBotSubRoutine(self){
 
-        self.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow('data-query'));
-        self.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow('pipeline'));
+        self.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow(this.flowPrefix.data));
+        self.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow(this.flowPrefix.pipeline));
         self.botInstance.setSubroutine('setDontFollowAgent', (_, args) => self.dontFollowAgentFlag = args[0]);
         
         self.botInstance.setSubroutine('showSerets', (_, args) => {

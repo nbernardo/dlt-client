@@ -5,7 +5,7 @@ import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { aiStartOptions, BOT, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt } from "./chatbotbrain/main.js";
+import { agentOptions, aiStartOptions, BOT, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt, whatAboutData } from "./chatbotbrain/main.js";
 
 export class AIAgent extends ViewComponent {
 
@@ -128,12 +128,13 @@ export class AIAgent extends ViewComponent {
 	
 				if(useSecretPrompt){ /** continue */ }
 				else if((cannotContinue && isFlowNotSet) || botFunctionCall){
+					const content = botFunctionCall ? this.controller.loadingContent() : botResponse;
 					if(!(stickToPrevFlow && this.controller.getActiveFlow() != null))
-						return this.createMessageBubble(botResponse, 'agent', 'DLT Workspace');
+						return this.createMessageBubble(content, 'agent', 'DLT Workspace');
 				}
 			}
 
-			message = this.augmentAgentKnowledge(botResponse, message);
+			message = this.augmentAgentPerception(botResponse, message);
 			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
 				this.startNewAgent(true); /** This will retry to connect with the Agent Backend */
@@ -176,11 +177,17 @@ export class AIAgent extends ViewComponent {
 		}
 	}
 
-	augmentAgentKnowledge(botResponse, message){
-		if(botResponse.includes(usingSecretPrompt)){
+	augmentAgentPerception(botAnswer, message){
+
+		const useDbSchema = message.search(/db\s{0,}schema|schema/i);
+		const dataFlow = botAnswer.includes(agentOptions.dataQuery) || botAnswer.includes(whatAboutData);
+
+		if(dataFlow && !(useDbSchema >= 0)){
+			message = 'Get from DB Schema\n' + message;
+		}
+
+		if(botAnswer.includes(usingSecretPrompt)){
 			const augmentedRequest = `ROUTE(pipeline-agent)\n\nYOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
-			console.log(`THIS IS THE REQUEST CONTENT`);
-			console.log(augmentedRequest);
 			return augmentedRequest.replace(usingSecretPrompt, '');
 		}
 		return message;
@@ -200,9 +207,9 @@ export class AIAgent extends ViewComponent {
 	}
 
 	async sendAIAgentMessage(message){
-		if(this.controller.getActiveFlow() === 'data-query')
+		if(this.controller.getActiveFlow() === this.controller.flowPrefix.data)
 			return WorkspaceService.sendDataQueryAgentMessage(message);
-		if(this.controller.getActiveFlow() === 'pipeline')
+		if(this.controller.getActiveFlow() === this.controller.flowPrefix.pipeline)
 			return WorkspaceService.sendPipelineAgentMessage(message);
 	}
 
