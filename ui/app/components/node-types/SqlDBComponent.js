@@ -65,9 +65,7 @@ export class SqlDBComponent extends ViewComponent {
 	 * will be passed
 	 * */
 	stOnRender(data){		
-		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName, aiGenerated } = data;
-		console.log(`THE DATA GOT FOR SQL: `, data);
-		
+		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName, aiGenerated } = data;		
 		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
