@@ -26,6 +26,8 @@ export class Transformation extends ViewComponent {
 	/** @Prop */ confirmModification = false;
 	/** @Prop */ sourceNode = null;
 	/** @Prop */ dataSourceType = null;
+	/** @Prop */ aiGenerated;
+	/** @Prop */ importFields;
 
 	/** This will hold all applied transformations
 	 * @Prop @type { Map<TransformRow> } */
@@ -50,12 +52,18 @@ export class Transformation extends ViewComponent {
 
 	/** @type { Workspace } */ $parent;
 
-	stOnRender({ nodeId, isImport }) {
+	stOnRender(data) {
+		const { 
+			nodeId, isImport, aiGenerated, row, rows, 
+			numberOfRows, numberOfTransformations, rowCount, rowsCount 
+		} = data;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
-		if (isImport === true) {
-			this.showLoading = true;
-		}
+		if (isImport === true) this.showLoading = true;
+		this.aiGenerated = aiGenerated
+		console.log(`THIS IS THE IMPORTED TRANSF: `, data);
+		
+		this.importFields = { row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount };
 	}
 
 	async stAfterInit() {
@@ -68,6 +76,22 @@ export class Transformation extends ViewComponent {
 			this.showLoading = false;
 			return
 		}
+
+		if(this.aiGenerated){
+
+			let totalRows = this.importFields.numberOfRows;
+			if(this.importFields.row) totalRows = this.importFields.row;
+			if(this.importFields.rows) totalRows = this.importFields.rows;
+			if(this.importFields.nRows) totalRows = this.importFields.nRows;
+			if(this.importFields.rowCount) totalRows = this.importFields.rowCount;
+			if(this.importFields.rowsCount) totalRows = this.importFields.rowsCount;
+
+			if(!Number.isNaN(totalRows)){
+				const length = Number(totalRows) - 1;
+				Array.from({ length }, (_, v) => v).forEach(async () => await this.addNewField());				
+			}
+		}
+
 		if (this.showLoading === true) this.showLoading = true;
 		await this.addNewField();
 

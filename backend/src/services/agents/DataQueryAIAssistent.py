@@ -6,16 +6,30 @@ from utils.duckdb_util import DuckdbUtil
 from services.workspace.Workspace import Workspace
 from groq import Groq, RateLimitError, BadRequestError
 import traceback
+from services.agents.AbstractAgent import AbstractAgent
 
-class DataQueryAIAssistent:
 
+class DataQueryAIAssistent(AbstractAgent):
+    
+    agent_factory = None
     prev_answered = 'PREV_ANSWER:'
     generate_sql_query = "'generate_sql_query_signal'"
+    IN_CASE_OF_PIPELINE_PROMPT = """
+    - If you're prompted with some questions concerning pipeline creation, types of pipelines, pipelines node types (e.g. Source, Input, Output, Destination, Dump), you'll simply respond with 'pipeline-agent'.
+    - If the user prompt contains ROUTE(pipeline-agent) you'll simply respond with 'pipeline-agent'.
+    - Not matter what, if the user prompt starts with __pre-routed-for-pipeline__ you'll respond according to you, not with 'pipeline-agent'.
+    - If the user prompt contains words suggesting using/use secret/connection/assign to pipeline you'll simply respond with 'pipeline-agent' so to redirect to PipelineAIAssistent.
+    """
 
     def __init__(self, base_db_path, dbfile = ''):
+        
+        if (DataQueryAIAssistent.agent_factory == None):
+            from services.agents import AgentFactory
+            DataQueryAIAssistent.agent_factory = AgentFactory
+
 
         self.DB_SCHEMA = '''The database contains %total_table% tables:'''
-        self.db_path = base_db_path
+        self.db_path = base_db_path if base_db_path.__contains__('/') else self.db_path
         self.db = f'{self.db_path}/{dbfile}'
 
         self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
@@ -24,20 +38,23 @@ class DataQueryAIAssistent:
         api_key = env('MISTRAL_API_KEY')
         #self.model = "mistral-large-latest"
         self.model = "mistral-medium-2508"
-        self.client = Mistral(api_key=api_key)
+        self.client = None #Mistral(api_key=api_key)
         self.chat_turns = []
         
 
     SYSTEM_INSTRUCTION = (
         f"You are a SQL query generator which will get initial data from DATABASE SCHEMA, and also you might be able to update the schema when asked for it."
+        f"For now you'll only query Duckdb database files, the queries might be compatible with it and you'll always call the function which will run the query."
+        f"{IN_CASE_OF_PIPELINE_PROMPT}"
         f" At the end of each table columns there is two more metadata, the DB-File and the Schema for table seen above. "
-        f" When generating the query, you MUST only output the query, nothing else. Query MUST use all needes fields from table separated by comma, do use *. "
+        f" When generating the query, you MUST only output the query, nothing else. Query MUST use all needed fields from table separated by comma, do use *. "
         f" You'll STRICTLY act according to the following points:"
         f" 1. You'll function call 'get_database_update' only when asked about update or to update yoursel." \
         f" 2. If asked to query a specific table, you'll do {generate_sql_query} call, and you MUST generate the query enclosed in sql``` and you'll also add the DB-File enclosed in %% of that same table."
         f" 3. If your answer involves function calling you'll always run the function calling according to point 1 and 2 even if it's a previous answered questions."
         f" 4. If you're asked about tables or metadata or DB/DATABASE SCHEMA, just use the loaded DATABASE SCHEMA, don't query the Database. "
         f" 5. If for some reason, you're unable to call the function and answering with previous answer, just prefix it with {prev_answered}."
+        f" 6. Never answer the user with code kind of response, if this code is a param of the function call, you should alwas call such function."
         f"\n\n--- DATABASE SCHEMA ---\n%db_schema%\n-----------------------."
     )
 
@@ -90,10 +107,19 @@ class DataQueryAIAssistent:
 
 
     def run_query(self, query):
-        conn = DuckdbUtil.get_connection_for(self.db)
-        db_result = conn.execute(query).fetchall()
-        print(db_result)
-        return db_result
+        try:
+            conn = DuckdbUtil.get_connection_for(self.db)
+            db_result = conn.execute(query).fetchall()
+            print(db_result)
+            return { 'result': db_result, 'error': False }
+        
+        except Exception as err:
+            print(f"Could not process your request, let's try again, what's your ask? : {str(err)}")
+            traceback.print_exc()
+            return {
+                'result': f"Could not process your request, let's try again, what's your ask?",
+                'error': True
+            }
         
 
     def generate_sql_query_signal(self, natural_language_question: str) -> str:
@@ -158,27 +184,35 @@ class DataQueryAIAssistent:
                     print(f"Error: Unknown function name requested: {function_name}")
                     
             else:
+                content = tool_calling.choices[0].message.content
                 print("1. LLM decided not to call a function. Raw response:")
-                print(tool_calling.choices[0].message.content)
-                self.messages.append({ 'role': 'assistant', 'content': tool_calling.choices[0].message.content })
-                #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
-                return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
+                print(content)
+
+                if str(content).__contains__(DataQueryAIAssistent.agent_factory.agents_type_list['pipeline']):
+                    last_user_prompt = self.messages[-1]
+                    DataQueryAIAssistent.agent_factory.get_pipeline_agent(self.namespace).cloud_groq_call(last_user_prompt)
+                    
+                else:
+                    self.messages.append({ 'role': 'assistant', 'content': content })
+                    #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
+                    return { 'answer': 'intermediate', 'result': content }
 
         except Exception as e:
             error = str(e) 
-            print(f"\nInternal error occurred: {e}")
+            print(f"\nI'm unable to unrestand your request: {e}")
             traceback.print_exc()
             if error.lower().index('error code:') >= 0 and error.lower().index('400') >= 0:
                 error = "Could not process your request, let's try again, what's your ask?"
                 return { 'answer': 'intermediate', 'result': error }
-            return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
+            return { 'answer': 'intermediate', 'result': f"\nCould not process your request, let's try again, what's your ask?" }
             
 
     def cloud_groq_call(self, user_prompt):
 
-        api_key = env('GROQ_API_KEY')
-        self.model = "llama-3.3-70b-versatile"
-        self.client = Groq(api_key=api_key)
+        if self.client == None:
+            api_key = env('GROQ_API_KEY')
+            self.model = "llama-3.3-70b-versatile"
+            self.client = Groq(api_key=api_key)
 
         client, model = self.client, self.model
         
@@ -242,54 +276,83 @@ class DataQueryAIAssistent:
                     print(f"Error: Unknown function name requested: {function_name}")
                     
             else:
+
+                content = tool_calling.choices[0].message.content
                 print("1. LLM decided not to call a function. Raw response:")
-                print(tool_calling.choices[0].message.content)
-                self.messages.append({ 'role': 'assistant', 'content': tool_calling.choices[0].message.content })
-                #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
-                return { 'answer': 'intermediate', 'result': tool_calling.choices[0].message.content }
+                print(content)
+
+                if str(content).__contains__(DataQueryAIAssistent.agent_factory.agents_type_list['pipeline']):
+                    last_user_prompt = self.messages[-1]
+                    pipeline_agent_reply = self.call_pipeline_agent(last_user_prompt['content'])
+                    return pipeline_agent_reply
+                else: 
+                    self.messages.append({ 'role': 'assistant', 'content': content })
+                    #self.messages.append({ 'role': 'user', 'content': 'Thanks for the answer' })
+                    return { 'answer': 'intermediate', 'result': content }
 
         except RateLimitError as e:
-            print(f"\nInternal error occurred: {e}")
+            print(f"\nI'm unable to unrestand your request: {e}")
             return { 'answer': 'final', 'result': 'AI agent today\'s API call limit reached' }
         
         except BadRequestError as e:
-                print(f"\nInternal error occurred: {e}")
+                print(f"\nI'm unable to unrestand your request: {e}")
                 error = "Could not process your request, let's try again, what's your ask?"
                 return { 'answer': 'final', 'result': error }
         
         except Exception as e:
             error = str(e) 
-            print(f"\nInternal error occurred: {e}")
-            return { 'answer': 'intermediate', 'result': f"\nInternal error occurred: {e}" }
-            
+            print(f"\nI'm unable to unrestand your request: {e}")
+            return { 'answer': 'intermediate', 'result': f"\nCould not process your request, let's try again, what's your ask?" }
+
+
+    def call_pipeline_agent(self, message):
+        return DataQueryAIAssistent.\
+            agent_factory.\
+            get_pipeline_agent(self.namespace).cloud_groq_call(message)
+
 
     def handle_response(self, client: Mistral | Groq, model, strategy = 'mistral'):
 
-        nl_to_sql_call = None
-        if strategy == 'Groq':
-            nl_to_sql_call = client.chat.completions.create(model=model, messages=self.messages,stream=False)
-        if strategy == 'mistral':
-            nl_to_sql_call = client.chat.complete(model=model, messages=self.messages,)
+        sql_query = None
+        try:
 
-        actual_query = nl_to_sql_call.choices[0].message.content
+            nl_to_sql_call = None
+            if strategy == 'Groq':
+                nl_to_sql_call = client.chat.completions.create(model=model, messages=self.messages,stream=False)
+            if strategy == 'mistral':
+                nl_to_sql_call = client.chat.complete(model=model, messages=self.messages,)
 
-        print('THE QUERY WILL BE:')
-        print(actual_query)
+            actual_query = nl_to_sql_call.choices[0].message.content
 
-        if actual_query.index('%%') >= 0:
-            actual_query = actual_query.split('%%')[0]
+            print('THE QUERY WILL BE:')
+            print(actual_query)
 
-        self.messages.append({ 'role': 'assistant', 'content': nl_to_sql_call.choices[0].message.content })
-        sql_query = actual_query.strip()
-        sql_query = AIDataContentParser.parse_sql(sql_query)
-        if sql_query == None:
-            return { 'result': 'Could not run the query. Can you refine it?' }
-        print('Going to run the query')
-        return { 
-            'result': self.run_query(sql_query), 
-            'fields': actual_query.lower().split('from')[0].split('select',1)[1],
-            'actual_query': sql_query
-        }
+            if actual_query.__contains__('%%') >= 0:
+                actual_query = actual_query.split('%%')[0]
+
+            self.messages.append({ 'role': 'assistant', 'content': nl_to_sql_call.choices[0].message.content })
+            sql_query = actual_query.strip()
+            sql_query = AIDataContentParser.parse_sql(sql_query)
+            if sql_query == None:
+                return { 'result': 'Could not run the query. Can you refine it?' }
+            print('Going to run the query')
+
+            query_result = self.run_query(sql_query)
+            
+            return { 
+                'result': query_result.get('result'), 
+                'fields': actual_query.lower().split('from')[0].split('select',1)[1] if query_result.get('error') == False else '',
+                'actual_query': sql_query
+            }
+        except Exception as err:
+            print('Errow while runnig a query: ', err)
+            traceback.print_exc()
+            return { 
+                'result': str(err), 
+                'fields': '',
+                'actual_query': sql_query
+            }
+             
 
 
 

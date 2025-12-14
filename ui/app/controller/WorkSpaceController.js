@@ -7,6 +7,7 @@ import { AIAgent } from "../components/agent/AIAgent.js";
 import { CatalogForm } from "../components/catalog/CatalogForm.js";
 import { LeftTabs } from "../components/navigation/left/LeftTabs.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
+import { Transformation } from "../components/node-types/Transformation.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { CodeEditorUtil } from "../util/CodeEditorUtil.js";
@@ -106,6 +107,8 @@ export class WorkSpaceController extends BaseController {
         this.editor.nodeId = 1;
         this.pipelineDestinationTrace = { sql: {}, duckdb: {} }
         this.nodeIdToComponentIdMap = {}
+        this.drawnNodeList = [];
+        this.drawnNodes = 0;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */
@@ -217,6 +220,59 @@ export class WorkSpaceController extends BaseController {
         const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false, template }, parentId);
         this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
 
+    }
+
+    drawnNodes = 0;
+    drawnNodeList = [];
+    currentNodePositionX;
+    prevAiDrawnNode;
+    drawnStartNode 
+
+    async createNode(type, data){
+
+        const add = this.drawnNodes > 1 ? 10 : 0;
+        const addToNodePosx = this.prevAiDrawnNode == Transformation.name ? 1.15 : 0;
+        const pos_x = (307 * ((this.drawnNodes++) + addToNodePosx)) + add, pos_y = (183);
+        const nodeId = this.getNodeId();
+        this.prevAiDrawnNode = type;
+
+        if(type === NodeTypeEnum.START){
+            let source = false, dest = true;
+            this.addStartOrEndNode(type, source, dest, pos_x, pos_y);
+            this.edgeTypeAdded[NodeTypeEnum.START] = nodeId;
+        }else{
+            const parentId = this.wSpaceComponent.cmpInternalId;
+            const { template: tmpl, component } = await Components.new(type, { ...data, aiGenerated: true, nodeId }, parentId);
+            this.currentNodePositionX = pos_x;
+            await this.handleAddNode(component, nodeId, type, pos_x, pos_y, tmpl);
+        }
+        this.drawnNodeList.push(nodeId);
+
+    }
+
+    async linkAgentCreatedNodes(totalNodes){
+
+        const pos_x = 100, pos_y = 40;
+        this.addStartOrEndNode(NodeTypeEnum.START, false, true, pos_x, pos_y);
+        this.edgeTypeAdded[NodeTypeEnum.START] = totalNodes + 1;
+
+        let currentNode = this.drawnNodeList.shift();
+        this.editor.addConnection((totalNodes + 1), currentNode, 'output_1', 'input_1');
+
+        let nextNode = this.drawnNodeList[0];
+        this.editor.addConnection(currentNode, nextNode, 'output_1', 'input_1');
+
+        while(this.drawnNodeList.length){
+            currentNode = this.drawnNodeList.shift();
+            nextNode = this.drawnNodeList[0];
+            this.editor.addConnection(currentNode, nextNode, 'output_1', 'input_1');
+        }
+        
+    }
+
+    /** @returns { WorkSpaceController } */
+    static instance(){
+        return WorkSpaceController.get();
     }
 
     async processImportingNodes(nodeData) {

@@ -224,10 +224,11 @@
             </div>
 
             <div class="content-panel content-ai">
-                <h3>AI assistant <br>Sample Prompts</h3>
+                <h3>AI Sample Prompts</h3>
 
-                <div class="small-blue-menu-list-wrapper">
-                    <ol class="tiny-menu">
+                <div class="small-blue-menu-list-wrapper" style="display: flex;flex-direction: column;">
+                    <div style="text-align: center;">Data Query Agent</div>
+                    <ol class="tiny-menu" style="margin-left: 3px;">
                         <li class="tiny-menu-item">
                             <div class="dots-container">
                                 <span class="dots-icon" onclick="component.togglePromptPopup(this)" fill="currentColor">
@@ -274,6 +275,118 @@
                                 <div
                                 onclick="component.togglePromptPopup(this, true)" 
                                 class="tiny-content">What are the fields in the 'schema_name.table_name'</div>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div id="@uniqPromptMenuId" class="popup popup-list-popup" 
+                            style="width: 7rem;border: 1px solid; background: white; color: black;">
+                        <ul>
+                            <li onclick="component.pasteToAgent()">Use in the agent</li>
+                            <li onclick="component.pasteToCBoard()">Copy</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="small-blue-menu-list-wrapper" style="display: flex;flex-direction: column; margin-top: 20px;">
+                    <div style="text-align: center;">Pipeline Agent</div>
+                    <ol class="tiny-menu" style="margin-left: 3px;">
+                        <li class="tiny-menu-item">
+                            <div class="dots-container">
+                                <span class="dots-icon" onclick="component.togglePromptPopup(this)" fill="currentColor">
+                                    <img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+                                </span>
+                            </div>
+                            <div class="tiny-container">
+                                <div 
+                                    onclick="component.togglePromptPopup(this, true)"
+                                    class="tiny-content">Create a pipeline that pulls from Kafka and dumps to SQL Server</div>
+                            </div>
+                        </li>
+                        <li class="tiny-menu-item">
+                            <div class="dots-container">
+                                <span class="dots-icon" onclick="component.togglePromptPopup(this)" fill="currentColor">
+                                    <img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+                                </span>
+                            </div>
+                            <div class="tiny-container">
+                                <div 
+                                onclick="component.togglePromptPopup(this, true)"
+                                class="tiny-content">What kind of pipelines can I create?</div>
+                            </div>
+                        </li>
+                        <li class="tiny-menu-item">
+                            <div class="dots-container">
+                                <span class="dots-icon" onclick="component.togglePromptPopup(this)" fill="currentColor">
+                                    <img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+                                </span>
+                            </div>
+                            <div class="tiny-container">
+                                <div
+                                onclick="component.togglePromptPopup(this, true)" 
+                                class="tiny-content">Create a pipeline to pull from Oracle, transformation data and writes to Postgres</div>
+                            </div>
+                        </li>
+                        <li class="tiny-menu-item">
+                            <div class="dots-container">
+                                <span class="dots-icon" onclick="component.togglePromptPopup(this)" fill="currentColor">
+                                    <img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+                                </span>
+                            </div>
+                            <div class="tiny-container">
+                                <div
+                                onclick="component.togglePromptPopup(this, true)" 
+                                class="tiny-content">What kind of sources and destinations are supported for pipeline creation so far?</div>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div id="@uniqPromptMenuId" class="popup popup-list-popup" 
+                            style="width: 7rem;border: 1px solid; background: white; color: black;">
+                        <ul>
+                            <li onclick="component.pasteToAgent()">Use in the agent</li>
+                            <li onclick="component.pasteToCBoard()">Copy</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="small-blue-menu-list-wrapper" style="display: flex;flex-direction: column; margin-top: 20px;">
+                    <div style="text-align: center;">Environment Bot (v1)</div>
+                    <ol class="tiny-menu" style="margin-left: 3px;">
+                        <li class="tiny-menu-item">
+                            <div class="dots-container">
+                                <span class="dots-icon" onclick="component.togglePromptPopup(this)" fill="currentColor">
+                                    <img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+                                </span>
+                            </div>
+                            <div class="tiny-container">
+                                <div 
+                                    onclick="component.togglePromptPopup(this, true)"
+                                    class="tiny-content">Show me the secrets I have configured</div>
+                            </div>
+                        </li>
+                        <li class="tiny-menu-item">
+                            <div class="dots-container">
+                                <span class="dots-icon" onclick="component.togglePromptPopup(this)" fill="currentColor">
+                                    <img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+                                </span>
+                            </div>
+                            <div class="tiny-container">
+                                <div 
+                                onclick="component.togglePromptPopup(this, true)"
+                                class="tiny-content">Display configured API secrets</div>
+                            </div>
+                        </li>
+                        <li class="tiny-menu-item">
+                            <div class="dots-container">
+                                <span class="dots-icon" onclick="component.togglePromptPopup(this)" fill="currentColor">
+                                    <img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+                                </span>
+                            </div>
+                            <div class="tiny-container">
+                                <div
+                                onclick="component.togglePromptPopup(this, true)" 
+                                class="tiny-content">Get Database secrets</div>
                             </div>
                         </li>
                     </ol>

@@ -267,13 +267,28 @@ export class WorkspaceService extends BaseService {
         return null;
     }
 
-    /** @returns { { result: { result, fields, actual_query, db_file } } } */
-    static async sendAgentMessage(message) {
+    /** @returns { { result: { result } } } */
+    static async sendDataQueryAgentMessage(message) {
 
         const namespace = StillAppSetup.config.get('anonymousLogin')
             ? UserUtil.email : await UserService.getNamespace();
 
         const url = '/workcpace/agent/' + namespace;
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ message }), {
+            headers: { 'content-type': 'Application/json' }
+        });
+        if (response.ok && !response.error)
+            return await response.json();
+        return null;
+    }
+
+    /** @returns { { result: { result } } } */
+    static async sendPipelineAgentMessage(message) {
+
+        const namespace = StillAppSetup.config.get('anonymousLogin')
+            ? UserUtil.email : await UserService.getNamespace();
+
+        const url = '/pipeline/agent/' + namespace;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ message }), {
             headers: { 'content-type': 'Application/json' }
         });
@@ -355,35 +370,39 @@ export class WorkspaceService extends BaseService {
     }
 
 
-    /** @returns { Array<string> } */
+    /** @returns { Array<string> | {} } */
     static async listSecrets(type, cb = () => {}) {
-
+        
         const namespace = await UserService.getNamespace();
-        const url = '/secret/' + namespace;
+        const url = '/secret/' + namespace, allSecrets = {};
         const response = await $still.HTTPClient.get(url);
+
         if (response.ok && !response.error){
 
             const secretList = (await response.json()).result;
             let secretAndServerList;
 
-            if(type == 2 && Array.isArray(secretList?.api_secrets))
-				secretAndServerList = secretList.api_secrets.map(secret => {
-                return { 
-                    name: secret, 
-                    host: secretList.metadata[secret].host, 
-                    totalEndpoints: secretList.metadata[secret].totalEndpoints 
-                }
-            })
+            if((type == 2 || type == 'all') && Array.isArray(secretList?.api_secrets)){
+				secretAndServerList = secretList.api_secrets.map(secret => 
+                    ({ 
+                        name: secret, host: secretList.metadata[secret].host, 
+                        totalEndpoints: secretList.metadata[secret].totalEndpoints 
+                    })
+                );
+                if(type == 'all') allSecrets['api'] = secretAndServerList;
+            }
             
-            if(type == 1 && Array.isArray(secretList?.db_secrets)){
+            if((type == 1 || type == 'all') && Array.isArray(secretList?.db_secrets)){
                 const secretNames = [];
 				secretAndServerList = secretList.db_secrets.map(secret => {
                     if(!secretList.metadata[secret]) secretNames.push(secret);
                     return { name: secret, host: secretList.metadata[secret] || 'None' };
                 });
                 cb({dbSecrets: secretAndServerList, secretNames});
+                if(type == 'all') allSecrets['db'] = secretAndServerList;
             }
 			
+            if(Object.keys(allSecrets).length > 0) return allSecrets;
             return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
 
         } else {

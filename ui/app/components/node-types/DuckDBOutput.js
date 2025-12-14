@@ -1,12 +1,16 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 
+/** @implements { NodeTypeInterface } */
 export class DuckDBOutput extends ViewComponent {
 
 	isPublic = true;
 
-	/** @Prop */
-	nodeId;
+	/** @Prop */ nodeId;
+	/** @Prop */ aiGenerated;
+	/** @Prop */ aiGenerated;
+	/** @Prop */ importFields;
 
 	database;
 	tableName;
@@ -35,9 +39,13 @@ export class DuckDBOutput extends ViewComponent {
 	 * through the Component.new(type, param) where for para nodeId 
 	 * will be passed
 	 * */
-	stOnRender({ nodeId, isImport }){
+	stOnRender(data){
+		const { nodeId, isImport, aiGenerated, database, table } = data;
+		
+		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
+		this.importFields = { database, table };
 	}
 
 	stAfterInit(){		
@@ -45,6 +53,11 @@ export class DuckDBOutput extends ViewComponent {
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
 		if(this.isImport === false){
 			this.setupOnChangeListen();
+		}
+
+		if(this.aiGenerated){
+			const { database, table } = this.importFields;
+			this.database = (database || ''), this.tableName = (table || '');
 		}
 
 		if(this.isImport === true){	

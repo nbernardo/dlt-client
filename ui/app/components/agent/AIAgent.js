@@ -3,7 +3,9 @@ import { Assets } from "../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
+import { agentOptions, aiStartOptions, BOT, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt, whatAboutData } from "./chatbotbrain/main.js";
 
 export class AIAgent extends ViewComponent {
 
@@ -22,6 +24,8 @@ export class AIAgent extends ViewComponent {
     /** @Prop */ isThereAgentMessage = false;
     /** @Prop */ startedInstance = null;
     /** @Prop */ showLimitReachedWarn = null;
+    /** @Prop */ botInstance = null;
+    /** @Prop */ lastMessageAnchor = null;
 
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
@@ -38,9 +42,18 @@ export class AIAgent extends ViewComponent {
 	sentMessagesCount = 0;
 
 	/** @Prop */ maxAllowedMessages = -1;
+	/** @Prop */ dontFollowAgentFlag = null;
 
 	async stBeforeInit() {
 		await Assets.import({ path: '/app/assets/css/agent.css' });
+		await Assets.import({ path: 'https://unpkg.com/rivescript@latest/dist/rivescript.min.js', type:'js' });
+
+		setTimeout(async () => {
+			this.botInstance = new RiveScript();
+			this.controller.setupBotSubRoutine(this);
+			await this.botInstance.stream(chatBotBrain);
+			await this.botInstance.sortReplies();
+		},0);
 	}
 
 	stOnRender({totalMessages, messageCountLimit}){		
@@ -53,7 +66,7 @@ export class AIAgent extends ViewComponent {
 	}
 
 	async stAfterInit() {
-
+		this.controller.agentInstance = this;
 		this.appContainer = document.querySelector('.ai-app-container');
 		this.outputContainer = document.getElementById(this.outputContainerId);
 		this.resizeHandle = document.querySelector('.ai-agent-height-resize');
@@ -72,6 +85,7 @@ export class AIAgent extends ViewComponent {
 
 	async startNewAgent(retry = false) {
 		try {
+			this.controller.displayInitialChatOptions(this);
 			this.startedInstance = await WorkspaceService.startChatConversation();
 			
 			if(this.startedInstance.start === false && retry === false){
@@ -81,16 +95,52 @@ export class AIAgent extends ViewComponent {
 		} catch (error) { }
 	}
 
+	setAgentFlow(flowName){
+		this.createMessageBubble(flowName, 'user');
+		if(this.controller.getActiveFlow() === null){
+			const initMessage = this.controller.initAgentActiveFlow(flowName);
+			this.createMessageBubble(`${initMessage}`, 'agent', 'DLT Workspace');
+		}else
+			this.controller.setAgentFlow(flowName);
+	};
+
 	async sendChatRequest(event) {
 		if (event.key === 'Enter') {
 
-			let dataTable = null;
 			event.preventDefault();
-			const message = event.target.value;
-			event.target.value = '';
-			this.createMessageBubble(message, 'user');
-			this.scrollToBottom();
-						
+			let { message, botResponse } = this.controller.agentPreRoute(event.target.value);
+			
+			if(botResponse != '' && botResponse != usingSecretPrompt){
+				botResponse = await this.botMessage(event);
+				if(botResponse.includes(aiStartOptions)) return;
+	
+				const cannotContinue = (botResponse.includes(unkwonRequest) || botResponse.includes(dontFollowAgentFlow))
+				const botFunctionCall = botResponse.includes(botSubRoutineCall);
+				const useSecretPrompt = botResponse.includes(usingSecretPrompt);
+				const stickToPrevFlow = botResponse.includes(ifExistingFlowUseIt);
+	
+				botResponse = this.controller.setAgentRoute(botResponse);
+	
+				// In case there is function call bot instruction this call will handle it
+				this.controller.handleBotFunctionCall(this, botResponse);
+	
+				const isFlowNotSet = this.controller.getActiveFlow() == null;
+	
+				if(useSecretPrompt){ /** continue */ }
+				else if((cannotContinue && isFlowNotSet) || botFunctionCall){
+					const content = botFunctionCall ? this.controller.loadingContent() : botResponse;
+					if(!(stickToPrevFlow && this.controller.getActiveFlow() != null))
+						return this.createMessageBubble(content, 'agent', 'DLT Workspace');
+				}
+			}
+			
+			message = this.augmentAgentPerception(botResponse, message);
+			if(botResponse == '' || botResponse.includes(usingSecretPrompt)){
+				this.createMessageBubble(event.target.value, 'user');
+				event.target.value = '';
+			}
+			
+			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
 				this.startNewAgent(true); /** This will retry to connect with the Agent Backend */
 
@@ -101,13 +151,19 @@ export class AIAgent extends ViewComponent {
 				}
 			}
 
-			this.createMessageBubble(this.loadingContent(), 'agent');
+			this.createMessageBubble(this.controller.loadingContent(), 'agent');
 			this.sentMessagesCount = this.sentMessagesCount.value + 1;
-			const { result, error: errMessage, success } = await WorkspaceService.sendAgentMessage(message);
 
-			let response = null;
+			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
+			
 			if (success === false) response = errMessage;
-			else response = result?.result;
+			else if(result?.result.indexOf('"1": {') > -1 && result?.result.indexOf('"2": {') > -1){
+				this.setAgentLastMessage(`Pipeline creation executed.`, dataTable);
+				await this.controller.parsePipelineCreationContent(result.result);
+				// Reset this controller variable for the next prompt
+				this.controller.whatCodeTemplateType = { source: null, target: null  };
+				return;
+			}else response = result?.result;
 
 			if (result.fields) {
 				const { db_file, fields, actual_query } = result;
@@ -116,7 +172,7 @@ export class AIAgent extends ViewComponent {
 				);
 			} else {
 				if ((response || []).length === 0)
-					response = 'No data found for the submitted query. Do you want to send another query?';
+					response = 'Your request was not processed, do you want to be clear about your it?';
 				else if (String(response).trim() === this.unloadNamespaceMsg) {
 					// Auto-reconnect to the chats
 					this.$parent.leftMenuProxy.startAIAssistant(true);
@@ -125,10 +181,77 @@ export class AIAgent extends ViewComponent {
 			}
 
 			if (this.isThereAgentMessage === false) this.isThereAgentMessage = true;
-
-			AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph')
-			AIAgent.lastAgentParagraph.innerHTML = dataTable === null ? response : dataTable;
+			this.setAgentLastMessage(response, dataTable);
 		}
+	}
+
+	augmentAgentPerception(botAnswer, message){
+		
+		const useDbSchema = message.search(/db\s{0,}schema|schema/i);
+		const dataFlow = botAnswer.includes(agentOptions.dataQuery) || botAnswer.includes(whatAboutData);
+
+		const msgHasBothPipelineAndDB = 
+			message.search(/dbname|database|database[.w]*\s*name|name[.w]*\s*database/) >= 0
+			&& message.search(/pipeline|source|destination|output|input/) >= 0;
+
+		const { isChangingPipeline, notCreating, isCreatingPipeline } = this.checkPromptAction(message);
+		this.controller.whatCodeTemplateType = this.checkCodeNodeTemplate(message);
+
+		if(dataFlow && !(useDbSchema >= 0) && !msgHasBothPipelineAndDB)
+			message = 'Get from DB Schema\n' + message;
+
+		if(isChangingPipeline && notCreating)
+			message = `${message}, you'll update the bellow pipeline JSON and responde with the updated version\n:${this.controller.lastPipeline}`;
+		
+		if(isCreatingPipeline)
+			message = `${message}, you'll not use the previous pipeline but create a new o`;
+		
+		if(botAnswer.includes(usingSecretPrompt)){
+			const augmentedRequest = `ROUTE(pipeline-agent)\n\nYOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
+			return augmentedRequest.replace(usingSecretPrompt, '');
+		}
+		return message;
+	}
+
+	checkPromptAction(message){
+		const notCreate1 = message.search(/pipeline[\w]*\s*(create|build|construct|creation)/i) >= 0;
+		const notCreate2 = message.search(/(create|build|construct|creation)\s*[\w]*\s*pipeline/i) >= 0;
+		const notCreating = !notCreate1 && !notCreate2;
+		const isChangingPipeline = message.search(/change(ed)*|assign(ed)*|replace(ed)*|add(ed)*|remove(d)*|modify|modified|will be|is/i) >= 0;
+		return { notCreating, isChangingPipeline, isCreatingPipeline: !notCreating };
+	}
+
+	checkCodeNodeTemplate(message){
+		const kafkaSource1 = message.search(/(kafka|mongo)\s*[\w]*\s*(get(ting|ing)*|pull(s|ing)*|fetch(ed|ing)*|sourc(e|ed|ing)*)/i) >= 0;
+		const kafkaSource2 = message.search(/(get(ting|ing)*|pull(s|ing)*|fetch(ed|ing)*|sourc(e|ed|ing)*)\s*[\w]*\s*(kafka|mongo)/i) >= 0;
+
+		/** TODO: Use those when the implementation of target code is in place */
+		const kafkaTgt1 = message.search(/(kafka|mongo)\s*[\w]*\s*(wri(te|tes|ting|tting)*|dump(s|ping|ing)*|destination|sen(d|ds|t|ing)|put(s|ing)*)/i) >= 0;
+		const kafkaTgt2 = message.search(/(wri(te|tes|ting|tting)*|dump(s|ping|ing)*|destination|sen(d|ds|t|ing)|put(s|ing)*)\s*[\w]*\s*(kafka|mongo)/i) >= 0;
+
+		if(kafkaSource1 || kafkaSource2)
+			return { source: message.search(/kafka/i) >= 0 ? 'kafka' : 'mongo', target: null };
+		return {}
+	}
+
+	setAgentLastMessage(response, dataTable = null, anchor = false){
+		this.lastMessageAnchor = null;
+		AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph');
+		let finalContent = dataTable === null ? markdownToHtml(response) : dataTable;
+		if(anchor){
+			this.lastMessageAnchor = 'lastMessageAnchor'+UUIDUtil.newId();
+		}
+		finalContent = `<h2 id="${this.lastMessageAnchor}"></h2>${finalContent}`;
+		AIAgent.lastAgentParagraph.innerHTML = finalContent;
+
+		if(this.lastMessageAnchor !== null) this.scrollToBottom(true);
+	}
+
+	async sendAIAgentMessage(message){
+		if(this.controller.getActiveFlow() === this.controller.flowPrefix.data)
+			return WorkspaceService.sendDataQueryAgentMessage(message);
+		if(this.controller.getActiveFlow() === this.controller.flowPrefix.pipeline)
+			return WorkspaceService.sendPipelineAgentMessage(message);
 	}
 
 	createMessageBubble(text, role, alternateRole = null) {
@@ -152,11 +275,15 @@ export class AIAgent extends ViewComponent {
 		bubble.appendChild(textP);
 		row.appendChild(bubble);
 		this.outputContainer.appendChild(row);
+		this.scrollToBottom(false);
 	}
 
-	scrollToBottom() {
+	scrollToBottom(ancor = false) {
 		setTimeout(() => {
-			this.outputContainer.scrollTop = this.outputContainer.scrollHeight;
+			const element = document.getElementById(this.lastMessageAnchor);
+			if(ancor && element)
+				element.scrollIntoView({behavior: 'smooth', block: 'start'}); 
+			else this.outputContainer.scrollTop = this.outputContainer.scrollHeight;
 		}, 200);
 	}
 
@@ -204,21 +331,34 @@ export class AIAgent extends ViewComponent {
 		obj.resizeHandle.style.backgroundColor = '#d1d5db';
 	}
 
-	loadingContent() {
-		return `
-			<div class="mini-loader-container">
-				<div class="mini-loader-dot" style="background: black;"></div>
-				<div class="mini-loader-dot" style="background: black;"></div>
-				<div class="mini-loader-dot" style="background: black;"></div>
-			</div>
-		`;
-	}
-
 	hideAgentUI = () => this.$parent.showOrHideAgent();
+	setUserPrompt = (content) => this.controller.setUserPrompt(content)
 
-	setUserPrompt = (content) => {
-		document.getElementById('ai-chat-user-input').value = content;
-		document.getElementById('ai-chat-user-input').focus();
+	/** @returns { Promise<String> } */
+	async botMessage(event){
+
+		let message = event.target.value, complementMessage = '';
+		BOT.lastUserMessage = message;
+
+		if(this.dontFollowAgentFlag == dontFollow.transform 
+			&& this.$parent.checkActiveDiagram() === false){
+			complementMessage = ' no pipeline transformation'
+		}
+
+		this.createMessageBubble(message, 'user');
+
+		event.target.value = '';
+		if (!message) return;
+
+		console.log(`You: ${message}`);
+
+		const reply = await this.botInstance.reply("local-user", message+''+complementMessage);
+		console.log(`Bot: ${reply}`);
+
+		return reply;
+
 	}
+
+	shrinkChatSize = () => this.controller.shrinkChatSize()
 
 }
