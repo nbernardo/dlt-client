@@ -17,6 +17,7 @@ export class AIAgentController extends BaseController {
     lastUserMessage = null;
     preRoutePrefix = { data: '__pre-routed-for-data-query__\n', pipeline: '__pre-routed-for-pipeline__\n' };
     flowPrefix = { data: 'data-query', pipeline: 'pipeline' };
+    whatCodeTemplateType = { source: null, target: null  };
 
     /** @returns { AIAgentController } */
     static instance = () => AIAgentController.get()

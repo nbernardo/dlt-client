@@ -159,7 +159,10 @@ export class AIAgent extends ViewComponent {
 			if (success === false) response = errMessage;
 			else if(result?.result.indexOf('"1": {') > -1 && result?.result.indexOf('"2": {') > -1){
 				this.setAgentLastMessage(`Pipeline creation executed.`, dataTable);
-				return this.controller.parsePipelineCreationContent(result.result);
+				await this.controller.parsePipelineCreationContent(result.result);
+				// Reset this controller variable for the next prompt
+				this.controller.whatCodeTemplateType = { source: null, target: null  };
+				return;
 			}else response = result?.result;
 
 			if (result.fields) {
@@ -183,7 +186,7 @@ export class AIAgent extends ViewComponent {
 	}
 
 	augmentAgentPerception(botAnswer, message){
-
+		
 		const useDbSchema = message.search(/db\s{0,}schema|schema/i);
 		const dataFlow = botAnswer.includes(agentOptions.dataQuery) || botAnswer.includes(whatAboutData);
 
@@ -192,6 +195,7 @@ export class AIAgent extends ViewComponent {
 			&& message.search(/pipeline|source|destination|output|input/) >= 0;
 
 		const { isChangingPipeline, notCreating, isCreatingPipeline } = this.checkPromptAction(message);
+		this.controller.whatCodeTemplateType = this.checkCodeNodeTemplate(message);
 
 		if(dataFlow && !(useDbSchema >= 0) && !msgHasBothPipelineAndDB)
 			message = 'Get from DB Schema\n' + message;
@@ -210,11 +214,24 @@ export class AIAgent extends ViewComponent {
 	}
 
 	checkPromptAction(message){
-		const notCreate1 = message.search(/pipeline[\w]*\s*(create|build|construct|creation)/) >= 0;
+		const notCreate1 = message.search(/pipeline[\w]*\s*(create|build|construct|creation)/i) >= 0;
 		const notCreate2 = message.search(/(create|build|construct|creation)\s*[\w]*\s*pipeline/i) >= 0;
 		const notCreating = !notCreate1 && !notCreate2;
 		const isChangingPipeline = message.search(/change(ed)*|assign(ed)*|replace(ed)*|add(ed)*|remove(d)*|modify|modified|will be|is/i) >= 0;
 		return { notCreating, isChangingPipeline, isCreatingPipeline: !notCreating };
+	}
+
+	checkCodeNodeTemplate(message){
+		const kafkaSource1 = message.search(/(kafka|mongo)\s*[\w]*\s*(get(ting|ing)*|pull(s|ing)*|fetch(ed|ing)*|sourc(e|ed|ing)*)/i) >= 0;
+		const kafkaSource2 = message.search(/(get(ting|ing)*|pull(s|ing)*|fetch(ed|ing)*|sourc(e|ed|ing)*)\s*[\w]*\s*(kafka|mongo)/i) >= 0;
+
+		/** TODO: Use those when the implementation of target code is in place */
+		const kafkaTgt1 = message.search(/(kafka|mongo)\s*[\w]*\s*(wri(te|tes|ting|tting)*|dump(s|ping|ing)*|destination|sen(d|ds|t|ing)|put(s|ing)*)/i) >= 0;
+		const kafkaTgt2 = message.search(/(wri(te|tes|ting|tting)*|dump(s|ping|ing)*|destination|sen(d|ds|t|ing)|put(s|ing)*)\s*[\w]*\s*(kafka|mongo)/i) >= 0;
+
+		if(kafkaSource1 || kafkaSource2)
+			return { source: message.search(/kafka/i) >= 0 ? 'kafka' : 'mongo', target: null };
+		return {}
 	}
 
 	setAgentLastMessage(response, dataTable = null, anchor = false){

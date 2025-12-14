@@ -1,5 +1,6 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { State, STForm } from "../../../../@still/component/type/ComponentType.js";
+import { AIAgentController } from "../../../controller/AIAgentController.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
@@ -16,6 +17,8 @@ export class DLTCode extends ViewComponent {
 	/** @Prop */ nodeId;
 	/** @Prop */ inConnectors = 1;
 	/** @Prop */ outConnectors = 1;
+	/** @Prop */ aiGenerated;
+	/** @Prop */ importFields;
 
 	/** @Prop */ label = ' In - DLT code';
 	/** @Prop */ showEditor = false;
@@ -43,11 +46,15 @@ export class DLTCode extends ViewComponent {
 	/** @Prop */ importData;
 
 	stOnRender(data) {
-		const { nodeId } = data;
+		const { nodeId, aiGenerated } = data;
 		this.importData = data;
 		this.nodeId = nodeId;
 		this.$parent.controller.loadMonacoEditorDependencies();
+		this.aiGenerated = aiGenerated;
 		this.templateName = '';
+		if(AIAgentController.instance().whatCodeTemplateType.source != null){
+			this.importData = { ...this.importData , template: AIAgentController.instance().whatCodeTemplateType.source }
+		}
 	}
 
 	async stAfterInit() {
@@ -82,6 +89,11 @@ export class DLTCode extends ViewComponent {
 
 		this.codeEditor.onDidChangeModelContent(() => this.codeContent = this.codeEditor.getValue());
 		this.onTemplateSelect();
+
+		if(this.aiGenerated){
+			const template = { 'kafka': 'kafka_tmpl_sasl', 'mongo': 'mongo_tmpl' };
+			this.selectedTemplate = template[this.importData.template.toLowerCase()];
+		}
 
 		if (this.importData.isImport) {
 			this.templateName = ` - <b>${this.templateMap[this.importData.templateName]}</b>`;
