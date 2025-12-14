@@ -818,7 +818,7 @@ button[disabled]:hover {
         border-radius: .5rem;
         width: max-content;
         width: 95%;
-        margin-left: -10px;
+        margin-left: 3px;
     }
 
     .file-list-wrapper .tiny-menu-item {

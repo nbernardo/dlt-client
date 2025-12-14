@@ -255,12 +255,16 @@
 	height: 71vh;		
 	background: transparent;
 	z-index: 10;
+    transition: width 1s;			
+    transition: height .5s;	
 }
 
 .ai-agent-placeholder-shrinked{
 	width: 20vw !important;
 	bottom: -24px !important;
-	height: 95vh !important;		
+	height: 95vh !important;
+    transition: width 1s;			
+    transition: height .5s;			
 }
         
 .add-info{
