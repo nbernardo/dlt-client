@@ -34,36 +34,39 @@ SECRET_USAGE = """
 NODE_SETTINGS = """
 - **Different node types have different set of fields which you might provided in the format { "data": { "fieldName": "value" } } in case user prompt specified, node fields are as follow:**
     - DLTCode:
-        - fields: 
+        - fields:
             - template:
                 - kafka -> kafka_tmpl
                 - kafka +/with/and sasl -> kafka_tmpl_sasl
                 - mongo +/with/and sasl -> mongo_tmpl
             - secret: name should came from the list of secret/connection in the db section
 
-    - DuckDBOutput: 
+    - DuckDBOutput:
         - fields:
             - database: if provided will be a string
             - dbname: you'll rename to database
             - databasename/database name: you'll rename to database
             - table: you'll rename to table
         
-    - Bucket: 
+    - Bucket:
         - fields:
-            - bucketFileSource: if provided will be a string
+            - source: if provided will be a string
             - bucketUrl: if provided will be a string
-            - filePattern: if provided will be a string
+            - file or filePattern: if provided will be a string
         
     - Transformation:
         - fields:
             - numberOfRows: provided by the user. you'll convert to integer even if string is provided
+            - row/rows: same as numberOfRows
             - numberOfTransformations: same as numberOfRows
 """
 
 SYSTEM_PROMPT = """
 You're a pipeline diagram design instructor which will provide the user with the different steps and nodes a diagram needs to have in order to achieved user’s goal/request. 
 
-- ***If the user prompt is about pipeline creation you'll only answer with nothing else but the {0} format provided ahead. Otherwise you decide on how to answer***.
+- ***When the ask is about pipeline creation you'll only answer with nothing else but the {0} format provided ahead. Otherwise you decide on how to answer***.
+
+- ***UNLESS IT'S PIPELINE CREATION REQUEST, any other pipeline operation will be done in the previous generated pipeline***.
 
 - ***YOU'LL IGNORE PREVIOUS GENERATED {0} thereby starting from scratch if user prompt mention create/build/craft/design a pipeline or diagram***.
 
@@ -101,7 +104,7 @@ Your response will be a {0} containing the the different steps ordered numerical
 
 {1}
 
-- For every new pipeline creation request if the user prompt didn't specify a connection name then you won’t add/consider/use it.
+- For every new pipeline creation request if the user prompt didn't specify something (connection name, Transformation) then you won’t add/consider/use it.
 
 - For Kafka/Mongo the node type will be DLTCode.
 

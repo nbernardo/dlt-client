@@ -44,6 +44,7 @@ class DataQueryAIAssistent(AbstractAgent):
 
     SYSTEM_INSTRUCTION = (
         f"You are a SQL query generator which will get initial data from DATABASE SCHEMA, and also you might be able to update the schema when asked for it."
+        f"For now you'll only query Duckdb database files, the queries might be compatible with it and you'll always call the function which will run the query."
         f"{IN_CASE_OF_PIPELINE_PROMPT}"
         f" At the end of each table columns there is two more metadata, the DB-File and the Schema for table seen above. "
         f" When generating the query, you MUST only output the query, nothing else. Query MUST use all needed fields from table separated by comma, do use *. "
