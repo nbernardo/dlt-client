@@ -110,7 +110,7 @@ export class AIAgent extends ViewComponent {
 			event.preventDefault();
 			let { message, botResponse } = this.controller.agentPreRoute(event.target.value);
 			
-			if(botResponse == ''){
+			if(botResponse != '' && botResponse != usingSecretPrompt){
 				botResponse = await this.botMessage(event);
 				if(botResponse.includes(aiStartOptions)) return;
 	
@@ -133,8 +133,13 @@ export class AIAgent extends ViewComponent {
 						return this.createMessageBubble(content, 'agent', 'DLT Workspace');
 				}
 			}
-
+			
 			message = this.augmentAgentPerception(botResponse, message);
+			if(botResponse == ''){
+				this.createMessageBubble(event.target.value, 'user');
+				event.target.value = '';
+			} 
+			
 			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
 				this.startNewAgent(true); /** This will retry to connect with the Agent Backend */
@@ -182,15 +187,34 @@ export class AIAgent extends ViewComponent {
 		const useDbSchema = message.search(/db\s{0,}schema|schema/i);
 		const dataFlow = botAnswer.includes(agentOptions.dataQuery) || botAnswer.includes(whatAboutData);
 
-		if(dataFlow && !(useDbSchema >= 0)){
-			message = 'Get from DB Schema\n' + message;
-		}
+		const msgHasBothPipelineAndDB = 
+			message.search(/dbname|database|database[.w]*\s*name|name[.w]*\s*database/) >= 0
+			&& message.search(/pipeline|source|destination|output|input/) >= 0;
 
-		if(botAnswer.includes(usingSecretPrompt)){
+		const { isChangingPipeline, notCreating, isCreatingPipeline } = this.checkPromptAction(message);
+
+		if(dataFlow && !(useDbSchema >= 0) && !msgHasBothPipelineAndDB)
+			message = 'Get from DB Schema\n' + message;
+
+		if(isChangingPipeline && notCreating)
+			message = `${message}, you'll update the bellow pipeline JSON and responde with the updated version\n:${this.controller.lastPipeline}`;
+		
+		if(isCreatingPipeline)
+			message = `${message}, you'll not use the previous pipeline but create a new o`;
+		
+		if(botAnswer.includes(usingSecretPrompt) && !msgHasBothPipelineAndDB){
 			const augmentedRequest = `ROUTE(pipeline-agent)\n\nYOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
 			return augmentedRequest.replace(usingSecretPrompt, '');
 		}
 		return message;
+	}
+
+	checkPromptAction(message){
+		const notCreate1 = message.search(/pipeline[\w]*\s*(create|build|construct|creation)/) >= 0;
+		const notCreate2 = message.search(/(create|build|construct|creation)\s*[\w]*\s*pipeline/i) >= 0;
+		const notCreating = !notCreate1 && !notCreate2;
+		const isChangingPipeline = message.search(/change(ed)*|assign(ed)*|replace(ed)*|add(ed)*|remove(d)*|modify|modified|will be|is/i) >= 0;
+		return { notCreating, isChangingPipeline, isCreatingPipeline: !notCreating };
 	}
 
 	setAgentLastMessage(response, dataTable = null, anchor = false){

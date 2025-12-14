@@ -9,6 +9,7 @@ export class NodeTypeInterface {
 	formRef;
 	componentId;
 	aiGenerated;
+	importFields;
 
 	/** Implemented at each node as needed, but the call is automatically
 	 *  through WorkspaceController when specific node recieces connection */

@@ -1,10 +1,10 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
 import { AIResponseLinterUtil } from "../components/agent/AIResponseLinterUtil.js";
-import { agentOptions, aiStartOptions, botSubRoutineCall, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt } from "../components/agent/chatbotbrain/main.js";
+import { agentOptions, aiStartOptions, BOT, botSubRoutineCall, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt } from "../components/agent/chatbotbrain/main.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { WorkspaceService } from "../services/WorkspaceService.js";
-import { WorkSpaceController } from "./WorkSpaceController.js";
+import { NodeTypeEnum, WorkSpaceController } from "./WorkSpaceController.js";
 
 export class AIAgentController extends BaseController {
 
@@ -20,6 +20,8 @@ export class AIAgentController extends BaseController {
 
     /** @returns { AIAgentController } */
     static instance = () => AIAgentController.get()
+
+    lastPipeline;
 
     initAgentActiveFlow(flowName){
         AIAgentController.agentActiveFlow = flowName;
@@ -85,13 +87,21 @@ export class AIAgentController extends BaseController {
     }
 
     async parsePipelineCreationContent(content){
+
+        this.lastPipeline = content;
         WorkSpaceController.instance().wSpaceComponent.resetWorkspace();
-        content = JSON.parse(content);      
+        content = JSON.parse(content);
+        const totalNodes = Object.values(content).length;
+
         for(const node of Object.values(content)){
-            const { nodeName, data } = node;
+            const { nodeName, data } = node; 
             await WorkSpaceController.instance().createNode(nodeName, (data || {}));
         }
-        await WorkSpaceController.instance().linkAgentCreatedNodes();
+        
+        await WorkSpaceController.instance().linkAgentCreatedNodes(totalNodes);
+        // Moves the squared canvas a bit to left so it does not stick to the edge makind hard to see the first connection
+        this.agentInstance.$parent.editor.precanvas.style.transform = `translate(30px, 0px) scale(1)`;
+
     }
 
     /** @param {String} botResponse */
@@ -118,20 +128,29 @@ export class AIAgentController extends BaseController {
 
 
     agentPreRoute(userPrompt = ''){
-        let botResponse = ''
-        if(userPrompt.trim().search(/data[\s\-]{0,}query\s{0,}\:|query[\s\-]{0,}data\s{0,}\:|DQ\{0,}\s:/i) == 0){
+        let botResponse = '';
+        const { isChangingPipeline } = this.agentInstance.checkPromptAction(userPrompt);
+
+        if(
+            userPrompt.trim().search(/data[\s\-]{0,}query\s{0,}\:|query[\s\-]{0,}data\s{0,}\:|DQ\{0,}\s:/i
+            && !isChangingPipeline
+        ) == 0){
             userPrompt = this.preRoutePrefix.data + userPrompt;
             this.setAgentFlow(this.flowPrefix.data);
         }
 
-        if(userPrompt.trim().search(/pipeline\s{0,}\:|pline\s{0,}\:|pl\{0,}\s:/i) == 0){
+        if(
+            userPrompt.trim().search(/pipeline\s{0,}\:|pline\s{0,}\:|pl\{0,}\s:/i) == 0
+            || isChangingPipeline
+        ){
             userPrompt = this.preRoutePrefix.pipeline + userPrompt;
             this.setAgentFlow(this.flowPrefix.pipeline);
         }
 
-        const isSecrets = userPrompt.search(/secrets|secret|connection/), isUseSecret = userPrompt.search(/use|used|using/);
+        const isSecretsPos = userPrompt.search(/secrets|secret|connection/), isUseSecretPos = userPrompt.search(/use|used|using/);
 
-        if((isUseSecret > -1) && (isUseSecret < isSecrets)) botResponse = usingSecretPrompt;
+        if((isUseSecretPos > -1 && isUseSecretPos < isSecretsPos)) botResponse = usingSecretPrompt;
+        botResponse = botResponse === '' ? BOT.process : botResponse;
 
         return { message: userPrompt, botResponse };
     }

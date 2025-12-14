@@ -1,4 +1,4 @@
-export const BOT = { lastUserMessage: null };
+export const BOT = { lastUserMessage: null, process: 'process-bot-flow-will-proceed' };
 
 window._WorkspaceBOT_ = {};
 window._WorkspaceBOT_.getLastUserPrompt = () =>  BOT.lastUserMessage;

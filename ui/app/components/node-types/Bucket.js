@@ -23,13 +23,11 @@ export class Bucket extends ViewComponent {
 	selectedFilePattern;
 	sourcePrimaryKey;
 
-	/** @Prop */
-	showBucketUrlInput = 1;
-
-	/** @Prop */
-	inConnectors = 1;
-	/** @Prop */
-	outConnectors = 1;
+	/** @Prop */ showBucketUrlInput = 1;
+	/** @Prop */ inConnectors = 1;
+	/** @Prop */ outConnectors = 1;
+	/** @Prop */ aiGenerated;
+	/** @Prop */ importFields;
 
 	/** @Prop @type { STForm } */ formRef;
 	/** @Prop */ isImport = false;
@@ -52,7 +50,11 @@ export class Bucket extends ViewComponent {
 
 	/* The id will be passed when instantiating Bucket dinamically through the
 	 * Component.new(type, param) where for para nodeId will be passed  */
-	stOnRender({ nodeId, isImport, bucketUrl, filePattern, primaryKey, bucketFileSource }) {
+	stOnRender(data) {
+		const { 
+			nodeId, isImport, bucketUrl, filePattern, primaryKey, 
+			bucketFileSource, aiGenerated, url, file
+		} = data;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		if(isImport) this.showLoading = true;
@@ -60,6 +62,9 @@ export class Bucket extends ViewComponent {
 		if(filePattern) this.filePattern = filePattern;
 		if(primaryKey) this.sourcePrimaryKey = primaryKey;
 		if(bucketFileSource) this.bucketFileSource = bucketFileSource;
+
+		this.importFields = { bucketUrl, url, filePattern, file };
+		this.aiGenerated = aiGenerated;
 	}
 
 	async stAfterInit() {
@@ -69,22 +74,30 @@ export class Bucket extends ViewComponent {
 		data['namespace'] = await UserService.getNamespace();
 		const result = await this.wspaceService.listFiles();
 		this.filesFromList = (result || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
-		
-		if(this.isImport){
-			// This is mainly because WorkSpaceController will setup reactive notification from source component to 
-			// terget component if connection is being created, regular targets of Backet are Transformation and 
-			// DuckDBOutput, in case isImport == true, this event is emitted when data source/files are listed
-			this.notifyReadiness();
-		}
 
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController		
-		if ([false, undefined].includes(this.isImport))
-			this.setupOnChangeListen();
+		if ([false, undefined].includes(this.isImport) || this.aiGenerated) this.setupOnChangeListen();
+
+		if(this.aiGenerated){
+
+			const bucketUrl = this.importFields.url ? this.importFields.url : this.importFields.bucketUrl;
+			const flPattern = this.importFields.file ? this.importFields.file : this.importFields.filePattern;
+			this.filePattern = flPattern || '';
+			this.bucketUrl = bucketUrl || '';
+
+			if(this.bucketUrl.value.length > 0) this.bucketFileSource = 2;
+			
+		}
 
 		// At this point the WorkSpaceController was loaded by WorkSpace component
 		// hance no this.wSpaceController.on('load') subscrtiption is needed
 		if (this.isImport) {
+			// This is mainly because WorkSpaceController will setup reactive notification from source component to 
+			// terget component if connection is being created, regular targets of Backet are Transformation and 
+			// DuckDBOutput, in case isImport == true, this event is emitted when data source/files are listed
+			this.notifyReadiness();
+
 			this.selectedFilePattern = this.filePattern.value;
 			if(this.bucketFileSource.value === '2'){
 				this.bucketFileSource = 1;

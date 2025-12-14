@@ -226,26 +226,39 @@ export class WorkSpaceController extends BaseController {
     drawnNodeList = [];
     currentNodePositionX;
     prevAiDrawnNode;
+    drawnStartNode 
 
     async createNode(type, data){
 
-        const add = this.drawnNodes > 0 ? 20 : 0;
-        const addToNodePosx = this.prevAiDrawnNode == Transformation.name ? 1.25 : 0;
-
-        const nodeId = this.getNodeId();
-        const parentId = this.wSpaceComponent.cmpInternalId;
-        const { template: tmpl, component } = await Components.new(type, { ...data, aiGenerated: true, nodeId }, parentId);
+        const add = this.drawnNodes > 1 ? 10 : 0;
+        const addToNodePosx = this.prevAiDrawnNode == Transformation.name ? 1.15 : 0;
         const pos_x = (307 * ((this.drawnNodes++) + addToNodePosx)) + add, pos_y = (183);
-        this.currentNodePositionX = pos_x;
+        const nodeId = this.getNodeId();
         this.prevAiDrawnNode = type;
-        await this.handleAddNode(component, nodeId, type, pos_x, pos_y, tmpl);
+
+        if(type === NodeTypeEnum.START){
+            let source = false, dest = true;
+            this.addStartOrEndNode(type, source, dest, pos_x, pos_y);
+            this.edgeTypeAdded[NodeTypeEnum.START] = nodeId;
+        }else{
+            const parentId = this.wSpaceComponent.cmpInternalId;
+            const { template: tmpl, component } = await Components.new(type, { ...data, aiGenerated: true, nodeId }, parentId);
+            this.currentNodePositionX = pos_x;
+            await this.handleAddNode(component, nodeId, type, pos_x, pos_y, tmpl);
+        }
         this.drawnNodeList.push(nodeId);
 
     }
 
-    async linkAgentCreatedNodes(){
+    async linkAgentCreatedNodes(totalNodes){
+
+        const pos_x = 100, pos_y = 40;
+        this.addStartOrEndNode(NodeTypeEnum.START, false, true, pos_x, pos_y);
+        this.edgeTypeAdded[NodeTypeEnum.START] = totalNodes + 1;
 
         let currentNode = this.drawnNodeList.shift();
+        this.editor.addConnection((totalNodes + 1), currentNode, 'output_1', 'input_1');
+
         let nextNode = this.drawnNodeList[0];
         this.editor.addConnection(currentNode, nextNode, 'output_1', 'input_1');
 
@@ -254,6 +267,7 @@ export class WorkSpaceController extends BaseController {
             nextNode = this.drawnNodeList[0];
             this.editor.addConnection(currentNode, nextNode, 'output_1', 'input_1');
         }
+        
     }
 
     /** @returns { WorkSpaceController } */
