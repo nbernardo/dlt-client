@@ -135,10 +135,10 @@ export class AIAgent extends ViewComponent {
 			}
 			
 			message = this.augmentAgentPerception(botResponse, message);
-			if(botResponse == ''){
+			if(botResponse == '' || botResponse.includes(usingSecretPrompt)){
 				this.createMessageBubble(event.target.value, 'user');
 				event.target.value = '';
-			} 
+			}
 			
 			let dataTable = null, response = null;						
 			if(this.startedInstance === null){
@@ -202,7 +202,7 @@ export class AIAgent extends ViewComponent {
 		if(isCreatingPipeline)
 			message = `${message}, you'll not use the previous pipeline but create a new o`;
 		
-		if(botAnswer.includes(usingSecretPrompt) && !msgHasBothPipelineAndDB){
+		if(botAnswer.includes(usingSecretPrompt)){
 			const augmentedRequest = `ROUTE(pipeline-agent)\n\nYOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
 			return augmentedRequest.replace(usingSecretPrompt, '');
 		}
