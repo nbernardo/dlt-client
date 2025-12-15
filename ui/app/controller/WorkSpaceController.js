@@ -155,7 +155,10 @@ export class WorkSpaceController extends BaseController {
         this.editor.editor_mode = "edit";
     }
 
-    drag(ev, disabled) {
+    drag(ev, disabled, isNoteGragabble) {
+
+        if(isNoteGragabble == 'yes') return;
+
         if(disabled === 'yes'){
             return this.showDialog(
                 'This node type is not yet available', 
@@ -864,6 +867,23 @@ export class WorkSpaceController extends BaseController {
 			minimap: { enabled: false }, scrollBeyondLastLine: false,
 			fontSize
 		});
+    }
+
+    /** @param { HTMLElement } obj */
+    showItemsGroup(obj){
+
+        const groupName = obj.dataset.groupName;
+        const items = document.getElementsByClassName(`${groupName}-item`);
+        
+        if(items.length > 0){
+            
+            const showClassGroup = `${groupName}-item-show`;
+            const addOrRemove = items[0].classList.contains(showClassGroup) ? 'remove' : 'add';
+            obj.getElementsByClassName('drop-down-icon')[0].firstChild.classList[addOrRemove]('rotate-menu-arrow');
+            for(const item of items){
+                item.classList[addOrRemove](showClassGroup);
+            }
+        }
     }
 
 }
