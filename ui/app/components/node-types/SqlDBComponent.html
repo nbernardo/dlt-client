@@ -1,7 +1,7 @@
 <div class="@cmpInternalId" style="z-index: -1;">
 	<div class="title-box">
 		<div>
-			<img src="app/assets/imgs/sql-server-2.png" width="20">
+			<img src="@dbIcon" class="database-icon" width="22">
 			@label
 		</div>
 		<div class="statusicon"></div>
@@ -26,18 +26,20 @@
 						>
 					<option each="item" value="{item.name}">{item.name}</option>
 				</select>
-				<select
-						(required)="true" 
-						(forEach)="databaseEngines" 
-						(value)="selectedDbEngine"
-						placeholder="Database Engine"
-						data-dropdown
-						>
-					<option each="item" value="{item.dialect}">{item.name}</option>
-				</select>
-				<p>Database:</p>
-				<input type="text" placeholder="Database Name" disabled (required)="true" (value)="database">
-				<p>Tables list:</p>
+				<p style="font-weight: bold; margin-top: 10px;">Database Engine: &nbsp;<span style="font-weight: normal;">@selectedDbEngineDescription</span></p>
+				<!--
+					<select
+							(required)="true" 
+							(forEach)="databaseEngines" 
+							(value)="selectedDbEngine"
+							placeholder="Database Engine"
+							data-dropdown
+							>
+						<option each="item" value="{item.dialect}">{item.name}</option>
+					</select>
+				-->
+				<p style="font-weight: bold; margin-top: 10px;">Database: &nbsp;<span style="font-weight: normal; word-wrap: anywhere;">@database</span></p>
+				<p style="font-weight: bold; margin-top: 10px;">Tables list:</p>
 				<div>
 					<input type="text" data-id="firstTable" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
 					<input type="text" data-id="firstPK" (value)="primaryKey" placeholder="PK Field">
