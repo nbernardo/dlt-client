@@ -10,6 +10,7 @@ import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "./SqlDBComponent.js";
 import { TRANFORM_ROW_PREFIX, TransformRow } from "./transform/TransformRow.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
+import { NodeUtil } from "./util/nodeUtil.js";
 import { DatabaseTransformation, NonDatabaseSourceTransform } from "./util/tranformation.js";
 
 /** @implements { NodeTypeInterface } */
@@ -34,6 +35,7 @@ export class Transformation extends ViewComponent {
 	transformPieces = new Map();
 
 	databaseList = [{ name: '' }];
+	nodeCount = '';
 
 	/** This will hold all added transform
 	 * @Prop @type { Map<TransformRow>|Array<TransformRow> } */
@@ -98,8 +100,11 @@ export class Transformation extends ViewComponent {
 	}
 
 	/** @param { InputConnectionType<SqlDBComponent|Bucket> } */
-	onInputConnection({ data: { tables, sourceNode }, type }) {
+	onInputConnection({ data, type }) {
 
+		const { tables, sourceNode } = data;
+		NodeUtil.handleInputConnection(this, data, type);
+		
 		this.dataSourceType = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
 
@@ -133,8 +138,9 @@ export class Transformation extends ViewComponent {
 
 	/** @returns { InputConnectionType } */
 	onOutputConnection(){
+		NodeUtil.handleOutputConnection(this);
 		//This will emit the source node as Bucket or SQLDB to the node it'll connect
-		return { sourceNode: this.sourceNode };
+		return { sourceNode: this.sourceNode, nodeCount: this.nodeCount.value };
 	}
 
 	async addNewField(data = null, inTheLoop = false) {
@@ -149,11 +155,7 @@ export class Transformation extends ViewComponent {
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
 			const initialData = { dataSources: obj.databaseList.value, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap };
-			//console.log(`DATA NOW:`);
-			//console.log(obj.sourceNode?.tablesFieldsMap);
 			
-			
-
 			// Create a new instance of TransformRow component
 			const { component, template } = await Components.new('TransformRow', initialData, parentId);
 
@@ -185,9 +187,7 @@ export class Transformation extends ViewComponent {
 			finalCode = DatabaseTransformation.transformations;
 			data['dataSourceType'] = 'SQL';
 		}
-		
-		console.log(`VALUE IS: `, DatabaseTransformation.transformations);
-
+		console.log(`Transformation in: `, DatabaseTransformation.transformations);
 		data['code'] = finalCode;
 		data['rows'] = rowsConfig;
 
@@ -195,10 +195,8 @@ export class Transformation extends ViewComponent {
 
 	}
 
-
 	/** @param { Function } confirmEvent */
 	confirmActionDialog(confirmEvent) {
-
 		const message = `Removing/Adding a new transformation rule will override the existing data structure, and create new version of the pipeline. <br><br>Do you whish to proceed?`;
 		this.$parent.controller.showDialog(message, {
 			onConfirm: async () => {
@@ -206,7 +204,6 @@ export class Transformation extends ViewComponent {
 				await confirmEvent(this);
 			}
 		});
-
 	}
 
 }

@@ -6,7 +6,9 @@ import { InputAPI } from "../api/InputAPI.js";
 import { Bucket } from "../Bucket.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { Transformation } from "../Transformation.js";
+import { InputConnectionType } from "../types/InputConnectionType.js";
 import { databaseIcons, databaseEnginesList } from "../util/databaseUtil.js";
+import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class DatabaseOutput extends ViewComponent {
@@ -28,6 +30,7 @@ export class DatabaseOutput extends ViewComponent {
 	selectedSecret;
 	secretList = [];
 	hostName = 'Not selected';
+	nodeCount = '';
 
 	/** @Prop */ isImport = false;
 	/** @Prop @type { STForm } */ anotherForm;
@@ -117,7 +120,11 @@ export class DatabaseOutput extends ViewComponent {
 		}
 	}
 
+	/** @param {InputConnectionType<{}>} param0  */
 	onInputConnection({data, type}){
+		
+		NodeUtil.handleInputConnection(this, data, type);
+	
 		const sourceNode = data?.sourceNode;
 		if((type == Bucket.name || type == Transformation.name) && sourceNode){
 			if(sourceNode.filePattern){

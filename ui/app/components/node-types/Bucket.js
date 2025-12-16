@@ -5,7 +5,9 @@ import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
+import { InputConnectionType } from "./types/InputConnectionType.js";
 import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
+import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class Bucket extends ViewComponent {
@@ -22,6 +24,7 @@ export class Bucket extends ViewComponent {
 	bucketFileSource;
 	selectedFilePattern;
 	sourcePrimaryKey;
+	nodeCount = '';
 
 	/** @Prop */ showBucketUrlInput = 1;
 	/** @Prop */ inConnectors = 1;
@@ -33,6 +36,7 @@ export class Bucket extends ViewComponent {
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_' + UUIDUtil.newId();
 	/** @Prop */ showMoreFileOptions = false;
+	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef = null;
 	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef = null;
 
 	/** @Prop */ showLoading = false;
@@ -68,7 +72,7 @@ export class Bucket extends ViewComponent {
 	}
 
 	async stAfterInit() {
-
+		this.nodeCount.onChange(val => console.log(`THE COUNT NOD OF Duckdb is: `, val));
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 		data['namespace'] = await UserService.getNamespace();
@@ -226,10 +230,17 @@ export class Bucket extends ViewComponent {
 	}
 
 	onOutputConnection() {
+		NodeUtil.handleOutputConnection(this);
 		return {
 			tables: this.filesFromList.value,
-			sourceNode: this
+			sourceNode: this,
+			nodeCount: this.nodeCount.value
 		};
+	}
+
+	/** @param { InputConnectionType<{}> } param0 */
+	onInputConnection({ type, data }){
+		NodeUtil.handleInputConnection(this, data, type);
 	}
 
 	notifyReadiness = () => 

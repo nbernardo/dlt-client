@@ -1,3 +1,5 @@
+import { InputConnectionType } from "../types/InputConnectionType.js";
+
 /**
  * @interface
  */
@@ -11,8 +13,12 @@ export class NodeTypeInterface {
 	aiGenerated;
 	importFields;
 
+	//State variable
+	nodeCount;
+
 	/** Implemented at each node as needed, but the call is automatically
-	 *  through WorkspaceController when specific node recieces connection */
+	 *  through WorkspaceController when specific node recieces connection
+	 * @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ data, type }){}
 
 	/** Implemented at each node as needed, but the call is automatically

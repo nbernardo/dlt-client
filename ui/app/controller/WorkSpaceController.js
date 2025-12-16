@@ -674,12 +674,15 @@ export class WorkSpaceController extends BaseController {
         const /** @type { NodeTypeInterface } */ destCmp = Components.ref(destCmpId) || {};
         const /** @type { NodeTypeInterface } */ srcCmp = Components.ref(srcCmpId) || {};
 
+        if(Object.keys(nodeOut).length == 0)
+            srcCmp.nodeName = 'Start';
+
         function setupNotification() {
-            if ('onOutputConnection' in srcCmp) {
+            if ('onOutputConnection' in srcCmp || srcCmp.nodeName === 'Start') {
                 if ('onInputConnection' in destCmp) {
                     (async () => {
-                        const sourceData = await srcCmp.onOutputConnection();
-                        await destCmp.onInputConnection({ data: sourceData, type: srcCmp.getName() });
+                        const sourceData = srcCmp.nodeName === 'Start' ? {} : await srcCmp?.onOutputConnection();
+                        await destCmp.onInputConnection({ data: sourceData, type: srcCmp?.nodeName === 'Start' ? 'Start' : srcCmp?.getName() });
                     })();
                 }
             }

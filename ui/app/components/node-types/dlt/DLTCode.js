@@ -4,10 +4,11 @@ import { AIAgentController } from "../../../controller/AIAgentController.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
-import { CodeEditorUtil } from "../../../util/CodeEditorUtil.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
+import { InputConnectionType } from "../types/InputConnectionType.js";
 import { loadTemplate } from "../util/codeTemplateUtil.js";
+import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class DLTCode extends ViewComponent {
@@ -42,6 +43,7 @@ export class DLTCode extends ViewComponent {
 	/** @type { State } */
 	selectedTemplate = '';
 	templateName = '';
+	nodeCount = '';
 
 	/** @Prop */ importData;
 
@@ -52,8 +54,9 @@ export class DLTCode extends ViewComponent {
 		this.$parent.controller.loadMonacoEditorDependencies();
 		this.aiGenerated = aiGenerated;
 		this.templateName = '';
-		if(AIAgentController.instance().whatCodeTemplateType.source != null){
-			this.importData = { ...this.importData , template: AIAgentController.instance().whatCodeTemplateType.source }
+		if(aiGenerated){
+			if(AIAgentController.instance().whatCodeTemplateType.source != null)
+				this.importData = { ...this.importData , template: AIAgentController.instance().whatCodeTemplateType.source }
 		}
 	}
 
@@ -152,6 +155,12 @@ export class DLTCode extends ViewComponent {
 	}
 
 	onOutputConnection(){
-		return {};
+		NodeUtil.handleOutputConnection(this);
+		return { nodeCount: this.nodeCount.value };
+	}
+
+	/** @param { InputConnectionType<{}> } param0 */
+	onInputConnection({ type, data }){
+		NodeUtil.handleInputConnection(this, data, type);
 	}
 }

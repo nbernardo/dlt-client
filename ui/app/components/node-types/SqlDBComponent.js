@@ -6,8 +6,10 @@ import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
+import { InputConnectionType } from "./types/InputConnectionType.js";
 import { databaseEnginesList, databaseIcons } from "./util/databaseUtil.js";
 import { addSQLComponentTableField } from "./util/formUtil.js";
+import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class SqlDBComponent extends ViewComponent {
@@ -37,6 +39,7 @@ export class SqlDBComponent extends ViewComponent {
 	primaryKey;
 	secretList = [];
 	hostName = 'None';
+	nodeCount = '';
 
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
@@ -238,10 +241,17 @@ export class SqlDBComponent extends ViewComponent {
 	}
 
 	onOutputConnection(){
+		NodeUtil.handleOutputConnection(this);
 		return {
 			tables: this.selectedSecretTableList?.value?.map(table => ({ name: table, file: table })),
-			sourceNode: this
+			sourceNode: this,
+			nodeCount: this.nodeCount.value
 		};
+	}
+
+	/** @param { InputConnectionType<{}> } param0 */
+	onInputConnection({ type, data }){
+		NodeUtil.handleInputConnection(this, data, type);
 	}
 
 }

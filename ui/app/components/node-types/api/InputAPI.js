@@ -3,6 +3,8 @@ import { WorkSpaceController } from "../../../controller/WorkSpaceController.js"
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
+import { InputConnectionType } from "../types/InputConnectionType.js";
+import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class InputAPI extends ViewComponent {
@@ -22,6 +24,8 @@ export class InputAPI extends ViewComponent {
 	host = '';
 	totalEndpoints = '';
 	selectedSecret;
+	nodeCount = '';
+
 	/** @Prop */ isImport;
 	/** @Prop */ importData = null;
 
@@ -55,7 +59,13 @@ export class InputAPI extends ViewComponent {
 	}
 
 	onOutputConnection(){
-		return null;
+		NodeUtil.handleOutputConnection(this);
+		return { nodeCount: this.nodeCount.value };
+	}
+
+	/** @param { InputConnectionType<{}> } param0 */
+	onInputConnection({ type, data }){
+		NodeUtil.handleInputConnection(this, data, type);
 	}
 
 }
