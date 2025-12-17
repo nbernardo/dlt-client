@@ -93,7 +93,14 @@
         <div class="content">
 
             <div class="content-panel content-outputs">
-                <h3>Pipeline Loaded data</h3>
+                <h3>
+                    Pipeline Loaded data
+                    <input 
+                        style="border-radius: 3px; padding: 8px; width: 91%;"
+                        type="text" 
+                        oninput="component.filderPipeline(this.value)"
+                        placeholder="Filter by pipeline name">
+                </h3>
                 <section id="data-panel" class="tab-panel data-panel">
                     <div style="text-align: center; font-size: 1.3em; width: 96%; color: #da5353;">
                         @dataFetchilgLabel

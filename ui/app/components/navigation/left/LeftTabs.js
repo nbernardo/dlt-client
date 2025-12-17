@@ -307,4 +307,14 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	hideSelectedPromptMenu = () => this.promptSamplesMenu.classList.remove('is-active');
+
+	filderPipeline(filter){
+		const pipelineList = document.querySelectorAll('.ppline-treeview-label');
+		for(const pipeline of pipelineList){
+			if(pipeline.textContent.search(filter) < 0)
+				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+			else
+				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = '';
+		}
+	}
 }
