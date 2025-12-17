@@ -12,6 +12,7 @@ export class NodeTypeInterface {
 	componentId;
 	aiGenerated;
 	importFields;
+	minimizedWidth;
 
 	/** This'll is for allowing node counte to propagate as link is created. 
 	 * this is be set automatically set and managed by WorkspaceController, 

@@ -891,4 +891,22 @@ export class WorkSpaceController extends BaseController {
         }
     }
 
+    handleNodeMinimize(icon, minimizedWidth){
+        const mainContainer = icon.parentNode;
+        const outerContainer = icon.parentNode.parentNode.parentNode;
+		if(mainContainer.classList.contains('minimize-node')){
+            const normalWidth = mainContainer.normalWidth;
+            outerContainer.style.width = normalWidth;
+			mainContainer.classList.remove('minimize-node');
+            icon.innerHTML = '_';
+            icon.style.height = '27px';
+        }else{
+            mainContainer.normalWidth = outerContainer.style.width;
+			mainContainer.classList.add('minimize-node');
+            outerContainer.style.width = minimizedWidth;
+            icon.innerHTML = '+';
+            icon.style.height = '15px';
+        }
+    }
+
 }

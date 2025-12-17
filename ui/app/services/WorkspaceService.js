@@ -61,8 +61,8 @@ export class WorkspaceService extends BaseService {
             isNodeGroup: 'yes', imgIcon: 'app/assets/imgs/adaptation.png', label: 'Transformations', 
             typeName: 'none', name: 'TransformationGroup', dropDownIcon: '<i class="fas fa-chevron-circle-right"></i>' 
         },
-        { groupType: 'TransformationGroup', imgIcon: 'app/assets/imgs/py.svg',  label: 'Code Transformation',  typeName: 'none',  disable: 'yes' },
         { groupType: 'TransformationGroup', icon: 'fas fa-cogs', label: 'Transformation', typeName: Transformation.name },
+        { groupType: 'TransformationGroup', imgIcon: 'app/assets/imgs/py.svg',  label: 'Code Transformation',  typeName: 'none',  disable: 'yes' },
         //Group of nodes concerning Destination types
         { 
             isNodeGroup: 'yes' ,imgIcon: 'app/assets/imgs/output_.png', label: 'Outputs/Destinations', 

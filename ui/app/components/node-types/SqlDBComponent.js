@@ -190,9 +190,12 @@ export class SqlDBComponent extends ViewComponent {
 		})
 	}
 
-	setDBIcon = (db) => 
-		document.querySelector(`.${this.cmpInternalId}`)
-			.querySelector('.database-icon').src = databaseIcons[db == '' ? 'generic' : db];
+	setDBIcon = (db) => {
+		if(document.querySelector(`.${this.cmpInternalId}`)){
+			document.querySelector(`.${this.cmpInternalId}`)
+				.querySelector('.database-icon').src = databaseIcons[db == '' ? 'generic' : db];
+		}
+	}
 	
 	clearSelectedTablesAndPk(){
 		this.getDynamicFieldNames().forEach(field => this[field] = '');

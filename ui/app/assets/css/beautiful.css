@@ -1013,3 +1013,37 @@ button[disabled]:hover {
     .hidden { display: none !important; }
 
 /** End of Making Regular input Dropdown Styling */
+
+
+
+/** Node Types additional styling */
+
+.pipeline-node-type-title-box{
+    display: flex !important; justify-content: space-between !important; padding-right: 9px !important;
+}
+
+.pipeline-node-type-minimaze{
+  position: absolute;
+  position: absolute;
+  margin-top: -12px;
+  height: 27px;
+  width: 27px;
+  align-items: center;
+  justify-content: center;
+  padding: 0px !important;
+  z-index: -1;
+  rotate: 180deg;
+  display: flex;
+  align-items: center;
+  margin-left: 7px;
+  font-weight: bold;
+  background: #164d7e;
+  font-size: 18px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+}
+
+.minimize-node { overflow: hidden; height: 50px; }
+
+/** End of Node Types additional styling */

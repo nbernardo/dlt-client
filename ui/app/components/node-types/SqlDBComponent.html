@@ -1,5 +1,6 @@
 <div class="@cmpInternalId" style="z-index: -1;">
-	<div class="title-box">
+	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
+	<div class="title-box pipeline-node-type-title-box">
 		<div>
 			<img src="@dbIcon" class="database-icon" width="22">
 			@label
@@ -67,7 +68,4 @@
 		color: red;
 		cursor: pointer; 
   	}
-	.SqlDBComponent .title-box{
-		display: flex; justify-content: space-between; padding-right: 9px;
-	}
 </style>
