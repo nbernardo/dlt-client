@@ -72,7 +72,6 @@ export class Bucket extends ViewComponent {
 	}
 
 	async stAfterInit() {
-		this.nodeCount.onChange(val => console.log(`THE COUNT NOD OF Duckdb is: `, val));
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 		data['namespace'] = await UserService.getNamespace();

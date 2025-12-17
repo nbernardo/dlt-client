@@ -63,7 +63,6 @@ export class Transformation extends ViewComponent {
 		this.isImport = isImport;
 		if (isImport === true) this.showLoading = true;
 		this.aiGenerated = aiGenerated
-		console.log(`THIS IS THE IMPORTED TRANSF: `, data);
 		
 		this.importFields = { row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount };
 	}
@@ -130,9 +129,7 @@ export class Transformation extends ViewComponent {
 						row.databaseFields = this.sourceNode.tablesFieldsMap;
 					});
 				});
-
 			}
-
 		}
 	}
 

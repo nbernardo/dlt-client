@@ -677,6 +677,8 @@ export class WorkSpaceController extends BaseController {
         if(Object.keys(nodeOut).length == 0)
             srcCmp.nodeName = 'Start';
 
+        srcCmp.nextNode = destCmp;
+
         function setupNotification() {
             if ('onOutputConnection' in srcCmp || srcCmp.nodeName === 'Start') {
                 if ('onInputConnection' in destCmp) {

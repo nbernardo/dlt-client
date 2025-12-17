@@ -12,12 +12,19 @@ export class NodeUtil {
         
         if(Number(node?.nodeCount) === 0 && data.nodeCount != undefined){            
             node.nodeCount = 1;
-            if('onOutputConnection' in node) node?.onOutputConnection();
-            return;
+        }else{
+            if(type == 'Start') node.nodeCount = 1;
+            else {
+                if('nodeCount' in node && 'nodeCount' in (data || {}))
+                    node.nodeCount = Number(data.nodeCount) + 1;
+            }
         }
-
-		if(type == 'Start') node.nodeCount = 1;
-		else node.nodeCount = Number(data.nodeCount) + 1;
+        
+        try {
+            //This'll make next node to update the nodeCount of itself 
+            node.nextNode.onInputConnection({ data: node.onOutputConnection(), type: node?.nodeName});
+        } catch (error) {}
+        
 	}
 
     /** @param { NodeTypeInterface } node */

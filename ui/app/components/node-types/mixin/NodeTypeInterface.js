@@ -13,6 +13,14 @@ export class NodeTypeInterface {
 	aiGenerated;
 	importFields;
 
+	/** This'll is for allowing node counte to propagate as link is created. 
+	 * this is be set automatically set and managed by WorkspaceController, 
+	 * @type { NodeTypeInterface } */
+	nextNode;
+
+	/** @type { NodeTypeInterface } */
+	prevNode;
+
 	//State variable
 	nodeCount;
 
