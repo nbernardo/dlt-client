@@ -202,5 +202,9 @@ export class Transformation extends ViewComponent {
 			}
 		});
 	}
+	
+	onConectionDelete(){
+		this.nodeCount = '';
+	}
 
 }

@@ -155,6 +155,7 @@ export class DatabaseOutput extends ViewComponent {
 	onConectionDelete(sourceType){
 		if(sourceType === Bucket.name || sourceType === InputAPI.name)
 			this.tableName = null;
+		this.nodeCount = '';
 	}
 
 	setDBIcon = (db) => 

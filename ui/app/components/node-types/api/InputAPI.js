@@ -68,4 +68,8 @@ export class InputAPI extends ViewComponent {
 		NodeUtil.handleInputConnection(this, data, type);
 	}
 
+	onConectionDelete(){
+		this.nodeCount = '';
+	}
+
 }

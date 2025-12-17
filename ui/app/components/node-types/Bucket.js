@@ -242,6 +242,10 @@ export class Bucket extends ViewComponent {
 		NodeUtil.handleInputConnection(this, data, type);
 	}
 
+	onConectionDelete(){
+		this.nodeCount = '';
+	}
+
 	notifyReadiness = () => 
 		Components.emitAction(`nodeReady${this.cmpInternalId}`);
 }

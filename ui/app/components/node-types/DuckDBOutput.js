@@ -91,4 +91,8 @@ export class DuckDBOutput extends ViewComponent {
 		NodeUtil.handleInputConnection(this, data, type);
 	}
 
+	onConectionDelete(){
+		this.nodeCount = '';
+	}
+
 }

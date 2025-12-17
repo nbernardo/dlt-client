@@ -163,4 +163,8 @@ export class DLTCode extends ViewComponent {
 	onInputConnection({ type, data }){
 		NodeUtil.handleInputConnection(this, data, type);
 	}
+
+	onConectionDelete(){
+		this.nodeCount = '';
+	}
 }
