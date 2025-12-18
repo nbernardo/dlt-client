@@ -9,6 +9,7 @@ from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
 from utils.duckdb_util import DuckdbUtil
 from utils.cache_util import DuckDBCache
+from utils.SQLDatabase import SQLDatabase
 import uuid
 from datetime import datetime
 
@@ -454,6 +455,29 @@ class DltPipeline:
                         namespace='{namespace}'\
                         and ppline_name='{ppline}'"
         cnx.execute(query)
+
+
+    @staticmethod
+    def read_pipeline(file_path, namespace):
+        code = ''
+        with open(file_path, 'r') as file:
+            code = file.read()
+            pipeline_code = json.loads(code)
+
+        node_list = pipeline_code['content']['Home']['data']
+        database_obj = { id: node for id, node in node_list.items() if node['name'] == 'SqlDBComponent' }
+
+        datasource_details = None
+        if(len(database_obj.keys()) > 0):
+
+            node = list(database_obj.values())[0]
+            connection_name = node['data']['connectionName']
+            datasource_details = SQLDatabase.get_tables_list(namespace, connection_name)
+        
+        if not(not(datasource_details)):
+            del datasource_details['details']
+            
+        return pipeline_code, datasource_details
 
 
 def has_ppline_job(evt, job_transaction_id):

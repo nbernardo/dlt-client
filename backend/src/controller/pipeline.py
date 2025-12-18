@@ -421,16 +421,14 @@ def update_ppline(user, filename):
 
 
    
-@pipeline.route('/ppline/diagram/<user>/<filename>', methods=['GET'])
-def read_diagram_content(user, filename):
+@pipeline.route('/ppline/diagram/<namespace>/<filename>', methods=['GET'])
+def read_diagram_content(namespace, filename):
 
    try:
-        file_path = BasePipeline.folder+'/code/'+user+'/'+filename+'.json'
-        code = ''
-        with open(file_path, 'r') as file:
-            code = file.read()
-
-        return code
+        file_path = BasePipeline.folder+'/code/'+namespace+'/'+filename+'.json'
+        pipeline_code, datasource_details = DltPipeline.read_pipeline(file_path, namespace)
+        return { 'pipelineCode': pipeline_code , 'dbDetailes': datasource_details }
+   
    except FileNotFoundError as err:
        return jsonify({'error': 'Pipeline not found'}), 404
    
