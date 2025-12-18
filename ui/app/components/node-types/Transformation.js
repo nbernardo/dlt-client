@@ -1,10 +1,10 @@
 import { sleepForSec } from "../../../@still/component/manager/timer.js";
-import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { Components } from "../../../@still/setup/components.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { Workspace } from "../workspace/Workspace.js";
+import { AbstractNode } from "./abstract/AbstractNode.js";
 import { Bucket } from "./Bucket.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "./SqlDBComponent.js";
@@ -14,7 +14,7 @@ import { NodeUtil } from "./util/nodeUtil.js";
 import { DatabaseTransformation, NonDatabaseSourceTransform } from "./util/tranformation.js";
 
 /** @implements { NodeTypeInterface } */
-export class Transformation extends ViewComponent {
+export class Transformation extends AbstractNode {
 
 	isPublic = true;
 
@@ -208,10 +208,6 @@ export class Transformation extends ViewComponent {
 				await confirmEvent(this);
 			}
 		});
-	}
-	
-	onConectionDelete(){
-		this.nodeCount = '';
 	}
 
 }

@@ -1,16 +1,15 @@
-import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
-import { Components } from "../../../@still/setup/components.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
 import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class Bucket extends ViewComponent {
+export class Bucket extends AbstractNode {
 
 	isPublic = false;
 
@@ -242,12 +241,6 @@ export class Bucket extends ViewComponent {
 		NodeUtil.handleInputConnection(this, data, type);
 	}
 
-	onConectionDelete(){
-		this.nodeCount = '';
-	}
-
-	notifyReadiness = () => 
-		Components.emitAction(`nodeReady${this.cmpInternalId}`);
 }
 
 

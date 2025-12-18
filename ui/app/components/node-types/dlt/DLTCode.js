@@ -1,17 +1,17 @@
-import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { State, STForm } from "../../../../@still/component/type/ComponentType.js";
 import { AIAgentController } from "../../../controller/AIAgentController.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { Workspace } from "../../workspace/Workspace.js";
+import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
 import { loadTemplate } from "../util/codeTemplateUtil.js";
 import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class DLTCode extends ViewComponent {
+export class DLTCode extends AbstractNode {
 
 	isPublic = true;
 
@@ -43,7 +43,6 @@ export class DLTCode extends ViewComponent {
 	/** @type { State } */
 	selectedTemplate = '';
 	templateName = '';
-	nodeCount = '';
 
 	/** @Prop */ importData;
 
@@ -99,6 +98,7 @@ export class DLTCode extends ViewComponent {
 		}
 
 		if (this.importData.isImport) {
+			this.notifyReadiness();
 			this.templateName = ` - <b>${this.templateMap[this.importData.templateName]}</b>`;
 			this.codeEditor.setValue(this.importData.dltCode)
 		}
@@ -162,9 +162,5 @@ export class DLTCode extends ViewComponent {
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
 		NodeUtil.handleInputConnection(this, data, type);
-	}
-
-	onConectionDelete(){
-		this.nodeCount = '';
 	}
 }

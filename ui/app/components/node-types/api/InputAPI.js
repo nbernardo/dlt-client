@@ -2,12 +2,13 @@ import { ViewComponent } from "../../../../@still/component/super/ViewComponent.
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
 import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class InputAPI extends ViewComponent {
+export class InputAPI extends AbstractNode {
 
 	isPublic = true;
 
@@ -39,7 +40,8 @@ export class InputAPI extends ViewComponent {
 		this.secretsList = await WorkspaceService.listSecrets(2);
 		this.showLoading = false;
 
-		if(this.importData?.isImport){			
+		if(this.importData?.isImport){	
+			this.notifyReadiness();		
 			this.host = this.importData.baseUrl;
 			this.selectedSecret = this.importData.connectionName;
 			const selectedSecret = this.secretsList.value.find(obj => obj.name === this.selectedSecret.value);
@@ -66,10 +68,6 @@ export class InputAPI extends ViewComponent {
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
 		NodeUtil.handleInputConnection(this, data, type);
-	}
-
-	onConectionDelete(){
-		this.nodeCount = '';
 	}
 
 }

@@ -1,11 +1,10 @@
-import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
-import { Components } from "../../../@still/setup/components.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
+import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { databaseEnginesList, databaseIcons } from "./util/databaseUtil.js";
@@ -13,7 +12,7 @@ import { addSQLComponentTableField } from "./util/formUtil.js";
 import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class SqlDBComponent extends ViewComponent {
+export class SqlDBComponent extends AbstractNode {
 
 	isPublic = true;
 
@@ -258,13 +257,6 @@ export class SqlDBComponent extends ViewComponent {
 	onInputConnection({ type, data }){
 		NodeUtil.handleInputConnection(this, data, type);
 	}
-
-	onConectionDelete(){
-		this.nodeCount = '';
-	}
-
-	notifyReadiness = () => 
-		Components.emitAction(`nodeReady${this.cmpInternalId}`);
 
 }
 

@@ -1,11 +1,11 @@
-import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class DuckDBOutput extends ViewComponent {
+export class DuckDBOutput extends AbstractNode {
 
 	isPublic = true;
 
@@ -89,10 +89,6 @@ export class DuckDBOutput extends ViewComponent {
 	/** @param {InputConnectionType<{}>} param0  */
 	onInputConnection({data, type}){
 		NodeUtil.handleInputConnection(this, data, type);
-	}
-
-	onConectionDelete(){
-		this.nodeCount = '';
 	}
 
 }
