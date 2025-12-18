@@ -1,5 +1,6 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
+import { Components } from "../../../@still/setup/components.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
@@ -98,6 +99,7 @@ export class SqlDBComponent extends ViewComponent {
 		// At this point the WorkSpaceController was loaded by WorkSpace component
 		// hance no this.wSpaceController.on('load') subscrtiption is needed
 		this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+		this.notifyReadiness();
 
 		const disable = true;
 		const allTables = Object.values(this.tables);
@@ -161,7 +163,7 @@ export class SqlDBComponent extends ViewComponent {
 
 		this.selectedSecret.onChange(async secretName => {
 			// To prevent running through the bellow steps in case the secret is the same
-			if(this.secretedSecretTrace == secretName) return;
+			if(this.secretedSecretTrace == secretName || this.isImport) return;
 
 			this.secretedSecretTrace = secretName;
 			this.clearSelectedTablesAndPk();
@@ -260,6 +262,9 @@ export class SqlDBComponent extends ViewComponent {
 	onConectionDelete(){
 		this.nodeCount = '';
 	}
+
+	notifyReadiness = () => 
+		Components.emitAction(`nodeReady${this.cmpInternalId}`);
 
 }
 

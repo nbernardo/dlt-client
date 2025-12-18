@@ -438,7 +438,7 @@
     }
 
     .rotate-menu-arrow { rotate: 90deg; }
-    .DLT-class { width: 22px !important; }
+    .DLT-class { width: 22px !important; float: left; margin-top: 14px; }
     .Out-SQL { width: 30px !important; margin-left: -7px; float: left; margin-top: 8px; }
     .SourceGroup { width: 33px !important; margin-left: 0px; float: left; margin-top: 8px; }
     .TransformationGroup{ width: 30px !important; float: left !important; margin-top: 12px; }
@@ -446,10 +446,10 @@
 
     div[data-group-name="SourceGroup"], 
     div[data-group-name="TransformationGroup"], 
-    div[data-group-name="OutputsGroup"]{ cursor: pointer; label { cursor: pointer; } }
+    div[data-group-name="OutputsGroup"]{ cursor: pointer; label { cursor: pointer; }; background-color: #e4e4e48c; }
 
     .SourceGroup-item, .TransformationGroup-item, .OutputsGroup-item { 
-        height: 0px; background-color: #e4e4e48c; overflow: hidden; border: none; transition: height .2s;
+        height: 0px; background-color: white; overflow: hidden; border: none; transition: height .2s;
     }
     .SourceGroup-icon, .TransformationGroup-icon, .OutputsGroup-icon { margin-left: 20px; }
     .SourceGroup-item-show, .TransformationGroup-item-show, .OutputsGroup-item-show { 

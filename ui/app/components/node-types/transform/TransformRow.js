@@ -17,6 +17,7 @@ export class TransformRow extends ViewComponent {
 
 	/** @Prop */ rowId;
 	/** @Prop */ transformType;
+	/** @Prop */ isImport;
 	/** @Prop */ databaseFields; //This is in particular when the data source is DB (e.g. SQL)
 	/** @Prop */ configData = null; // This is only used when importing/reviewing a previous created node
 
@@ -31,32 +32,36 @@ export class TransformRow extends ViewComponent {
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap }) {
-		this.dataSourceList = dataSources;
+	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport }) {
 		this.fieldList = tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap;
 		this.rowId = rowId;
-
-		if (importFields) this.configData = importFields;
-
+		this.isImport = isImport;
+		
+		if (importFields) this.configData = { ...importFields, dataSources };
+		
 	}
 
 	async stAfterInit() {
-
-		this.$parent.transformPieces.set(this.rowId, {})
+		this.dataSourceList = this.configData.dataSources;		
+		this.$parent.transformPieces.set(this.rowId, {});
+		const workspace = this.$parent.$parent;
 
 		this.selectedSource.onChange(async (newValue) => {
 
 			let fieldList = null, dataSource;
-
-			dataSource = newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
-			if(this.$parent.dataSourceType !== 'SQL'){
-				await this.wspaceService.handleCsvSourceFields(dataSource)
-				fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
-			}else{				
-				fieldList = this.databaseFields[newValue].map(itm => ({ name: itm.column }))
+			if(workspace.controller.importingPipelineSourceDetails !== null && this.configData !== null){
+				fieldList = workspace.controller.importingPipelineSourceDetails.tables[newValue].map(itm => ({ name: itm.column }));
+			}else{
+				dataSource = newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
+				if(this.$parent.dataSourceType !== 'SQL'){
+					await this.wspaceService.handleCsvSourceFields(dataSource)
+					fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
+				}else{
+					fieldList = this.databaseFields[newValue].map(itm => ({ name: itm.column }));
+				}
 			}
-			
+
 			this.fieldList = fieldList;
 			this.updateTransformValue({ dataSource });
 		});
@@ -67,7 +72,7 @@ export class TransformRow extends ViewComponent {
 		this.selectedSource.onChange(table => this.updateTransformValue({ table }));
 
 		this.selectedType.onChange(value => {
-			this.transformType = value.trim();
+			this.transformType = value?.trim();
 			this.updateTransformValue({ type: this.transformType });
 		});
 

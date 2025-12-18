@@ -476,12 +476,14 @@ export class Workspace extends ViewComponent {
 			if(reset) self.resetWorkspace();
 			const response = await self.service.readDiagramFile(await UserService.getNamespace(), pplineName);
 			const result = JSON.parse(response);
-			self.activeGrid = result.pipeline_lbl;
+
+			self.controller.importingPipelineSourceDetails = result?.dbDetailes || null;
+			self.activeGrid = result.pipelineCode.pipeline_lbl;
 			document.querySelector('.clear-workspace-btn').style.right = '110px';
 			self.showSaveButton = false;
 			self.isAnyDiagramActive = true;
 			document.getElementById('pplineNamePlaceHolder').contentEditable = false;
-			await self.controller.processImportingNodes(result.content['Home'].data);
+			await self.controller.processImportingNodes(result.pipelineCode.content['Home'].data);
 			self.wasDiagramSaved = false;
 			self.selectedPplineName = pplineName;
 		}

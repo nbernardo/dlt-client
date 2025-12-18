@@ -149,9 +149,16 @@ export class Transformation extends ViewComponent {
 		}else handleAddField();
 		
 		async function handleAddField() {
+			let dataSources = obj.databaseList.value;
+			
+			if(obj.$parent.controller.importingPipelineSourceDetails !== null && obj.isImport){
+				dataSources = obj.$parent.controller.importingPipelineSourceDetails.tables;
+				dataSources = Object.keys(dataSources).map(tableName => ({ 'name': tableName }));
+			}
+
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
-			const initialData = { dataSources: obj.databaseList.value, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap };
+			const initialData = { dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap };
 			
 			// Create a new instance of TransformRow component
 			const { component, template } = await Components.new('TransformRow', initialData, parentId);

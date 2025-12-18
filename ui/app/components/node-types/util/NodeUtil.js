@@ -20,10 +20,13 @@ export class NodeUtil {
             }
         }
         
-        try {
-            //This'll make next node to update the nodeCount of itself 
-            node.nextNode.onInputConnection({ data: node.onOutputConnection(), type: node?.nodeName});
-        } catch (error) {}
+        
+        setTimeout(() => {
+            try {
+                //This'll make next node to update the nodeCount of itself 
+                node.nextNode.onInputConnection({ data: node.onOutputConnection(), type: node?.nodeName});
+            } catch (error) {}
+        },100);
         
 	}
 

@@ -55,7 +55,7 @@ export class WorkspaceService extends BaseService {
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/api-source.svg', label: 'Input - API', typeName: InputAPI.name },
-        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
+        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
         //Group of nodes concerning Transformation types
         { 
             isNodeGroup: 'yes', imgIcon: 'app/assets/imgs/adaptation.png', label: 'Transformations', 
@@ -181,8 +181,8 @@ export class WorkspaceService extends BaseService {
         return null;
     }
 
-    async readDiagramFile(user, fileName) {
-        const response = await $still.HTTPClient.get('/ppline/diagram/' + user + '/' + fileName);
+    async readDiagramFile(namespace, fileName) {
+        const response = await $still.HTTPClient.get('/ppline/diagram/' + namespace + '/' + fileName);
         if (response.ok)
             return await response.text();
         return null;

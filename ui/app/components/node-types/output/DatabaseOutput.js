@@ -66,7 +66,7 @@ export class DatabaseOutput extends ViewComponent {
 		await this.getDBSecrets();
 		if(this.isImport === true){	
 			this.selectedDbEngine = this.importFields.dbengine;
-			this.setDBIcon(this.selectedDbEngine);
+			this.setDBIcon(this.selectedDbEngine.value);
 			this.selectedSecret = this.importFields.outDBconnectionName;
 			this.database = this.importFields.databaseName;
 			this.hostName = this.importFields.host || 'None';

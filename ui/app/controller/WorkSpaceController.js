@@ -62,6 +62,8 @@ export class WorkSpaceController extends BaseController {
     wSpaceComponent;
     isImportProgress = false;
 
+    importingPipelineSourceDetails = null;
+
     /** @type { Header } */
     activeHeader = null;
 
@@ -313,13 +315,17 @@ export class WorkSpaceController extends BaseController {
             }
         }
 
-        Object.keys(inOutputMapping).forEach(nodeId => {
-            const { outputs } = inOutputMapping[nodeId];
-            outputs?.output_1?.connections.forEach((link) => {
-                const targetNode = WorkSpaceController.importNodeIdMapping[Number(link.node)];
-                this.editor.addConnection(Number(nodeId), targetNode, 'output_1', 'input_1');
+        setTimeout(() => {
+
+            Object.keys(inOutputMapping).forEach(nodeId => {
+                const { outputs } = inOutputMapping[nodeId];
+                outputs?.output_1?.connections.forEach((link) => {
+                    const targetNode = WorkSpaceController.importNodeIdMapping[Number(link.node)];
+                    this.editor.addConnection(Number(nodeId), targetNode, 'output_1', 'input_1');
+                });
             });
-        });
+
+        },100);
 
     }
 
