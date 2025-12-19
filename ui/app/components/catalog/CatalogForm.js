@@ -286,7 +286,9 @@ export class CatalogForm extends ViewComponent {
 
 	showDialog(reset = false, type = null){		
 		if(type === 'api') this.markRequiredApiFields(true);
-		if(reset) this.isNewSecret = true, this.resetForm();
+		if(reset) {
+			this.isDbConnEditing = false; this.isNewSecret = true, this.resetForm();
+		}
 		
 		document.querySelector('.db-connection-name').disabled = false;
 		document.querySelectorAll('.database-settings-type input').forEach(opt => opt.disabled = false);
@@ -396,17 +398,15 @@ export class CatalogForm extends ViewComponent {
 		const btn = document.querySelector('.connectio-test-status');
 		btn.parentElement.disabled = true;
 		this.checkConnection = 'in-progress';
-		const result = await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()}, true);
+		const result = await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()}, this.isDbConnEditing);
 		btn.style.background = result == true ? 'green' : 'red';
 		this.checkConnection = '';
 		btn.parentElement.disabled = false;
 	}
 
 	async createSecret(){
-		const validate = await this.formRef.validate(); 
-		let dbConfig = null, apiSettings = null, updatingSecret;
-		console.log('Good good: ',(await this.formRef).errorCount);
-		
+		let validate = await this.formRef.validate(), dbConfig = null, apiSettings = null, updatingSecret;
+
 		if(this.secretType != 2 && this.dataBaseSettingType == null) 
 			return AppTemplate.toast.error('Please select the secret type');
 
