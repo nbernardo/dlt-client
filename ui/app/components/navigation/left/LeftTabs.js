@@ -135,7 +135,7 @@ export class LeftTabs extends ViewComponent {
 
 	pipelineTreeViewTemplate(dbfile, flag){
 		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} ${dbfile}</span>
+					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
 					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
 						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
 				</div>
@@ -161,7 +161,7 @@ export class LeftTabs extends ViewComponent {
 	refreshTree = async () => await this.showHideDatabase();
 
 	databaseTreeViewTemplate(tableData, tableToQuery, dbfile, showIcons = true){
-		let tableRow = `<span>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</span>`;
+		let tableRow = `<div class='table-name'>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</div>`;
 		if(showIcons === true) {
 			tableRow += `
 				<span class="tables-icn-container">

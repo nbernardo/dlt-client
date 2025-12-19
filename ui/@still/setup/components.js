@@ -1767,10 +1767,14 @@ export class Components {
                 if (!isResizing) return;
                 const deltaX = e.clientX - startX, rszCorrect = resizeCorrectionPx;
                 const newLeftPanelWidth = leftPanelWidth + deltaX;
-
+                
                 if([true,'true'].includes(resizable)){ 
                     const rect = document.body.getBoundingClientRect();
                     const relativeX = e.clientX - rect.left;
+
+                    if((relativeX - rszCorrect) < resizeCorrectionPx)
+                        return;
+
                     [_left.style.width, _right.style.flexGrow, separator.style.marginLeft] = [`${relativeX - rszCorrect}px`, 1, `${relativeX - rszCorrect}px`];
                     if (method) (async () => await method({ leftWidth: relativeX - rszCorrect }))();
                 }

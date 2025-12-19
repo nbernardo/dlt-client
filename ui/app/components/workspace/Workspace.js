@@ -469,6 +469,7 @@ export class Workspace extends ViewComponent {
 	async viewPipelineDiagram(event, pplineName) {
 		event.preventDefault();
 		const self = this;
+		AppTemplate.showLoading();
 		if (this.checkActiveDiagram())
 			return this.controller.moreThanOnePipelineOpenAlert(openDiagram);
 
@@ -484,6 +485,7 @@ export class Workspace extends ViewComponent {
 			self.isAnyDiagramActive = true;
 			document.getElementById('pplineNamePlaceHolder').contentEditable = false;
 			await self.controller.processImportingNodes(result.pipelineCode.content['Home'].data);
+			AppTemplate.hideLoading();
 			self.wasDiagramSaved = false;
 			self.selectedPplineName = pplineName;
 		}
@@ -493,8 +495,9 @@ export class Workspace extends ViewComponent {
 	logout = async () => await this.userService.logOut();
 
 	verticalResize({ leftWidth }) {
+		if(leftWidth < 150) return;
 		const selectedTab = this.selectedLeftTab.value;
-		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth + 100) + 'px';
+		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth + 90) + 'px';
 	}
 
 	async viewScriptOnEditor() {
