@@ -103,6 +103,10 @@
 	    margin-left: 5px;
 	}
 
+	.ppline-treeview-label div { text-overflow: ellipsis; overflow: hidden; }
+	
+	.table-in-treeview { width: 103%; .table-name { overflow: hidden;text-overflow: ellipsis;width: 71%; } }
+
 	.ppline-treeview-label {
 		overflow: hidden;
 		text-overflow: ellipsis;
