@@ -57,7 +57,6 @@ export class LeftTabs extends ViewComponent {
 	apiSecretsList = [];
 
 	stAfterInit() {
-		
 		this.$parent.controller.leftTab = this;
 
 		this.setUpPromptMenuEvt();
@@ -67,7 +66,6 @@ export class LeftTabs extends ViewComponent {
 				console.log(`Workspace was update about changed and new value is: `, newValue);
 			});
 		});
-
 	}
 
 	/** @param { HTMLElement | null } target */
@@ -208,7 +206,7 @@ export class LeftTabs extends ViewComponent {
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
 			const data = await this.fileUploadProxy.listFiles();
-			this.fileListProxy.filesList = data?.length > 0 ? data.map((file, idx) => ({...file, id: 'file'+idx})) : [];			
+			this.fileListProxy.filesList = data?.length > 0 ? data.map((file, idx) => ({...file, id: 'file'+idx, category: 'data'})) : [];
 			this.fileListProxy.setUpFileMenuEvt();
 		}
 
@@ -224,8 +222,10 @@ export class LeftTabs extends ViewComponent {
 						file.id = ++count;
 						currentFileObject = file;
 						currentFileObject.versions = [];
+						currentFileObject.category = 'script';
 					}else{
 						file.version = true;
+						file.category = 'script';
 						currentFileObject.versions.push(file);
 					}
 				}
@@ -317,4 +317,7 @@ export class LeftTabs extends ViewComponent {
 				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = '';
 		}
 	}
+
+	filterScriptFile = (name) => this.scriptListProxy.filterFileByName('script',name);
+	filterDataFile = (name) => this.fileListProxy.filterFileByName('data', name);
 }

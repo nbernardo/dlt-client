@@ -1,4 +1,4 @@
-<div class="file-list-wrapper">
+<div class="file-list-wrapper file-list-@uniqId">
 	<ol class="tiny-menu">
         @if(this.filesList === null || Object.keys(this.filesList).length === 0)
             <div style="color: #ffffffbd !important; text-align: center;">@noFilesMessage</div>
@@ -6,7 +6,7 @@
 
 		@for(file in this.filesList; idx = $count)
             @if(file.version !== true)
-                <li id="{file.id}" class="tiny-menu-item current-file-{file.id}">
+                <li id="{file.id}" class="tiny-menu-item current-file-{file.id} current-file-item-{file.category}" data-name="{file.name}">
                     <div class="dots-container">
                         <span class="dots-icon" onclick="component.togglePopup(this, '{file.name}', '{file.id}')" fill="currentColor">
                             <img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
