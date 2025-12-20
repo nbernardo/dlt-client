@@ -574,7 +574,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
 
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .className = 'statusicon running-status';
         }
@@ -585,7 +585,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
             
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .classList.remove('running-status');
         }
@@ -596,7 +596,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
             
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .className = 'statusicon failed-status';
         }
@@ -607,7 +607,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
             
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .className = 'statusicon success-status';
         }
@@ -618,7 +618,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
             
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .className = 'statusicon pre-success-status';
         }

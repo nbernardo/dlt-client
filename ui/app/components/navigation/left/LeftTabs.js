@@ -258,6 +258,7 @@ export class LeftTabs extends ViewComponent {
 	async startAIAssistant(retry = false){
 		this.selectTab('content-ai'); 
 		await this.$parent.controller.startAgent(retry);
+		setTimeout(() => document.getElementById('ai-chat-user-input').focus());
 	}
 
 	setNewPrompt(content){

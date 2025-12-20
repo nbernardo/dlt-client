@@ -185,7 +185,7 @@ function functionSecretContent(type, typeId){
     const userMessage = _WorkspaceBOT_.getLastUserPrompt();
 
     const isSecrets = userMessage.search(/secrets|secret|connection/);
-    const isUseSecret = userMessage.search(/use|used|using/);
+    const isUseSecret = userMessage.search(/use|used|using|assign|set|put/);
 
     if((isUseSecret > -1) && (isUseSecret < isSecrets))
         return "${agentOptions.pipeline}${usingSecretPrompt}";

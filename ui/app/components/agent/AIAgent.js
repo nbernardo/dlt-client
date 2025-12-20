@@ -89,8 +89,8 @@ export class AIAgent extends ViewComponent {
 			this.startedInstance = await WorkspaceService.startChatConversation();
 			
 			if(this.startedInstance.start === false && retry === false){
-				this.createMessageBubble(`<div class="agent-no-start-error">${this.startedInstance.error}</div>`, 'agent', 'DLT Workspace');
-				this.startedInstance = null;
+				//this.createMessageBubble(`<div class="agent-no-start-error">${this.startedInstance.error}</div>`, 'agent', 'DLT Workspace');
+				//this.startedInstance = null;
 			}
 		} catch (error) { }
 	}
@@ -176,7 +176,8 @@ export class AIAgent extends ViewComponent {
 				else if (String(response).trim() === this.unloadNamespaceMsg) {
 					// Auto-reconnect to the chats
 					this.$parent.leftMenuProxy.startAIAssistant(true);
-					response += `<br>However I've updated myself, let's try again, what's your ask?`
+					response += `\nHowever I've updated myself, let's try again, what's your ask?`
+					setTimeout(() => this.scrollToBottom());
 				}
 			}
 

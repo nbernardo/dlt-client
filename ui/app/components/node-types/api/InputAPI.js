@@ -14,10 +14,8 @@ export class InputAPI extends AbstractNode {
 
 	/** This is strictly to reference the object in the diagram 
 	 * @Prop */ nodeId;
-
 	/** @Prop */ label = 'Source - API';
 	/** @Prop */ showLoading = true;
-
 	/** @Prop */ inConnectors = 1;
 	/** @Prop */ outConnectors = 1;
 
@@ -27,26 +25,20 @@ export class InputAPI extends AbstractNode {
 	selectedSecret;
 	nodeCount = '';
 
+	/** @Prop */ aiGenerated;
 	/** @Prop */ isImport;
 	/** @Prop */ importData = null;
 
 	async stOnRender(data){
-		const { nodeId } = data;
+		const { nodeId, aiGenerated } = data;
+		this.nodeId = nodeId;
+		this.aiGenerated = aiGenerated;
 		this.importData = data;
-		this.nodeId = nodeId;		
 	}
 
 	async stAfterInit(){
 		this.secretsList = await WorkspaceService.listSecrets(2);
 		this.showLoading = false;
-
-		if(this.importData?.isImport){	
-			this.notifyReadiness();		
-			this.host = this.importData.baseUrl;
-			this.selectedSecret = this.importData.connectionName;
-			const selectedSecret = this.secretsList.value.find(obj => obj.name === this.selectedSecret.value);
-			this.totalEndpoints = selectedSecret.totalEndpoints || '';
-		}
 
 		this.selectedSecret.onChange(value => {
 			const selectedSecret = this.secretsList.value.find(obj => obj.name === value);
@@ -56,6 +48,16 @@ export class InputAPI extends AbstractNode {
 			this.host = selectedSecret.host || '';
 			this.totalEndpoints = selectedSecret.totalEndpoints || '';
 		});
+
+		if(this.aiGenerated && this.importData.connectionName) this.selectedSecret = this.importData.connectionName;
+
+		if(this.importData?.isImport){	
+			this.notifyReadiness();		
+			this.host = this.importData.baseUrl;
+			this.selectedSecret = this.importData.connectionName;
+			const selectedSecret = this.secretsList.value.find(obj => obj.name === this.selectedSecret.value);
+			this.totalEndpoints = selectedSecret.totalEndpoints || '';
+		}
 
 		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 	}

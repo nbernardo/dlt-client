@@ -477,18 +477,18 @@ header a {
 }
 
 .drawflow-node .title-box div.running-status {
-    background-color: green;
+    background-color: green; color: white !important;
     -webkit-animation: sk-scaleout .5s infinite ease-in-out;
     animation: sk-scaleout .5s infinite ease-in-out;
 }
 
-.drawflow-node .title-box div.failed-status { background-color: red; color: white; }
+.drawflow-node .title-box div.failed-status { background-color: red !important; color: white; }
 
-.drawflow-node .title-box div.success-status { background-color: green; color: white; }
+.drawflow-node .title-box div.success-status { background-color: green !important; color: white; }
 
 .drawflow-node .title-box div.pre-success-status {
     background-color: rgba(0, 128, 0, 0.266);
-    border: 1px solid green;
+    border: 1px solid green !important;
     color: #6a6a6a;
 }
 

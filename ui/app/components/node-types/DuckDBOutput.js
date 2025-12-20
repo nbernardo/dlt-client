@@ -54,7 +54,7 @@ export class DuckDBOutput extends AbstractNode {
 	stAfterInit(){		
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
-		if(this.isImport === false){
+		if(this.isImport === false || this.aiGenerated){
 			this.setupOnChangeListen();
 		}
 
