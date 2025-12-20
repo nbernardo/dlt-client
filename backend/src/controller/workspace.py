@@ -316,7 +316,7 @@ def setup_agent(user, namespace = None):
         if agent == None:
             return { 
                 'success': False, 
-                'error': f'Could not start the Agent, as no data about the namespace exists.', 
+                'error': f'No data was found in your namespace.', 
                 'start': False
             }
 

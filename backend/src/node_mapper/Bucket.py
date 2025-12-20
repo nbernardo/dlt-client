@@ -10,7 +10,7 @@ class Bucket(TemplateNodeType):
     Bucket type mapping class
     """
 
-    def __init__(self, data: dict, context: RequestContext = None):
+    def __init__(self, data: dict, context: RequestContext = None, component_id = None):
         """
         Initialize the instance
         """

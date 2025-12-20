@@ -12,6 +12,7 @@ sys.path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
+from src.utils.SQLDatabase import normalize_table_names
 
 # Bellow mapping: namespace = SqlDBComponent.namespace
 namespace = %namespace%
@@ -45,6 +46,7 @@ def load_select_tables_from_db():
 
     # Bellow mapping: tables_pk = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
+    tables = normalize_table_names(secret, tables)
 
     # Bellow mapping: schema = SqlDBComponent.schema
     schema = %schema%

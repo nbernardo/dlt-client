@@ -4,7 +4,7 @@ class TemplateNodeType:
     """
     Class to serve as supper for node types
     """
-    def __init__(self, data: dict, context: RequestContext):
+    def __init__(self, data: dict, context: RequestContext, component_id = None):
         self.template = None
         self.context = context
         self.component_id = None

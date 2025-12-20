@@ -54,7 +54,8 @@ class DataQueryAIAssistent(AbstractAgent):
         f" 3. If your answer involves function calling you'll always run the function calling according to point 1 and 2 even if it's a previous answered questions."
         f" 4. If you're asked about tables or metadata or DB/DATABASE SCHEMA, just use the loaded DATABASE SCHEMA, don't query the Database. "
         f" 5. If for some reason, you're unable to call the function and answering with previous answer, just prefix it with {prev_answered}."
-        f" 6. Never answer the user with code kind of response, if this code is a param of the function call, you should alwas call such function."
+        f" 6. If no schema was provided you'll respond saying that not Data is available in the current namespace."
+        f" 7. Never answer the user with code kind of response, if this code is a param of the function call, you should alwas call such function."
         f"\n\n--- DATABASE SCHEMA ---\n%db_schema%\n-----------------------."
     )
 

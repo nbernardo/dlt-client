@@ -9,7 +9,7 @@ class DuckDBOutput(TemplateNodeType):
     Bucket type mapping class
     """
 
-    def __init__(self, data: dict, context: RequestContext):
+    def __init__(self, data: dict, context: RequestContext, component_id = None):
         """
         Initialize the instance
         """
