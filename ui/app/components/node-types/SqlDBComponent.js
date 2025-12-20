@@ -172,7 +172,7 @@ export class SqlDBComponent extends AbstractNode {
 				const data = await WorkspaceService.getConnectionDetails(secretName);
 
 				const detail = data['secret_details'];
-				if('secret_details' in data){
+				if('secret_details' in (data || {})){
 					database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
 					this.tablesFieldsMap = data.tables;
 					this.selectedSecretTableList = Object.keys(data.tables);

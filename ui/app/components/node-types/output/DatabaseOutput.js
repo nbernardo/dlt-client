@@ -90,7 +90,7 @@ export class DatabaseOutput extends ViewComponent {
 			let database = '', dbengine = '', host = '';
 			if(secretName != ''){
 				const data = await WorkspaceService.getConnectionDetails(secretName);
-				if('secret_details' in data){
+				if('secret_details' in (data || {})){
 					const detail = data['secret_details'];
 					database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
 					WorkSpaceController.getNode(this.nodeId).data['outDBconnectionName'] = secretName;

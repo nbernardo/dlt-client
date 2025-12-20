@@ -479,12 +479,12 @@ export class Workspace extends ViewComponent {
 			const result = JSON.parse(response);
 
 			self.controller.importingPipelineSourceDetails = result?.dbDetailes || null;
-			self.activeGrid = result.pipelineCode.pipeline_lbl;
+			self.activeGrid = result?.pipelineCode?.pipeline_lbl;
 			document.querySelector('.clear-workspace-btn').style.right = '110px';
 			self.showSaveButton = false;
 			self.isAnyDiagramActive = true;
 			document.getElementById('pplineNamePlaceHolder').contentEditable = false;
-			await self.controller.processImportingNodes(result.pipelineCode.content['Home'].data);
+			await self.controller.processImportingNodes(result?.pipelineCode?.content['Home'].data);
 			AppTemplate.hideLoading();
 			self.wasDiagramSaved = false;
 			self.selectedPplineName = pplineName;
