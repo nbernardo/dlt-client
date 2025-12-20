@@ -53,7 +53,7 @@ class SecretManager(SecretManagerType):
         SecretManager.vault_instance = hvac.Client(
             url=SecretManager.vault_url,
             token=SecretManager.vault_token,
-            verify=SecretManager.vault_crt_path
+            #verify=SecretManager.vault_crt_path
         )
 
     
