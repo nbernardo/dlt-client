@@ -16,7 +16,10 @@ class SqlDBComponent(TemplateNodeType):
         self.template_type = 'sql_database'
         template = ''
         if data['dbengine'] == 'mssql':
-            template = DltPipeline.get_mssql_db_template()
+            if context.transformation_type == 'SQL':
+                template = DltPipeline.get_sql_db_template('sql_server_transform.txt')
+            else:
+                template = DltPipeline.get_mssql_db_template()
         else:
             if 'old_template' in data:
                 if data['old_template']:
