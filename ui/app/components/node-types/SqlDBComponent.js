@@ -156,7 +156,7 @@ export class SqlDBComponent extends AbstractNode {
 		this.selectedDbEngine.onChange(value => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;			
 			this.setDBIcon(value);
-			this.selectedDbEngineDescription = this.databaseEngines.value.find(obj => obj.dialect === value).name;
+			this.selectedDbEngineDescription = this.databaseEngines.value.find(obj => obj.dialect === value)?.name;
 			data['dbengine'] = value;
 		});
 
@@ -171,8 +171,8 @@ export class SqlDBComponent extends AbstractNode {
 			if(secretName != ''){
 				const data = await WorkspaceService.getConnectionDetails(secretName);
 
-				const detail = data['secret_details'];
 				if('secret_details' in (data || {})){
+					const detail = data['secret_details'];
 					database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
 					this.tablesFieldsMap = data.tables;
 					this.selectedSecretTableList = Object.keys(data.tables);

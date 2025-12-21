@@ -27,18 +27,17 @@ export class TransformRow extends ViewComponent {
 	selectedType;
 	transformation;
 	separatorChar;
-	fieldList = [{ name: '' }]; //Setting initial value
+	fieldList = []; //Setting initial value
 
 	/** @type { Transformation } */
 	$parent;
 
 	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport }) {
 		this.fieldList = tablesFieldsMap;
-		this.databaseFields = tablesFieldsMap;
-		this.rowId = rowId;
-		this.isImport = isImport;
+		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
 		
-		if (importFields) this.configData = { ...importFields, dataSources };
+		//if (importFields) this.configData = { ...importFields, dataSources };
+		this.configData = { ...importFields, dataSources };
 		
 	}
 
@@ -53,11 +52,12 @@ export class TransformRow extends ViewComponent {
 			if(workspace.controller.importingPipelineSourceDetails !== null && this.configData !== null){
 				fieldList = workspace.controller.importingPipelineSourceDetails.tables[newValue].map(itm => ({ name: itm.column }));
 			}else{
-				dataSource = newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
+				if(!newValue) return;
 				if(this.$parent.dataSourceType !== 'SQL'){
 					await this.wspaceService.handleCsvSourceFields(dataSource)
 					fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
 				}else{
+					dataSource = newValue.length > 0 && newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
 					fieldList = this.databaseFields[newValue].map(itm => ({ name: itm.column }));
 				}
 			}
@@ -67,7 +67,7 @@ export class TransformRow extends ViewComponent {
 		});
 
 		this.selectedField.onChange(field => this.updateTransformValue({ field }));
-		this.transformation.onChange(value => this.updateTransformValue({ transform: value.trim() }));
+		this.transformation.onChange(value => this.updateTransformValue({ transform: value?.trim() }));
 		this.separatorChar.onChange(value => this.updateTransformValue({ sep: value.trim() }));
 		this.selectedSource.onChange(table => this.updateTransformValue({ table }));
 
@@ -81,8 +81,13 @@ export class TransformRow extends ViewComponent {
 	}
 
 	handleConfigData() {
-		const { dataSource, field, type, transform } = this.configData;
-		this.selectedSource = dataSource;
+		const { dataSource, dataSources, field, type, transform } = this.configData;
+		if(dataSource || dataSources){
+			if(dataSources?.length == 1)
+				if(dataSources[0].name === '') return
+			
+			this.selectedSource = dataSource || dataSources;
+		}
 		this.selectedField = field;
 		this.selectedType = type;
 
