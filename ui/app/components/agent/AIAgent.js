@@ -94,9 +94,9 @@ export class AIAgent extends ViewComponent {
 				return this.resizeHandle.style.backgroundColor = '#ff0000ff';
 			}
 			
-			if(this.startedInstance.start === false && retry === false)
-				this.startedInstance = null;
-			
+			//if(this.startedInstance.start === false && retry === false)
+			//	this.startedInstance = null;
+
 			this.resizeHandle.style.backgroundColor = '#047857';
 			
 		} catch (error) { }
