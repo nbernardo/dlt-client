@@ -5,7 +5,7 @@ import sys
 
 
 #Adding root folder to allow import  from src
-src_path = str(Path(__file__).parent).replace('/destinations/pipeline/facebook_25690644623870471','')
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
 sys.path.insert(0, src_path)
 sys.path.insert(0, src_path+'/src')
 

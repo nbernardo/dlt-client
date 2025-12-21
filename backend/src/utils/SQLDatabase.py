@@ -222,10 +222,15 @@ class SQLDatabase:
             query_string = query_string+f'{SQLConnection.get_mssql_driver()}'
 
         message, error = '', False
+
         try:
-            with create_engine(query_string).connect():
+            with create_engine(query_string).connect() as conn:
+                if dbengine == 'oracle':
+                    conn.execute(text("SELECT 1 FROM DUAL"))
+                else:
+                    conn.execute(text("SELECT 1"))
                 error = False
-        except SQLAlchemyError as e:
+        except Exception as e:
             error = True
             message = f'Error while trying to connect to Database {str(e)}'
             print(message)

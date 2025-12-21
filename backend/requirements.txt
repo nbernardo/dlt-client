@@ -182,3 +182,9 @@ kafka-python
 dlt[sqlalchemy]
 oracledb
 polars
+pyodbc
+psycopg2-binary
+dlt[postgres]
+dlt[oracle]
+dlt[mysql]
+dlt[mssql]
