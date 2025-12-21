@@ -459,25 +459,30 @@ class DltPipeline:
 
     @staticmethod
     def read_pipeline(file_path, namespace):
-        code = ''
-        with open(file_path, 'r') as file:
-            code = file.read()
-            pipeline_code = json.loads(code)
 
-        node_list = pipeline_code['content']['Home']['data']
-        database_obj = { id: node for id, node in node_list.items() if node['name'] == 'SqlDBComponent' }
+        try:
+            code = ''
+            with open(file_path, 'r') as file:
+                code = file.read()
+                pipeline_code = json.loads(code)
 
-        datasource_details = None
-        if(len(database_obj.keys()) > 0):
+            node_list = pipeline_code['content']['Home']['data']
+            database_obj = { id: node for id, node in node_list.items() if node['name'] == 'SqlDBComponent' }
 
-            node = list(database_obj.values())[0]
-            connection_name = node['data']['connectionName']
-            datasource_details = SQLDatabase.get_tables_list(namespace, connection_name)
-        
-        if not(not(datasource_details)):
-            del datasource_details['details']
+            datasource_details = None
+            if(len(database_obj.keys()) > 0):
+
+                node = list(database_obj.values())[0]
+                connection_name = node['data']['connectionName']
+                datasource_details = SQLDatabase.get_tables_list(namespace, connection_name)
             
-        return pipeline_code, datasource_details
+            if not(not(datasource_details)):
+                del datasource_details['details']
+                
+            return pipeline_code, datasource_details
+        
+        except Exception as err:
+            return {}, {}
 
 
 def has_ppline_job(evt, job_transaction_id):
