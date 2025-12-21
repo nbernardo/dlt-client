@@ -314,10 +314,23 @@ def setup_agent(user, namespace = None):
         agent = AgentFactory.get_data_agent(user, namespace, namespace_folder)
 
         if agent == None:
+            from groq import AuthenticationError
+            from services.agents.AbstractAgent import test_groq_connection
+
+            try:
+                test_groq_connection().models.list()
+            except AuthenticationError as err:
+                return { 
+                    'success': False, 
+                    'error': f'Error on connecting to Agents | {str(err)}', 
+                    'start': False,
+                    'connection': False,
+                }
+            
             return { 
                 'success': False, 
-                'error': f'Could not start the Agent, as no data about the namespace exists.', 
-                'start': False
+                'error': f'No data was found in your namespace.', 
+                'start': False,
             }
 
         return { 'error': False, 'success': True }

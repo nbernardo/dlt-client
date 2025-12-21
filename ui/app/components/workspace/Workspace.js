@@ -469,6 +469,7 @@ export class Workspace extends ViewComponent {
 	async viewPipelineDiagram(event, pplineName) {
 		event.preventDefault();
 		const self = this;
+		AppTemplate.showLoading();
 		if (this.checkActiveDiagram())
 			return this.controller.moreThanOnePipelineOpenAlert(openDiagram);
 
@@ -476,12 +477,15 @@ export class Workspace extends ViewComponent {
 			if(reset) self.resetWorkspace();
 			const response = await self.service.readDiagramFile(await UserService.getNamespace(), pplineName);
 			const result = JSON.parse(response);
-			self.activeGrid = result.pipeline_lbl;
+
+			self.controller.importingPipelineSourceDetails = result?.dbDetailes || null;
+			self.activeGrid = result?.pipelineCode?.pipeline_lbl;
 			document.querySelector('.clear-workspace-btn').style.right = '110px';
 			self.showSaveButton = false;
 			self.isAnyDiagramActive = true;
 			document.getElementById('pplineNamePlaceHolder').contentEditable = false;
-			await self.controller.processImportingNodes(result.content['Home'].data);
+			await self.controller.processImportingNodes(result?.pipelineCode?.content['Home'].data);
+			AppTemplate.hideLoading();
 			self.wasDiagramSaved = false;
 			self.selectedPplineName = pplineName;
 		}
@@ -491,8 +495,9 @@ export class Workspace extends ViewComponent {
 	logout = async () => await this.userService.logOut();
 
 	verticalResize({ leftWidth }) {
+		if(leftWidth < 150) return;
 		const selectedTab = this.selectedLeftTab.value;
-		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth + 100) + 'px';
+		document.getElementsByClassName(selectedTab)[0].style.width = (leftWidth + 90) + 'px';
 	}
 
 	async viewScriptOnEditor() {

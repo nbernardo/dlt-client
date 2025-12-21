@@ -84,7 +84,12 @@ def create_new_ppline(fst_connection,
         if 'isOldSQLNode' in payload:
             template_params['old_template'] = payload['isOldSQLNode']
 
-    template = NodeFactory.new_node(fst_connection.get('name',None), template_params, context).template
+    fst_node_component_id = fst_connection.get('data',{}).get('componentId',None)
+    
+    if(fst_connection.get('name',None) == 'InputAPI'):
+        template_params = { **template_params, **fst_connection.get('data',{}) }
+
+    template = NodeFactory.new_node(fst_connection.get('name',None), template_params, context, fst_node_component_id).template
     data_place, node_list = {}, []
 
     connections = context.connections 
@@ -421,16 +426,14 @@ def update_ppline(user, filename):
 
 
    
-@pipeline.route('/ppline/diagram/<user>/<filename>', methods=['GET'])
-def read_diagram_content(user, filename):
+@pipeline.route('/ppline/diagram/<namespace>/<filename>', methods=['GET'])
+def read_diagram_content(namespace, filename):
 
    try:
-        file_path = BasePipeline.folder+'/code/'+user+'/'+filename+'.json'
-        code = ''
-        with open(file_path, 'r') as file:
-            code = file.read()
-
-        return code
+        file_path = BasePipeline.folder+'/code/'+namespace+'/'+filename+'.json'
+        pipeline_code, datasource_details = DltPipeline.read_pipeline(file_path, namespace)
+        return { 'pipelineCode': pipeline_code , 'dbDetailes': datasource_details }
+   
    except FileNotFoundError as err:
        return jsonify({'error': 'Pipeline not found'}), 404
    

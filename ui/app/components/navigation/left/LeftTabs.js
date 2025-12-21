@@ -57,7 +57,6 @@ export class LeftTabs extends ViewComponent {
 	apiSecretsList = [];
 
 	stAfterInit() {
-		
 		this.$parent.controller.leftTab = this;
 
 		this.setUpPromptMenuEvt();
@@ -67,7 +66,6 @@ export class LeftTabs extends ViewComponent {
 				console.log(`Workspace was update about changed and new value is: `, newValue);
 			});
 		});
-
 	}
 
 	/** @param { HTMLElement | null } target */
@@ -137,7 +135,7 @@ export class LeftTabs extends ViewComponent {
 
 	pipelineTreeViewTemplate(dbfile, flag){
 		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} ${dbfile}</span>
+					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
 					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
 						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
 				</div>
@@ -163,7 +161,7 @@ export class LeftTabs extends ViewComponent {
 	refreshTree = async () => await this.showHideDatabase();
 
 	databaseTreeViewTemplate(tableData, tableToQuery, dbfile, showIcons = true){
-		let tableRow = `<span>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</span>`;
+		let tableRow = `<div class='table-name'>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</div>`;
 		if(showIcons === true) {
 			tableRow += `
 				<span class="tables-icn-container">
@@ -208,7 +206,7 @@ export class LeftTabs extends ViewComponent {
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
 			const data = await this.fileUploadProxy.listFiles();
-			this.fileListProxy.filesList = data?.length > 0 ? data.map((file, idx) => ({...file, id: 'file'+idx})) : [];			
+			this.fileListProxy.filesList = data?.length > 0 ? data.map((file, idx) => ({...file, id: 'file'+idx, category: 'data'})) : [];
 			this.fileListProxy.setUpFileMenuEvt();
 		}
 
@@ -224,8 +222,10 @@ export class LeftTabs extends ViewComponent {
 						file.id = ++count;
 						currentFileObject = file;
 						currentFileObject.versions = [];
+						currentFileObject.category = 'script';
 					}else{
 						file.version = true;
+						file.category = 'script';
 						currentFileObject.versions.push(file);
 					}
 				}
@@ -258,6 +258,7 @@ export class LeftTabs extends ViewComponent {
 	async startAIAssistant(retry = false){
 		this.selectTab('content-ai'); 
 		await this.$parent.controller.startAgent(retry);
+		setTimeout(() => document.getElementById('ai-chat-user-input').focus());
 	}
 
 	setNewPrompt(content){
@@ -307,4 +308,17 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	hideSelectedPromptMenu = () => this.promptSamplesMenu.classList.remove('is-active');
+
+	filderPipeline(filter){
+		const pipelineList = document.querySelectorAll('.ppline-treeview-label');
+		for(const pipeline of pipelineList){
+			if(pipeline.textContent.search(filter) < 0)
+				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
+			else
+				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = '';
+		}
+	}
+
+	filterScriptFile = (name) => this.scriptListProxy.filterFileByName('script',name);
+	filterDataFile = (name) => this.fileListProxy.filterFileByName('data', name);
 }

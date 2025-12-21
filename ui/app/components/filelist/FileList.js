@@ -96,5 +96,18 @@ export class FileList extends ViewComponent {
 			elm.innerHTML = '+', versionsContainer.style.display = 'none';
 		}
 	}
+
+	filterFileByName(type, fileName){		
+		const fileItems = document.querySelectorAll(`.current-file-item-${type}`);
+		fileItems.forEach(item => {
+			const foundFileName = item.dataset.name;			
+			if(foundFileName.search(fileName) >= 0){
+				item.style.display = '';
+			}else{
+				item.style.display = 'none';
+			}
+		});
+
+	}
 	
 }

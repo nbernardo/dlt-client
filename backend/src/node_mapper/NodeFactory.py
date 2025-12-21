@@ -1,7 +1,7 @@
 from importlib import import_module as load
 
 
-def load_node_type(node_name, init_params: dict = {}, context=None):
+def load_node_type(node_name, init_params: dict = {}, context=None, component_id = None):
     """
     Dynamic import the node
     """
@@ -17,8 +17,8 @@ class NodeFactory():
     """
 
     @staticmethod
-    def new_node(name, params: dict = None, context=None):
+    def new_node(name, params: dict = None, context=None, component_id = None):
         """
         Generates a new node
         """
-        return load_node_type(name, params, context)
+        return load_node_type(name, params, context, component_id)

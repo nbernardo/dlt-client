@@ -10,7 +10,7 @@ class InputAPI(TemplateNodeType):
     Bucket type mapping class
     """
 
-    def __init__(self, data: dict, context: RequestContext = None):
+    def __init__(self, data: dict, context: RequestContext = None, component_id = None):
         """
         Initialize the instance
         """
@@ -20,6 +20,7 @@ class InputAPI(TemplateNodeType):
             self.template_type = None
             template = DltPipeline.get_api_templete()
             self.template = self.parse_destination_string(template)
+            self.component_id = component_id
             
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself

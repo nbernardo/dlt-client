@@ -266,6 +266,8 @@ export class AIAgentController extends BaseController {
         if(args == null) args = this.parseBotFunctionCall(content).params;
         
         let foundSecrets = await WorkspaceService.listSecrets(args[1] || 'all'), secrets = '';        
+        if(foundSecrets.length == 0)
+            return self.setAgentLastMessage(args[0], 'No secrets found in your namespace', true);
 
         if(Object.keys((foundSecrets['db'] || {})).length > 0){
             secrets += this.dataToTable(foundSecrets['db'], 'Database Secrets');

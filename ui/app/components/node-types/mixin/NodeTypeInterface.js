@@ -1,3 +1,5 @@
+import { InputConnectionType } from "../types/InputConnectionType.js";
+
 /**
  * @interface
  */
@@ -10,9 +12,22 @@ export class NodeTypeInterface {
 	componentId;
 	aiGenerated;
 	importFields;
+	minimizedWidth;
+
+	/** This'll is for allowing node counte to propagate as link is created. 
+	 * this is be set automatically set and managed by WorkspaceController, 
+	 * @type { NodeTypeInterface } */
+	nextNode;
+
+	/** @type { NodeTypeInterface } */
+	prevNode;
+
+	//State variable
+	nodeCount;
 
 	/** Implemented at each node as needed, but the call is automatically
-	 *  through WorkspaceController when specific node recieces connection */
+	 *  through WorkspaceController when specific node recieces connection
+	 * @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ data, type }){}
 
 	/** Implemented at each node as needed, but the call is automatically

@@ -62,6 +62,8 @@ export class WorkSpaceController extends BaseController {
     wSpaceComponent;
     isImportProgress = false;
 
+    importingPipelineSourceDetails = null;
+
     /** @type { Header } */
     activeHeader = null;
 
@@ -155,7 +157,10 @@ export class WorkSpaceController extends BaseController {
         this.editor.editor_mode = "edit";
     }
 
-    drag(ev, disabled) {
+    drag(ev, disabled, isNoteGragabble) {
+
+        if(isNoteGragabble == 'yes') return;
+
         if(disabled === 'yes'){
             return this.showDialog(
                 'This node type is not yet available', 
@@ -310,13 +315,17 @@ export class WorkSpaceController extends BaseController {
             }
         }
 
-        Object.keys(inOutputMapping).forEach(nodeId => {
-            const { outputs } = inOutputMapping[nodeId];
-            outputs?.output_1?.connections.forEach((link) => {
-                const targetNode = WorkSpaceController.importNodeIdMapping[Number(link.node)];
-                this.editor.addConnection(Number(nodeId), targetNode, 'output_1', 'input_1');
+        setTimeout(() => {
+
+            Object.keys(inOutputMapping).forEach(nodeId => {
+                const { outputs } = inOutputMapping[nodeId];
+                outputs?.output_1?.connections.forEach((link) => {
+                    const targetNode = WorkSpaceController.importNodeIdMapping[Number(link.node)];
+                    this.editor.addConnection(Number(nodeId), targetNode, 'output_1', 'input_1');
+                });
             });
-        });
+
+        },100);
 
     }
 
@@ -565,7 +574,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
 
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .className = 'statusicon running-status';
         }
@@ -576,7 +585,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
             
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .classList.remove('running-status');
         }
@@ -587,7 +596,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
             
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .className = 'statusicon failed-status';
         }
@@ -598,7 +607,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
             
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .className = 'statusicon success-status';
         }
@@ -609,7 +618,7 @@ export class WorkSpaceController extends BaseController {
             .querySelector(`.${containerHTMLClass}`);
             
         if(container){
-            container.querySelector('div[class=title-box]')
+            container.querySelector('div[class="title-box pipeline-node-type-title-box"]')
                 .querySelector('.statusicon')
                 .className = 'statusicon pre-success-status';
         }
@@ -671,12 +680,17 @@ export class WorkSpaceController extends BaseController {
         const /** @type { NodeTypeInterface } */ destCmp = Components.ref(destCmpId) || {};
         const /** @type { NodeTypeInterface } */ srcCmp = Components.ref(srcCmpId) || {};
 
+        if(Object.keys(nodeOut).length == 0)
+            srcCmp.nodeName = 'Start';
+
+        srcCmp.nextNode = destCmp;
+
         function setupNotification() {
-            if ('onOutputConnection' in srcCmp) {
+            if ('onOutputConnection' in srcCmp || srcCmp.nodeName === 'Start') {
                 if ('onInputConnection' in destCmp) {
                     (async () => {
-                        const sourceData = await srcCmp.onOutputConnection();
-                        await destCmp.onInputConnection({ data: sourceData, type: srcCmp.getName() });
+                        const sourceData = srcCmp.nodeName === 'Start' ? {} : await srcCmp?.onOutputConnection();
+                        await destCmp.onInputConnection({ data: sourceData, type: srcCmp?.nodeName === 'Start' ? 'Start' : srcCmp?.getName() });
                     })();
                 }
             }
@@ -864,6 +878,41 @@ export class WorkSpaceController extends BaseController {
 			minimap: { enabled: false }, scrollBeyondLastLine: false,
 			fontSize
 		});
+    }
+
+    /** @param { HTMLElement } obj */
+    showItemsGroup(obj){
+
+        const groupName = obj.dataset.groupName;
+        const items = document.getElementsByClassName(`${groupName}-item`);
+        
+        if(items.length > 0){
+            
+            const showClassGroup = `${groupName}-item-show`;
+            const addOrRemove = items[0].classList.contains(showClassGroup) ? 'remove' : 'add';
+            obj.getElementsByClassName('drop-down-icon')[0].firstChild.classList[addOrRemove]('rotate-menu-arrow');
+            for(const item of items){
+                item.classList[addOrRemove](showClassGroup);
+            }
+        }
+    }
+
+    handleNodeMinimize(icon, minimizedWidth){
+        const mainContainer = icon.parentNode;
+        const outerContainer = icon.parentNode.parentNode.parentNode;
+		if(mainContainer.classList.contains('minimize-node')){
+            const normalWidth = mainContainer.normalWidth;
+            outerContainer.style.width = normalWidth;
+			mainContainer.classList.remove('minimize-node');
+            icon.innerHTML = '_';
+            icon.style.height = '27px';
+        }else{
+            mainContainer.normalWidth = outerContainer.style.width;
+			mainContainer.classList.add('minimize-node');
+            outerContainer.style.width = minimizedWidth;
+            icon.innerHTML = '+';
+            icon.style.height = '15px';
+        }
     }
 
 }

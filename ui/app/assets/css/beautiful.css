@@ -277,9 +277,10 @@ header a {
     box-shadow: 0 2px 20px 2px #4ea9ff;
 }
 
+.drawflow-node .title-box div:first-child { line-height: 50px; }
+
 .drawflow-node .title-box {
     height: 50px;
-    line-height: 50px;
     background: var(--background-box-title);
     border-bottom: 1px solid #e9e9e9;
     border-radius: 4px 4px 0px 0px;
@@ -468,21 +469,27 @@ header a {
     width: 20px;
     border-radius: 100%;
     margin-top: 13px;
+    color: #6a6a6a;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    display: flex;
 }
 
 .drawflow-node .title-box div.running-status {
-    background-color: green;
+    background-color: green; color: white !important;
     -webkit-animation: sk-scaleout .5s infinite ease-in-out;
     animation: sk-scaleout .5s infinite ease-in-out;
 }
 
-.drawflow-node .title-box div.failed-status { background-color: red; }
+.drawflow-node .title-box div.failed-status { background-color: red !important; color: white; }
 
-.drawflow-node .title-box div.success-status { background-color: green; }
+.drawflow-node .title-box div.success-status { background-color: green !important; color: white; }
 
 .drawflow-node .title-box div.pre-success-status {
     background-color: rgba(0, 128, 0, 0.266);
-    border: 1px solid green;
+    border: 1px solid green !important;
+    color: #6a6a6a;
 }
 
 @-webkit-keyframes sk-scaleout {
@@ -1006,3 +1013,37 @@ button[disabled]:hover {
     .hidden { display: none !important; }
 
 /** End of Making Regular input Dropdown Styling */
+
+
+
+/** Node Types additional styling */
+
+.pipeline-node-type-title-box{
+    display: flex !important; justify-content: space-between !important; padding-right: 9px !important;
+}
+
+.pipeline-node-type-minimaze{
+  position: absolute;
+  position: absolute;
+  margin-top: -12px;
+  height: 27px;
+  width: 27px;
+  align-items: center;
+  justify-content: center;
+  padding: 0px !important;
+  z-index: -1;
+  rotate: 180deg;
+  display: flex;
+  align-items: center;
+  margin-left: 7px;
+  font-weight: bold;
+  background: #164d7e;
+  font-size: 18px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+}
+
+.minimize-node { overflow: hidden; height: 50px; }
+
+/** End of Node Types additional styling */

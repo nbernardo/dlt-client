@@ -85,13 +85,20 @@ export class AIAgent extends ViewComponent {
 
 	async startNewAgent(retry = false) {
 		try {
+
 			this.controller.displayInitialChatOptions(this);
 			this.startedInstance = await WorkspaceService.startChatConversation();
-			
-			if(this.startedInstance.start === false && retry === false){
-				this.createMessageBubble(`<div class="agent-no-start-error">${this.startedInstance.error}</div>`, 'agent', 'DLT Workspace');
+			if(this.startedInstance?.connection === false){
+				this.createMessageBubble(`<div class="agent-no-start-error">Invalid API Key<br><br>Your conversation will be very limited to the chatbot capabilities.</div>`, 'agent', 'DLT Workspace');
 				this.startedInstance = null;
+				return this.resizeHandle.style.backgroundColor = '#ff0000ff';
 			}
+			
+			//if(this.startedInstance.start === false && retry === false)
+			//	this.startedInstance = null;
+
+			this.resizeHandle.style.backgroundColor = '#047857';
+			
 		} catch (error) { }
 	}
 
@@ -176,7 +183,8 @@ export class AIAgent extends ViewComponent {
 				else if (String(response).trim() === this.unloadNamespaceMsg) {
 					// Auto-reconnect to the chats
 					this.$parent.leftMenuProxy.startAIAssistant(true);
-					response += `<br>However I've updated myself, let's try again, what's your ask?`
+					response += `\nHowever I've updated myself, let's try again, what's your ask?`
+					setTimeout(() => this.scrollToBottom());
 				}
 			}
 

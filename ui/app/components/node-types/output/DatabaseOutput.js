@@ -6,6 +6,9 @@ import { InputAPI } from "../api/InputAPI.js";
 import { Bucket } from "../Bucket.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { Transformation } from "../Transformation.js";
+import { InputConnectionType } from "../types/InputConnectionType.js";
+import { databaseIcons, databaseEnginesList } from "../util/databaseUtil.js";
+import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class DatabaseOutput extends ViewComponent {
@@ -13,17 +16,13 @@ export class DatabaseOutput extends ViewComponent {
 	isPublic = true;
 
 	label = 'Database Output';
-	databaseEngines = [
-		{ name: 'MySQL', dialect: 'mysql' },
-		{ name: 'Postgress', dialect: 'postgresql' },
-		{ name: 'Oracle', dialect: 'oracle' },
-		{ name: 'SQL Server', dialect: 'mssql' }
-	];
+	databaseEngines = databaseEnginesList;
 
 	/** @Prop */ inConnectors = 1;
 	/** @Prop */ nodeId;
 	/** @Prop */ dbInputCounter = 1;
 	/** @Prop */ isConnected = false;
+	/** @Prop */ dbIcon = databaseIcons.output;
 
 	selectedSecretTableList = [];
 	database = 'Not selected';
@@ -31,6 +30,7 @@ export class DatabaseOutput extends ViewComponent {
 	selectedSecret;
 	secretList = [];
 	hostName = 'Not selected';
+	nodeCount = '';
 
 	/** @Prop */ isImport = false;
 	/** @Prop @type { STForm } */ anotherForm;
@@ -66,6 +66,7 @@ export class DatabaseOutput extends ViewComponent {
 		await this.getDBSecrets();
 		if(this.isImport === true){	
 			this.selectedDbEngine = this.importFields.dbengine;
+			this.setDBIcon(this.selectedDbEngine.value);
 			this.selectedSecret = this.importFields.outDBconnectionName;
 			this.database = this.importFields.databaseName;
 			this.hostName = this.importFields.host || 'None';
@@ -89,7 +90,7 @@ export class DatabaseOutput extends ViewComponent {
 			let database = '', dbengine = '', host = '';
 			if(secretName != ''){
 				const data = await WorkspaceService.getConnectionDetails(secretName);
-				if('secret_details' in data){
+				if('secret_details' in (data || {})){
 					const detail = data['secret_details'];
 					database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
 					WorkSpaceController.getNode(this.nodeId).data['outDBconnectionName'] = secretName;
@@ -100,6 +101,7 @@ export class DatabaseOutput extends ViewComponent {
 			}
 			this.database = database, this.selectedDbEngine = dbengine, this.hostName = host;
 			this.showLoading = false;
+			this.setDBIcon(dbengine);
 			this.updateConnection();
 		});
 	}
@@ -110,8 +112,6 @@ export class DatabaseOutput extends ViewComponent {
 
 	updateConnection(){
 		const connectionName = this.tableName !== null ? this.tableName : this.selectedSecret.value;
-		console.log(`NEW DESTINATION NAME ID: `, connectionName);
-		
 		if(this.isConnected){
 			if(connectionName === '')
 				delete this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId];
@@ -120,7 +120,11 @@ export class DatabaseOutput extends ViewComponent {
 		}
 	}
 
+	/** @param {InputConnectionType<{}>} param0  */
 	onInputConnection({data, type}){
+		
+		NodeUtil.handleInputConnection(this, data, type);
+	
 		const sourceNode = data?.sourceNode;
 		if((type == Bucket.name || type == Transformation.name) && sourceNode){
 			if(sourceNode.filePattern){
@@ -151,6 +155,11 @@ export class DatabaseOutput extends ViewComponent {
 	onConectionDelete(sourceType){
 		if(sourceType === Bucket.name || sourceType === InputAPI.name)
 			this.tableName = null;
+		this.nodeCount = '';
 	}
+
+	setDBIcon = (db) => 
+		document.querySelector(`.${this.cmpInternalId}`)
+			.querySelector('.database-icon').src = databaseIcons[db == '' ? 'output' : db];
 	
 }

@@ -57,12 +57,14 @@ def get_api_data():
                 end = page.start_record + page.batch_size
 
             try:
+                total_iterations = 0
                 # While true takes place especially because of pagination possibility
                 while True:
                     data_fetch = False
                     full_path = path if page == None else f'{path}?{page.start_param}={start}&{page.end_param}={end}'
                     data = api_client.get(full_path, path_params)
                     data_fetch = True
+                    total_iterations = total_iterations + 1
                     if data_selector:
                         result = data.json().get(data_selector,[])
                     else:
@@ -83,7 +85,10 @@ def get_api_data():
 
             except requests.exceptions.RequestException as err:
                 if data_fetch:
-                    print(f'RUNTIME_ERROR:No result found for {full_path}', flush=True)
+                    if total_iterations > 0:
+                        print(f'RUNTIME_WARNING:No result found for {full_path}', flush=True)
+                    else:
+                        print(f'RUNTIME_ERROR:No result found for {full_path}', flush=True)
                 else:
                     print('RUNTIME_ERROR:Error while fetching API data for resource: ', resource_name, flush=True)
 

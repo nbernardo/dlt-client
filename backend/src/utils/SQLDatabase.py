@@ -222,10 +222,15 @@ class SQLDatabase:
             query_string = query_string+f'{SQLConnection.get_mssql_driver()}'
 
         message, error = '', False
+
         try:
-            with create_engine(query_string).connect():
+            with create_engine(query_string).connect() as conn:
+                if dbengine == 'oracle':
+                    conn.execute(text("SELECT 1 FROM DUAL"))
+                else:
+                    conn.execute(text("SELECT 1"))
                 error = False
-        except SQLAlchemyError as e:
+        except Exception as e:
             error = True
             message = f'Error while trying to connect to Database {str(e)}'
             print(message)
@@ -372,3 +377,24 @@ class SQLConnection:
             port=port,
             service_name=f'{database}.{hostname}'
         )
+
+
+def normalize_table_names(secrets, tables):
+    """
+        This method only purspose is to convert table names case to lower or keep upper 
+        according to how they are named in the database. Especially for ORACLE
+    """
+    credentials = secrets['connection_url']
+    dbengine = secrets['dbengine']
+    actual_tables = tables
+    
+    if dbengine == 'oracle':
+        schema = secrets['username']
+        engine = create_engine(credentials)
+        inspector = inspect(engine)
+        available = inspector.get_table_names(schema=schema)
+        
+        if available[0].islower():
+            actual_tables = [table.lower() for table in tables]
+    
+    return actual_tables

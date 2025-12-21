@@ -1,25 +1,23 @@
-import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
+import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
+import { InputConnectionType } from "./types/InputConnectionType.js";
+import { databaseEnginesList, databaseIcons } from "./util/databaseUtil.js";
 import { addSQLComponentTableField } from "./util/formUtil.js";
+import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class SqlDBComponent extends ViewComponent {
+export class SqlDBComponent extends AbstractNode {
 
 	isPublic = true;
 
-	label = 'SQL DB Source';
-	databaseEngines = [
-		{ name: 'MySQL', dialect: 'mysql' },
-		{ name: 'Postgress', dialect: 'postgresql' },
-		{ name: 'Oracle', dialect: 'oracle' },
-		{ name: 'SQL Server', dialect: 'mssql' }
-	]
+	label = 'Source Database';
+	databaseEngines = databaseEnginesList;
 
 	/** @Prop */ inConnectors = 1;
 	/** @Prop */ outConnectors = 1;
@@ -29,16 +27,19 @@ export class SqlDBComponent extends ViewComponent {
 	/** @Prop */ isOldUI;
 	/** @Prop @type { TableAndPKType } */ dynamicFields;
 	/** @Prop */ tablesFieldsMap;
+	/** @Prop */ dbIcon = databaseIcons.generic;
 
 	selectedSecretTableList = [];
 	selectedTableList = [];
-	database;
+	database = 'Not selected';
 	tableName;
-	selectedDbEngine;
+	selectedDbEngine = 'Not selected';
+	selectedDbEngineDescription = 'Not selected';
 	selectedSecret;
 	primaryKey;
 	secretList = [];
 	hostName = 'None';
+	nodeCount = '';
 
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
@@ -97,6 +98,7 @@ export class SqlDBComponent extends ViewComponent {
 		// At this point the WorkSpaceController was loaded by WorkSpace component
 		// hance no this.wSpaceController.on('load') subscrtiption is needed
 		this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
+		this.notifyReadiness();
 
 		const disable = true;
 		const allTables = Object.values(this.tables);
@@ -109,6 +111,7 @@ export class SqlDBComponent extends ViewComponent {
 		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
 		this.dbInputCounter = allTables.length;
 		this.selectedDbEngine = this.importFields.dbengine;
+		this.setDBIcon(this.selectedDbEngine);
 		this.selectedSecret = this.importFields.connectionName;
 		this.hostName = this.importFields.host || 'None';
 		document.querySelector('.add-table-buttons').disabled = true;
@@ -151,13 +154,15 @@ export class SqlDBComponent extends ViewComponent {
 		});
 
 		this.selectedDbEngine.onChange(value => {
-			const data = WorkSpaceController.getNode(this.nodeId).data;
+			const data = WorkSpaceController.getNode(this.nodeId).data;			
+			this.setDBIcon(value);
+			this.selectedDbEngineDescription = this.databaseEngines.value.find(obj => obj.dialect === value).name;
 			data['dbengine'] = value;
 		});
 
 		this.selectedSecret.onChange(async secretName => {
 			// To prevent running through the bellow steps in case the secret is the same
-			if(this.secretedSecretTrace == secretName) return;
+			if(this.secretedSecretTrace == secretName || this.isImport) return;
 
 			this.secretedSecretTrace = secretName;
 			this.clearSelectedTablesAndPk();
@@ -167,7 +172,7 @@ export class SqlDBComponent extends ViewComponent {
 				const data = await WorkspaceService.getConnectionDetails(secretName);
 
 				const detail = data['secret_details'];
-				if('secret_details' in data){
+				if('secret_details' in (data || {})){
 					database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
 					this.tablesFieldsMap = data.tables;
 					this.selectedSecretTableList = Object.keys(data.tables);
@@ -186,6 +191,13 @@ export class SqlDBComponent extends ViewComponent {
 		})
 	}
 
+	setDBIcon = (db) => {
+		if(document.querySelector(`.${this.cmpInternalId}`)){
+			document.querySelector(`.${this.cmpInternalId}`)
+				.querySelector('.database-icon').src = databaseIcons[db == '' ? 'generic' : db];
+		}
+	}
+	
 	clearSelectedTablesAndPk(){
 		this.getDynamicFieldNames().forEach(field => this[field] = '');
 		this.tableName = '', this.primaryKey = '';
@@ -233,10 +245,17 @@ export class SqlDBComponent extends ViewComponent {
 	}
 
 	onOutputConnection(){
+		NodeUtil.handleOutputConnection(this);
 		return {
 			tables: this.selectedSecretTableList?.value?.map(table => ({ name: table, file: table })),
-			sourceNode: this
+			sourceNode: this,
+			nodeCount: this.nodeCount.value
 		};
+	}
+
+	/** @param { InputConnectionType<{}> } param0 */
+	onInputConnection({ type, data }){
+		NodeUtil.handleInputConnection(this, data, type);
 	}
 
 }

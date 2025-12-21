@@ -6,7 +6,7 @@ from services.workspace.SecretManager import SecretManager
 class DLTCode(TemplateNodeType):
     """ DLTCode type mapping class """
 
-    def __init__(self, data: dict, context: RequestContext):
+    def __init__(self, data: dict, context: RequestContext, component_id = None):
         """ Initialize the instance """
         
         self.context = context

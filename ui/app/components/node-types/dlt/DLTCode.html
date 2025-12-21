@@ -1,10 +1,11 @@
 <div class="@cmpInternalId">
-	<div class="title-box">
+	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
+	<div class="title-box pipeline-node-type-title-box">
 		<div style="display: flex; align-items: center;">
 			<img src="app/assets/imgs/dlt-logo-colored.png" style="width: 20px; height: 20px;">
 			&nbsp;@label
 		</div>
-		<div class="statusicon"></div>
+		<div class="statusicon">@nodeCount</div>
 	</div>
 	<st-loader 
 		small center

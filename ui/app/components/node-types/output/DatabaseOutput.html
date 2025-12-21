@@ -1,10 +1,11 @@
 <div class="@cmpInternalId" style="z-index: -1;">
-	<div class="title-box">
+	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
+	<div class="title-box pipeline-node-type-title-box">
 		<div class="workspace-node-type-header">
-			<img src="app/assets/imgs/writetodatabase.png" style="float: left; margin-top: 10px;" width="40">
+			<img src="@dbIcon" class="database-icon" style="float: left; margin-top: 10px; margin-left: 0px;" width="35">
 			@label
 		</div>
-		<div class="statusicon"></div>
+		<div class="statusicon">@nodeCount</div>
 	</div>
 	<div class="box @formWrapClass">
 
@@ -26,7 +27,7 @@
 						>
 					<option each="item" value="{item.name}">{item.name}</option>
 				</select>
-				<p class="label-name"><b>Database Engine:</b> @selectedDbEngine</p>
+				<p class="label-name"><b>Database Engine:</b> <label style="word-wrap: anywhere;">@selectedDbEngine</label></p>
 				<p class="label-name"><b>Database Name:</b></p>
 				<div style="word-wrap: anywhere;">@database</div>
 			</form>

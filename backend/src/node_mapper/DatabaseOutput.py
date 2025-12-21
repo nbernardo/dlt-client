@@ -4,7 +4,7 @@ from controller.RequestContext import RequestContext
 class DatabaseOutput(TemplateNodeType):
     """ Bucket type mapping class """
 
-    def __init__(self, data: dict, context: RequestContext):
+    def __init__(self, data: dict, context: RequestContext, component_id = None):
         """ Initialize the instance """
 
         self.parse_to_literal = ['outdb_secret_name']

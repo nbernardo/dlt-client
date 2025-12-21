@@ -21,6 +21,9 @@ export class ObjectDataTypes {
     source;//Can it be a source of stream
     dest;//Can it be a dest of stream
     name;
+    isNodeGroup;
+    groupType;
+    dropDownIcon;
 };
 
 export class WorkspaceService extends BaseService {
@@ -43,20 +46,31 @@ export class WorkspaceService extends BaseService {
     objectTypes = [
         { icon: 'far fa-circle', label: 'Start', typeName: 'Start', source: 0, dest: 1 },
         { icon: 'fas fa-circle', label: 'End', typeName: 'End', source: 1, dest: 0 },
-        { icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
-        { imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
-        { imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
-        { imgIcon: 'app/assets/imgs/api-source.svg', label: 'Input - API', typeName: InputAPI.name },
-        { imgIcon: 'app/assets/imgs/dlt-logo-colored.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
+        //Group of nodes concerning Source types
         { 
-            imgIcon: 'app/assets/imgs/language-python-text-svgrepo-com.svg', 
-            label: 'Code Transformation', 
-            typeName: 'none', 
-            disable: 'yes' 
+            isNodeGroup: 'yes', imgIcon: 'app/assets/imgs/input.png', label: 'Sources', 
+            typeName: 'none', name: 'SourceGroup', dropDownIcon: '<i class="fas fa-chevron-circle-right"></i>' 
         },
-        { icon: 'fas fa-cogs', label: 'Transformation', typeName: Transformation.name },
-        { imgIcon: 'app/assets/imgs/duckdb-icon.svg', label: 'Out-DBFile (.duckdb)', typeName: DuckDBOutput.name },
-        { imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Out-Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
+        { groupType: 'SourceGroup', icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
+        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
+        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
+        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/api-source.svg', label: 'Input - API', typeName: InputAPI.name },
+        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
+        //Group of nodes concerning Transformation types
+        { 
+            isNodeGroup: 'yes', imgIcon: 'app/assets/imgs/adaptation.png', label: 'Transformations', 
+            typeName: 'none', name: 'TransformationGroup', dropDownIcon: '<i class="fas fa-chevron-circle-right"></i>' 
+        },
+        { groupType: 'TransformationGroup', icon: 'fas fa-cogs', label: 'Transformation', typeName: Transformation.name },
+        { groupType: 'TransformationGroup', imgIcon: 'app/assets/imgs/py.svg',  label: 'Code Transformation',  typeName: 'none',  disable: 'yes' },
+        //Group of nodes concerning Destination types
+        { 
+            isNodeGroup: 'yes' ,imgIcon: 'app/assets/imgs/output_.png', label: 'Outputs/Destinations', 
+            typeName: 'none', name: 'OutputsGroup', dropDownIcon: '<i class="fas fa-chevron-circle-right"></i>' 
+        },
+        { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/duckdb-icon.svg', label: 'Duckdb (.duckdb)', typeName: DuckDBOutput.name },
+        { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
+        //fas fa-chevron-circle-right
     ]
 
     static async getNamespace(){
@@ -167,8 +181,8 @@ export class WorkspaceService extends BaseService {
         return null;
     }
 
-    async readDiagramFile(user, fileName) {
-        const response = await $still.HTTPClient.get('/ppline/diagram/' + user + '/' + fileName);
+    async readDiagramFile(namespace, fileName) {
+        const response = await $still.HTTPClient.get('/ppline/diagram/' + namespace + '/' + fileName);
         if (response.ok)
             return await response.text();
         return null;

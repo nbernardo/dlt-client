@@ -1,9 +1,11 @@
-import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
+import { InputConnectionType } from "./types/InputConnectionType.js";
+import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class DuckDBOutput extends ViewComponent {
+export class DuckDBOutput extends AbstractNode {
 
 	isPublic = true;
 
@@ -15,6 +17,7 @@ export class DuckDBOutput extends ViewComponent {
 	database;
 	tableName;
 	label = 'Duckdb Output';
+	nodeCount = '';
 
 	/** @Prop */
 	inConnectors = 1;
@@ -51,7 +54,7 @@ export class DuckDBOutput extends ViewComponent {
 	stAfterInit(){		
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
-		if(this.isImport === false){
+		if(this.isImport === false || this.aiGenerated){
 			this.setupOnChangeListen();
 		}
 
@@ -72,7 +75,6 @@ export class DuckDBOutput extends ViewComponent {
 	}
 
 	setupOnChangeListen(){
-
 		this.database.onChange((newValue) => {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['database'] = newValue;
@@ -82,7 +84,11 @@ export class DuckDBOutput extends ViewComponent {
 			const data = WorkSpaceController.getNode(this.nodeId).data;
 			data['tableName'] = newValue;
 		});
+	}
 
+	/** @param {InputConnectionType<{}>} param0  */
+	onInputConnection({data, type}){
+		NodeUtil.handleInputConnection(this, data, type);
 	}
 
 }
