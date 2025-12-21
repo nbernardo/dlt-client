@@ -94,8 +94,11 @@ export class AIAgent extends ViewComponent {
 				return this.resizeHandle.style.backgroundColor = '#ff0000ff';
 			}
 			
-			//if(this.startedInstance.start === false && retry === false)
-			//	this.startedInstance = null;
+			if(this.startedInstance.success === false && this.startedInstance.error.includes(': Connection error.')){
+				this.createMessageBubble(`<div class="agent-no-start-error">${this.startedInstance.error}</div>`, 'agent', 'DLT Workspace');
+				this.startedInstance = null;
+				return this.resizeHandle.style.backgroundColor = '#ff0000ff';
+			}
 
 			this.resizeHandle.style.backgroundColor = '#047857';
 			
