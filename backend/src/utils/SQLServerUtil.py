@@ -22,6 +22,12 @@ def column_type_conversion(columns, connection, table, schema):
         
         if data_type.lower() in ['hierarchyid', 'geometry', 'geography', 'xml']:
             columns.append(f"CAST([{col_name}] AS NVARCHAR(MAX)) as [{col_name}]")
+
+        elif data_type.lower() == 'datetimeoffset':
+            columns.append(
+                f"CAST([{col_name}] AS datetime2) AS [{col_name}]"
+            )
+            
         else:
             columns.append(f"[{col_name}]")
             

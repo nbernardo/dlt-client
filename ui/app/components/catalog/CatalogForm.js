@@ -442,7 +442,9 @@ export class CatalogForm extends ViewComponent {
 			});
 
 			if(result === true && this.dataBaseSettingType != null)
-				this.updateLeftMenuSecretList({...updatingSecret, showTestConnection: true });
+				this.updateLeftMenuSecretList({...updatingSecret, showTestConnection: true, db: true });
+			else if (apiSettings !== null)
+				this.updateLeftMenuSecretList({...apiSettings, name: this.apiConnName.value, api: true });
 		}else{
 			AppTemplate.toast.error('Please fill all required field');
 		}
@@ -485,11 +487,20 @@ export class CatalogForm extends ViewComponent {
 		return { updatingId, updatedSecrets };
 	}
 
-	updateLeftMenuSecretList({ updatingId, updatedSecrets, showTestConnection }){
-		const host = this.dataBaseSettingType == 2 ? 'None' : this.dbHost.value;
-		if(updatingId !== null) updatedSecrets[updatingId].host = host;
-		if(updatingId === null) updatedSecrets.push({ name: this.connectionName.value, host });
-		this.$parent.controller.leftTab.dbSecretsList = updatedSecrets;
+	updateLeftMenuSecretList(data){
+		const { showTestConnection, db, api } = data;
+		if(db){
+			const { updatingId, updatedSecrets } = data;
+			const host = this.dataBaseSettingType == 2 ? 'None' : this.dbHost.value;
+			if(updatingId !== null) updatedSecrets[updatingId].host = host;
+			if(updatingId === null) updatedSecrets.push({ name: this.connectionName.value, host });
+			this.$parent.controller.leftTab.dbSecretsList = updatedSecrets;
+		}else if(api){
+			const { apiBaseUrl, name } = data;
+			const listOfAPiSecrets = this.$parent.controller.leftTab.apiSecretsList.value;
+			listOfAPiSecrets.push({ name, host: apiBaseUrl });
+			this.$parent.controller.leftTab.apiSecretsList = listOfAPiSecrets;
+		}
 		this.resetForm(showTestConnection);
 	}
 

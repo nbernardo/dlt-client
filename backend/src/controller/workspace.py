@@ -388,6 +388,9 @@ def create_seret(namespace):
                 
         sec_management: SecretManager = SecretManager.set_namespace(namespace, secret_type)
 
+        if(sec_management == None):
+            return { 'error': True, 'result': 'Was not able to connect to secret vault.' }
+
         if(secret_type == 'db'):
             sec_management.create_db_secret(namespace, payload, path)
         else:

@@ -11,6 +11,7 @@ sys.path.insert(0, src_path+'/src')
 
 from src.services.workspace.SecretManager import SecretManager
 from src.services.workspace.Workspace import Workspace
+from src.utils import SQLServerUtil
 
 # Bellow mapping: namespace = SqlDBComponent.namespace
 namespace = %namespace%
@@ -49,7 +50,10 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
 
         @dlt.resource(name=table_name)
         def load_table():
-            df = pl.read_database(f"SELECT * FROM {table_name}", engine)
+            schema, table = table_name.split(".")
+            select_columns = SQLServerUtil.column_type_conversion([], engine.connect(), table, schema)
+            
+            df = pl.read_database(f"SELECT {select_columns} FROM {table_name}", engine)
             print(f'fetch data from {table_name}', flush=True)
 
             # Apply table-specific transformations
