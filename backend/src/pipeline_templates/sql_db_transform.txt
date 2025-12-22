@@ -53,7 +53,7 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
             print(f'fetch data from {table_name}', flush=True)
 
             # Apply table-specific transformations
-            if transformations.get('table_name', None) != None:
+            if transformations.get(table_name, None) != None:
                 df = df.with_columns(transformations[table_name])
                 print(f'applied transformation for {table_name}', flush=True)
 
