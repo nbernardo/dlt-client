@@ -1,3 +1,4 @@
+import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
@@ -44,22 +45,26 @@ export class TransformRow extends ViewComponent {
 	async stAfterInit() {
 		
 		this.$parent.transformPieces.set(this.rowId, {});
-		const tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails.tables;
+		const tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails?.tables;
 		
-		this.dataSourceList = this.configData.dataSources;		
-		if(this.configData.dataSource.indexOf('.') > 0){
-			let schemas = Object.keys(tableSource), tablePaths = [];
-			for(const schema of schemas){
-				const tables = Object.keys(tableSource[schema]);
-				for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
+		this.dataSourceList = this.configData.dataSources;
+
+		if(this.configData.dataSource !== undefined){
+			if(this.configData.dataSource.indexOf('.') > 0){
+				let schemas = Object.keys(tableSource), tablePaths = [];
+				for(const schema of schemas){
+					const tables = Object.keys(tableSource[schema]);
+					for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
+				}
+				this.dataSourceList = tablePaths;
+				await sleepForSec(500);
 			}
-			this.dataSourceList = tablePaths;
 		}
 
 		this.selectedSource.onChange(async (newValue) => {
 
 			let fieldList = null, dataSource;
-			if(tableSource !== null && this.configData !== null){
+			if(![null,undefined].includes(tableSource) && this.configData !== null){
 
 				let table = null, schema = null;
 				table = tableSource[newValue];
@@ -73,11 +78,14 @@ export class TransformRow extends ViewComponent {
 			}else{
 				if(!newValue) return;
 				if(this.$parent.dataSourceType !== 'SQL'){
+					dataSource = newValue.length > 0 && newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
 					await this.wspaceService.handleCsvSourceFields(dataSource)
 					fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
 				}else{
-					dataSource = newValue.length > 0 && newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
-					fieldList = this.databaseFields[newValue].map(itm => ({ name: itm.column }));
+					if(this.databaseFields[newValue])
+						fieldList = this.databaseFields[newValue].map(itm => ({ name: itm.column }));
+					else
+						fieldList = '';
 				}
 			}
 
@@ -105,10 +113,10 @@ export class TransformRow extends ViewComponent {
 			if(dataSources?.length == 1)
 				if(dataSources[0].name === '') return
 			
-			this.selectedSource = dataSource || dataSources;
+			dataSource !== undefined ? this.selectedSource = dataSource : '';// || dataSources;
 		}
-		this.selectedField = field;
-		this.selectedType = type;
+		field !== undefined ? this.selectedField = field : '';
+		type !== undefined ? this.selectedType = type : '';
 
 		if (type === 'CODE') document.getElementById(`${this.rowId}-code`).value = transform;
 		this.transformation = transform;

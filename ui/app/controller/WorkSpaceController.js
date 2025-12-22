@@ -111,6 +111,7 @@ export class WorkSpaceController extends BaseController {
         this.nodeIdToComponentIdMap = {}
         this.drawnNodeList = [];
         this.drawnNodes = 0;
+        this.importingPipelineSourceDetails = null;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */
