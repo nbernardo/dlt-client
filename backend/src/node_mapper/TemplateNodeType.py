@@ -50,8 +50,10 @@ class TemplateNodeType:
                 template = self.parse_nondb_source_pipeline_template(template, template_type, destinations)
             else:
                 template = self.parse_pipeline_template(template, template_type)
-
         else:
+            n = '\n' # New line character
+            destination_config = self.regular_template_destination_config(n)
+            template = template.replace('%destination_settings%',destination_config)
             # Remove placeholder for in-file pipeline metadata (e.g. destination tables when SQL DB)
             template = template.replace('%metadata_section%','')
             # Remove placeholder for destination database secrets
@@ -68,18 +70,21 @@ class TemplateNodeType:
         return template.replace('%destination_string%',destination_string)
     
 
-    def parse_pipeline_template(self, template, template_type):
+    def parse_pipeline_template(self, template: str, template_type):
         # This'll add a section in the top of the template file with the %source_tables% placeholder
         # which is then filled by any input node type (Backet, InputAPI, SQLDBComponent, etc.)
         metadata_section = f'# METADATA: dest_tables=%source_tables%\n'
         template = template.replace('%metadata_section%',metadata_section)
 
-        # n variable is to add a new line and alikely space * 4 (corresponding to tab)
         if self.context.transformation_type == 'SQL':
             n = '\n'
- 
+            destination_config = self.transform_template_destination_config(n)
         else:
+            # n variable is to add a new line and alikely space * 4 (corresponding to tab)
             n = '\n    ' if template_type == 'sql_database' else '\n'
+            destination_config = self.regular_template_destination_config(n)
+
+        template = template.replace('%destination_settings%',destination_config)
 
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
         dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
@@ -98,11 +103,15 @@ class TemplateNodeType:
         metadata_section = f"# METADATA: dest_tables=['{dest_table_name}']\n"
         template = template.replace('%metadata_section%',metadata_section)
 
-        # n variable is to add a new line and alikely space * 4 (corresponding to tab)
         if self.context.transformation_type == 'SQL':
-             n = '\n'
+            n = '\n'
+            destination_config = self.transform_template_destination_config(n)
         else:
+            # n variable is to add a new line and alikely space * 4 (corresponding to tab)
             n = '\n    ' if (template_type == 'sql_database' or has_tranformation) else '\n'
+            destination_config = self.regular_template_destination_config(n)
+
+        template = template.replace('%destination_settings%',destination_config)
 
         # Edge case for when the pipeline has transformation
         ni = '\n' if has_tranformation else n
@@ -129,4 +138,24 @@ class TemplateNodeType:
 
         secret_code = f"{namespace_var}{connect_secret_vault}{connaction_name_var}{dbcredentials_var}{dbconnecting_log}"
         return template.replace('%dest_secret_code%',secret_code)
+    
+
+    def regular_template_destination_config(self, n):
+
+        ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
+        secrets_and_dest_var = f'%dest_secret_code%{n}dest = %destination_string%{n}'
+        print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
+        pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)'
+
+        return f'{ppline_and_output_var}{secrets_and_dest_var}{print_var}{n}{pipeline_var}'
+            
+
+    def transform_template_destination_config(self, n):
+
+        ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
+        secrets_and_dest_var = f'# -------- Running the pipeline ----------%dest_secret_code%{n}dest = %destination_string%{n}'
+        print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
+        pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)'
+
+        return f'{ppline_and_output_var}{secrets_and_dest_var}{print_var}{n}{pipeline_var}'
         

@@ -42,11 +42,8 @@ def stream_s3():
     if total_match == 0:
         print(f'RUNTIME_WARNING:No file matching pattern {pattern} was found. No data will be loaded.', flush=True)
 
-ppline_name, output_name = %pipeline_name%, %output_dest_name%
-%dest_secret_code%
-dest = %destination_string%
-# Bellow mapping: schema = DuckDBOutput.output_dest_name
-pipeline = dlt.pipeline(pipeline_name=ppline_name, dataset_name=output_name, destination=dest)
+%destination_settings%
+
 info = pipeline.run(stream_s3(), write_disposition="merge")
 
 print(info, flush=True)
