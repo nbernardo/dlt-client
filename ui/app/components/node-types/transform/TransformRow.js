@@ -42,15 +42,34 @@ export class TransformRow extends ViewComponent {
 	}
 
 	async stAfterInit() {
-		this.dataSourceList = this.configData.dataSources;		
+		
 		this.$parent.transformPieces.set(this.rowId, {});
-		const workspace = this.$parent.$parent;
+		const tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails.tables;
+		
+		this.dataSourceList = this.configData.dataSources;		
+		if(this.configData.dataSource.indexOf('.') > 0){
+			let schemas = Object.keys(tableSource), tablePaths = [];
+			for(const schema of schemas){
+				const tables = Object.keys(tableSource[schema]);
+				for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
+			}
+			this.dataSourceList = tablePaths;
+		}
 
 		this.selectedSource.onChange(async (newValue) => {
 
 			let fieldList = null, dataSource;
-			if(workspace.controller.importingPipelineSourceDetails !== null && this.configData !== null){
-				fieldList = workspace.controller.importingPipelineSourceDetails.tables[newValue].map(itm => ({ name: itm.column }));
+			if(tableSource !== null && this.configData !== null){
+
+				let table = null, schema = null;
+				table = tableSource[newValue];
+
+				if(String(newValue).indexOf('.') > 0){
+					[table, schema] = newValue.split('.');
+					table = tableSource[schema][table];
+				}
+
+				fieldList = table.map(itm => ({ name: itm.column }));
 			}else{
 				if(!newValue) return;
 				if(this.$parent.dataSourceType !== 'SQL'){
