@@ -48,17 +48,16 @@ export class TransformRow extends ViewComponent {
 		const tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails?.tables;
 		
 		this.dataSourceList = this.configData.dataSources;
+		if(this.isImport && this.$parent.dataSourceType === 'SQL') await sleepForSec(20);
 
-		if(this.configData.dataSource !== undefined){
-			if(this.configData.dataSource.indexOf('.') > 0){
-				let schemas = Object.keys(tableSource), tablePaths = [];
-				for(const schema of schemas){
-					const tables = Object.keys(tableSource[schema]);
-					for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
-				}
-				this.dataSourceList = tablePaths;
-				await sleepForSec(500);
+		if(this.isImport === true && String(this.configData.table).indexOf('.') > 0 && this.$parent.dataSourceType === 'SQL'){ 
+			let schemas = Object.keys(tableSource), tablePaths = [];
+			for(const schema of schemas){
+				const tables = Object.keys(tableSource[schema]);
+				for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
 			}
+			this.dataSourceList = tablePaths;
+			await sleepForSec(500);
 		}
 
 		this.selectedSource.onChange(async (newValue) => {
@@ -103,17 +102,18 @@ export class TransformRow extends ViewComponent {
 			this.updateTransformValue({ type: this.transformType });
 		});
 
-		if (this.configData !== null) this.handleConfigData();
+		if (this.configData !== null) await this.handleConfigData();
 
 	}
 
-	handleConfigData() {
-		const { dataSource, dataSources, field, type, transform } = this.configData;
+	async handleConfigData() {
+		const { table: dataSource, dataSources, field, type, transform } = this.configData;
 		if(dataSource || dataSources){
 			if(dataSources?.length == 1)
 				if(dataSources[0].name === '') return
 			
-			dataSource !== undefined ? this.selectedSource = dataSource : '';// || dataSources;
+			dataSource !== undefined ? this.selectedSource = dataSource.replace('*','') : '';// || dataSources;
+			await sleepForSec(100);
 		}
 		field !== undefined ? this.selectedField = field : '';
 		type !== undefined ? this.selectedType = type : '';

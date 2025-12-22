@@ -158,7 +158,7 @@ export class Transformation extends AbstractNode {
 
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
-			const initialData = { dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap };
+			const initialData = { dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap, isImport: obj.isImport };
 			
 			// Create a new instance of TransformRow component
 			const { component, template } = await Components.new('TransformRow', initialData, parentId);
