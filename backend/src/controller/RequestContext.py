@@ -21,12 +21,12 @@ class RequestContext:
     namespace = '/pipeline'
     ppline_success = 'pplineSuccess'
     ppline_trace = 'pplineTrace'
-    sql_destinations = []
     FAILED = 'FAILED'
 
     def __init__(self, ppline_name=None, socket_sid=None, file_manager: FileVersionManager  = None):
         self.ppline_name = ppline_name
         self.exceptions = []
+        self.sql_destinations = []
         #self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
         self.socket_sid = socket_sid
         self.user = None
@@ -36,6 +36,7 @@ class RequestContext:
         self.monitor_file_name = None
         self.file_manager: FileVersionManager = file_manager
         self.action_type = None
+        self.is_code_destination = False
         self.success_emitted = None
 
         self.connections = None

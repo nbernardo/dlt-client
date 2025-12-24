@@ -7,6 +7,13 @@ from services.workspace.supper.SecretManagerType import SecretManagerType
 import utils.database_secret as DBSecret
 from utils.SQLDatabase import SQLConnection
 
+
+def referencedSecrets(namespace, secret_names):
+    SecretManager.ppline_connect_to_vault()
+    return SecretManager.get_from_references(namespace, secret_names)
+
+
+
 class SecretManager(SecretManagerType):
     """
     This is a singleton classe which the responsibility is to handle 
@@ -24,6 +31,9 @@ class SecretManager(SecretManagerType):
 
     def __init__():
         pass
+
+    def referencedSecrets(namespace, secret_names):
+        return referencedSecrets(namespace, secret_names)
 
     
     def ppline_connect_to_vault():
@@ -216,7 +226,19 @@ class SecretManager(SecretManagerType):
             
 
     def get_from_references(namespace,references: list = []):
-        secrets = {secret: SecretManager.get_db_secret(namespace,secret)[secret] for secret in references}
+
+        def clean_private_key(secret):
+            if str(secret).__contains__('BEGIN')\
+               and str(secret).__contains__('END')\
+               and str(secret).__contains__('PRIVATE KEY'):
+                   secret = secret.replace('\\n','\n')
+            
+            return secret
+
+        secrets = {
+            secret: clean_private_key(SecretManager.get_db_secret(namespace,secret)[secret]) 
+            for secret in references
+        }
         
         if(len(secrets) > 0):
             from collections import namedtuple
@@ -226,10 +248,6 @@ class SecretManager(SecretManagerType):
             from types import SimpleNamespace
             return SimpleNamespace()
 
-
-def referencedSecrets(namespace, secret_names):
-    SecretManager.ppline_connect_to_vault()
-    return SecretManager.get_from_references(namespace, secret_names)
 
 
 if __name__ == '__main__':

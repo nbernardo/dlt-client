@@ -57,24 +57,20 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
                 df = df.with_columns(transformations[table_name])
                 print(f'applied transformation for {table_name}', flush=True)
 
+            if df.schema[pk] in [pl.Float32, pl.Float64]:
+                df = df.with_columns([pl.col(pk).cast(pl.Utf8)])
+
             for row in df.iter_rows(named=True):
                 yield row
 
         return load_table.apply_hints(primary_key=pk)
 
     print(f'fetching data from source tables', flush=True)
-    return [
-        generate_resource(table_name, pk)
-        for table_name, pk in zip(tables, tables_pk)
-    ]
+    return [generate_resource(table_name, pk) for table_name, pk in zip(tables, tables_pk)]
 
 dest_folder = Workspace.get_duckdb_path_on_ppline()
-ppline_name, output_name = %pipeline_name%, %output_dest_name%
 
-# -------- Running the pipeline ----------%dest_secret_code%
-dest = %destination_string%
-
-pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)
+%destination_settings%
 
 source = polars_db_source(tables, tables_pk)
 

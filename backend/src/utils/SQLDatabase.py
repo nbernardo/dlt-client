@@ -398,3 +398,18 @@ def normalize_table_names(secrets, tables):
             actual_tables = [table.lower() for table in tables]
     
     return actual_tables
+
+
+def converts_field_type(table, pk):
+    columns_config = {}
+    
+    for col_name, col_info in table.compute_table_schema().get("columns", {}).items():
+        if(col_name.lower() == pk.lower()):
+            if col_info.get("data_type") == "double":
+                columns_config[col_name] = {"data_type": "text"}
+                print(f"Converting {table.name}.{col_name}: double → text")
+    
+    if columns_config:
+        table.apply_hints(columns=columns_config)
+    
+    return table

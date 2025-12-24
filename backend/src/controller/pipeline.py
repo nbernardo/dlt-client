@@ -25,6 +25,7 @@ def create():
     pipeline_name, pipeline_lbl = set_pipeline_name(payload)
     context = RequestContext(pipeline_name, payload['socketSid'])
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
+    context.is_code_destination = payload['codeOutput']
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -199,6 +200,7 @@ def pepeline_init_param(payload):
     start_id = payload['startNode'] if 'startNode' in payload else ''
     sql_destinations = payload['sqlDestinations'] if 'sqlDestinations' in payload else ''
     node_params = grid['Home']['data']
+    #sql_source = payload['sqlSource']
     
     return start_id, node_params, sql_destinations
 
@@ -292,6 +294,10 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
     template = template.replace('%Dbfile_name%', pipeline_name)
     template = template.replace('%User_folder%', payload['user'])
+    # %table_format% replace might be preceeded by the DLTCodeOutput node type which
+    # means that if this was stated at the node level, this one won't take any effect 
+    template = template.replace('%table_format%', '')
+    
     if(context.transformation):
         template = template.replace('%transformation%', context.transformation)
     
