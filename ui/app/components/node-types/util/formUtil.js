@@ -29,6 +29,7 @@ export function addSQLComponentTableField(self, tableId, value = '', disabled = 
         delBtn.onclick = function () {
             FormHelper.delField(self, self.formRef, pkFieldName);
             FormHelper.delField(self, self.formRef, tblFieldName);
+            delete self.selectedTablesName[tblFieldName];
             div.remove();
         }
     }

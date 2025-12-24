@@ -20,6 +20,7 @@ import { Header } from "../parts/Header.js";
 import { Grid } from "../grid/Grid.js";
 import { SqlEditor } from "../code/sqleditor/SqlEditor.js";
 import { DLTCode } from "../node-types/dlt/DLTCode.js";
+import { DLTCodeOutput } from "../node-types/destination/DLTCodeOutput.js";
 
 export class Workspace extends ViewComponent {
 
@@ -257,9 +258,11 @@ export class Workspace extends ViewComponent {
 
 	async preparePipelineContent(update = false) {
 
-		let sqlPipelineDbEngine = null, isOldSQLNode = false;
+		let sqlPipelineDbEngine = null, isOldSQLNode = false, codeOutput = false, sqlSource = false;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
+		let sourceOrDestTables = Object.values(this.controller.pipelineDestinationTrace.sql);
+
 		let validationResults = formReferences.map(async (r) => {
 			const component = Components.ref(r);
 
@@ -268,6 +271,9 @@ export class Workspace extends ViewComponent {
 				sqlPipelineDbEngine = castedCmp.selectedDbEngine.value;
 				isOldSQLNode = castedCmp.isOldUI;
 				await castedCmp.getTables();
+				if(!(sourceOrDestTables.length > 0))
+					sourceOrDestTables = Object.values(castedCmp.selectedTablesName)
+				sqlSource = true;
 			}
 
 			if (component.getName() === Transformation.name) {
@@ -275,11 +281,12 @@ export class Workspace extends ViewComponent {
 				return castedCmp.parseTransformationCode();
 			}
 
-			if (component.getName() === DLTCode.name) {
+			if (component.getName() === DLTCode.name || component.getName() === DLTCodeOutput.name) {
 				const /** @type { DLTCode } */ castedCmp = component;
-				await castedCmp.getCode();
+				const code = await castedCmp.getCode();
+				if(component.getName() === DLTCodeOutput.name) codeOutput = true;
 			}
-
+			
 			const form = component.formRef;
 			return await form?.validate();
 		});
@@ -299,7 +306,9 @@ export class Workspace extends ViewComponent {
 		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);
 
-		data.sqlDestinations = Object.values(this.controller.pipelineDestinationTrace.sql);
+		data.sqlDestinations = sourceOrDestTables;
+		data.sqlSource = sqlSource;
+		data.codeOutput = codeOutput;
 
 		if (update === true) data.update = true;
 		return data;

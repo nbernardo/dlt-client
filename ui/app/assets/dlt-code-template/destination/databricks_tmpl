@@ -1,0 +1,14 @@
+import dlt
+
+config = {
+    "server_hostname": "<server_hostname>",
+    "http_path": "<http_path>",
+    "access_token": "<access_token>",
+    "catalog": "<catalog_name>"
+}
+
+pipeline = dlt.pipeline(
+    pipeline_name="<pipeline_name>",
+    destination=dlt.destinations.databricks(credentials=config),
+    dataset_name="<dataset_name>"
+)

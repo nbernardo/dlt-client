@@ -24,6 +24,7 @@ export class InputDropdown {
     /** @type { Array<InputDropdown> } */
     relatedFields = [];
     componentBoundField;
+    componentFieldName;
 
     #params;
 
@@ -45,6 +46,7 @@ export class InputDropdown {
     constructor(params) {
         
         this.#params = params;
+        this.componentFieldName = params.componentFieldName;
         if (params.dataSource) this.dataSource = params.dataSource;
         if (params.onSelect){
             this.onSelect = async (selectedVal) => {

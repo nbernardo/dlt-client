@@ -28,6 +28,7 @@ export class SqlDBComponent extends AbstractNode {
 	/** @Prop @type { TableAndPKType } */ dynamicFields;
 	/** @Prop */ tablesFieldsMap;
 	/** @Prop */ dbIcon = databaseIcons.generic;
+	/** @Prop */ selectedTablesName = {};
 
 	selectedSecretTableList = [];
 	selectedTableList = [];
@@ -79,7 +80,7 @@ export class SqlDBComponent extends AbstractNode {
 	async stAfterInit(){
 		await this.getDBSecrets();
 		this.isOldUI = this.templateUrl?.includes('SqlDBComponent_old.html');
-		this.selectedSecretTableList = [];
+		this.selectedSecretTableList = [], this.selectedTablesName = {};
 
 		this.dynamicFields = new TableAndPKType();
 		this.setupOnChangeListen();
@@ -135,7 +136,7 @@ export class SqlDBComponent extends AbstractNode {
 			componentFieldName: tableFieldName,
 			onSelect: async (table, self) => {
 				const data = this.tablesFieldsMap[table];
-				
+				this.selectedTablesName[self.componentFieldName] = table;
 				const pkRelatedField = self.relatedFields[0];
 				pkRelatedField.setDataSource(data.map(col => col.column));
 			}

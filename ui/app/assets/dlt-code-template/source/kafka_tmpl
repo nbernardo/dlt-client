@@ -11,7 +11,7 @@ def data_source():
     )
     def messages():
         consumer = KafkaConsumer(
-            '<topic-name>',
+            "<topic-name>",
             bootstrap_servers=['<server-addr>'],
             security_protocol="SSL",
             ssl_cafile=certifi.where(),
@@ -25,15 +25,15 @@ def data_source():
 
                 data = json.loads(message.value.decode('utf-8'))
                 if type(message) == dict:
-                    data = message.get('<data_selector>', message)
+                    data = message.get("<data_selector>", message)
 
                 yield from (
                     {
                         **record,
-                        '_kafka_offset': message.offset,
-                        '_kafka_partition': message.partition,
-                        '_kafka_timestamp': message.timestamp,
-                        '_kafka_topic': message.topic
+                        "_kafka_offset": message.offset,
+                        "_kafka_partition": message.partition,
+                        "_kafka_timestamp": message.timestamp,
+                        "_kafka_topic": message.topic
                     }
                     for record in data
                 )
