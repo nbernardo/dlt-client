@@ -6,6 +6,7 @@ import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
 import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
+import { DLTCodeOutput } from "../components/node-types/destination/DLTCodeOutput.js";
 import { DLTCode } from "../components/node-types/dlt/DLTCode.js";
 import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { DatabaseOutput } from "../components/node-types/output/DatabaseOutput.js";
@@ -70,6 +71,7 @@ export class WorkspaceService extends BaseService {
         },
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/duckdb-icon.svg', label: 'Duckdb (.duckdb)', typeName: DuckDBOutput.name },
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
+        { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Out - DLT code', typeName: DLTCodeOutput.name, name: 'DLTOutput' },
         //fas fa-chevron-circle-right
     ]
 

@@ -25,6 +25,7 @@ def create():
     pipeline_name, pipeline_lbl = set_pipeline_name(payload)
     context = RequestContext(pipeline_name, payload['socketSid'])
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
+    context.is_code_destination = payload['codeOutput']
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -50,6 +51,7 @@ def create():
     context.node_params = node_params
     context.sql_destinations = sql_destinations
     context.is_cloud_url = True if is_cloud_bucket_req else False
+    context.code_source = payload['codeInput']
 
     if(context.action_type == 'UPDATE'):
         result =  create_new_version_ppline(fst_connection, 
@@ -102,6 +104,8 @@ def create_new_ppline(fst_connection,
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
         template = template.replace(data[0], str(value))
+
+    template = parse_secrets(template, context)
 
     if len(context.exceptions) > 0:
         message = list(context.exceptions[0].values())[0]['message']
@@ -199,6 +203,7 @@ def pepeline_init_param(payload):
     start_id = payload['startNode'] if 'startNode' in payload else ''
     sql_destinations = payload['sqlDestinations'] if 'sqlDestinations' in payload else ''
     node_params = grid['Home']['data']
+    #sql_source = payload['sqlSource']
     
     return start_id, node_params, sql_destinations
 
@@ -292,10 +297,22 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
     template = template.replace('%Dbfile_name%', pipeline_name)
     template = template.replace('%User_folder%', payload['user'])
+    # %table_format% replace might be preceeded by the DLTCodeOutput node type which
+    # means that if this was stated at the node level, this one won't take any effect 
+    template = template.replace('%table_format%', '')
+    
     if(context.transformation):
         template = template.replace('%transformation%', context.transformation)
     
     return template
+
+
+def parse_secrets(template: str, context: RequestContext = None):
+    if context.code_source and context.additional_secrets != None:
+        template = f'# METADATA: dest_tables=[]\n{template}'
+        return template.replace('%referenced_secrets_list%', str(context.additional_secrets).replace('"',''))
+    return template
+
 
 
 def parse_node(connections, node_params, data_place, context: RequestContext, node_list: list):

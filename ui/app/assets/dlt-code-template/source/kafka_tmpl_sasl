@@ -8,12 +8,12 @@ def data_source():
     def messages():
         """ Connect to Kafka broker generates records out of a topic """
         consumer = KafkaConsumer(
-            '<topic_name>',
-            bootstrap_servers=['<server_addr>'],
+            "<topic_name>",
+            bootstrap_servers=["<server_addr>"],
             security_protocol="SASL_SSL",
-            sasl_mechanism='SCRAM-SHA-512',
-            sasl_plain_username='<user_name>',
-            sasl_plain_password='<password>', # e.g. __secrets.SECRET_NAME
+            sasl_mechanism="SCRAM-SHA-512",
+            sasl_plain_username="<user_name>",
+            sasl_plain_password="<password>", # e.g. __secrets.SECRET_NAME
             auto_offset_reset="earliest",
             consumer_timeout_ms=5000
         )
@@ -26,7 +26,7 @@ def data_source():
             try:
                 data = json.loads(message.value.decode('utf-8'))
                 if type(message) == dict:
-                    data = message.get('<data_selector>', message)
+                    data = message.get("<data_selector>", message)
 
                 yield from (
                     {

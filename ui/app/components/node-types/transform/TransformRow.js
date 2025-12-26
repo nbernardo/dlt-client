@@ -69,7 +69,7 @@ export class TransformRow extends ViewComponent {
 				table = tableSource[newValue];
 
 				if(String(newValue).indexOf('.') > 0){
-					[table, schema] = newValue.split('.');
+					[schema, table] = newValue.split('.');
 					table = tableSource[schema][table];
 				}
 

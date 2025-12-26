@@ -19,9 +19,8 @@
 			<div style="margin-top: 10px;" (showIf)="self.showTemplateList">
 				<select (value)="selectedTemplate">
 					<option value="dlt-code">Code template</option>
-					<option value="kafka_tmpl">Kafka Consumer</option>
-					<option value="kafka_tmpl_sasl">Kafka w\ SASL Auth</option>
-					<option value="mongo_tmpl">Mongo DB</option>
+					<option value="bigquery_tmpl">Big Query</option>
+					<option value="databricks_tmpl">Databricks</option>
 				</select>
 			</div>
 			<span (showIf)="self.showEditor">

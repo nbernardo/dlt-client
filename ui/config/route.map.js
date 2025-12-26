@@ -113,6 +113,10 @@ export const stillRoutesMap = {
             DatabaseOutput: {
                 path: "app/components/node-types/output",
                 url: "/database-output"
+            },
+            DLTCodeOutput: {
+                path: "app/components/node-types/destination",
+                url: "/dltc-ode-output"
             }
         },
         lazyInitial: {}

@@ -1,27 +1,23 @@
-import { State, STForm } from "../../../../@still/component/type/ComponentType.js";
-import { AIAgentController } from "../../../controller/AIAgentController.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
-import { Workspace } from "../../workspace/Workspace.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
-import { InputConnectionType } from "../types/InputConnectionType.js";
 import { loadTemplate } from "../util/codeTemplateUtil.js";
 import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class DLTCode extends AbstractNode {
+export class DLTCodeOutput extends AbstractNode {
 
 	isPublic = true;
 
 	/** @Prop */ nodeId;
 	/** @Prop */ inConnectors = 1;
-	/** @Prop */ outConnectors = 1;
+	/** @Prop */ outConnectors = 0;
 	/** @Prop */ aiGenerated;
 	/** @Prop */ importFields;
 
-	/** @Prop */ label = ' In - DLT code';
+	/** @Prop */ label = ' Out - DLT code';
 	/** @Prop */ showEditor = false;
 
 	//To trace to previous code template when changing one
@@ -35,9 +31,8 @@ export class DLTCode extends AbstractNode {
 	/** @Prop */ codeInitComment = '# Select a code template or Type your DLT python script code bellow'
 
 	/** @Prop */ templateMap = {
-		kafka_tmpl: 'Kafka',
-		kafka_tmpl_sasl: 'Kafka + SASL',
-		mongo_tmpl: 'MongoDB',
+		bigquery_tmpl: 'BigQuery',
+		databricks_tmpl: 'Databricks',
 		undefined: '',
 	}
 
@@ -137,7 +132,7 @@ export class DLTCode extends AbstractNode {
 				self.prevSelectedTemplate = templateName;
 				let code = self.codeInitComment;
 				if (templateName != '') {
-					code = await loadTemplate(templateName);
+					code = await loadTemplate(templateName, 'dest');
 					self.templateName = ` - <b>${self.templateMap[templateName]}</b>`;
 					self.codeContent = code;
 					WorkSpaceController.getNode(self.nodeId).data['templateName'] = templateName;
@@ -164,4 +159,5 @@ export class DLTCode extends AbstractNode {
 	onInputConnection({ type, data }){
 		NodeUtil.handleInputConnection(this, data, type);
 	}
+	
 }
