@@ -309,6 +309,7 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
 
 def parse_secrets(template: str, context: RequestContext = None):
     if context.code_source and context.additional_secrets != None:
+        template = f'# METADATA: dest_tables=[]\n{template}'
         return template.replace('%referenced_secrets_list%', str(context.additional_secrets).replace('"',''))
     return template
 

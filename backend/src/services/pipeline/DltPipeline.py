@@ -66,7 +66,11 @@ class DltPipeline:
         """
         This is the pipeline new version creation
         """
-        filename_suffixe = '|withmetadata|' if len(context.sql_destinations) > 0 else ''
+        is_sql_destination = len(context.sql_destinations) > 0
+        is_code_to_code_ppline = context.code_source and context.is_code_destination
+        does_have_metadata = is_sql_destination == True or is_code_to_code_ppline == True
+
+        filename_suffixe = '|withmetadata|' if does_have_metadata else ''
         ppline_file = f'{file_path}/{file_name}{filename_suffixe}.py'
         file_open_flag = 'x+'
         
