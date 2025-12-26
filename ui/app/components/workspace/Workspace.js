@@ -258,7 +258,7 @@ export class Workspace extends ViewComponent {
 
 	async preparePipelineContent(update = false) {
 
-		let sqlPipelineDbEngine = null, isOldSQLNode = false, codeOutput = false, sqlSource = false;
+		let sqlPipelineDbEngine = null, isOldSQLNode = false, codeOutput = false, sqlSource = false, codeInput = false;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		let sourceOrDestTables = Object.values(this.controller.pipelineDestinationTrace.sql);
@@ -283,8 +283,9 @@ export class Workspace extends ViewComponent {
 
 			if (component.getName() === DLTCode.name || component.getName() === DLTCodeOutput.name) {
 				const /** @type { DLTCode } */ castedCmp = component;
-				const code = await castedCmp.getCode();
+				await castedCmp.getCode();
 				if(component.getName() === DLTCodeOutput.name) codeOutput = true;
+				if(component.getName() === DLTCode.name) codeInput = true;
 			}
 			
 			const form = component.formRef;
@@ -306,9 +307,8 @@ export class Workspace extends ViewComponent {
 		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);
 
-		data.sqlDestinations = sourceOrDestTables;
-		data.sqlSource = sqlSource;
-		data.codeOutput = codeOutput;
+		data.sqlDestinations = sourceOrDestTables, data.sqlSource = sqlSource; 
+		data.codeOutput = codeOutput, data.codeInput = codeInput;
 
 		if (update === true) data.update = true;
 		return data;
