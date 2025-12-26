@@ -38,6 +38,7 @@ export class DLTCode extends AbstractNode {
 		kafka_tmpl: 'Kafka',
 		kafka_tmpl_sasl: 'Kafka + SASL',
 		mongo_tmpl: 'MongoDB',
+		undefined: '',
 	}
 
 	/** @type { State } */
@@ -115,7 +116,7 @@ export class DLTCode extends AbstractNode {
 	onTemplateSelect() {
 		this.selectedTemplate.onChange(async templateName => {
 			
-			if(templateName === this.prevSelectedTemplate) return;
+			if(templateName === this.prevSelectedTemplate || templateName === 'dlt-code') return;
 			
 			const self = this;
 			const prevCodeExists = WorkSpaceController.getNode(this.nodeId).data['dltCode'];

@@ -33,6 +33,7 @@ export class DLTCodeOutput extends AbstractNode {
 	/** @Prop */ templateMap = {
 		bigquery_tmpl: 'BigQuery',
 		databricks_tmpl: 'Databricks',
+		undefined: '',
 	}
 
 	/** @type { State } */
@@ -110,7 +111,7 @@ export class DLTCodeOutput extends AbstractNode {
 	onTemplateSelect() {
 		this.selectedTemplate.onChange(async templateName => {
 			
-			if(templateName === this.prevSelectedTemplate) return;
+			if(templateName === this.prevSelectedTemplate || templateName === 'dlt-code') return;
 			
 			const self = this;
 			const prevCodeExists = WorkSpaceController.getNode(this.nodeId).data['dltCode'];
