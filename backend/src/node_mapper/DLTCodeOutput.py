@@ -40,15 +40,18 @@ class DLTCodeOutput(TemplateNodeType):
                 self.table_format = 'table_format="native"'
 
             self.secret_manager_import = ',SecretManager'
-            if no_transformation:
+            if no_transformation and not(self.context.code_source):
                 self.destination_settings = self.destination_settings.replace('\n','\n    ')
 
         self.ppline_dest_table = 'no_table_name'
 
         referenced_secrets = self.parse__secrets(data['namespace'])
         if len(referenced_secrets) > 0:
-            n = '\n    ' if no_transformation else '\n'
-            self.destination_settings = f"namespace = '{data['namespace']}'{n}secret_names = {referenced_secrets}{n}__secrets = SecretManager.referencedSecrets(namespace, secret_names){n}{self.destination_settings}"
+            if self.context.code_source:
+                self.context.additional_secrets.append(str(referenced_secrets).replace('[','').replace(']',''))
+            else:
+                n = '\n    ' if no_transformation else '\n'
+                self.destination_settings = f"namespace = '{data['namespace']}'{n}secret_names = {referenced_secrets}{n}__secrets = SecretManager.referencedSecrets(namespace, secret_names){n}{self.destination_settings}"
 
         self.notify_completion_to_ui()
 

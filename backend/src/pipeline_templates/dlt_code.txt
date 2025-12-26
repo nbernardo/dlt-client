@@ -18,7 +18,7 @@ dest_folder = Workspace.get_duckdb_path_on_ppline()
 
 print(f'Fetching data from datasource', flush=True)
 data = data_source()
-print(f"Running the pipeline '{ppline_name}'", flush=True)
+print(f"Running the pipeline", flush=True)
 
 try:
     load_info = pipeline.run(data)

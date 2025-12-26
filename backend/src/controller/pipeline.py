@@ -51,6 +51,7 @@ def create():
     context.node_params = node_params
     context.sql_destinations = sql_destinations
     context.is_cloud_url = True if is_cloud_bucket_req else False
+    context.code_source = payload['codeInput']
 
     if(context.action_type == 'UPDATE'):
         result =  create_new_version_ppline(fst_connection, 
@@ -103,6 +104,8 @@ def create_new_ppline(fst_connection,
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
         template = template.replace(data[0], str(value))
+
+    template = parse_secrets(template, context)
 
     if len(context.exceptions) > 0:
         message = list(context.exceptions[0].values())[0]['message']
@@ -302,6 +305,13 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
         template = template.replace('%transformation%', context.transformation)
     
     return template
+
+
+def parse_secrets(template: str, context: RequestContext = None):
+    if context.code_source and context.additional_secrets != None:
+        return template.replace('%referenced_secrets_list%', str(context.additional_secrets).replace('"',''))
+    return template
+
 
 
 def parse_node(connections, node_params, data_place, context: RequestContext, node_list: list):

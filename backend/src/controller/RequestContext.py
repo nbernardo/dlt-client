@@ -36,6 +36,7 @@ class RequestContext:
         self.monitor_file_name = None
         self.file_manager: FileVersionManager = file_manager
         self.action_type = None
+        # Flaged true in case the destination is code
         self.is_code_destination = False
         self.success_emitted = None
 
@@ -45,6 +46,9 @@ class RequestContext:
         self.diagrm_path = None
         self.pipeline_lbl = None
         self.is_cloud_url = False
+        # Flaged true in case the data source is code 
+        self.code_source = False
+        self.additional_secrets: list = None
         
 
 

@@ -34,7 +34,13 @@ class DLTCode(TemplateNodeType):
         self.template_code = data['dltCode']
 
         referenced_secrets = self.parse__secrets(data['namespace'])
-        if len(referenced_secrets) > 0:
+
+        if context.is_code_destination:
+            self.context.additional_secrets = []
+            self.context.additional_secrets.append(str(referenced_secrets).replace('[','').replace(']',''))
+            self.template_code = f"""\nnamespace = '{data['namespace']}'\nsecret_names = %referenced_secrets_list%\n__secrets = referencedSecrets(namespace, secret_names)\n{self.template_code}\n\n"""
+
+        elif len(referenced_secrets) > 0:
             self.template_code = f"""\nnamespace = '{data['namespace']}'\nsecret_names = {referenced_secrets}\n__secrets = referencedSecrets(namespace, secret_names)\n{self.template_code}\n\n"""
 
         self.notify_completion_to_ui()
