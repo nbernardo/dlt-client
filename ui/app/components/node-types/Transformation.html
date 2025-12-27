@@ -27,9 +27,113 @@
 			</table>
 			<div style="margin: 3px 8px;">
 				<button style="margin-left: 18px;" class="add-btn-primary" (click)="addNewField()">+ Transformation</button>
-				<!-- <button style="margin-left: 18px;" (click)="parseTransformationCode()">&nbsp; Parse code &nbsp;</button> -->
+				<button style="margin-left: 18px;" class="e2e-btn-secondary" (click)="getTransformationPreview()">
+					<img src="app/assets/imgs/magnifier.svg" style="float: left; width: 16px;"> &nbsp;Preview Result
+				</button>
+				<button style="margin-left: 18px;" (click)="parseTransformationCode()">&nbsp; Parse code &nbsp;</button>
 			</div>
 		</span>
+
+		<div class="transform-preview-datatable-wrap">
+			<table border="1" width="100" class="transform-preview-datatable">
+				<tr>
+					<td>First Name</td>
+					<td>Last Name</td>
+					<td>Age</td>
+					<td>Country</td>
+					<td>Profession</td>
+					<td>Skills</td>
+					<td>Role</td>
+					<td>Repartment</td>
+					<td>Origin</td>
+					<td>Nacionality</td>
+				</tr>
+				<tr>
+					<td>First Name</td>
+					<td>Last Name</td>
+					<td>Age</td>
+					<td>Country</td>
+					<td>Profession</td>
+					<td>Skills</td>
+					<td>Role</td>
+					<td>Repartment</td>
+					<td>Origin</td>
+					<td>Nacionality</td>
+				</tr>
+				<tr>
+					<td>First Name</td>
+					<td>Last Name</td>
+					<td>Age</td>
+					<td>Country</td>
+					<td>Profession</td>
+					<td>Skills</td>
+					<td>Role</td>
+					<td>Repartment</td>
+					<td>Origin</td>
+					<td>Nacionality</td>
+				</tr>
+				<tr>
+					<td>First Name</td>
+					<td>Last Name</td>
+					<td>Age</td>
+					<td>Country</td>
+					<td>Profession</td>
+					<td>Skills</td>
+					<td>Role</td>
+					<td>Repartment</td>
+					<td>Origin</td>
+					<td>Nacionality</td>
+				</tr>
+				<tr>
+					<td>First Name</td>
+					<td>Last Name</td>
+					<td>Age</td>
+					<td>Country</td>
+					<td>Profession</td>
+					<td>Skills</td>
+					<td>Role</td>
+					<td>Repartment</td>
+					<td>Origin</td>
+					<td>Nacionality</td>
+				</tr>
+				<tr>
+					<td>First Name</td>
+					<td>Last Name</td>
+					<td>Age</td>
+					<td>Country</td>
+					<td>Profession</td>
+					<td>Skills</td>
+					<td>Role</td>
+					<td>Repartment</td>
+					<td>Origin</td>
+					<td>Nacionality</td>
+				</tr>
+				<tr>
+					<td>First Name</td>
+					<td>Last Name</td>
+					<td>Age</td>
+					<td>Country</td>
+					<td>Profession</td>
+					<td>Skills</td>
+					<td>Role</td>
+					<td>Repartment</td>
+					<td>Origin</td>
+					<td>Nacionality</td>
+				</tr>
+				<tr>
+					<td>First Name</td>
+					<td>Last Name</td>
+					<td>Age</td>
+					<td>Country</td>
+					<td>Profession</td>
+					<td>Skills</td>
+					<td>Role</td>
+					<td>Repartment</td>
+					<td>Origin</td>
+					<td>Nacionality</td>
+				</tr>
+			</table>
+		</div>
 	</div>
 </div>
 <style>
@@ -37,5 +141,12 @@
 
 	.parent-node .Transformation .title-box{
 		display: flex; justify-content: space-between; padding-right: 9px;
+	}
+
+	.transform-preview-datatable-wrap {
+		overflow: auto; width: 100%; padding: 5px;
+		.transform-preview-datatable {
+			min-width: 100%; td{ padding: 2px 5px; font-size: 11.7px; min-width: 6em; }
+		}
 	}
 </style>

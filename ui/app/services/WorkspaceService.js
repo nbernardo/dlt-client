@@ -486,4 +486,21 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
     }
 
+    /** @returns { { fields } | undefined } */
+    static async getTransformationPreview(connectionName, previewScript, dbEngine = null) {
+
+        const namespace = await UserService.getNamespace();
+        const url = `/${namespace}/db/transformation/preview`;
+
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ connectionName, previewScript, dbEngine }),{
+            headers: { 'content-type': 'Application/json' }
+        });
+        const result = await response.json();
+        
+        if (response.ok && !result.error)
+            return result.result;
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
 }

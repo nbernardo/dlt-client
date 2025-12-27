@@ -3,6 +3,7 @@ import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { Components } from "../../../@still/setup/components.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { Bucket } from "./Bucket.js";
@@ -25,8 +26,9 @@ export class Transformation extends AbstractNode {
 	/** @Prop */ uniqueId = '_' + UUIDUtil.newId();
 	/** @Prop */ showLoading = false;
 	/** @Prop */ confirmModification = false;
-	/** @Prop */ sourceNode = null;
+	/** @Prop @type { SqlDBComponent|Bucket } */ sourceNode = null;
 	/** @Prop */ dataSourceType = null;
+	/** @Prop */ sqlConnectionName = null;
 	/** @Prop */ aiGenerated;
 	/** @Prop */ importFields;
 
@@ -101,10 +103,10 @@ export class Transformation extends AbstractNode {
 	/** @param { InputConnectionType<SqlDBComponent|Bucket> } */
 	onInputConnection({ data, type }) {
 
-		const { tables, sourceNode } = data;
+		let { tables, sourceNode } = data;
 		NodeUtil.handleInputConnection(this, data, type);
 		
-		this.dataSourceType = null;
+		this.dataSourceType = null, this.sqlConnectionName = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
 
 			// This is the bucket component itself
@@ -119,8 +121,8 @@ export class Transformation extends AbstractNode {
 			// In case the SQL Database changes, it proliferates downstream 
 			// thereby updating the Transformation and different added transformations
 			if(SqlDBComponent.name == type){
-				
-				this.dataSourceType = 'SQL';
+
+				this.dataSourceType = 'SQL', this.sqlConnectionName = this.sourceNode.selectedSecret.value;
 				this.sourceNode.selectedSecretTableList.onChange(value => {
 					value = value.map(table => ({ name: table, file: table }))
 					this.databaseList = value;
@@ -195,6 +197,9 @@ export class Transformation extends AbstractNode {
 		data['code'] = finalCode;
 		data['rows'] = rowsConfig;
 
+		console.log(`TRANFORMATION HERE WILL BE`);
+		console.log(finalCode);
+
 		return finalCode;
 
 	}
@@ -208,6 +213,54 @@ export class Transformation extends AbstractNode {
 				await confirmEvent(this);
 			}
 		});
+	}
+
+	getTransformationPreview(){
+		let transformations = this.parseTransformationCode(), script = '';
+		const tablesSet = Object.entries(transformations)
+
+		const connectionName = this.sourceNode.selectedSecret.value;
+		const dbEngine = this.sourceNode.selectedDbEngine.value;
+		
+		if(tablesSet.length > 0) script = 'results = []\n';
+
+		for(const [tableName, transformations] of tablesSet){
+
+			let cols = '*';
+			if(dbEngine === 'mssql'){
+				script += `table = '${tableName}'\n`;
+				script += `schema_name, table_name = table.split('.')\n`;
+				script += `columns = inspector.get_columns(table_name, schema=schema_name)\n`;
+				script += `parsed_columns = column_type_conversion(columns, engine.connect(), table_name, schema_name)\n`;
+				cols = '{parsed_columns}';
+			}
+			
+			script += `lf = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n`;
+			script += `lf = lf.with_columns(${transformations})\n`;
+			
+			for(let transformation of transformations){
+
+				if(!transformation.startsWith('pl.when(')) continue;
+
+				transformation = transformation.split('pl.when(')[1];
+				transformation = transformation.split(').then')[0];
+				script += `result = lf.filter(${transformation}).limit(5).collect()\n`;
+				script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })`;
+
+			}
+			script += '\n\n';
+			
+		}
+
+		const previewResult = WorkspaceService.getTransformationPreview(connectionName, script, dbEngine);
+		console.log(`SCRIPT RESULT IS:`);
+		console.log(script);
+
+		console.log(`PREVIEW RESULT IS:`);
+		console.log(previewResult);
+
+		return script;
+		
 	}
 
 }
