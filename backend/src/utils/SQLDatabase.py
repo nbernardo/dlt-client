@@ -5,6 +5,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import traceback
 import platform
+import polars as pl
+from utils.SQLServerUtil import column_type_conversion
 
 class SQLDatabase:
 
@@ -166,23 +168,28 @@ class SQLDatabase:
             return { 'error': True, 'message': str(err) }
 
 
+    def get_connnection(namespace, dbengine, connection_name) -> Engine:
+        db_conection = None
+        if(dbengine == 'mysql'):
+            db_conection, _ = SQLConnection.mysql_connect(namespace, connection_name, None)
+
+        if(dbengine == 'postgresql'):
+            db_conection, _ = SQLConnection.pgsql_connect(namespace, connection_name, None)
+
+        if(dbengine == 'mssql'):
+            db_conection, _ = SQLConnection.mssql_connect(namespace, connection_name, None)
+
+        if(dbengine == 'oracle'):
+            db_conection, _ = SQLConnection.oracle_connect(namespace, connection_name, None)
+        
+        return db_conection
+
+
     def get_fields_from_table(namespace, dbengine, connection_name, table_name: str, metadata = None):
 
         try:
             fields = []
-            db_conection = None
-            if(dbengine == 'mysql'):
-                db_conection, _ = SQLConnection.mysql_connect(namespace, connection_name, None)
-
-            if(dbengine == 'postgresql'):
-                db_conection, _ = SQLConnection.pgsql_connect(namespace, connection_name, None)
-
-            if(dbengine == 'mssql'):
-                db_conection, _ = SQLConnection.mssql_connect(namespace, connection_name, None)
-
-            if(dbengine == 'oracle'):
-                db_conection, _ = SQLConnection.oracle_connect(namespace, connection_name, None)
-            
+            db_conection = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
             if not metadata:
 
                 metadata = MetaData()
@@ -413,3 +420,23 @@ def converts_field_type(table, pk):
         table.apply_hints(columns=columns_config)
     
     return table
+
+
+def run_transform_preview(namespace, dbengine, connection_name, script):
+    import polars as pl
+    engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
+    inspector = inspect(engine)
+    
+    inner_env = { 
+        'engine': engine, 'pl': pl, 'inspector': inspector,
+        'column_type_conversion': column_type_conversion 
+    }
+    
+    try:
+        exec(script, {}, inner_env)
+    except Exception as err:
+        print('Error while running pipeline transformation preview: ')
+        print(err)
+        return { 'error': True, 'result': str(err) } 
+
+    return { 'error': False, 'result': inner_env['results'] }

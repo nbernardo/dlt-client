@@ -9,7 +9,7 @@ from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
 from utils.duckdb_util import DuckdbUtil
 from utils.cache_util import DuckDBCache
-from utils.SQLDatabase import SQLDatabase
+from utils.SQLDatabase import SQLDatabase, run_transform_preview
 import uuid
 from datetime import datetime
 
@@ -487,6 +487,12 @@ class DltPipeline:
         
         except Exception as err:
             return {}, {}
+        
+    
+    @staticmethod
+    def get_sqldb_transformation_preview(namespace, dbengine, connection_name, script):
+        result = run_transform_preview(namespace, dbengine, connection_name, script)
+        return result
 
 
 def has_ppline_job(evt, job_transaction_id):
@@ -504,3 +510,4 @@ def clear_job_transaction_id(job_transaction_id):
     
     if(job_transaction_id in DltPipeline.processed_job['end']):
         del DltPipeline.processed_job['end'][job_transaction_id]
+

@@ -505,3 +505,24 @@ def message_ai_agent(namespace):
         result = 'No medatata was loaded about your namespace.'\
               if str(error).strip() == namespace else 'Could not load details about your namespace.'
         return { 'error': True, 'result': { 'result': result } }
+
+
+@pipeline.route('/<namespace>/db/transformation/preview', methods=['POST'])
+def preview_transformation(namespace):
+
+    try:
+
+        payload = request.get_json()
+        
+        connection_name = payload['connectionName']
+        preview_script = payload['previewScript']
+        dbengine = payload['dbEngine']
+
+        preview_result = DltPipeline.get_sqldb_transformation_preview(namespace, dbengine,connection_name,preview_script)
+        return preview_result
+    
+    except Exception as err:
+        error = f'Error while running transformation preview {str(err)}'
+        print(error)
+        traceback.print_exc()
+        return { 'error': True, 'result': { 'result': err } }
