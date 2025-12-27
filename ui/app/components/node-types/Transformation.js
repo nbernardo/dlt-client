@@ -4,6 +4,7 @@ import { Components } from "../../../@still/setup/components.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { dataToTable } from "../../util/dataPresentationUtil.js";
 import { Workspace } from "../workspace/Workspace.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { Bucket } from "./Bucket.js";
@@ -31,6 +32,7 @@ export class Transformation extends AbstractNode {
 	/** @Prop */ sqlConnectionName = null;
 	/** @Prop */ aiGenerated;
 	/** @Prop */ importFields;
+	/** @Prop */ gettingTransformation = false;
 
 	/** This will hold all applied transformations
 	 * @Prop @type { Map<TransformRow> } */
@@ -197,9 +199,6 @@ export class Transformation extends AbstractNode {
 		data['code'] = finalCode;
 		data['rows'] = rowsConfig;
 
-		console.log(`TRANFORMATION HERE WILL BE`);
-		console.log(finalCode);
-
 		return finalCode;
 
 	}
@@ -215,7 +214,8 @@ export class Transformation extends AbstractNode {
 		});
 	}
 
-	getTransformationPreview(){
+	async getTransformationPreview(){
+		this.gettingTransformation = true;
 		let transformations = this.parseTransformationCode(), script = '';
 		const tablesSet = Object.entries(transformations)
 
@@ -252,15 +252,18 @@ export class Transformation extends AbstractNode {
 			
 		}
 
-		const previewResult = WorkspaceService.getTransformationPreview(connectionName, script, dbEngine);
-		console.log(`SCRIPT RESULT IS:`);
-		console.log(script);
-
-		console.log(`PREVIEW RESULT IS:`);
-		console.log(previewResult);
-
-		return script;
+		const previewResult = await WorkspaceService.getTransformationPreview(connectionName, script, dbEngine);
+		let result = '';
 		
+		for(const previewSet of previewResult){
+			const { data, columns, table } = previewSet;
+			result += dataToTable({ data, columns, cssClass: 'transform-preview-datatable' }, table, true);
+			result += '<br>';
+		}
+
+		document.querySelector(`.${this.cmpInternalId}-previewPlaceholder`).innerHTML = result;
+		this.gettingTransformation = false;
+	
 	}
 
 }

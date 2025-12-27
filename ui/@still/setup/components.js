@@ -1873,7 +1873,7 @@ export class Components {
             clrStyle = 'style="border-top-color: #444; border-left-color: #444;"';
         const keyFrame = `{0% {transform:rotate(0deg);} 100% {transform:rotate(360deg);}}`;
 
-        return template.replace(/<st-loader[\n\t\s\(\)a-z0-9\!\.\=\"]{0,}[\t\n\s]{0,}[\/]{0,}>/i, (mt) => {
+        return template.replace(/<st-loader[\n\t\s\(\)a-z0-9\!\.\=\"]{0,}[\t\n\s]{0,}[\/]{0,}>/gi, (mt) => {
 
             let sheet = document.styleSheets[0], complement = mt.replace('<st-loader','').replace('>',''), lbl = '';
             let color = mt.match(/color="([\#0-9A-Z]{0,}?)"/i), topPad = mt.match(/topPadding="([\#0-9A-Z]{0,}?)"/i);

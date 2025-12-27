@@ -25,118 +25,29 @@
 					<td>Output expected</td>
 				</tr>
 			</table>
-			<div style="margin: 3px 8px;">
-				<button style="margin-left: 18px;" class="add-btn-primary" (click)="addNewField()">+ Transformation</button>
-				<button style="margin-left: 18px;" class="e2e-btn-secondary" (click)="getTransformationPreview()">
-					<img src="app/assets/imgs/magnifier.svg" style="float: left; width: 16px;"> &nbsp;Preview Result
-				</button>
-				<button style="margin-left: 18px;" (click)="parseTransformationCode()">&nbsp; Parse code &nbsp;</button>
-			</div>
+			<span class="showButtonContainer" (showIf)="!self.gettingTransformation">
+				<div style="margin: 3px 8px;">
+					<button style="margin-left: 18px;" class="add-btn-primary" (click)="addNewField()">+ Transformation</button>
+					<button style="margin-left: 18px;" class="e2e-btn-secondary" (click)="getTransformationPreview()">
+						<img src="app/assets/imgs/magnifier.svg" style="float: left; width: 16px;"> &nbsp;Preview Result
+					</button>
+					<button style="margin-left: 18px;" (click)="parseTransformationCode()">&nbsp; Parse code &nbsp;</button>
+				</div>
+			</span>
 		</span>
+		<st-loader 
+			small center
+			topPadding="160"
+			(showIf)="self.gettingTransformation"
+			(label)="Running transformation preview..."/>
 
-		<div class="transform-preview-datatable-wrap">
-			<table border="1" width="100" class="transform-preview-datatable">
-				<tr>
-					<td>First Name</td>
-					<td>Last Name</td>
-					<td>Age</td>
-					<td>Country</td>
-					<td>Profession</td>
-					<td>Skills</td>
-					<td>Role</td>
-					<td>Repartment</td>
-					<td>Origin</td>
-					<td>Nacionality</td>
-				</tr>
-				<tr>
-					<td>First Name</td>
-					<td>Last Name</td>
-					<td>Age</td>
-					<td>Country</td>
-					<td>Profession</td>
-					<td>Skills</td>
-					<td>Role</td>
-					<td>Repartment</td>
-					<td>Origin</td>
-					<td>Nacionality</td>
-				</tr>
-				<tr>
-					<td>First Name</td>
-					<td>Last Name</td>
-					<td>Age</td>
-					<td>Country</td>
-					<td>Profession</td>
-					<td>Skills</td>
-					<td>Role</td>
-					<td>Repartment</td>
-					<td>Origin</td>
-					<td>Nacionality</td>
-				</tr>
-				<tr>
-					<td>First Name</td>
-					<td>Last Name</td>
-					<td>Age</td>
-					<td>Country</td>
-					<td>Profession</td>
-					<td>Skills</td>
-					<td>Role</td>
-					<td>Repartment</td>
-					<td>Origin</td>
-					<td>Nacionality</td>
-				</tr>
-				<tr>
-					<td>First Name</td>
-					<td>Last Name</td>
-					<td>Age</td>
-					<td>Country</td>
-					<td>Profession</td>
-					<td>Skills</td>
-					<td>Role</td>
-					<td>Repartment</td>
-					<td>Origin</td>
-					<td>Nacionality</td>
-				</tr>
-				<tr>
-					<td>First Name</td>
-					<td>Last Name</td>
-					<td>Age</td>
-					<td>Country</td>
-					<td>Profession</td>
-					<td>Skills</td>
-					<td>Role</td>
-					<td>Repartment</td>
-					<td>Origin</td>
-					<td>Nacionality</td>
-				</tr>
-				<tr>
-					<td>First Name</td>
-					<td>Last Name</td>
-					<td>Age</td>
-					<td>Country</td>
-					<td>Profession</td>
-					<td>Skills</td>
-					<td>Role</td>
-					<td>Repartment</td>
-					<td>Origin</td>
-					<td>Nacionality</td>
-				</tr>
-				<tr>
-					<td>First Name</td>
-					<td>Last Name</td>
-					<td>Age</td>
-					<td>Country</td>
-					<td>Profession</td>
-					<td>Skills</td>
-					<td>Role</td>
-					<td>Repartment</td>
-					<td>Origin</td>
-					<td>Nacionality</td>
-				</tr>
-			</table>
-		</div>
+		<span (showIf)="!self.gettingTransformation">
+			<div class="transform-preview-datatable-wrap @cmpInternalId-previewPlaceholder"></div>
+		</span>
 	</div>
 </div>
 <style>
+    .parent-node .Transformation .mini-loader-dot{ width: 19px; height: 13px; background-color: #2c3e50; }
 	.parent-node .Transformation { width: 600px; z-index: 1; }
 
 	.parent-node .Transformation .title-box{
