@@ -1,7 +1,7 @@
 import json
 from sqlalchemy import create_engine, inspect, MetaData, Engine, Table, text
 from sqlalchemy.engine import reflection
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import NoInspectionAvailable
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import traceback
 import platform
@@ -81,35 +81,40 @@ class SQLDatabase:
 
     def get_mssql_tables(namespace, connection_name, secret):
         
-        mssql_conection, database = SQLConnection\
-                    .mssql_connect(namespace, connection_name, secret)
+        try:
 
-        query_string = """
-            SELECT 
-                TABLE_CATALOG AS database_name,
-                TABLE_SCHEMA AS schema_name,
-                TABLE_NAME AS table_name,
-                COLUMN_NAME AS column_name,
-                '"' + DATA_TYPE + '"' AS quoted_type
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_CATALOG = :database_name
-            ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;
-        """
+            mssql_conection, database = SQLConnection\
+                        .mssql_connect(namespace, connection_name, secret)
 
-        tables = {}
-        result = mssql_conection.connect().execute(text(query_string), { 'database_name': database })
-        for dbo, table_schema, table_name, column_name, col_type in result.fetchall():
-   
-            if table_schema not in tables:
-                tables[table_schema] = {}
+            query_string = """
+                SELECT 
+                    TABLE_CATALOG AS database_name,
+                    TABLE_SCHEMA AS schema_name,
+                    TABLE_NAME AS table_name,
+                    COLUMN_NAME AS column_name,
+                    '"' + DATA_TYPE + '"' AS quoted_type
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_CATALOG = :database_name
+                ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;
+            """
 
-            if table_name not in tables[table_schema]:
-                tables[table_schema][table_name] = []
+            tables = {}
+            result = mssql_conection.connect().execute(text(query_string), { 'database_name': database })
+            for dbo, table_schema, table_name, column_name, col_type in result.fetchall():
+    
+                if table_schema not in tables:
+                    tables[table_schema] = {}
 
-            tables[table_schema][table_name].append({ 'column': column_name, 'type':  col_type  })
+                if table_name not in tables[table_schema]:
+                    tables[table_schema][table_name] = []
 
-        tables['schema_based'] = True
-        return tables
+                tables[table_schema][table_name].append({ 'column': column_name, 'type':  col_type  })
+
+            tables['schema_based'] = True
+            return tables
+        
+        except Exception as err:
+            return None
 
 
     def get_oracle_tables(namespace, connection_name, secret):
@@ -424,19 +429,35 @@ def converts_field_type(table, pk):
 
 def run_transform_preview(namespace, dbengine, connection_name, script):
     import polars as pl
-    engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
-    inspector = inspect(engine)
-    
-    inner_env = { 
-        'engine': engine, 'pl': pl, 'inspector': inspector,
-        'column_type_conversion': column_type_conversion 
-    }
-    
+
+    try:
+        engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
+        inspector = inspect(engine)
+        
+        inner_env = { 
+            'engine': engine, 'pl': pl, 'inspector': inspector,
+            'column_type_conversion': column_type_conversion,
+        }
+        compile(script, '<transformation_task>', 'exec')
+
+    except NoInspectionAvailable as err:
+        error = 'Error while trying to connect to database'
+        print(f'{error}: ', str(err))
+        return { 'error': True, 'result': { 'msg': error, 'code': None } }        
+
+    except SyntaxError as err:
+        print('Error while running pipeline transformation preview: ', err.text)
+        return { 'error': True, 'result': { 'msg': 'Syntax error', 'code': err.text } }
+
+    except Exception as err:
+        print('Error while running pipeline transformation preview: ');
+        return { 'error': True, 'result': str(err) }
+
     try:
         exec(script, {}, inner_env)
     except Exception as err:
         print('Error while running pipeline transformation preview: ')
         print(err)
-        return { 'error': True, 'result': str(err) } 
+        return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
 
-    return { 'error': False, 'result': inner_env['results'] }
+    return { 'error': False, 'result': inner_env['results'] if 'results' in inner_env else None }
