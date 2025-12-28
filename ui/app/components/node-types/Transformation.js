@@ -13,7 +13,7 @@ import { SqlDBComponent } from "./SqlDBComponent.js";
 import { TRANFORM_ROW_PREFIX, TransformRow } from "./transform/TransformRow.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { NodeUtil } from "./util/nodeUtil.js";
-import { DatabaseTransformation, NonDatabaseSourceTransform } from "./util/tranformation.js";
+import { DatabaseTransformation, NonDatabaseSourceTransform, TransformExecution } from "./util/tranformation.js";
 
 /** @implements { NodeTypeInterface } */
 export class Transformation extends AbstractNode {
@@ -196,11 +196,9 @@ export class Transformation extends AbstractNode {
 			data['dataSourceType'] = 'SQL';
 		}
 		console.log(`Transformation in: `, DatabaseTransformation.transformations);
-		data['code'] = finalCode;
-		data['rows'] = rowsConfig;
+		data['code'] = finalCode, data['rows'] = rowsConfig;
 
 		return finalCode;
-
 	}
 
 	/** @param { Function } confirmEvent */
@@ -215,55 +213,89 @@ export class Transformation extends AbstractNode {
 	}
 
 	async getTransformationPreview(){
+
 		this.gettingTransformation = true;
-		let transformations = this.parseTransformationCode(), script = '';
+		TransformExecution.validationErrDisplayReset(this.cmpInternalId);
+		let transformations = this.parseTransformationCode(), script = '', result = '';
+
+		if(transformations == '') 
+			return setTimeout(() => this.gettingTransformation = false, 500);
+		if(Object.keys(transformations) == 0)
+			return setTimeout(() => this.gettingTransformation = false, 500);
+
 		const tablesSet = Object.entries(transformations)
+		const newFieldRE = /alias\(\'([A-Z]{1,}[A-Z1-9]{0,})(_New){0,}\'\)/ig
 
 		const connectionName = this.sourceNode.selectedSecret.value;
 		const dbEngine = this.sourceNode.selectedDbEngine.value;
+		const transformRowMapping = {};
 		
 		if(tablesSet.length > 0) script = 'results = []\n';
+		let count = 1;
 
 		for(const [tableName, transformations] of tablesSet){
 
+			script += 'try:\n\t';
 			let cols = '*';
 			if(dbEngine === 'mssql'){
-				script += `table = '${tableName}'\n`;
-				script += `schema_name, table_name = table.split('.')\n`;
-				script += `columns = inspector.get_columns(table_name, schema=schema_name)\n`;
-				script += `parsed_columns = column_type_conversion(columns, engine.connect(), table_name, schema_name)\n`;
+				script += `table = '${tableName}'\n\t`;
+				script += `schema_name, table_name = table.split('.')\n\t`;
+				script += `columns = inspector.get_columns(table_name, schema=schema_name)\n\t`;
+				script += `parsed_columns = column_type_conversion(columns, engine.connect(), table_name, schema_name)\n\t`;
 				cols = '{parsed_columns}';
 			}
 			
-			script += `lf = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n`;
-			script += `lf = lf.with_columns(${transformations})\n`;
+			script += `lf = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
+			script += `lf = lf.with_columns(${transformations})\n\t`;
+			transformRowMapping["lf.with_columns("+transformations+")"] = count;
 			
 			for(let transformation of transformations){
-
 				if(!transformation.startsWith('pl.when(')) continue;
 
 				transformation = transformation.split('pl.when(')[1];
 				transformation = transformation.split(').then')[0];
-				script += `result = lf.filter(${transformation}).limit(5).collect()\n`;
-				script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })`;
-
+				script += `result = (lf.filter(${transformation}).limit(5).collect())\n\t`;
+				script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
+				script += `except Exception as err:\n\t`;
+				script += `print(f'Error #${count}#: {str(err)}')\n\t`;
+				script += `raise Exception(f'Error #${count++}#: {str(err)}')`;
 			}
+
+			script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
 			script += '\n\n';
 			
 		}
-
-		const previewResult = await WorkspaceService.getTransformationPreview(connectionName, script, dbEngine);
-		let result = '';
 		
-		for(const previewSet of previewResult){
-			const { data, columns, table } = previewSet;
-			result += dataToTable({ data, columns, cssClass: 'transform-preview-datatable' }, table, true);
-			result += '<br>';
+		const previewResult = await WorkspaceService.getTransformationPreview(connectionName, script, dbEngine);
+		if(previewResult === null) return;
+
+		this.gettingTransformation = false;
+		if(previewResult.code === '\n') return;
+		if('error' in previewResult || previewResult.code){
+			let transfomRowIndex;
+			if(previewResult.msg.search(/Error\s{1}\#(\d)\#/) >= 0) 
+				transfomRowIndex = Number(previewResult.msg.split('#')[1]) - 1;
+			else{
+				let codeRow = previewResult.code.replace('\tlf = ','');
+				codeRow = codeRow.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}_New`,`${$1}`));
+				if(codeRow.endsWith('\n')) codeRow = codeRow.slice(0, codeRow.length - 1);
+				transfomRowIndex = Number(transformRowMapping[codeRow]) - 1;
+			}
+
+			/** @type { TransformRow } */
+			const affectedRow = [...this.fieldRows][transfomRowIndex][1];
+			return affectedRow.displayTransformationError(previewResult.msg);
 		}
 
-		document.querySelector(`.${this.cmpInternalId}-previewPlaceholder`).innerHTML = result;
-		this.gettingTransformation = false;
-	
+		if(Array.isArray(previewResult) && previewResult.length > 0){
+			for(const previewSet of previewResult){
+				const { data, columns, table } = previewSet;
+				result += dataToTable({ data, columns, cssClass: 'transform-preview-datatable' }, table, true);
+				result += '<br>';
+			}
+		}else
+			result = '<div style="width: 100%; text-align: center; color: red;">One or more transformations are invalid</div>'
+		TransformExecution.transformPreviewShow(this.cmpInternalId, result);
 	}
 
 }

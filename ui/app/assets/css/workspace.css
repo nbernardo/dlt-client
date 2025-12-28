@@ -211,6 +211,8 @@
 		cursor: pointer;
 	}
 
+	.btn-padding-height7{ padding: 4px 7px; }
+
 	.e2e-btn-secondary{ margin-left: 18px; background: #2c3e50; }
 	
 	.add-btn-primary:hover{ background: green; }

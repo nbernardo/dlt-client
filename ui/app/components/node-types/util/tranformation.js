@@ -156,9 +156,12 @@ export class DatabaseTransformation {
     
             rowsConfig.push(code);
             comma = '';//finalCode.length > 0 ? ',\n' : '';
-            
-            if (type === 'CODE')
-                finalCode = `${comma}${DatabaseTransformation.parseCodeOnDf(transform, code.field)}`;
+
+            if(type === 'CODE' && code === '') return '';
+            if (type === 'CODE'){
+                const transformation = DatabaseTransformation.parseCodeOnDf(transform, code.field)
+                if(transformation) finalCode = `${comma}${transformation}`;
+            }
     
             if (type === 'CASING')
                 finalCode = `${comma}${DatabaseTransformation.parseCasing(transform, code.field)}`;
@@ -298,6 +301,8 @@ export class DatabaseTransformation {
             }
         }
 
+        if(transform === undefined) return null;
+
         let [leftSide, rightSide] = transform.split(' then ');
 
         const isConditionWrapped = leftSide.trim().startsWith('(') && leftSide.trim().endsWith(')')
@@ -315,6 +320,8 @@ export class DatabaseTransformation {
         else
             leftSide = `pl.when((${leftSide.replaceAll(' and ', ' & ').replaceAll(' or ', ' | ').replaceAll(`''`, `'`)}))`;
 
+        if(rightSide === undefined) return null;
+
         //Addressing no space concatenation
         rightSide = rightSide.replace(/\s{0,}\+\'\'/g,`+pl.lit('')`);
         //Address change case from the code
@@ -330,5 +337,29 @@ export class DatabaseTransformation {
     }
 }
 
+export class TransformExecution {
 
+    static transformPreviewShow = (cmpId, result) =>
+        document.querySelector(`.${cmpId}-previewPlaceholder`).innerHTML = result;
+    
+    static validationErrDisplay = (rowId, error) => {
+        const css = 'color: red; display: block; text-align: right; padding-right: 21px; color: red';
+		document.getElementById(`row_error_${rowId}`).innerHTML = `<span style='${css}'>${error} -> </span>`;
+		document.getElementById(`${rowId}-code`).classList.add('transformation-code-error');
+    }
+    
+    static validationErrDisplayReset = (cmpId) => {
+		const cntr = document.querySelector(`.${cmpId}`);
+        if(cntr){
+            cntr.querySelectorAll('.transformation-code-error').forEach(codeEditor => {
+                const id = codeEditor.id;
+                codeEditor.classList.remove('transformation-code-error');
+            });
+
+            cntr.querySelectorAll('.error-message-placeholder').forEach(msgWrapper => {
+                msgWrapper.innerHTML = '';
+            });
+        }
+    }
+}
 

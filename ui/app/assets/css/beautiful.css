@@ -18,6 +18,19 @@
     --color-yellow-300: #fcd34d;
 }
 
+.truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; 
+    max-width: 50ch;
+}
+
+.transformation-code-error{
+    background: #ff000012;
+    border: 2px solid red !important;
+    color: #c01919 !important;
+}
+
 html,
 body {
     margin: 0px;

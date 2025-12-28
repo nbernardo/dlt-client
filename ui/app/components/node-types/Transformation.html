@@ -1,9 +1,13 @@
 <div class="@cmpInternalId" style="z-index: 1;">
-	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this, '200px')">_</div>
+	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this, '200px', 'transform')">_</div>
 	<div class="title-box pipeline-node-type-title-box">
 		<div>
 			<i class="fas fa-cogs"></i>
 			Transformation
+			<button style="margin-left: 18px;" class="add-btn-primary btn-padding-height7" (click)="addNewField()">+ Transformation</button>
+			<button style="margin-left: 18px;" class="e2e-btn-secondary btn-padding-height7" (click)="getTransformationPreview()">
+				<img src="app/assets/imgs/magnifier.svg" style="float: left; width: 16px;"> &nbsp;Preview Result
+			</button>
 		</div>
 		<div class="statusicon">@nodeCount</div>
 	</div>
@@ -15,7 +19,7 @@
 			topPadding="50"
 			(label)="Parsing Rules..."/>
 
-		<span (showIf)="!self.showLoading">
+		<span (showIf)="!self.showLoading" class="all-transformations-container">
 			<table class="transform-container-@uniqueId transform-container">
 				<tr>
 					<td></td>
@@ -26,13 +30,9 @@
 				</tr>
 			</table>
 			<span class="showButtonContainer" (showIf)="!self.gettingTransformation">
-				<div style="margin: 3px 8px;">
-					<button style="margin-left: 18px;" class="add-btn-primary" (click)="addNewField()">+ Transformation</button>
-					<button style="margin-left: 18px;" class="e2e-btn-secondary" (click)="getTransformationPreview()">
-						<img src="app/assets/imgs/magnifier.svg" style="float: left; width: 16px;"> &nbsp;Preview Result
-					</button>
+				<!-- <div style="margin: 3px 8px;">
 					<button style="margin-left: 18px;" (click)="parseTransformationCode()">&nbsp; Parse code &nbsp;</button>
-				</div>
+				</div> -->
 			</span>
 		</span>
 		<st-loader 
@@ -56,8 +56,13 @@
 
 	.transform-preview-datatable-wrap {
 		overflow: auto; width: 100%; padding: 5px;
+		overflow-y: scroll; max-height: 128px; border: 1px solid;
 		.transform-preview-datatable {
 			min-width: 100%; td{ padding: 2px 5px; font-size: 11.7px; min-width: 6em; }
 		}
+	}
+
+	.all-transformations-container{
+		display: block; width: 101.5%; overflow-y: scroll; max-height: 200px;
 	}
 </style>

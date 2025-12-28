@@ -488,19 +488,33 @@ export class WorkspaceService extends BaseService {
 
     /** @returns { { fields } | undefined } */
     static async getTransformationPreview(connectionName, previewScript, dbEngine = null) {
-
+        
         const namespace = await UserService.getNamespace();
         const url = `/${namespace}/db/transformation/preview`;
 
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ connectionName, previewScript, dbEngine }),{
-            headers: { 'content-type': 'Application/json' }
-        });
-        const result = await response.json();
-        
-        if (response.ok && !result.error)
-            return result.result;
-        else
-            AppTemplate.toast.error(result.result);
+        try {
+            
+            const response = await $still.HTTPClient.post(url, JSON.stringify({ connectionName, previewScript, dbEngine }),{
+                headers: { 'content-type': 'Application/json' }
+            });
+            const result = await response.json();
+            
+            if (response.ok && !result.error)
+                return result.result;
+            else{
+                if(result.result.code === '\n')
+                    AppTemplate.toast.error('No row transformation was processed');
+                else
+                    AppTemplate.toast.error(result.result.msg);
+
+                return { ...result.result, error: true }
+            }
+
+        } catch (error) {
+            return null;
+        }
+
+
     }
 
 }

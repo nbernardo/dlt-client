@@ -3,6 +3,7 @@ import { ViewComponent } from "../../../../@still/component/super/ViewComponent.
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { Transformation } from "../Transformation.js";
+import { TransformExecution } from "../util/tranformation.js";
 
 export const TRANFORM_ROW_PREFIX = 'transformRow';
 
@@ -36,10 +37,8 @@ export class TransformRow extends ViewComponent {
 	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport }) {
 		this.fieldList = tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
-		
 		//if (importFields) this.configData = { ...importFields, dataSources };
 		this.configData = { ...importFields, dataSources };
-		
 	}
 
 	async stAfterInit() {
@@ -133,7 +132,6 @@ export class TransformRow extends ViewComponent {
 			obj.unload();
 			obj.$parent.removeField(obj.rowId);
 		}
-
 		if (this.configData !== null && this.$parent.confirmModification === false) 
 			return this.$parent.confirmActionDialog(handleDeletion);
 		handleDeletion(this);
@@ -144,4 +142,6 @@ export class TransformRow extends ViewComponent {
 		const pkRelatedField = self.relatedFields[0];
 		pkRelatedField.setDataSource(data.fields);
 	}
+
+	displayTransformationError = (error) => TransformExecution.validationErrDisplay(this.rowId, error);
 }
