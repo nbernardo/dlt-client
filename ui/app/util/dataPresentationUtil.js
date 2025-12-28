@@ -15,7 +15,7 @@ export const dataToTable = (data, title = null, isArrayData = false) => {
 
     if(isArrayData){
         for (const row of rows)
-            tableBody += `<tr>${row.map(colData => `<td>${colData}</td>`).join('')}</tr>`;
+            tableBody += `<tr>${row.map(colData => `<td class="truncate-text">${colData}</td>`).join('')}</tr>`;
     }else{
         for (const row of rows)
             tableBody += `<tr>${fields.map(field => `<td>${row[field]}</td>`).join('')}</tr>`;
