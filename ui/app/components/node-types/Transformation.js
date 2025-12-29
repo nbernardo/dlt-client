@@ -216,7 +216,7 @@ export class Transformation extends AbstractNode {
 		DatabaseTransformation.transformTypeMap = {};
 		this.gettingTransformation = true;
 		TransformExecution.validationErrDisplayReset(this.cmpInternalId);
-		let transformations = this.parseTransformationCode(), script = '', result = '';
+		let transformations = this.parseTransformationCode(), script = '', finalScript = '', result = '';
 
 		if(transformations == '') 
 			return setTimeout(() => this.gettingTransformation = false, 500);
@@ -230,7 +230,7 @@ export class Transformation extends AbstractNode {
 		const dbEngine = this.sourceNode.selectedDbEngine.value;
 		const transformRowMapping = {};
 		
-		if(tablesSet.length > 0) script = 'results = []\n';
+		if(tablesSet.length > 0) finalScript = 'results = []\n';
 		let count = 1;
 
 		for(const [tableName, transformations] of tablesSet){
@@ -245,33 +245,52 @@ export class Transformation extends AbstractNode {
 				cols = '{parsed_columns}';
 			}
 			
-			script += `lf = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
-			script += `lf = lf.with_columns(${transformations})\n\t`;
+			script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
+			script += `lf = lfquery.with_columns(${transformations})\n\t`;
 			transformRowMapping["lf.with_columns("+transformations+")"] = count;
-			
-			for(let transformation of transformations){
-				const isCalculateTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'CALCULATE';
-				if(!transformation.startsWith('pl.when(') && !isCalculateTransform) continue;
+			let totalTransform = transformations.length;
 
-				if(!isCalculateTransform){
+			for(let transformation of transformations){
+
+				const isCalculateTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'CALCULATE';
+				const isSplitTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'SPLIT';
+				const otherValidTransform = isCalculateTransform || isSplitTransform;
+
+				if(!transformation.startsWith('pl.when(') && !otherValidTransform) continue;
+
+				if(!otherValidTransform){
 					transformation = transformation.split('pl.when(')[1];
 					transformation = transformation.split(').then')[0];
-				}else
-					transformation = `pl.col${transformation.split('alias')[1]}.is_not_null()`;
+				}else{
+					if(isSplitTransform)
+						transformation = `${transformation.split('.str')[0]}.is_not_null()`;
+					else if(isCalculateTransform)
+						transformation = `pl.col${transformation.split('alias')[1]}.is_not_null()`;
+				}
 
 				script += `result = (lf.filter(${transformation}).limit(5).collect())\n\t`;
 				script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
 				script += `except Exception as err:\n\t`;
 				script += `print(f'Error #${count}#: {str(err)}')\n\t`;
 				script += `raise Exception(f'Error #${count++}#: {str(err)}')`;
+
+				if(totalTransform > 1) {
+					//Reinstate things for next transformation
+					script += `\n\nlf = lfquery.with_columns(${transformations})\n\t`;
+					script += '\ntry:\n\t';
+				}
+				
+				script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
+				finalScript += script;
+				script = '';
+				totalTransform--;
 			}
 
-			script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
-			script += '\n\n';
+			finalScript += '\n\n';
 			
 		}
 		
-		const previewResult = await WorkspaceService.getTransformationPreview(connectionName, script, dbEngine);
+		const previewResult = await WorkspaceService.getTransformationPreview(connectionName, finalScript, dbEngine);
 		if(previewResult === null) return;
 
 		this.gettingTransformation = false;

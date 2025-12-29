@@ -176,8 +176,10 @@ export class DatabaseTransformation {
                 DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'CALCULATE';
             }
     
-            if (type === 'SPLIT')
+            if (type === 'SPLIT'){
                 finalCode = `${comma}${DatabaseTransformation.parseSplit(field, code.sep, transform)}`;
+                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'SPLIT';
+            }
             
     
             //if (type === 'DEDUP')
@@ -226,10 +228,10 @@ export class DatabaseTransformation {
         for (const newField of vars){
             c = content.length > 0 ? ',' : ''
             const fname = newField.trim();
-            if((x + 1) === total)
-                content += `${c}pl.col('${field}').str.split('${sep}').arr.slice(${x}).alias('${fname}')`
-            else
-                content += `${c}pl.col('${field}').str.split('${sep}').arr.slice(${x},${x+1}).alias('${fname}')`
+            //if((x + 1) === total)
+            content += `${c}pl.col('${field}').fill_null('UNKNOWN').str.split('${sep}').list.get(${x}).alias('${fname}')`
+            //else
+            //    content += `${c}pl.col('${field}').cast(pl.Utf8).fill_null(" - ").str.split('${sep}').arr.slice(${x},${x+1}).alias('${fname}')`
             x++;
         }
 
