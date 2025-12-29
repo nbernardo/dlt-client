@@ -2,7 +2,7 @@
 const reserved = [' and', ' or', ' not', ' None', ' else', ' if'];
 
 export class NonDatabaseSourceTransform {
-
+    static transformTypeMap = {};
     static sourceTransformation(transformPieces, rowsConfig = []) {
         let finalCode = '';
         for (const [_, code] of [...transformPieces]) {
@@ -18,8 +18,10 @@ export class NonDatabaseSourceTransform {
             if (type === 'CASING')
                 finalCode += `\n${NonDatabaseSourceTransform.parseCasing(transform, code.field)}`;
 
-            if (type === 'CALCULATE')
-                finalCode += `\n${field} = ${NonDatabaseSourceTransform.parseCalculate(transform)}`;
+            if (type === 'CALCULATE'){
+                finalCode += `\n${field} = ${NonDatabaseSourceTransform.parseCalculate(transform)})`;
+                NonDatabaseSourceTransform.transformTypeMap[`${code.table}-${finalCode}`] = 'CALCULATE';
+            }
 
             if (type === 'SPLIT')
                 finalCode += `\n${NonDatabaseSourceTransform.parseSplit(field, code.sep, transform)}`;
@@ -117,7 +119,6 @@ export class NonDatabaseSourceTransform {
             else if (pos > 0 && !transform[pos - 1].startsWith("'") && !transform[pos - 1].startsWith("\""))
                 return ` df['${wrd.trim()}'] `;
             else return wrd;
-
         });
     }
 
@@ -146,6 +147,7 @@ export class DatabaseTransformation {
 
     /** @type { Object<Array> } */
     static transformations = {};
+    static transformTypeMap = {};
 
     static sourceTransformation(transformPieces, rowsConfig = []) {
         let finalCode = '', comma = null;
@@ -171,6 +173,7 @@ export class DatabaseTransformation {
                         .replaceAll('( ','(',)
                         .replaceAll(') ',')',)
                         .replace(/\s{2,}/g,' ');
+                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'CALCULATE';
             }
     
             if (type === 'SPLIT')
@@ -204,6 +207,7 @@ export class DatabaseTransformation {
 	}
 
     static parseCalculate(transform) {
+        if(transform === undefined) return null;
         return transform.replace(/\s{0,}[A-Z]{1,}/ig, (wrd, pos) => {
             if (pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\""))
                 return ` pl.col('${wrd.trim()}') `;

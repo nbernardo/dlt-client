@@ -213,7 +213,7 @@ export class Transformation extends AbstractNode {
 	}
 
 	async getTransformationPreview(){
-
+		DatabaseTransformation.transformTypeMap = {};
 		this.gettingTransformation = true;
 		TransformExecution.validationErrDisplayReset(this.cmpInternalId);
 		let transformations = this.parseTransformationCode(), script = '', result = '';
@@ -250,10 +250,15 @@ export class Transformation extends AbstractNode {
 			transformRowMapping["lf.with_columns("+transformations+")"] = count;
 			
 			for(let transformation of transformations){
-				if(!transformation.startsWith('pl.when(')) continue;
+				const isCalculateTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'CALCULATE';
+				if(!transformation.startsWith('pl.when(') && !isCalculateTransform) continue;
 
-				transformation = transformation.split('pl.when(')[1];
-				transformation = transformation.split(').then')[0];
+				if(!isCalculateTransform){
+					transformation = transformation.split('pl.when(')[1];
+					transformation = transformation.split(').then')[0];
+				}else
+					transformation = `pl.col${transformation.split('alias')[1]}.is_not_null()`;
+
 				script += `result = (lf.filter(${transformation}).limit(5).collect())\n\t`;
 				script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
 				script += `except Exception as err:\n\t`;
