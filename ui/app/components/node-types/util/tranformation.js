@@ -182,8 +182,14 @@ export class DatabaseTransformation {
             }
             
     
-            //if (type === 'DEDUP')
-            //    finalCode += `\ndf.drop_duplicates(subset=['${code.field}'], inplace=True)`;
+            if (type === 'DEDUP'){
+                if(finalCode.indexOf('df.unique(subset=[') >= 0){
+                    finalCode +=  finalCode.replace('df.unique(subset=[',`df.unique(subset=['${code.field}',`);
+                }else{
+                    finalCode += `\ndf.unique(subset=['${code.field}'])`;
+                }
+                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'DEDUP';
+            }
     
             //if (type === 'CONVERT') {
             //    if (transform === 'date') finalCode += `\n${field} = pd.to_datetime(${field})`;

@@ -245,12 +245,42 @@ export class Transformation extends AbstractNode {
 				cols = '{parsed_columns}';
 			}
 			
+			const withColumnStmt = `lf = lfquery.with_columns(${transformations})\n\t`;
 			script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
-			script += `lf = lfquery.with_columns(${transformations})\n\t`;
-			transformRowMapping["lf.with_columns("+transformations+")"] = count;
+			script += withColumnStmt;
+			transformRowMapping["lfquery.with_columns("+transformations+")"] = count;
 			let totalTransform = transformations.length;
 
 			for(let transformation of transformations){
+
+				const isDedupTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'DEDUP';
+				if(isDedupTransform) {
+					
+					const dedupPos = script.lastIndexOf(withColumnStmt);
+					const afterDedupContent = script.slice(dedupPos + withColumnStmt.length);
+					script = script.slice(0,dedupPos + withColumnStmt.length);
+					script += transformation.replace('df.unique(subset=','\tlf = lf.unique(subset=')+'\n\t';
+					script += `${afterDedupContent}\n\t`;
+					//script += transformation.replace('df.unique(subset=','lf.unique(subset=');
+					
+					script = script
+							// First try to remove if there is comma after transform
+							.replace(transformation+',','pl.all()')
+							// Then try to remove if there is no comma after transform
+							.replace(transformation,'pl.all()');
+
+					if(totalTransform === 1){
+						//script = script.slice(0,-1);
+						script += `result = lf.collect()\n\t`;
+						script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
+						script += `except Exception as err:\n\t`;
+						script += `print(f'Error #${count}#: {str(err)}')\n\t`;
+						script += `raise Exception(f'Error #${count++}#: {str(err)}')\n\n`;						
+					}
+					finalScript += script;
+					continue;
+
+				}
 
 				const isCalculateTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'CALCULATE';
 				const isSplitTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'SPLIT';
