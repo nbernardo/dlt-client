@@ -153,7 +153,7 @@ export class DatabaseTransformation {
         let finalCode = '', comma = null;
         DatabaseTransformation.transformations = {};
         for (const [_, code] of [...transformPieces]) {
-    
+            let finalCode = '';
             let { type, field, transform, table } = code;
     
             rowsConfig.push(code);

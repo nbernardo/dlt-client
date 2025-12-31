@@ -197,7 +197,6 @@ export class Transformation extends AbstractNode {
 		}
 		console.log(`Transformation in: `, DatabaseTransformation.transformations);
 		data['code'] = finalCode, data['rows'] = rowsConfig;
-
 		return finalCode;
 	}
 
@@ -230,12 +229,12 @@ export class Transformation extends AbstractNode {
 		const dbEngine = this.sourceNode.selectedDbEngine.value;
 		const transformRowMapping = {};
 		
-		if(tablesSet.length > 0) finalScript = 'results = []\n';
+		if(tablesSet.length > 0) finalScript = 'results, lfquery = [], None\n';
 		let count = 1;
 
 		for(const [tableName, transformations] of tablesSet){
 
-			script += 'try:\n\t';
+			if(!script.trim().startsWith('try')) script += 'try:\n\t';
 			let cols = '*';
 			if(dbEngine === 'mssql'){
 				script += `table = '${tableName}'\n\t`;
@@ -245,41 +244,37 @@ export class Transformation extends AbstractNode {
 				cols = '{parsed_columns}';
 			}
 			
-			const withColumnStmt = `lf = lfquery.with_columns(${transformations})\n\t`;
+			const withColumnStmt = `lf = lfquery.with_columns(${transformations[0]})\n\t`;
 			script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
 			script += withColumnStmt;
-			transformRowMapping["lfquery.with_columns("+transformations+")"] = count;
+			transformRowMapping["lfquery.with_columns("+transformations[0]+")"] = count;
 			let totalTransform = transformations.length;
+			let transformCount = 0;
 
 			for(let transformation of transformations){
 
 				const isDedupTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'DEDUP';
 				if(isDedupTransform) {
 					
-					const dedupPos = script.lastIndexOf(withColumnStmt);
-					const afterDedupContent = script.slice(dedupPos + withColumnStmt.length);
-					script = script.slice(0,dedupPos + withColumnStmt.length);
+					script = script.replace(transformation,'pl.all()');
 					script += transformation.replace('df.unique(subset=','\tlf = lf.unique(subset=')+'\n\t';
-					script += `${afterDedupContent}\n\t`;
-					//script += transformation.replace('df.unique(subset=','lf.unique(subset=');
-					
-					script = script
-							// First try to remove if there is comma after transform
-							.replace(transformation+',','pl.all()')
-							// Then try to remove if there is no comma after transform
-							.replace(transformation,'pl.all()');
 
-					if(totalTransform === 1){
-						//script = script.slice(0,-1);
-						script += `result = lf.collect()\n\t`;
-						script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
-						script += `except Exception as err:\n\t`;
-						script += `print(f'Error #${count}#: {str(err)}')\n\t`;
-						script += `raise Exception(f'Error #${count++}#: {str(err)}')\n\n`;						
-					}
+					script += `result = lf.collect()\n\t`;
+					script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
+					script += `except Exception as err:\n\t`;
+					script += `print(f'Error #${count}#: {str(err)}')\n\t`;
+					script += `raise Exception(f'Error #${count++}#: {str(err)}')\n\n`;					
+
 					finalScript += script;
+					if(totalTransform > 1){
+						script = `\n\ntry:\n\t`;
+						script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+						script = script
+								.replace(transformation+',','')
+								.replace(transformation,'')
+					}
+					totalTransform--;
 					continue;
-
 				}
 
 				const isCalculateTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'CALCULATE';
@@ -287,37 +282,37 @@ export class Transformation extends AbstractNode {
 				const otherValidTransform = isCalculateTransform || isSplitTransform;
 
 				if(!transformation.startsWith('pl.when(') && !otherValidTransform) continue;
-
+				let filterInstruction = '';
 				if(!otherValidTransform){
-					transformation = transformation.split('pl.when(')[1];
-					transformation = transformation.split(').then')[0];
+					filterInstruction = transformation.split('pl.when(')[1];
+					filterInstruction = filterInstruction.split(').then')[0];
 				}else{
 					if(isSplitTransform)
-						transformation = `${transformation.split('.str')[0]}.is_not_null()`;
+						filterInstruction = `${transformation.split('.str')[0]}.is_not_null()`;
 					else if(isCalculateTransform)
-						transformation = `pl.col${transformation.split('alias')[1]}.is_not_null()`;
+						filterInstruction = `pl.col${transformation.split('alias')[1]}.is_not_null()`;
 				}
 
-				script += `result = (lf.filter(${transformation}).limit(5).collect())\n\t`;
+				script += `result = (lf.filter(${filterInstruction}).limit(5).collect())\n\t`;
 				script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
 				script += `except Exception as err:\n\t`;
 				script += `print(f'Error #${count}#: {str(err)}')\n\t`;
 				script += `raise Exception(f'Error #${count++}#: {str(err)}')`;
+				//In case there is any deduplicate transformation in place
+				script = script.replace(/\,{0,1}(\n|\t|\n\t){0,}df\.unique\(subset\=\[[A-Z0-9\']{0,}\]\)\,{0,1}(\n|\t|\n\t){0,}/ig, '');
 
-				if(totalTransform > 1) {
-					//Reinstate things for next transformation
-					script += `\n\nlf = lfquery.with_columns(${transformations})\n\t`;
-					script += '\ntry:\n\t';
-				}
-				
 				script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
 				finalScript += script;
+
 				script = '';
+				if(totalTransform > 1) {
+					//Reinstate things for next transformation
+					script = '\n\ntry:\n\t';
+					script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+				}
 				totalTransform--;
 			}
-
 			finalScript += '\n\n';
-			
 		}
 		
 		const previewResult = await WorkspaceService.getTransformationPreview(connectionName, finalScript, dbEngine);
@@ -351,5 +346,4 @@ export class Transformation extends AbstractNode {
 			result = '<div style="width: 100%; text-align: center; color: red;">One or more transformations are invalid</div>'
 		TransformExecution.transformPreviewShow(this.cmpInternalId, result);
 	}
-
 }
