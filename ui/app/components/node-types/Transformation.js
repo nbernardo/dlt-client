@@ -180,12 +180,12 @@ export class Transformation extends AbstractNode {
 		document.getElementById(rowId).remove();
 	}
 
-	parseTransformationCode() {
+	parseTransformationCode(toPreview = false) {
 		let finalCode = "", rowsConfig = [];
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['dataSourceType'] = null;
 
-		if(this.dataSourceType != 'SQL'){
+		if(this.dataSourceType != 'SQL' && this.sourceNode.getName() !== SqlDBComponent.name){
 			const util = NonDatabaseSourceTransform;
 			finalCode = util.sourceTransformation(this.transformPieces, rowsConfig);
 		}
@@ -193,10 +193,23 @@ export class Transformation extends AbstractNode {
 			const util = DatabaseTransformation;
 			util.sourceTransformation(this.transformPieces, rowsConfig);
 			finalCode = DatabaseTransformation.transformations;
+			const transformTable = Object.entries(finalCode);
+			if(toPreview === false){
+				for(let [table, transforms] of transformTable){
+					const totalTransform = transforms.length;
+					for(let x = 0; x < totalTransform; x++){
+						const transform = transforms[x] || '';
+						if(transform.includes('df.unique(subset=[') || transform.includes('df.drop('))
+							finalCode[table].splice(x,1);
+					}
+				}
+			}
 			data['dataSourceType'] = 'SQL';
 		}
-		console.log(`Transformation in: `, DatabaseTransformation.transformations);
-		data['code'] = finalCode, data['rows'] = rowsConfig;
+		// Other code handles transformation such as deduplication, column drop, etc.
+		const otherCode = DatabaseTransformation.otherTransformations;
+		//console.log(`Transformation in: `, DatabaseTransformation.transformations);
+		data['code'] = finalCode, data['code2'] = otherCode, data['rows'] = rowsConfig;
 		return finalCode;
 	}
 
@@ -215,7 +228,7 @@ export class Transformation extends AbstractNode {
 		DatabaseTransformation.transformTypeMap = {};
 		this.gettingTransformation = true;
 		TransformExecution.validationErrDisplayReset(this.cmpInternalId);
-		let transformations = this.parseTransformationCode(), script = '', finalScript = '', result = '';
+		let transformations = this.parseTransformationCode(true), script = '', finalScript = '', result = '';
 
 		if(transformations == '') 
 			return setTimeout(() => this.gettingTransformation = false, 500);

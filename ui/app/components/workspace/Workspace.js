@@ -21,6 +21,7 @@ import { Grid } from "../grid/Grid.js";
 import { SqlEditor } from "../code/sqleditor/SqlEditor.js";
 import { DLTCode } from "../node-types/dlt/DLTCode.js";
 import { DLTCodeOutput } from "../node-types/destination/DLTCodeOutput.js";
+import { DatabaseOutput } from "../node-types/output/DatabaseOutput.js";
 
 export class Workspace extends ViewComponent {
 
@@ -258,7 +259,8 @@ export class Workspace extends ViewComponent {
 
 	async preparePipelineContent(update = false) {
 
-		let sqlPipelineDbEngine = null, isOldSQLNode = false, codeOutput = false, sqlSource = false, codeInput = false;
+		let sqlPipelineDbEngine = null, isOldSQLNode = false, sqlDest = false,
+			codeOutput = false, sqlSource = false, codeInput = false;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		let sourceOrDestTables = Object.values(this.controller.pipelineDestinationTrace.sql);
@@ -287,6 +289,8 @@ export class Workspace extends ViewComponent {
 				if(component.getName() === DLTCodeOutput.name) codeOutput = true;
 				if(component.getName() === DLTCode.name) codeInput = true;
 			}
+
+			if(component.getName() === DatabaseOutput.name) sqlDest = true;
 			
 			const form = component.formRef;
 			return await form?.validate();
@@ -308,7 +312,7 @@ export class Workspace extends ViewComponent {
 		console.log(data);
 
 		data.sqlDestinations = sourceOrDestTables, data.sqlSource = sqlSource; 
-		data.codeOutput = codeOutput, data.codeInput = codeInput;
+		data.codeOutput = codeOutput, data.codeInput = codeInput, data.sqlDest = sqlDest;
 
 		if (update === true) data.update = true;
 		return data;

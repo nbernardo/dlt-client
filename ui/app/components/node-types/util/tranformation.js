@@ -147,11 +147,13 @@ export class DatabaseTransformation {
 
     /** @type { Object<Array> } */
     static transformations = {};
+    static otherTransformations = {};
     static transformTypeMap = {};
 
     static sourceTransformation(transformPieces, rowsConfig = []) {
         let finalCode = '', comma = null;
         DatabaseTransformation.transformations = {};
+        DatabaseTransformation.otherTransformations = {};
         for (const [_, code] of [...transformPieces]) {
             let finalCode = '';
             let { type, field, transform, table } = code;
@@ -189,6 +191,12 @@ export class DatabaseTransformation {
                     finalCode += `\ndf.unique(subset=['${code.field}'])`;
                 }
                 DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'DEDUP';
+                
+                if(!(table in DatabaseTransformation.otherTransformations))
+                    DatabaseTransformation.otherTransformations[table] = []
+
+                const prevVal = DatabaseTransformation.otherTransformations[table];
+                DatabaseTransformation.otherTransformations[table] = [...prevVal, `lambda df: ${finalCode.replace('\n','')}`];
             }
     
             //if (type === 'CONVERT') {
