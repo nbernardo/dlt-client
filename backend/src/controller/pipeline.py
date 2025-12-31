@@ -232,22 +232,28 @@ def parse_transformation_task(node_params, context: RequestContext):
             if source_type == 'SQL':
                 context.transformation_ui_node_id = node_data['componentId']
                 context.transformation_type = source_type
-                tables = list(node_data['code'].keys())
+                all_tables = list(node_data['code'].keys()) + list(node_data['code2'].keys())
+                tables = []
+                [tables.append(table) for table in all_tables if table not in tables]
+                
                 transformation_str = '{'
                 transformation_str2 = '{'
 
                 for table in tables:
-                    pl_script = str(node_data['code'][table])\
-                                    .replace('["','|inBracket|')\
-                                    .replace('"]','|outBracket|')+','
+
+                    if(table in node_data['code']):
+                        pl_script = str(node_data['code'][table])\
+                                        .replace('["','|inBracket|')\
+                                        .replace('"]','|outBracket|')+','
+                        
+                        transformation_str += f"\n'{table}': {pl_script}"
                     
-                    transformation_str += f"\n'{table}': {pl_script}"
-                    
-                    pl_script2 = str(node_data['code2'][table])\
-                                    .replace('["','|inBracket|')\
-                                    .replace('"]','|outBracket|')+','
-                    
-                    transformation_str2 += f"\n'{table}': {pl_script2}"
+                    if(table in node_data['code2']):
+                        pl_script2 = str(node_data['code2'][table])\
+                                        .replace('["','|inBracket|')\
+                                        .replace('"]','|outBracket|')+','
+                        
+                        transformation_str2 += f"\n'{table}': {pl_script2}"
                     
                 transformation_str = transformation_str\
                                             .replace('|inBracket|','[')\
@@ -259,7 +265,8 @@ def parse_transformation_task(node_params, context: RequestContext):
                                             .replace('|inBracket|','[')\
                                             .replace('|outBracket|',']')\
                                             .replace(')"',')')\
-                                            .replace('"pl','pl')
+                                            .replace('"pl','pl')\
+                                            .replace('"lambda df','lambda df') #TODO: Improve this from UI. This is a workareound for the transformation2
                                             
             else:
                 code_lines = node_data['code'].split('\n')

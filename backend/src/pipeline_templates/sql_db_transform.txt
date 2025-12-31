@@ -57,7 +57,8 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
                 df = df.with_columns(transformations[table_name])
                 print(f'applied transformation for {table_name}', flush=True)
             # Transformation with not column format change (e.g. dedup, column drop)
-            for transform in transformations2[table_name]: df = transform(df)
+            if table_name in transformations2:
+                for transform in transformations2[table_name]: df = transform(df)
 
             if df.schema[pk] in [pl.Float32, pl.Float64]:
                 df = df.with_columns([pl.col(pk).cast(pl.Utf8)])
