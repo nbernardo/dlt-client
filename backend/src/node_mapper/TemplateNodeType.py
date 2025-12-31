@@ -43,7 +43,7 @@ class TemplateNodeType:
         if self.__dict__.__contains__('template_type'):
             template_type = self.template_type
 
-        if len(destinations) > 0:
+        if len(destinations) > 0 and self.context.sql_dest == True:
             destination_string = "dlt.destinations.sqlalchemy(credentials=dbcredentials)"
             if template_type == 'non_database_source':
                 # TODO: Implement this scenario
@@ -51,7 +51,7 @@ class TemplateNodeType:
             else:
                 template = self.parse_pipeline_template(template, template_type)
         else:
-            n = '\n    ' if self.context.transformation else '\n' # New line character
+            n = '\n' if self.context.transformation else '\n' # New line character
             template = self.regular_template_destination_config(n, template)
             # Remove placeholder for in-file pipeline metadata (e.g. destination tables when SQL DB)
             template = template.replace('%metadata_section%','')

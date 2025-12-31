@@ -50,6 +50,7 @@ def create():
     context.connections = connections
     context.node_params = node_params
     context.sql_destinations = sql_destinations
+    context.sql_dest = payload['sqlDest']
     context.is_cloud_url = True if is_cloud_bucket_req else False
     context.code_source = payload['codeInput']
 
@@ -226,13 +227,14 @@ def parse_transformation_task(node_params, context: RequestContext):
             transformation_count = transformation_count + 1
             node_data = node_params[id]['data']
             source_type = node_data['dataSourceType']
-            transformation_str = None
+            transformation_str, transformation_str2 = None, None
 
             if source_type == 'SQL':
                 context.transformation_ui_node_id = node_data['componentId']
                 context.transformation_type = source_type
                 tables = list(node_data['code'].keys())
                 transformation_str = '{'
+                transformation_str2 = '{'
 
                 for table in tables:
                     pl_script = str(node_data['code'][table])\
@@ -241,7 +243,19 @@ def parse_transformation_task(node_params, context: RequestContext):
                     
                     transformation_str += f"\n'{table}': {pl_script}"
                     
+                    pl_script2 = str(node_data['code2'][table])\
+                                    .replace('["','|inBracket|')\
+                                    .replace('"]','|outBracket|')+','
+                    
+                    transformation_str2 += f"\n'{table}': {pl_script2}"
+                    
                 transformation_str = transformation_str\
+                                            .replace('|inBracket|','[')\
+                                            .replace('|outBracket|',']')\
+                                            .replace(')"',')')\
+                                            .replace('"pl','pl')
+                
+                transformation_str2 = transformation_str2\
                                             .replace('|inBracket|','[')\
                                             .replace('|outBracket|',']')\
                                             .replace(')"',')')\
@@ -269,6 +283,10 @@ def parse_transformation_task(node_params, context: RequestContext):
             if transformation_str != None:
                 transformation_str = transformation_str[0:-1] + '\n}'
                 context.transformation = transformation_str
+            
+            if transformation_str2 != None:
+                transformation_str2 = transformation_str2[0:-1] + '\n}'
+                context.transformation2 = transformation_str2
 
     return node_params
 
@@ -303,6 +321,11 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     
     if(context.transformation):
         template = template.replace('%transformation%', context.transformation)
+    
+    if(context.transformation2):
+        template = template.replace('%transformation2%', f'transformations2 = {context.transformation2}\n')
+    else:
+        template = template.replace('%transformation2%', 'transformations2 = []')
     
     return template
 

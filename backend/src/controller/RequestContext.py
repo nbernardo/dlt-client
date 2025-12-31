@@ -27,10 +27,15 @@ class RequestContext:
         self.ppline_name = ppline_name
         self.exceptions = []
         self.sql_destinations = []
+        self.sql_dest = False
         #self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
         self.socket_sid = socket_sid
         self.user = None
         self.transformation = None
+        # transformation2 is for handling transformations
+        # that does not affect column values but rows 
+        # (e.g. deduplication, column drop, etc.)
+        self.transformation2 = None
         self.transformation_ui_node_id = None
         self.transformation_type = None
         self.monitor_file_name = None

@@ -41,7 +41,7 @@ schemas = %schemas%
 # Bellow mapping is parse on transformation 
 # controller.pipeline.template_final_parsing
 transformations = %transformation%
-
+%transformation2%
 @dlt.source
 def polars_db_source(tables: list[str], tables_pk: list[str]):
 
@@ -56,12 +56,13 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
             if transformations.get(table_name, None) != None:
                 df = df.with_columns(transformations[table_name])
                 print(f'applied transformation for {table_name}', flush=True)
+            # Transformation with not column format change (e.g. dedup, column drop)
+            for transform in transformations2[table_name]: df = transform(df)
 
             if df.schema[pk] in [pl.Float32, pl.Float64]:
                 df = df.with_columns([pl.col(pk).cast(pl.Utf8)])
 
-            for row in df.iter_rows(named=True):
-                yield row
+            for row in df.iter_rows(named=True): yield row
 
         return load_table.apply_hints(primary_key=pk)
 
