@@ -25,6 +25,8 @@ z
 ztore
 package-lock.json
 *vanilla.html
+*.pyc
+*.*.pyc
 
 backend/destinations/duckdb/*/*.duckdb
 backend/destinations/pipeline/*/*.py
