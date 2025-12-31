@@ -199,7 +199,8 @@ export class Transformation extends AbstractNode {
 					const totalTransform = transforms.length;
 					for(let x = 0; x < totalTransform; x++){
 						const transform = transforms[x] || '';
-						if(transform.includes('df.unique(subset=[') || transform.includes('df.drop('))
+						const isTransformation2 = transform.includes('df.unique(subset=[') || transform.includes('df.drop([')
+						if(isTransformation2)
 							finalCode[table].splice(x,1);
 					}
 				}
@@ -247,7 +248,7 @@ export class Transformation extends AbstractNode {
 
 		for(const [tableName, transformations] of tablesSet){
 
-			if(!script.trim().startsWith('try')) script += 'try:\n\t';
+			script = 'try:\n\t';
 			let cols = '*';
 			if(dbEngine === 'mssql'){
 				script += `table = '${tableName}'\n\t`;
@@ -267,12 +268,19 @@ export class Transformation extends AbstractNode {
 			for(let transformation of transformations){
 
 				const isDedupTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'DEDUP';
-				if(isDedupTransform) {
+				const isDropTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'DROP';
+
+				if(isDedupTransform || isDropTransform) {
 					
 					script = script.replace(transformation,'pl.all()');
-					script += transformation.replace('df.unique(subset=','\tlf = lf.unique(subset=')+'\n\t';
 
-					script += `result = lf.collect()\n\t`;
+					if(isDedupTransform)
+						script += transformation.replace('df.unique(subset=','lf = lf.unique(subset=')+'\n\t';
+
+					if(isDropTransform)
+						script += transformation.replace('df.drop([','lf = lf.drop([')+'\n\t';
+
+					script += `result = lf.${isDropTransform ? 'limit(2)' : 'limit(20)'}.collect()\n\t`;
 					script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
 					script += `except Exception as err:\n\t`;
 					script += `print(f'Error #${count}#: {str(err)}')\n\t`;

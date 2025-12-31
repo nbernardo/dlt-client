@@ -19,8 +19,9 @@
 				<option value="CALCULATE">Calculate</option>
 				<option value="CASING">Change case</option>
 				<option value="CODE">Code</option>
-				<option value="CONVERT">Convert</option>
+				<!-- <option value="CONVERT">Convert</option> -->
 				<option value="DEDUP">Deduplicate</option>
+				<option value="DROP">Drop Column</option>
 				<option value="SPLIT">Split</option>
 			</select>
 		</td>
@@ -54,6 +55,10 @@
 
 			<span (showIf)="self.transformType == 'DEDUP'">
 				&nbsp; DEDUP(@selectedField)
+			</span>
+
+			<span (showIf)="self.transformType == 'DROP'">
+				&nbsp; DROP(@selectedField)
 			</span>
 
 			<span (showIf)="self.transformType == 'SPLIT'">

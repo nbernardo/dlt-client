@@ -27,7 +27,7 @@ export class TransformRow extends ViewComponent {
 	selectedSource;
 	selectedField;
 	selectedType;
-	transformation;
+	transformation = '';
 	separatorChar;
 	fieldList = []; //Setting initial value
 
@@ -118,7 +118,7 @@ export class TransformRow extends ViewComponent {
 		type !== undefined ? this.selectedType = type : '';
 
 		if (type === 'CODE') document.getElementById(`${this.rowId}-code`).value = transform;
-		this.transformation = transform;
+		this.transformation = (transform || '');
 	}
 
 	updateTransformValue(value) {

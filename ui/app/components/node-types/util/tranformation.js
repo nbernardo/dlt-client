@@ -182,13 +182,12 @@ export class DatabaseTransformation {
                 finalCode = `${comma}${DatabaseTransformation.parseSplit(field, code.sep, transform)}`;
                 DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'SPLIT';
             }
-            
-    
+
             if (type === 'DEDUP'){
                 if(finalCode.indexOf('df.unique(subset=[') >= 0){
                     finalCode +=  finalCode.replace('df.unique(subset=[',`df.unique(subset=['${code.field}',`);
                 }else{
-                    finalCode += `\ndf.unique(subset=['${code.field}'])`;
+                    finalCode += `df.unique(subset=['${code.field}'])`;
                 }
                 DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'DEDUP';
                 
@@ -196,7 +195,22 @@ export class DatabaseTransformation {
                     DatabaseTransformation.otherTransformations[table] = []
 
                 const prevVal = DatabaseTransformation.otherTransformations[table];
-                DatabaseTransformation.otherTransformations[table] = [...prevVal, `lambda df: ${finalCode.replace('\n','')}`];
+                DatabaseTransformation.otherTransformations[table] = [...prevVal, `lambda df: ${finalCode}`];
+            }
+    
+            if (type === 'DROP'){
+                if(finalCode.indexOf('df.drop([') >= 0){
+                    finalCode +=  finalCode.replace('df.drop([',`df.drop(['${code.field}',`);
+                }else{
+                    finalCode += `df.drop(['${code.field}'])`;
+                }
+                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'DROP';
+                
+                if(!(table in DatabaseTransformation.otherTransformations))
+                    DatabaseTransformation.otherTransformations[table] = []
+
+                const prevVal = DatabaseTransformation.otherTransformations[table];
+                DatabaseTransformation.otherTransformations[table] = [...prevVal, `lambda df: ${finalCode}`];
             }
     
             //if (type === 'CONVERT') {
@@ -222,16 +236,20 @@ export class DatabaseTransformation {
 				: `# pl.col('${field}') Unchenged case`;
 	}
 
-    static parseCalculate(transform) {
+    static parseCalculate(transform = '') {
         if(transform === undefined) return null;
-        return transform.replace(/\s{0,}[A-Z]{1,}/ig, (wrd, pos) => {
-            if (pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\""))
-                return ` pl.col('${wrd.trim()}') `;
-            else if (pos > 0 && !transform[pos - 1].startsWith("'") && !transform[pos - 1].startsWith("\""))
-                return ` pl.col('${wrd.trim()}') `;
-            else return wrd;
-
-        });
+        return transform
+            .replace(/\s{0,}[A-Z]{1,}/ig, (wrd, pos) => {
+                if (pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\""))
+                    return ` pl.col('${wrd.trim()}') `;
+                else if (pos > 0 && !transform[pos - 1].startsWith("'") && !transform[pos - 1].startsWith("\""))
+                    return ` pl.col('${wrd.trim()}') `;
+                else return wrd;
+            })
+            .replace(/[0-9\s\*\+\-\/\%\^]{3,}/, (wrd) => {
+                if(/[A-Za-z]{1,}/.test(transform)) return wrd;
+                else return `pl.lit(${wrd})`;
+            });
     }
 
     static parseSplit(field, sep, vars) {
