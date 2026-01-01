@@ -35,7 +35,7 @@ export class TransformRow extends ViewComponent {
 	$parent;
 
 	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport }) {
-		this.fieldList = tablesFieldsMap;
+		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
 		//if (importFields) this.configData = { ...importFields, dataSources };
 		this.configData = { ...importFields, dataSources };
@@ -87,7 +87,7 @@ export class TransformRow extends ViewComponent {
 				}
 			}
 
-			this.fieldList = fieldList;
+			this.fieldList = [{name: '- No Field -'}, ...fieldList];
 			this.updateTransformValue({ dataSource });
 		});
 
@@ -97,6 +97,9 @@ export class TransformRow extends ViewComponent {
 		this.selectedSource.onChange(table => this.updateTransformValue({ table }));
 
 		this.selectedType.onChange(value => {
+			if(value?.trim() === 'FILTER' && this.selectedField.value !== '- No Field -')
+				this.selectedField = '- No Field -';
+
 			this.transformType = value?.trim();
 			this.updateTransformValue({ type: this.transformType });
 		});

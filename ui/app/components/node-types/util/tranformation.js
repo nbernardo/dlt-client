@@ -166,6 +166,12 @@ export class DatabaseTransformation {
                 const transformation = DatabaseTransformation.parseCodeOnDf(transform, code.field)
                 if(transformation) finalCode = `${comma}${transformation}`;
             }
+
+            if (type === 'FILTER'){
+                const transformation = DatabaseTransformation.parseFilterOnDf(transform, code.field)
+                if(transformation) finalCode = `${comma}${transformation}`;
+                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'FILTER');
+            }
     
             if (type === 'CASING')
                 finalCode = `${comma}${DatabaseTransformation.parseCasing(transform, code.field)}`;
@@ -189,13 +195,7 @@ export class DatabaseTransformation {
                 }else{
                     finalCode += `df.unique(subset=['${code.field}'])`;
                 }
-                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'DEDUP';
-                
-                if(!(table in DatabaseTransformation.otherTransformations))
-                    DatabaseTransformation.otherTransformations[table] = []
-
-                const prevVal = DatabaseTransformation.otherTransformations[table];
-                DatabaseTransformation.otherTransformations[table] = [...prevVal, `lambda df: ${finalCode}`];
+                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'DEDUP');
             }
     
             if (type === 'DROP'){
@@ -204,15 +204,9 @@ export class DatabaseTransformation {
                 }else{
                     finalCode += `df.drop(['${code.field}'])`;
                 }
-                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'DROP';
-                
-                if(!(table in DatabaseTransformation.otherTransformations))
-                    DatabaseTransformation.otherTransformations[table] = []
-
-                const prevVal = DatabaseTransformation.otherTransformations[table];
-                DatabaseTransformation.otherTransformations[table] = [...prevVal, `lambda df: ${finalCode}`];
+                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'DROP');
             }
-    
+
             //if (type === 'CONVERT') {
             //    if (transform === 'date') finalCode += `\n${field} = pd.to_datetime(${field})`;
             //    else finalCode += `\n${field} = ${field}.astype(${transform})`;
@@ -226,6 +220,15 @@ export class DatabaseTransformation {
     
         }
         return finalCode;
+    }
+
+    static updateOtherTransform(table, finalCode, code, type){
+        if(!(table in DatabaseTransformation.otherTransformations))
+            DatabaseTransformation.otherTransformations[table] = []
+
+        const prevVal = DatabaseTransformation.otherTransformations[table];
+        DatabaseTransformation.otherTransformations[table] = [...prevVal, `lambda df: ${finalCode}`];
+        DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = type;
     }
 
     static parseCasing(transform, field) {
@@ -365,12 +368,112 @@ export class DatabaseTransformation {
         //Address change case from the code
         rightSide = rightSide.replaceAll('.lower()','.to_lowercase()');
         rightSide = rightSide.replaceAll('.upper()','.to_uppercase()');
+        leftSide = leftSide.replaceAll('.lower()','.to_lowercase()');
+        leftSide = leftSide.replaceAll('.upper()','.to_uppercase()');
         //Additional string manipulation
         rightSide = rightSide.replaceAll('.strip(','.strip_chars(');
 
         if(!rightSide.includes('.then(')) rightSide = `.then(${rightSide}`;
 
         return `${leftSide}${rightSide}).otherwise(pl.col('${field}')).alias('${field}')`;
+
+    }
+
+    /** @param {String} transform */
+    static parseFilterOnDf(transform) {
+
+        let matchCount = 0, addSpace = '', isThereBitwhise = false, totalCondition = 0;
+        let prevStrManipulation = null;
+        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z0-9\_]{1,}\(|s{0,}\'[^']{1,}\'|\s{0,}[A-Z\_]{1,}/ig;
+        let wasThenAdded = false;
+
+        const parsePieces = (wrd, pos, transform, side = null) => {
+            matchCount++;
+
+            let splitSnippet = wrd.indexOf('.split(') == 0 && wrd.endsWith(']');
+            const wrdStartPos = pos + wrd.length;
+            const isReplaceContent = 
+                transform.slice(pos - 8).startsWith('replace(')
+                || transform.slice(pos - 8).startsWith('ace_all(')
+                || transform.replaceAll(' ','').slice(pos - 1).startsWith(',');
+
+            if(transform.slice(wrdStartPos, wrdStartPos + 10).startsWith('.split')){
+                prevStrManipulation = wrd;
+                return '';
+            }
+            if (wrd.startsWith('.') && wrd.endsWith('(')){
+                if(wrd.includes('is_null') || wrd.includes('is_not_null'))
+                    return wrd;
+                return wrd.replace('.', '.str.');
+            }
+
+            const isWordBitwise = ['and', 'or'].includes(wrd.trim());
+            if (isWordBitwise) {
+                isThereBitwhise = true;
+                return `) ${wrd} (`;
+            }
+            if (matchCount > 1) addSpace = ' ';
+
+            if (
+                pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\"") && !transform[pos - 1]?.startsWith("'")
+            ){
+                totalCondition++;
+                if(isReplaceContent)
+                    return wrd.trim();
+                return `${addSpace}pl.col('${wrd.trim()}')`;
+            }
+            else {
+                const isLiteral = (wrd.startsWith("'") && wrd.endsWith("'")) || (wrd.endsWith('"') && wrd.startsWith("'"))
+
+                if (side == 'right' && !isLiteral && splitSnippet){
+                    wasThenAdded = true;
+                    return wrd
+                            .replace('.split(',`pl.col('${prevStrManipulation}').str.split(`)
+                            .replace('[','.arr.get(')
+                            .replace(']',')');
+                }
+                if (side == 'right' && isLiteral){
+                    if(isReplaceContent)
+                        return wrd.trim();
+                    else{
+                        return `pl.lit(${wrd == "" ? '' : wrd.trim()})`;
+                    }
+                }
+                else if (isLiteral || (transform[pos - 1]?.startsWith("'") || transform[pos - 1]?.startsWith("\""))){
+                    return wrd
+                }
+
+                totalCondition++;
+                return `pl.col('${wrd.trim()}')`;
+            }
+        }
+
+        if(transform === undefined) return null;
+
+        matchCount = 0, addSpace = '';
+        transform = transform?.trim()?.replace(regex, (wrd, pos) => {
+            return parsePieces(wrd, pos, transform, 'right');
+        });
+
+        //Addressing no space concatenation
+        transform = transform.replace(/\s{0,}\+\'\'/g,`+pl.lit('')`);
+        //Address change case from the code
+        transform = transform.replaceAll('.lower()','.to_lowercase()');
+        transform = transform.replaceAll('.upper()','.to_uppercase()');
+        //Additional string manipulation
+        transform = transform.replaceAll('.strip(','.strip_chars(');
+        transform = transform
+            .replace(/\)\s{1,}and\s{1,}(pl\.|\(pl.)/ig,(_, $1) => {
+                return ` & ${$1}`;
+            })
+            .replace(/\)\s{1,}or\s{1,}(pl\.|\(pl.)/ig,(_, $1) => {
+                return ` | ${$1}`;
+            })
+        const openingParethesis = transform.match(/\(/g).length || 0;
+        const closingParethesis = transform.match(/\)/g).length || 0;
+        const totalClosingGap = openingParethesis - closingParethesis;
+
+        return `df.filter((${transform}))${')'.repeat(totalClosingGap)}`;
 
     }
 }

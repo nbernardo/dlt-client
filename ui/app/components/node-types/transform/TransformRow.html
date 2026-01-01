@@ -22,6 +22,7 @@
 				<!-- <option value="CONVERT">Convert</option> -->
 				<option value="DEDUP">Deduplicate</option>
 				<option value="DROP">Drop Column</option>
+				<option value="FILTER">Filter Logic</option>
 				<option value="SPLIT">Split</option>
 			</select>
 		</td>
@@ -47,6 +48,10 @@
 			
 			<span (showIf)="self.transformType == 'CODE'">
 				<textarea cols="50" id="@rowId-code" rows="1" (value)="transformation" placeholder="Ex: field > 0 then 'Greater'"></textarea>
+			</span>
+
+			<span (showIf)="self.transformType == 'FILTER'">
+				<textarea cols="50" id="@rowId-code" rows="1" (value)="transformation" placeholder="Ex: Price.is_not_null()"></textarea>
 			</span>
 
 			<span (showIf)="self.transformType == 'CALCULATE'">

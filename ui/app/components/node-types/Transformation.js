@@ -199,7 +199,8 @@ export class Transformation extends AbstractNode {
 					const totalTransform = transforms.length;
 					for(let x = 0; x < totalTransform; x++){
 						const transform = transforms[x] || '';
-						const isTransformation2 = transform.includes('df.unique(subset=[') || transform.includes('df.drop([')
+						const isTransformation2 = 
+							transform.includes('df.unique(subset=[') || transform.includes('df.drop([') || transform.includes('df.filter(')
 						if(isTransformation2)
 							finalCode[table].splice(x,1);
 					}
@@ -269,8 +270,9 @@ export class Transformation extends AbstractNode {
 
 				const isDedupTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'DEDUP';
 				const isDropTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'DROP';
+				const isFilterTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'FILTER';
 
-				if(isDedupTransform || isDropTransform) {
+				if(isDedupTransform || isDropTransform || isFilterTransform) {
 					
 					script = script.replace(transformation,'pl.all()');
 
@@ -279,6 +281,9 @@ export class Transformation extends AbstractNode {
 
 					if(isDropTransform)
 						script += transformation.replace('df.drop([','lf = lf.drop([')+'\n\t';
+					
+					if(isFilterTransform)
+						script += transformation.replace('df.filter(','lf = lf.filter(')+'\n\t';
 
 					script += `result = lf.${isDropTransform ? 'limit(2)' : 'limit(20)'}.collect()\n\t`;
 					script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
