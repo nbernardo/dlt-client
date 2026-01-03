@@ -2,7 +2,7 @@
 from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
 from typing import Iterator, Any
-import pandas as pd
+import polars as pl
 %import_from_src%
 """
 The pipeline run in a different process/sub-process
@@ -18,11 +18,14 @@ def read_csv_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterato
     print('Starting tranformation(s)', flush=True)
     for cur_file in files_list:
         with cur_file.open() as file:
-            df = pd.read_csv(file)
+            df = pl.read_csv(file)
             # <transformation>
             %transformation%
+            df.with_columns(list(transformation.values()))
+            %transformation2%
+            for transform in transformations2: df = transform(df)
             # </transformation> DO NOT REMOVE THIS LINE
-            yield df.to_dict(orient="records")
+            yield df.rows(named=True)
 
 
 print('Starting the pipeline', flush=True)

@@ -53,6 +53,8 @@ class RequestContext:
         self.is_cloud_url = False
         # Flaged true in case the data source is code 
         self.code_source = False
+        self.source_type = None
+        self.bucket_source = False
         self.additional_secrets: list = None
         
 

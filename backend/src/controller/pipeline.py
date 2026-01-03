@@ -316,7 +316,13 @@ def set_pipeline_name(payload):
     pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
     pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
     return pipeline_name, pipeline_lbl
-    
+
+def handle_transform_indent(transformation: str):
+    return transformation\
+                        .replace('\n','\n\t\t\t\t')\
+                        .replace('\n\t\t\t\t{','\n\t\t\t{')\
+                        .replace('\t}','}')
+
 
 def template_final_parsing(template, pipeline_name, payload, duckdb_path, context: RequestContext = None):
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
@@ -327,12 +333,25 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('%table_format%', '')
     
     if(context.transformation):
-        template = template.replace('%transformation%', context.transformation)
+        transformation = context.transformation
+        if(context.source_type == 'BUCKET'):
+            transformation = f'transformation = {transformation}'
+            transformation = handle_transform_indent(transformation)
+            
+        template = template.replace('%transformation%', transformation)
     
+    placeholder = '%transformation2%'
     if(context.transformation2):
-        template = template.replace('%transformation2%', f'transformations2 = {context.transformation2}\n')
+        transformation2 = context.transformation2
+        if(context.source_type == 'BUCKET'):
+            t = '    '
+            transformation2 = context.transformation2
+            transformation2 = handle_transform_indent(transformation2)
+            transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = list(transformations2.values())[0]'
+            
+        template = template.replace(placeholder, f'transformations2 = {transformation2}')
     else:
-        template = template.replace('%transformation2%', 'transformations2 = []')
+        template = template.replace(placeholder, 'transformations2 = []')
     
     return template
 
