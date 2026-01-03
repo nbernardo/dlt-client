@@ -185,29 +185,29 @@ export class Transformation extends AbstractNode {
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['dataSourceType'] = null;
 
-		if(this.dataSourceType != 'SQL' && this.sourceNode.getName() !== SqlDBComponent.name){
-			const util = NonDatabaseSourceTransform;
-			finalCode = util.sourceTransformation(this.transformPieces, rowsConfig);
-		}
-		else{
-			const util = DatabaseTransformation;
-			util.sourceTransformation(this.transformPieces, rowsConfig);
-			finalCode = DatabaseTransformation.transformations;
-			const transformTable = Object.entries(finalCode);
-			if(toPreview === false){
-				for(let [table, transforms] of transformTable){
-					const totalTransform = transforms.length;
-					for(let x = 0; x < totalTransform; x++){
-						const transform = transforms[x] || '';
-						const isTransformation2 = 
-							transform.includes('df.unique(subset=[') || transform.includes('df.drop([') || transform.includes('df.filter(')
-						if(isTransformation2)
-							finalCode[table].splice(x,1);
-					}
+		// if(this.dataSourceType != 'SQL' && this.sourceNode.getName() !== SqlDBComponent.name){
+		// 	const util = DatabaseSourceTransform; //NonDatabaseSourceTransform
+		// 	finalCode = util.sourceTransformation(this.transformPieces, rowsConfig);
+		// }
+		// else{
+		const util = DatabaseTransformation;
+		util.sourceTransformation(this.transformPieces, rowsConfig);
+		finalCode = DatabaseTransformation.transformations;
+		const transformTable = Object.entries(finalCode);
+		if(toPreview === false){
+			for(let [table, transforms] of transformTable){
+				const totalTransform = transforms.length;
+				for(let x = 0; x < totalTransform; x++){
+					const transform = transforms[x] || '';
+					const isTransformation2 = 
+						transform.includes('df.unique(subset=[') || transform.includes('df.drop([') || transform.includes('df.filter(')
+					if(isTransformation2)
+						finalCode[table].splice(x,1);
 				}
 			}
-			data['dataSourceType'] = 'SQL';
 		}
+		data['dataSourceType'] = 'SQL';
+		//}
 		// Other code handles transformation such as deduplication, column drop, etc.
 		const otherCode = DatabaseTransformation.otherTransformations;
 		//console.log(`Transformation in: `, DatabaseTransformation.transformations);
