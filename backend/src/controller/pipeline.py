@@ -506,12 +506,18 @@ def read_diagram_content(namespace, filename):
    
    
 @pipeline.route('/ppline/data/csv/<user>/<filename>')
-def read_csv_file_fields(user, filename):
+def read_csv_file_fields(user, filename: str):
     from .file_upload import BaseUpload
     file_path = BaseUpload.upload_folder+'/'+user+'/'+filename
     
-    df = pd.read_csv(file_path, nrows=1)
-    return str(df.columns)
+    if(filename.lower().endswith('csv')):
+        df = pd.read_csv(file_path, nrows=1)
+        return str(df.columns)
+
+    if(filename.lower().endswith('parquet')):
+        import polars as pl
+        return list(pl.scan_parquet(file_path).collect_schema().keys())
+
     
 
 

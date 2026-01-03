@@ -34,9 +34,12 @@ class Bucket(TemplateNodeType):
             if data is None: return None
             if len(data.keys()) == 0: return None
 
-            self.namespace = data['namespace']
+            self.parse_to_literal = ['read_file_type']
 
+            self.namespace = data['namespace']
+            self.read_file_type = data['readFileType']
             self.component_id = data['componentId']
+
             user_folder = BaseUpload.upload_folder+'/'+context.user
 
             self.context.emit_start(self, '')

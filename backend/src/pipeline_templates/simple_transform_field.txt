@@ -14,14 +14,14 @@ will communicate with the main process about the progress
 files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
 
 @dlt.transformer()
-def read_csv_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
+def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
     print('Starting tranformation(s)', flush=True)
     for cur_file in files_list:
         with cur_file.open() as file:
-            df = pl.read_csv(file)
+            df = pl.read_%read_file_type%(file)
             # <transformation>
             %transformation%
-            df.with_columns(list(transformation.values()))
+            df = df.with_columns(list(transformation.values())[0])
             %transformation2%
             for transform in transformations2: df = transform(df)
             # </transformation> DO NOT REMOVE THIS LINE
@@ -32,7 +32,7 @@ print('Starting the pipeline', flush=True)
 
 try:
     # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
-    transformed_source = (files | read_csv_and_transform_fields()).with_name(%ppline_dest_table%)
+    transformed_source = (files | read_file_and_transform_fields()).with_name(%ppline_dest_table%)
 
     if %primary_key% != 'UNDEFINED':
         # Bellow mapping: primary_key = Bucket.primary_key
