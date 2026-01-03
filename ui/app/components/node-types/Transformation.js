@@ -307,7 +307,11 @@ export class Transformation extends AbstractNode {
 				const isSplitTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'SPLIT';
 				const otherValidTransform = isCalculateTransform || isSplitTransform;
 
-				if(!transformation.startsWith('pl.when(') && !otherValidTransform) continue;
+				if(!transformation.startsWith('pl.when(') && !otherValidTransform) {
+					count++;
+					continue;
+				}
+
 				let filterInstruction = '';
 				if(!otherValidTransform){
 					filterInstruction = transformation.split('pl.when(')[1];
@@ -340,7 +344,13 @@ export class Transformation extends AbstractNode {
 			}
 			finalScript += '\n\n';
 		}
-		
+		//In case there is not relevant transformation (e.g. change case to upper or lower)
+		if(finalScript.trim() === 'results, lfquery = [], None'){
+			this.gettingTransformation = false;
+			result = '<div style="width: 100%; text-align: center; color: green;">No relevant transformation to run</div>';
+			return TransformExecution.transformPreviewShow(this.cmpInternalId, result);
+		}
+
 		const previewResult = await WorkspaceService.getTransformationPreview(connectionName, finalScript, dbEngine);
 		if(previewResult === null) return;
 
@@ -369,7 +379,7 @@ export class Transformation extends AbstractNode {
 				result += '<br>';
 			}
 		}else
-			result = '<div style="width: 100%; text-align: center; color: red;">One or more transformations are invalid</div>'
+			result = '<div style="width: 100%; text-align: center; color: red;">One or more transformations are invalid</div>';
 		TransformExecution.transformPreviewShow(this.cmpInternalId, result);
 	}
 }

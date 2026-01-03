@@ -51,7 +51,7 @@ class TemplateNodeType:
             else:
                 template = self.parse_pipeline_template(template, template_type)
         else:
-            n = '\n' if self.context.transformation else '\n' # New line character
+            n = '\n' if self.context.transformation else '\n    ' # New line character
             template = self.regular_template_destination_config(n, template)
             # Remove placeholder for in-file pipeline metadata (e.g. destination tables when SQL DB)
             template = template.replace('%metadata_section%','')

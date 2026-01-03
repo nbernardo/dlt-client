@@ -113,7 +113,7 @@ export class NonDatabaseSourceTransform {
     }
 
     static parseCalculate(transform) {
-        return transform.replace(/\s{0,}[A-Z]{1,}/ig, (wrd, pos) => {
+        return transform.replace(/\s{0,}[A-Z0-9]{1,}/ig, (wrd, pos) => {
             if (pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\""))
                 return ` df['${wrd.trim()}'] `;
             else if (pos > 0 && !transform[pos - 1].startsWith("'") && !transform[pos - 1].startsWith("\""))
@@ -242,7 +242,7 @@ export class DatabaseTransformation {
     static parseCalculate(transform = '') {
         if(transform === undefined) return null;
         return transform
-            .replace(/\s{0,}[A-Z]{1,}/ig, (wrd, pos) => {
+            .replace(/\s{0,}[A-Z]{1,}[0-9]{0,}/ig, (wrd, pos) => {
                 if (pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\""))
                     return ` pl.col('${wrd.trim()}') `;
                 else if (pos > 0 && !transform[pos - 1].startsWith("'") && !transform[pos - 1].startsWith("\""))
@@ -384,7 +384,7 @@ export class DatabaseTransformation {
 
         let matchCount = 0, addSpace = '', isThereBitwhise = false, totalCondition = 0;
         let prevStrManipulation = null;
-        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z0-9\_]{1,}\(|s{0,}\'[^']{1,}\'|\s{0,}[A-Z\_]{1,}/ig;
+        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z0-9\_]{1,}\(|s{0,}\'[^']{1,}\'|\s{0,}[A-Z\_]{1,}[0-1]{0,}/ig;
         let wasThenAdded = false;
 
         const parsePieces = (wrd, pos, transform, side = null) => {
@@ -486,7 +486,10 @@ export class TransformExecution {
     static validationErrDisplay = (rowId, error) => {
         const css = 'color: red; display: block; text-align: right; padding-right: 21px; color: red';
 		document.getElementById(`row_error_${rowId}`).innerHTML = `<span style='${css}'>${error} -> </span>`;
-		document.getElementById(`${rowId}-code`).classList.add('transformation-code-error');
+        
+		document.getElementById(`${rowId}-codeTransform`).classList.add('transformation-code-error');
+        document.getElementById(`${rowId}-filterTransform`).classList.add('transformation-code-error');
+        document.getElementById(`${rowId}-calcTransform`).classList.add('transformation-code-error');
     }
     
     static validationErrDisplayReset = (cmpId) => {

@@ -47,15 +47,15 @@
 			</span>
 			
 			<span (showIf)="self.transformType == 'CODE'">
-				<textarea cols="50" id="@rowId-code" rows="1" (value)="transformation" placeholder="Ex: field > 0 then 'Greater'"></textarea>
+				<textarea cols="50" id="@rowId-codeTransform" rows="1" (value)="transformation" placeholder="Ex: field > 0 then 'Greater'"></textarea>
 			</span>
 
 			<span (showIf)="self.transformType == 'FILTER'">
-				<textarea cols="50" id="@rowId-code" rows="1" (value)="transformation" placeholder="Ex: Price.is_not_null()"></textarea>
+				<textarea cols="50" id="@rowId-filterTransform" rows="1" (value)="transformation" placeholder="Ex: Price.is_not_null()"></textarea>
 			</span>
 
 			<span (showIf)="self.transformType == 'CALCULATE'">
-				<input type="text" class="calculatefield" (value)="transformation" style="width: 200px;" placeholder="Ex: - taxes + salary ">
+				<input type="text" id="@rowId-calcTransform" class="calculatefield" (value)="transformation" style="width: 200px;" placeholder="Ex: - taxes + salary ">
 			</span>
 
 			<span (showIf)="self.transformType == 'DEDUP'">
