@@ -487,14 +487,19 @@ export class WorkspaceService extends BaseService {
     }
 
     /** @returns { { fields } | undefined } */
-    static async getTransformationPreview(connectionName, previewScript, dbEngine = null) {
+    static async getTransformationPreview(
+        connectionName, previewScript, dbEngine = null, 
+        sourceType = null, fileSource = null
+    ) {
         
         const namespace = await UserService.getNamespace();
         const url = `/${namespace}/db/transformation/preview`;
 
         try {
             
-            const response = await $still.HTTPClient.post(url, JSON.stringify({ connectionName, previewScript, dbEngine }),{
+            const response = await $still.HTTPClient.post(url, JSON.stringify(
+                { connectionName, previewScript, dbEngine, sourceType, fileSource }
+            ),{
                 headers: { 'content-type': 'Application/json' }
             });
             const result = await response.json();

@@ -33,6 +33,7 @@ export class Transformation extends AbstractNode {
 	/** @Prop */ aiGenerated;
 	/** @Prop */ importFields;
 	/** @Prop */ gettingTransformation = false;
+	/** @Prop */ fileSource = null;
 
 	/** This will hold all applied transformations
 	 * @Prop @type { Map<TransformRow> } */
@@ -108,7 +109,7 @@ export class Transformation extends AbstractNode {
 		let { tables, sourceNode } = data;
 		NodeUtil.handleInputConnection(this, data, type);
 		
-		this.dataSourceType = null, this.sqlConnectionName = null;
+		this.dataSourceType = null, this.sqlConnectionName = null, this.fileSource = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
 
 			// This is the bucket component itself
@@ -132,6 +133,12 @@ export class Transformation extends AbstractNode {
 						row.dataSourceList = value
 						row.databaseFields = this.sourceNode.tablesFieldsMap;
 					});
+				});
+			}else{
+				this.fileSource = (this.sourceNode.selectedFilePattern.value || '').replace('*','');
+				this.dataSourceType = 'BUCKET';
+				this.sourceNode.selectedFilePattern.onChange(value => {
+					this.fileSource = (value || '').replace('*','');
 				});
 			}
 		}
@@ -240,8 +247,8 @@ export class Transformation extends AbstractNode {
 		const tablesSet = Object.entries(transformations)
 		const newFieldRE = /alias\(\'([A-Z]{1,}[A-Z1-9]{0,})(_New){0,}\'\)/ig
 
-		const connectionName = this.sourceNode.selectedSecret.value;
-		const dbEngine = this.sourceNode.selectedDbEngine.value;
+		const connectionName = this.sourceNode.selectedSecret?.value;
+		const dbEngine = this.sourceNode?.selectedDbEngine?.value;
 		const transformRowMapping = {};
 		
 		if(tablesSet.length > 0) finalScript = 'results, lfquery = [], None\n';
@@ -260,7 +267,11 @@ export class Transformation extends AbstractNode {
 			}
 			
 			const withColumnStmt = `lf = lfquery.with_columns(${transformations[0]})\n\t`;
-			script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
+			if(this.fileSource != null){
+				script += `lfquery = pl.scan_csv(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
+			}else{
+				script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
+			}
 			script += withColumnStmt;
 			transformRowMapping["lfquery.with_columns("+transformations[0]+")"] = count;
 			let totalTransform = transformations.length;
@@ -350,8 +361,10 @@ export class Transformation extends AbstractNode {
 			result = '<div style="width: 100%; text-align: center; color: green;">No relevant transformation to run</div>';
 			return TransformExecution.transformPreviewShow(this.cmpInternalId, result);
 		}
-
-		const previewResult = await WorkspaceService.getTransformationPreview(connectionName, finalScript, dbEngine);
+		const sourceType = this.dataSourceType;
+		const previewResult = await WorkspaceService.getTransformationPreview(
+			connectionName, finalScript, dbEngine, sourceType, this.fileSource
+		);
 		if(previewResult === null) return;
 
 		this.gettingTransformation = false;
