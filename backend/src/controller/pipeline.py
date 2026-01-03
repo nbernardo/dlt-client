@@ -14,6 +14,7 @@ pipeline = Blueprint('pipeline', __name__)
 
 class BasePipeline:
     folder = None
+    file_folder_map = { 'data':'dbs/files', 'pipeline': 'destinations/pipeline'}
 
 
 @pipeline.route('/pipeline/create', methods=['POST','PUT'])
@@ -563,11 +564,20 @@ def preview_transformation(namespace):
 
         payload = request.get_json()
         
-        connection_name = payload['connectionName']
         preview_script = payload['previewScript']
-        dbengine = payload['dbEngine']
+        source_type = payload['sourceType']
 
-        preview_result = DltPipeline.get_sqldb_transformation_preview(namespace, dbengine,connection_name,preview_script)
+        if(source_type == 'BUCKET'):
+            base_path = str(BasePipeline.folder).replace('/destinations','')
+            fiile_path = f'{base_path}/{BasePipeline.file_folder_map['data']}/{namespace}/'
+            preview_script = preview_script.replace('%pathToFile%/',fiile_path)
+            preview_result = DltPipeline.get_file_data_transformation_preview(preview_script)
+        else:
+            connection_name = payload['connectionName']
+            dbengine = payload['dbEngine']
+            preview_result = DltPipeline.get_sqldb_transformation_preview(
+                namespace, dbengine,connection_name, preview_script
+            )
         return preview_result
     
     except Exception as err:

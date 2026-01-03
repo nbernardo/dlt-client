@@ -20,7 +20,6 @@ from utils.workspace_util import handle_conversasion_turn_limit
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
-file_folder_map = { 'data':'dbs/files', 'pipeline': 'destinations/pipeline'}
 
 @workspace.route('/workcpace/code/run/<user>', methods=['POST'])
 def run_code(user):
@@ -243,7 +242,7 @@ def setup_job_schedules():
 def download(type, namespace, filename):
 
     base_path = str(BasePipeline.folder).replace('/destinations','')
-    ppline_path = f'{base_path}/{file_folder_map[type]}/{namespace}/'
+    ppline_path = f'{base_path}/{BasePipeline.file_folder_map[type]}/{namespace}/'
 
     file_path = os.path.join(ppline_path, filename)
     if not os.path.exists(file_path):

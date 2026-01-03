@@ -9,7 +9,7 @@ from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
 from utils.duckdb_util import DuckdbUtil
 from utils.cache_util import DuckDBCache
-from utils.SQLDatabase import SQLDatabase, run_transform_preview
+from utils.SQLDatabase import SQLDatabase
 import uuid
 from datetime import datetime
 
@@ -492,6 +492,12 @@ class DltPipeline:
     @staticmethod
     def get_sqldb_transformation_preview(namespace, dbengine, connection_name, script):
         result = run_transform_preview(namespace, dbengine, connection_name, script)
+        return result        
+    
+
+    @staticmethod
+    def get_file_data_transformation_preview(script):
+        result = run_transform_preview(None, None, None, script)
         return result
 
 
@@ -510,4 +516,49 @@ def clear_job_transaction_id(job_transaction_id):
     
     if(job_transaction_id in DltPipeline.processed_job['end']):
         del DltPipeline.processed_job['end'][job_transaction_id]
+
+
+def run_transform_preview(namespace, dbengine, connection_name, script):
+    
+    from utils.SQLServerUtil import column_type_conversion
+    from sqlalchemy.exc import NoInspectionAvailable
+    from sqlalchemy import inspect
+    import polars as pl
+
+    try:
+        engine, inspector = None, None
+        inner_env = { 'pl': pl }
+
+        if(namespace != None):
+            engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
+            inspector = inspect(engine)
+        
+            inner_env = { 
+                'engine': engine, 'pl': pl, 'inspector': inspector,
+                'column_type_conversion': column_type_conversion,
+            }
+
+        compile(script, '<transformation_task>', 'exec')
+
+    except NoInspectionAvailable as err:
+        error = 'Error while trying to connect to database'
+        print(f'{error}: ', str(err))
+        return { 'error': True, 'result': { 'msg': error, 'code': None } }        
+
+    except SyntaxError as err:
+        print('Error while running pipeline transformation preview: ', err.text)
+        return { 'error': True, 'result': { 'msg': 'Syntax error', 'code': err.text } }
+
+    except Exception as err:
+        print('Error while running pipeline transformation preview: ');
+        return { 'error': True, 'result': str(err) }
+
+    try:
+        exec(script, {}, inner_env)
+    except Exception as err:
+        print('Error while running pipeline transformation preview: ')
+        print(err)
+        return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
+
+    return { 'error': False, 'result': inner_env['results'] if 'results' in inner_env else None }
 

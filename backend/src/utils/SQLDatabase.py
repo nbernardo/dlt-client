@@ -1,4 +1,3 @@
-import json
 from sqlalchemy import create_engine, inspect, MetaData, Engine, Table, text
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import NoInspectionAvailable
@@ -425,39 +424,3 @@ def converts_field_type(table, pk):
         table.apply_hints(columns=columns_config)
     
     return table
-
-
-def run_transform_preview(namespace, dbengine, connection_name, script):
-    import polars as pl
-
-    try:
-        engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
-        inspector = inspect(engine)
-        
-        inner_env = { 
-            'engine': engine, 'pl': pl, 'inspector': inspector,
-            'column_type_conversion': column_type_conversion,
-        }
-        compile(script, '<transformation_task>', 'exec')
-
-    except NoInspectionAvailable as err:
-        error = 'Error while trying to connect to database'
-        print(f'{error}: ', str(err))
-        return { 'error': True, 'result': { 'msg': error, 'code': None } }        
-
-    except SyntaxError as err:
-        print('Error while running pipeline transformation preview: ', err.text)
-        return { 'error': True, 'result': { 'msg': 'Syntax error', 'code': err.text } }
-
-    except Exception as err:
-        print('Error while running pipeline transformation preview: ');
-        return { 'error': True, 'result': str(err) }
-
-    try:
-        exec(script, {}, inner_env)
-    except Exception as err:
-        print('Error while running pipeline transformation preview: ')
-        print(err)
-        return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
-
-    return { 'error': False, 'result': inner_env['results'] if 'results' in inner_env else None }
