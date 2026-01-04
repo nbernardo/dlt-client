@@ -269,8 +269,8 @@ export class Transformation extends AbstractNode {
 			const withColumnStmt = `lf = lfquery.with_columns(${transformations[0]})\n\t`;
 			if(this.fileSource != null){
 				let readType = 'scan_csv';
-				if(tableName.endsWith('.parquet'))
-					readType = 'scan_parquet';
+				if(tableName.endsWith('.parquet')) readType = 'scan_parquet';
+				if(tableName.endsWith('.jsonl')) readType = 'scan_ndjson'
 
 				script += `lfquery = pl.${readType}(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
 			}else{

@@ -277,7 +277,7 @@ export class DatabaseTransformation {
 
         let matchCount = 0, addSpace = '', isThereBitwhise = false, totalCondition = 0;
         let prevStrManipulation = null;
-        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z0-9\_]{1,}\(|s{0,}\'[^']{1,}\'|\s{0,}[A-Z\_]{1,}/ig;
+        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z0-9\_]{1,}\(|s{0,}\'[^']{1,}\'|\s{0,}[A-Z0-9\_]{1,}/ig;
         let wasThenAdded = false;
 
         const parsePieces = (wrd, pos, transform, side = null) => {
@@ -384,7 +384,7 @@ export class DatabaseTransformation {
 
         let matchCount = 0, addSpace = '', isThereBitwhise = false, totalCondition = 0;
         let prevStrManipulation = null;
-        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z0-9\_]{1,}\(|s{0,}\'[^']{1,}\'|\s{0,}[A-Z\_]{1,}[0-1]{0,}/ig;
+        const regex = /.split\([\s\S]{1,}\)\[[0-9]{1,}\]|\.[A-Z0-9\_]{1,}\(|s{0,}\'[^']{1,}\'|\s{0,}[A-Z0-9\_]{1,}[0-1]{0,}/ig;
         let wasThenAdded = false;
 
         const parsePieces = (wrd, pos, transform, side = null) => {
