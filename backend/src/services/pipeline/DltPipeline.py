@@ -523,12 +523,41 @@ def clear_job_transaction_id(job_transaction_id):
         del DltPipeline.processed_job['end'][job_transaction_id]
 
 
+import ast
+FORBIDDEN_CALLS = {"eval", "exec", "compile", "open", "__import__"}
+
+def check_unsafe_statements(code):
+    """
+    Raises ValueError if code contains disallowed statements or function calls
+    """
+    tree = ast.parse(code, mode="exec")
+    valid_attrs = ['scan_csv','scan_parquet','scan_ndjson','with_columns','filter','collect','append','all','contains','lit','limit']
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            raise ValueError("Import statements are not allowed")
+
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS:
+                raise ValueError(f"Use of function '{node.func.id}' is not allowed")
+
+            #if isinstance(node.func, ast.Attribute) and not(node.func.attr in valid_attrs):
+            #    raise ValueError("Attribute calls are not allowed")
+
+
+import resource
+import signal
+from utils.SQLServerUtil import column_type_conversion
+from sqlalchemy.exc import NoInspectionAvailable
+from sqlalchemy import inspect
+import polars as pl
+
 def run_transform_preview(namespace, dbengine, connection_name, script):
-    
-    from utils.SQLServerUtil import column_type_conversion
-    from sqlalchemy.exc import NoInspectionAvailable
-    from sqlalchemy import inspect
-    import polars as pl
+
+    try:
+        check_unsafe_statements(script)        
+    except Exception as err:
+        return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
 
     try:
         engine, inspector = None, None
@@ -538,7 +567,7 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
             engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
             inspector = inspect(engine)
         
-            inner_env = { 
+            inner_env = {
                 'engine': engine, 'pl': pl, 'inspector': inspector,
                 'column_type_conversion': column_type_conversion,
             }
