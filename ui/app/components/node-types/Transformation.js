@@ -268,7 +268,11 @@ export class Transformation extends AbstractNode {
 			
 			const withColumnStmt = `lf = lfquery.with_columns(${transformations[0]})\n\t`;
 			if(this.fileSource != null){
-				script += `lfquery = pl.scan_csv(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
+				let readType = 'scan_csv';
+				if(tableName.endsWith('.parquet'))
+					readType = 'scan_parquet';
+
+				script += `lfquery = pl.${readType}(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
 			}else{
 				script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
 			}

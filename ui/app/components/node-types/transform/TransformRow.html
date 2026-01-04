@@ -9,7 +9,7 @@
 		</td>
 		<td>
 			<select (required)="true" style="width: 95px; display: flex;" (forEach)="fieldList" (value)="selectedField"
-				placeholder="Select source name">
+				placeholder="Select source name" (validator)="text">
 				<option each="item" value="{item.name}">{item.name}</option>
 			</select>
 		</td>

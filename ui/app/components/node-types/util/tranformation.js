@@ -463,10 +463,10 @@ export class DatabaseTransformation {
         //Additional string manipulation
         transform = transform.replaceAll('.strip(','.strip_chars(');
         transform = transform
-            .replace(/\)\s{1,}and\s{1,}(pl\.|\(pl.)/ig,(_, $1) => {
+            .replace(/\)\s{1,}and\s{1,}(pl\.|\(pl.)|\)\s{1,}and\s{1,}\(/ig,(_, $1) => {
                 return ` & ${$1}`;
             })
-            .replace(/\)\s{1,}or\s{1,}(pl\.|\(pl.)/ig,(_, $1) => {
+            .replace(/\)\s{1,}or\s{1,}(pl\.|\(pl.)|\)\s{1,}or\s{1,}\(/ig,(_, $1) => {
                 return ` | ${$1}`;
             })
         const openingParethesis = transform.match(/\(/g).length || 0;

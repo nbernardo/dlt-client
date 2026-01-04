@@ -87,6 +87,8 @@ export class TransformRow extends ViewComponent {
 				}
 			}
 
+			fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
+			
 			this.fieldList = [{name: '- No Field -'}, ...fieldList];
 			this.updateTransformValue({ dataSource });
 		});

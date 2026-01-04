@@ -138,6 +138,9 @@ export class Bucket extends AbstractNode {
 			this.showMoreFileOptions = 'searching';
 			await this.wspaceService.handleCsvSourceFields(selectdFile);
 
+			const fileType = selectdFile.toLowerCase().split('.').slice(-1)[0];
+			WorkSpaceController.getNode(this.nodeId).data['readFileType'] = fileType;
+
 			if (newValue.trim() != "") this.showMoreFileOptions = true;
 			else this.showMoreFileOptions = false;
 
