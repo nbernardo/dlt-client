@@ -18,14 +18,15 @@ def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterat
     print('Starting tranformation(s)', flush=True)
     for cur_file in files_list:
         with cur_file.open() as file:
-            df = pl.read_%read_file_type%(file)
+            df = pl.scan_%read_file_type%(file)
             # <transformation>
             %transformation%
             df = df.with_columns(list(transformation.values())[0])
             %transformation2%
             for transform in transformations2: df = transform(df)
             # </transformation> DO NOT REMOVE THIS LINE
-            yield df.rows(named=True)
+            for batch in df.collect(engine="streaming").iter_slices(n_rows=10_000):
+                yield batch.rows(named=True)
 
 
 print('Starting the pipeline', flush=True)

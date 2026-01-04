@@ -109,25 +109,28 @@ class DltPipeline:
                 is_transformation_step = (line.endswith('Transformation')\
                                            and line.startswith('dynamic-_cmp'))
                 
-                if(is_transformation_step and pipeline_exception == False):
-
-                    component_ui_id = line
-                    Transformation(None, context, component_ui_id).notify_completion_to_ui()
-                    
-                elif(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
-
-                    pipeline_exception = True
-                    message = line.startswith('RUNTIME_ERROR:')
-                    context.emit_ppline_trace(line.replace('RUNTIME_ERROR:',''), error=True)
-
-                elif(line.startswith('RUNTIME_WARNING:') or pipeline_exception == True):
-                    context.emit_ppline_trace(line.replace('RUNTIME_WARNING:',''), warn=True)
-                else:
-                    context.emit_ppline_trace(line)
-           
                 if (line == 'RUN_SUCCESSFULLY'):
                     context.emit_ppsuccess()
                     pipeline_exception = False
+
+                else:
+                    if(is_transformation_step and pipeline_exception == False):
+
+                        component_ui_id = line
+                        Transformation(None, context, component_ui_id).notify_completion_to_ui()
+                        
+                    elif(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
+
+                        pipeline_exception = True
+                        message = line.startswith('RUNTIME_ERROR:')
+                        context.emit_ppline_trace(line.replace('RUNTIME_ERROR:',''), error=True)
+
+                    elif(line.startswith('RUNTIME_WARNING:') or pipeline_exception == True):
+                        context.emit_ppline_trace(line.replace('RUNTIME_WARNING:',''), warn=True)
+                    else:
+                        context.emit_ppline_trace(line)
+            
+
 
 
         if pipeline_exception == True:
@@ -135,11 +138,17 @@ class DltPipeline:
 
         message, status = 'Pipeline run terminated successfully', True
         
-        error_messages = None
+        error_messages, warning_status = None, False
         if result.returncode != 0 and not(context.action_type == 'UPDATE' and result.returncode == 2):
             error_messages = result.stderr.read().split('\n')
-            message, status = '\n'.join(error_messages[1:]), False
-            context.emit_ppline_trace(message, error=True)
+            if(str(error_messages).__contains__('[WARNING]')):
+                context.emit_ppline_trace(error_messages, warn=True)
+                warning_status = True
+            else:
+                message, status = '\n'.join(error_messages[1:]), False
+                context.emit_ppline_trace(message, error=True)
+
+        context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
         
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout.read())
@@ -147,7 +156,7 @@ class DltPipeline:
 
         result.kill()
 
-        if error_messages != None or result.returncode == 1:
+        if (error_messages != None or result.returncode == 1) and warning_status == False:
             status = False
         else:
             status = status if len(result.stderr.read()) > 0 else True
