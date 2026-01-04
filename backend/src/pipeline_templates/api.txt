@@ -105,3 +105,4 @@ dest_folder = Workspace.get_duckdb_path_on_ppline()
 
 load_info = pipeline.run(get_api_data())
 print(load_info, flush=True)
+print('RUN_SUCCESSFULLY', flush=True)

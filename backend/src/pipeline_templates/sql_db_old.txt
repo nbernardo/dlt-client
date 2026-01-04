@@ -51,5 +51,6 @@ def load_select_tables_from_db():
 
     info = pipeline.run(source)
     print(info)
+    print('RUN_SUCCESSFULLY', flush=True)
 
 load_select_tables_from_db()

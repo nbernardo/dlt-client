@@ -42,6 +42,7 @@ try:
 
     info = pipeline.run(transformed_source, write_disposition="merge")
     print(info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
 except Exception as err:
     print('RUNTIME_ERROR:Runtime Pipeline error')
     print(err)

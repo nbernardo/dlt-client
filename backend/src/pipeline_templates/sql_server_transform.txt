@@ -83,4 +83,5 @@ source = polars_db_source(tables, tables_pk)
 print(f'Running the pipeline', flush=True)
 load_info = pipeline.run(source)
 
-print(load_info)
+print(load_info, flush=True)
+print('RUN_SUCCESSFULLY', flush=True)

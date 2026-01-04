@@ -23,5 +23,6 @@ print(f"Running the pipeline", flush=True)
 try:
     load_info = pipeline.run(data)
     print(load_info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
 except Exception as err:
     print(f'RUNTIME_ERROR:Runtime Pipeline error: {err}')

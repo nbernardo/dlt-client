@@ -47,3 +47,4 @@ def stream_s3():
 info = pipeline.run(stream_s3(), write_disposition="merge")
 
 print(info, flush=True)
+print('RUN_SUCCESSFULLY', flush=True)

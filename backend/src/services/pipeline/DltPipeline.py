@@ -12,6 +12,7 @@ from utils.cache_util import DuckDBCache
 from utils.SQLDatabase import SQLDatabase
 import uuid
 from datetime import datetime
+import time
 
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
@@ -93,13 +94,15 @@ class DltPipeline:
 
         # TODO: If needed, flag can be assigned with proper logic so UI logs will only came in 
         #  specific situation like will only print if the ppline has transformation or if it's
-        #  ppline update, otherwise flag = True will print in log in any scenario
+        #  ppline update, otherwise flag = True will print the log in any scenario
         #  flag = context.transformation is not None or context.action_type == 'UPDATE'
         flag = True
 
         if(flag):
             while True:
                 line = result.stdout.readline()
+                time.sleep(0.1)
+
                 if not line:
                     break
                 line = line.strip()
@@ -121,16 +124,13 @@ class DltPipeline:
                     context.emit_ppline_trace(line.replace('RUNTIME_WARNING:',''), warn=True)
                 else:
                     context.emit_ppline_trace(line)
-
-        result.wait()
            
-        if (result.returncode == 0 or (context.action_type == 'UPDATE'))\
-              and context is not None and (pipeline_exception == False or (context.action_type == 'UPDATE' and result.returncode == 2)):
-            context.emit_ppsuccess()
-            pipeline_exception = False
+                if (line == 'RUN_SUCCESSFULLY'):
+                    context.emit_ppsuccess()
+                    pipeline_exception = False
+
 
         if pipeline_exception == True:
-
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
 
         message, status = 'Pipeline run terminated successfully', True
@@ -381,6 +381,7 @@ class DltPipeline:
             pipeline_exception = False
 
             while True:
+                time.sleep(0.1)
                 line = result.stdout.readline()
                 if not line: 
                     break
@@ -396,6 +397,10 @@ class DltPipeline:
                             if(has_ppline_job('start',job_execution_id)):
                                 pass
                     context.emit_ppline_job_trace(line)
+
+                if (line == 'RUN_SUCCESSFULLY'):
+                    context.emit_ppsuccess()
+                    pipeline_exception = False                    
 
             result.wait()
             
@@ -561,4 +566,3 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
         return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
 
     return { 'error': False, 'result': inner_env['results'] if 'results' in inner_env else None }
-

@@ -65,5 +65,6 @@ def load_select_tables_from_db():
     print('Starting pipeline run', flush=True)
     info = pipeline.run(source, write_disposition='merge',%table_format%)
     print(info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
 
 load_select_tables_from_db()
