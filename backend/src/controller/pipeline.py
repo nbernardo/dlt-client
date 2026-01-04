@@ -514,9 +514,12 @@ def read_csv_file_fields(user, filename: str):
         df = pd.read_csv(file_path, nrows=1)
         return str(df.columns)
 
+    import polars as pl
     if(filename.lower().endswith('parquet')):
-        import polars as pl
         return list(pl.scan_parquet(file_path).collect_schema().keys())
+
+    if(filename.lower().endswith('jsonl')):
+        return list(pl.scan_ndjson(file_path).collect_schema().keys())
 
     
 

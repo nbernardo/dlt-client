@@ -37,7 +37,7 @@ class Bucket(TemplateNodeType):
             self.parse_to_literal = ['read_file_type']
 
             self.namespace = data['namespace']
-            self.read_file_type = data['readFileType']
+            self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
             self.component_id = data['componentId']
 
             user_folder = BaseUpload.upload_folder+'/'+context.user
