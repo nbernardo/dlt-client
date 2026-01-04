@@ -22,6 +22,7 @@ export class TransformRow extends ViewComponent {
 	/** @Prop */ isImport;
 	/** @Prop */ databaseFields; //This is in particular when the data source is DB (e.g. SQL)
 	/** @Prop */ configData = null; // This is only used when importing/reviewing a previous created node
+	/** @Prop */ isNewField = false; // This is for shiwing input text for new field name creation
 
 	dataSourceList;
 	selectedSource;
@@ -34,16 +35,16 @@ export class TransformRow extends ViewComponent {
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport }) {
+	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField }) {
 		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
-		//if (importFields) this.configData = { ...importFields, dataSources };
 		this.configData = { ...importFields, dataSources };
+		this.isNewField = isNewField === true ? true : false;
 	}
 
 	async stAfterInit() {
 		
-		this.$parent.transformPieces.set(this.rowId, {});
+		this.$parent.transformPieces.set(this.rowId, { isNewField : this.isNewField });
 		const tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails?.tables;
 		
 		this.dataSourceList = this.configData.dataSources;
@@ -122,7 +123,9 @@ export class TransformRow extends ViewComponent {
 		field !== undefined ? this.selectedField = field : '';
 		type !== undefined ? this.selectedType = type : '';
 
-		if (type === 'CODE') document.getElementById(`${this.rowId}-code`).value = transform;
+		if (type === 'CODE') document.getElementById(`${this.rowId}-codeTransform`).value = transform;
+		if (type === 'FILTER') document.getElementById(`${this.rowId}-filterTransform`).value = transform;
+		if (type === 'CALCULATE') document.getElementById(`${this.rowId}-calcTransform`).value = transform;
 		this.transformation = (transform || '');
 	}
 

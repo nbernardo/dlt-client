@@ -156,7 +156,7 @@ export class DatabaseTransformation {
         DatabaseTransformation.otherTransformations = {};
         for (const [_, code] of [...transformPieces]) {
             let finalCode = '';
-            let { type, field, transform, table } = code;
+            let { type, field, transform, table, isNewField } = code;
     
             rowsConfig.push(code);
             comma = '';//finalCode.length > 0 ? ',\n' : '';
@@ -170,7 +170,7 @@ export class DatabaseTransformation {
             if (type === 'FILTER'){
                 const transformation = DatabaseTransformation.parseFilterOnDf(transform, code.field)
                 if(transformation) finalCode = `${comma}${transformation}`;
-                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'FILTER');
+                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'FILTER', isNewField);
             }
     
             if (type === 'CASING')
@@ -181,12 +181,12 @@ export class DatabaseTransformation {
                         .replaceAll('( ','(',)
                         .replaceAll(') ',')',)
                         .replace(/\s{2,}/g,' ');
-                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'CALCULATE';
+                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = { type: 'CALCULATE', isNewField };
             }
     
             if (type === 'SPLIT'){
                 finalCode = `${comma}${DatabaseTransformation.parseSplit(field, code.sep, transform)}`;
-                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = 'SPLIT';
+                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = { type: 'SPLIT', isNewField };
             }
 
             if (type === 'DEDUP'){
@@ -195,7 +195,7 @@ export class DatabaseTransformation {
                 }else{
                     finalCode += `df.unique(subset=['${code.field}'])`;
                 }
-                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'DEDUP');
+                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'DEDUP', isNewField);
             }
     
             if (type === 'DROP'){
@@ -204,7 +204,7 @@ export class DatabaseTransformation {
                 }else{
                     finalCode += `df.drop(['${code.field}'])`;
                 }
-                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'DROP');
+                DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'DROP', isNewField);
             }
 
             //if (type === 'CONVERT') {
@@ -222,13 +222,13 @@ export class DatabaseTransformation {
         return finalCode;
     }
 
-    static updateOtherTransform(table, finalCode, code, type){
+    static updateOtherTransform(table, finalCode, code, type, isNewField){
         if(!(table in DatabaseTransformation.otherTransformations))
             DatabaseTransformation.otherTransformations[table] = []
 
         const prevVal = DatabaseTransformation.otherTransformations[table];
         DatabaseTransformation.otherTransformations[table] = [...prevVal, `lambda df: ${finalCode}`];
-        DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = type;
+        DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = { type, isNewField };
     }
 
     static parseCasing(transform, field) {

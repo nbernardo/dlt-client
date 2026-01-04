@@ -8,10 +8,15 @@
 			</select>
 		</td>
 		<td>
-			<select (required)="true" style="width: 95px; display: flex;" (forEach)="fieldList" (value)="selectedField"
-				placeholder="Select source name" (validator)="text">
-				<option each="item" value="{item.name}">{item.name}</option>
-			</select>
+			<span (showIf)="!self.isNewField">
+				<select (required)="true" style="width: 95px; display: flex;" (forEach)="fieldList" (value)="selectedField"
+					placeholder="Select source name" (validator)="text">
+					<option each="item" value="{item.name}">{item.name}</option>
+				</select>
+			</span>
+			<span (showIf)="self.isNewField">
+				<input type="text" style="width: 95px; display: flex;" placeholder="e.g. CalcdBonus" (value)="selectedField">
+			</span>
 		</td>
 		<td>
 			<select (required)="true" style="width: 90px; display: flex;" (value)="selectedType">

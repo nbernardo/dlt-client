@@ -151,7 +151,7 @@ export class Transformation extends AbstractNode {
 		return { sourceNode: this.sourceNode, nodeCount: this.nodeCount.value };
 	}
 
-	async addNewField(data = null, inTheLoop = false) {
+	async addNewField(data = null, inTheLoop = false, isNewField = false) {
 
 		const obj = this;
 
@@ -169,10 +169,10 @@ export class Transformation extends AbstractNode {
 
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
-			const initialData = { dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap, isImport: obj.isImport };
+			const initialData = { dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap, isImport: obj.isImport, isNewField };
 			
 			// Create a new instance of TransformRow component
-			const { component, template } = await Components.new('TransformRow', initialData, parentId);
+			const { component, template } = await Components.new(TransformRow, initialData, parentId);
 
 			// Add component to the DOM tree as part of transformation
 			document.querySelector('.transform-container-' + obj.uniqueId).insertAdjacentHTML('beforeend', template);
@@ -282,10 +282,12 @@ export class Transformation extends AbstractNode {
 			let transformCount = 0;
 
 			for(let transformation of transformations){
+				const { type, isNewField } = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`];
+				const isDedupTransform = type === 'DEDUP';
+				const isDropTransform = type === 'DROP';
+				const isFilterTransform = type === 'FILTER';
 
-				const isDedupTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'DEDUP';
-				const isDropTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'DROP';
-				const isFilterTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'FILTER';
+				if(isNewField) transformation = transformation.replace(".alias('",".alias('+")
 
 				if(isDedupTransform || isDropTransform || isFilterTransform) {
 					
@@ -318,8 +320,8 @@ export class Transformation extends AbstractNode {
 					continue;
 				}
 
-				const isCalculateTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'CALCULATE';
-				const isSplitTransform = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`] === 'SPLIT';
+				const isCalculateTransform = type === 'CALCULATE';
+				const isSplitTransform = type === 'SPLIT';
 				const otherValidTransform = isCalculateTransform || isSplitTransform;
 
 				if(!transformation.startsWith('pl.when(') && !otherValidTransform) {
@@ -345,8 +347,10 @@ export class Transformation extends AbstractNode {
 				script += `raise Exception(f'Error #${count++}#: {str(err)}')`;
 				//In case there is any deduplicate transformation in place
 				script = script.replace(/\,{0,1}(\n|\t|\n\t){0,}df\.unique\(subset\=\[[A-Z0-9\']{0,}\]\)\,{0,1}(\n|\t|\n\t){0,}/ig, '');
-
-				script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
+				
+				if(!isNewField)
+					script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
+				
 				finalScript += script;
 
 				script = '';
@@ -365,6 +369,9 @@ export class Transformation extends AbstractNode {
 			result = '<div style="width: 100%; text-align: center; color: green;">No relevant transformation to run</div>';
 			return TransformExecution.transformPreviewShow(this.cmpInternalId, result);
 		}
+		
+		finalScript = finalScript.replaceAll(".alias('+",".alias('").replace("pl.col('+","pl.col('");
+
 		const sourceType = this.dataSourceType;
 		const previewResult = await WorkspaceService.getTransformationPreview(
 			connectionName, finalScript, dbEngine, sourceType, this.fileSource
