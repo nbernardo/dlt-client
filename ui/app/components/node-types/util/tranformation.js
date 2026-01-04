@@ -163,8 +163,9 @@ export class DatabaseTransformation {
 
             if(type === 'CODE' && code === '') return '';
             if (type === 'CODE'){
-                const transformation = DatabaseTransformation.parseCodeOnDf(transform, code.field)
+                const transformation = DatabaseTransformation.parseCodeOnDf(transform, code.field, isNewField)
                 if(transformation) finalCode = `${comma}${transformation}`;
+                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = { type: 'CODE', isNewField };
             }
 
             if (type === 'FILTER'){
@@ -273,7 +274,7 @@ export class DatabaseTransformation {
         return `${content}`;
     }
 
-    static parseCodeOnDf(transform, field) {
+    static parseCodeOnDf(transform, field, isNewField) {
 
         let matchCount = 0, addSpace = '', isThereBitwhise = false, totalCondition = 0;
         let prevStrManipulation = null;
@@ -338,6 +339,7 @@ export class DatabaseTransformation {
                 }
 
                 totalCondition++;
+                if(!isNaN(wrd.trim())) return wrd;
                 return `pl.col('${wrd.trim()}')`;
             }
         }
@@ -374,7 +376,8 @@ export class DatabaseTransformation {
         rightSide = rightSide.replaceAll('.strip(','.strip_chars(');
 
         if(!rightSide.includes('.then(')) rightSide = `.then(${rightSide}`;
-
+        if(isNewField)
+            return `${leftSide}${rightSide}).otherwise(None).alias('${field}')`;
         return `${leftSide}${rightSide}).otherwise(pl.col('${field}')).alias('${field}')`;
 
     }
@@ -418,7 +421,7 @@ export class DatabaseTransformation {
                 pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\"") && !transform[pos - 1]?.startsWith("'")
             ){
                 totalCondition++;
-                if(isReplaceContent)
+                if(isReplaceContent || !isNaN(wrd.trim()))
                     return wrd.trim();
                 return `${addSpace}pl.col('${wrd.trim()}')`;
             }
@@ -444,6 +447,7 @@ export class DatabaseTransformation {
                 }
 
                 totalCondition++;
+                if(!isNaN(wrd.trim())) return wrd;
                 return `pl.col('${wrd.trim()}')`;
             }
         }

@@ -39,7 +39,7 @@ export class TransformRow extends ViewComponent {
 		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
 		this.configData = { ...importFields, dataSources };		
-		this.isNewField = (isNewField === true || importFields.isNewField === true) ? true : false;
+		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;
 	}
 
 	async stAfterInit() {
