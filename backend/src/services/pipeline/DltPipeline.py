@@ -130,8 +130,7 @@ class DltPipeline:
                     else:
                         context.emit_ppline_trace(line)
             
-
-
+        result.kill()
 
         if pipeline_exception == True:
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
@@ -153,8 +152,6 @@ class DltPipeline:
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout.read())
         print("Standard Error:", message if error_messages != None else None)
-
-        result.kill()
 
         if (error_messages != None or result.returncode == 1) and warning_status == False:
             status = False
@@ -395,27 +392,28 @@ class DltPipeline:
                 if not line: 
                     break
                 line = line.strip()
-            
-                if(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
-                    pipeline_exception = True
-                    message = line.startswith('RUNTIME_ERROR:')
-                    context.emit_ppline_job_trace(line.replace('RUNTIME_ERROR:',''), error=True)
-                else:
-                    if(type(line) == str):
-                        if(line.__contains__('Files/Bucket loaded')):
-                            if(has_ppline_job('start',job_execution_id)):
-                                pass
-                    context.emit_ppline_job_trace(line)
-
                 if (line == 'RUN_SUCCESSFULLY'):
                     context.emit_ppsuccess()
-                    pipeline_exception = False                    
+                    pipeline_exception = False   
+                
+                else:
+                    if(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
+                        pipeline_exception = True
+                        message = line.startswith('RUNTIME_ERROR:')
+                        context.emit_ppline_job_trace(line.replace('RUNTIME_ERROR:',''), error=True)
+                    else:
+                        if(type(line) == str):
+                            if(line.__contains__('Files/Bucket loaded')):
+                                if(has_ppline_job('start',job_execution_id)):
+                                    pass
+                        context.emit_ppline_job_trace(line)
 
-            result.wait()
-            
+                             
             #if result.returncode == 0 and context is not None and pipeline_exception == False:
             #    context.emit_ppsuccess()
 
+            result.kill()
+            
             if pipeline_exception == True:
                 message = 'Runtime Pipeline error, check the logs for details'
                 context.emit_ppline_job_trace(message, error=True)
@@ -425,16 +423,23 @@ class DltPipeline:
                         pass
                 context.emit_ppline_job_trace('Pipeline run terminated successfully')
             
-            error_messages = None
+            error_messages, status = None, True
             if result.returncode != 0:
                 err = result.stderr.read()
                 if(err.index('Could not set lock on file') > 0):
                     pass
+
                 error_messages = err.split('\n')
-                message = '\n'.join(error_messages[1:])
-                context.emit_ppline_job_trace(message, error=True)
-            
-            result.kill()
+                if(str(error_messages).__contains__('[WARNING]')):
+                    context.emit_ppline_trace(error_messages, warn=True)
+                else:
+                    message = '\n'.join(error_messages[1:])
+                    context.emit_ppline_job_trace(message, error=True)
+                    status = False
+
+            if(status):
+                context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
+                
             clear_job_transaction_id(job_execution_id)
 
             dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

@@ -1,5 +1,6 @@
 %metadata_section%import dlt
 import polars as pl
+import pandas as pd
 from sqlalchemy import create_engine
 from pathlib import Path
 import sys
@@ -49,21 +50,27 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
 
         @dlt.resource(name=table_name)
         def load_table():
-            df = pl.read_database(f"SELECT * FROM {table_name}", engine)
-            print(f'fetch data from {table_name}', flush=True)
 
-            # Apply table-specific transformations
-            if transformations.get(table_name, None) != None:
-                df = df.with_columns(transformations[table_name])
-                print(f'applied transformation for {table_name}', flush=True)
-            # Transformation with not column format change (e.g. dedup, column drop)
-            if table_name in transformations2:
-                for transform in transformations2[table_name]: df = transform(df)
+            for df in pl.read_database(
+                query=f"SELECT * FROM {table_name}",
+                connection=engine,
+                iter_batches=True,
+                batch_size=10_000,
+            ):
+                print(f'fetch data chunk from {table_name}', flush=True)
 
-            if df.schema[pk] in [pl.Float32, pl.Float64]:
-                df = df.with_columns([pl.col(pk).cast(pl.Utf8)])
+                # Apply table-specific transformations
+                if transformations.get(table_name, None) != None:
+                    df = df.with_columns(transformations[table_name])
+                    print(f'applied transformation for {table_name}', flush=True)
+                # Transformation with not column format change (e.g. dedup, column drop)
+                if table_name in transformations2:
+                    for transform in transformations2[table_name]: df = transform(df)
 
-            for row in df.iter_rows(named=True): yield row
+                if df.schema[pk] in [pl.Float32, pl.Float64]:
+                    df = df.with_columns([pl.col(pk).cast(pl.Utf8)])
+
+                for row in df.iter_rows(named=True): yield row
 
         return load_table.apply_hints(primary_key=pk)
 

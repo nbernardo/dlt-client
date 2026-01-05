@@ -238,7 +238,7 @@ def parse_transformation_task(node_params, context: RequestContext):
                 [tables.append(table) for table in all_tables if table not in tables]
                 
                 transformation_str = '{'
-                transformation_str2 = '{'
+                transformation_str2 = ''
 
                 for table in tables:
 
@@ -293,7 +293,7 @@ def parse_transformation_task(node_params, context: RequestContext):
                 context.transformation = transformation_str
             
             if transformation_str2 != None:
-                transformation_str2 = transformation_str2[0:-1] + '\n}'
+                transformation_str2 = '{'+ transformation_str2 + '\n}'
                 context.transformation2 = transformation_str2
 
     return node_params
