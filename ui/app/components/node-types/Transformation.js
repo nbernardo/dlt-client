@@ -363,6 +363,7 @@ export class Transformation extends AbstractNode {
 			}
 			finalScript += '\n\n';
 		}
+		DatabaseTransformation.transformTypeMap = {};
 		//In case there is not relevant transformation (e.g. change case to upper or lower)
 		if(finalScript.trim() === 'results, lfquery = [], None'){
 			this.gettingTransformation = false;

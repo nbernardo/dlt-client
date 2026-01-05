@@ -174,8 +174,10 @@ export class DatabaseTransformation {
                 DatabaseTransformation.updateOtherTransform(table, finalCode, code, 'FILTER', isNewField);
             }
     
-            if (type === 'CASING')
+            if (type === 'CASING'){
                 finalCode = `${comma}${DatabaseTransformation.parseCasing(transform, code.field)}`;
+                DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = { type: 'CASING', isNewField };
+            }
     
             if (type === 'CALCULATE'){
                 finalCode = `${comma}(${DatabaseTransformation.parseCalculate(transform)}).alias('${code.field}')`
