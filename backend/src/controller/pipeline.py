@@ -28,6 +28,9 @@ def create():
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
     context.is_code_destination = payload['codeOutput']
 
+    if('actionType' in payload):
+        context.pipeline_action = payload['actionType']
+
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
     node_params = parse_transformation_task(node_params, context)

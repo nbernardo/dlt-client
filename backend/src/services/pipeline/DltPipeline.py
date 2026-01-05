@@ -72,6 +72,7 @@ class DltPipeline:
         does_have_metadata = is_sql_destination == True or is_code_to_code_ppline == True
 
         filename_suffixe = '|withmetadata|' if does_have_metadata else ''
+        filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
         ppline_file = f'{file_path}/{file_name}{filename_suffixe}.py'
         file_open_flag = 'x+'
         
@@ -82,6 +83,10 @@ class DltPipeline:
             # Create python file with pipeline code
             with open(ppline_file, file_open_flag, encoding='utf-8') as file:                    
                 file.write(data)
+
+        if context.pipeline_action == 'onlysave':
+            context.emit_ppsuccess()
+            return { 'status': True, 'message': 'Pipeline created successfully' }
 
         # Run pipeline generater above by passing the python file
         result = subprocess.Popen(['python', ppline_file],
@@ -365,6 +370,10 @@ class DltPipeline:
     @staticmethod
     def run_pipeline_job(file_path, namespace):
         ppline_file = f'{destinations_dir}/{file_path}.py'
+
+        if not(os.path.exists(ppline_file)):
+            ppline_file = f'{destinations_dir}/{file_path}|toschedule|.py'
+        
         db_root_path = destinations_dir.replace('pipeline','duckdb')
         # DB Lock in the pplication level
         DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
@@ -425,8 +434,9 @@ class DltPipeline:
             
             error_messages, status = None, True
             if result.returncode != 0:
-                err = result.stderr.read()
-                if(err.index('Could not set lock on file') > 0):
+                err = str(result.stderr.read())
+                print('THE ERROR IS ABOUT: ', err)
+                if(err.__contains__('Could not set lock on file')):
                     pass
 
                 error_messages = err.split('\n')
@@ -439,7 +449,7 @@ class DltPipeline:
 
             if(status):
                 context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
-                
+
             clear_job_transaction_id(job_execution_id)
 
             dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

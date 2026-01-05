@@ -43,6 +43,7 @@ class RequestContext:
         self.action_type = None
         # Flaged true in case the destination is code
         self.is_code_destination = False
+        self.pipeline_action = None
         self.success_emitted = None
 
         self.connections = None

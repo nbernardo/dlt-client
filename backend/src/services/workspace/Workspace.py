@@ -154,7 +154,7 @@ class Workspace:
 
 
     @staticmethod
-    def list_duckdb_dest_pipelines(files_path, user):
+    def list_duckdb_dest_pipelines(files_path, user, ppelines):
 
         if(not os.path.exists(files_path)):
             return {'no_data': True }
@@ -172,6 +172,8 @@ class Workspace:
 
             if _file.endswith('.duckdb') or _file.endswith('.db'):
                 if _file not in result:
+                    if str(_file).replace('.duckdb','') in ppelines:
+                        del ppelines[str(_file).replace('.duckdb','')]
                     result[_file] = {}
 
                 if DuckDBCache.get(f'{files_path}{_file}') != None:
@@ -240,6 +242,11 @@ class Workspace:
 
             if _file.endswith('|withmetadata|.py'):
                 ppline_name =_file.replace('|withmetadata|.py', '')
+                if _file not in result:
+                    result[ppline_name] = {}
+
+            if _file.endswith('|toschedule|.py'):
+                ppline_name =_file.replace('|toschedule|.py', '')
                 if _file not in result:
                     result[ppline_name] = {}
 
