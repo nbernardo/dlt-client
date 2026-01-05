@@ -218,7 +218,7 @@ export class Workspace extends ViewComponent {
 		this.editor.import(content);
 	}
 
-	async savePipeline() {
+	async savePipeline(actionType = '') {
 
 		if (!this.controller.isTherePipelineToSave()) return null;
 
@@ -231,15 +231,17 @@ export class Workspace extends ViewComponent {
 
 		const data = await this.preparePipelineContent();
 		if (data === null) return data;
-		this.logProxy.showLogs = true;
-		let result = await this.pplService.createOrUpdatePipeline(data);
+		if(actionType !== 'onlysave') this.logProxy.showLogs = true;
+		let result = await this.pplService.createOrUpdatePipeline(data, false, actionType);
 		result = await result.json();
 
 		if(!result.error) this.wasDiagramSaved = true;
 		else {
-			this.logProxy.appendLogEntry('error', result.result, Date.now());
+			if(actionType !== 'onlysave') this.logProxy.appendLogEntry('error', result.result, Date.now());
 			return AppTemplate.toast.error(result.result);
 		}
+		if(actionType === 'onlysave')
+			AppTemplate.toast.success(`Pipeline ${this.activeGrid.value} saved successfully`, 15000);
 		return result;
 	}
 

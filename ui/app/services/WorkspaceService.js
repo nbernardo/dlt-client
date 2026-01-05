@@ -231,7 +231,8 @@ export class WorkspaceService extends BaseService {
     getCsvDataSourceFields = (sourceName) => this.dataSourceFieldsMap.get(sourceName);
     
     async updateSocketId(socketId) {
-        const response = await $still.HTTPClient.post('/workcpace/socket_id/' + UserUtil.email + '/' + socketId);
+        const namespace = await UserService.getNamespace();
+        const response = await $still.HTTPClient.post('/workcpace/socket_id/' + namespace + '/' + socketId);
         if (response.ok)
             return await response.text();
         return null;
