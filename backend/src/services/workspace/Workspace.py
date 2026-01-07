@@ -239,17 +239,22 @@ class Workspace:
         for _file_name in file_list:
 
             _file = _file_name
+            ppline_name = None
 
+            is_withmetadata = False
             if _file.endswith('|withmetadata|.py'):
                 ppline_name =_file.replace('|withmetadata|.py', '')
+                is_withmetadata = True
                 if _file not in result:
                     result[ppline_name] = {}
 
-            if _file.endswith('|toschedule|.py'):
+            if _file.endswith('|toschedule|.py') and is_withmetadata == False:
                 ppline_name =_file.replace('|toschedule|.py', '')
                 if _file not in result:
                     result[ppline_name] = {}
 
+            if ppline_name != None:
+                
                 tables_list = Workspace.get_tables_in_metadata(f'{files_path}/{_file}')
 
                 if 'error' in tables_list: 

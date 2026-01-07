@@ -72,7 +72,8 @@ class DltPipeline:
         does_have_metadata = is_sql_destination == True or is_code_to_code_ppline == True
 
         filename_suffixe = '|withmetadata|' if does_have_metadata else ''
-        filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
+        if(filename_suffixe == ''):
+            filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
         ppline_file = f'{file_path}/{file_name}{filename_suffixe}.py'
         file_open_flag = 'x+'
         
@@ -373,7 +374,9 @@ class DltPipeline:
 
         if not(os.path.exists(ppline_file)):
             ppline_file = f'{destinations_dir}/{file_path}|toschedule|.py'
-        
+            if not(os.path.exists(ppline_file)):
+                ppline_file = f'{destinations_dir}/{file_path}|withmetadata|.py'
+
         db_root_path = destinations_dir.replace('pipeline','duckdb')
         # DB Lock in the pplication level
         DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
