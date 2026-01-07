@@ -150,7 +150,7 @@ export class Transformation extends AbstractNode {
 		//This will emit the source node as Bucket or SQLDB to the node it'll connect
 		return { sourceNode: this.sourceNode, nodeCount: this.nodeCount.value };
 	}
-
+	
 	async addNewField(data = null, inTheLoop = false, isNewField = false) {
 
 		const obj = this;
@@ -406,5 +406,17 @@ export class Transformation extends AbstractNode {
 		}else
 			result = '<div style="width: 100%; text-align: center; color: red;">One or more transformations are invalid</div>';
 		TransformExecution.transformPreviewShow(this.cmpInternalId, result);
+	}
+
+	resetTransformation(){
+		[...this.fieldRows].forEach(([_, /** @type { Transformation } */row], idx) => {
+			const /** @type { TransformRow } */ curRow = row;
+			if(idx === 0) {
+				curRow.selectedSource = '';
+				curRow.selectedType = '';
+				if(this.sourceNode) this.sourceNode.onOutputConnection();
+			}
+			else curRow.removeMe();
+		});
 	}
 }

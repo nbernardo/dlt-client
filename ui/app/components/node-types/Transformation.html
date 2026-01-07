@@ -1,7 +1,14 @@
 <div class="@cmpInternalId" style="z-index: 1;">
 	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this, '200px', 'transform')">_</div>
 	<div class="title-box pipeline-node-type-title-box">
-		<div>
+		<div class="node-header-grouper">
+			<div class="reload-icon-wrapper">
+				<img 
+					onclick="component.resetTransformation()"
+					src="app/assets/imgs/refresh-svgrepo-com.svg" 
+					class="reload-db-source" 
+					alt="">
+			</div>
 			<i class="fas fa-cogs"></i>
 			Transformation
 			<button style="margin-left: 18px;" class="add-btn-primary btn-padding-height7" (click)="addNewField()">+ Transformation</button>

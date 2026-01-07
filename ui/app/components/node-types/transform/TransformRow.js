@@ -140,7 +140,7 @@ export class TransformRow extends ViewComponent {
 			obj.unload();
 			obj.$parent.removeField(obj.rowId);
 		}
-		if (this.configData !== null && this.$parent.confirmModification === false) 
+		if (this.configData !== null && this.$parent.confirmModification === false && this.isImport) 
 			return this.$parent.confirmActionDialog(handleDeletion);
 		handleDeletion(this);
 	}

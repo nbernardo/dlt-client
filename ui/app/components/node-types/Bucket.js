@@ -70,26 +70,33 @@ export class Bucket extends AbstractNode {
 		this.aiGenerated = aiGenerated;
 	}
 
+	async getFilesList(){
+		const result = await this.wspaceService.listFiles();
+		this.filesFromList = (result || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
+	}
+
+	async reloadMe(){
+		this.showLoading = true;
+		await this.getFilesList();
+		this.showLoading = false;
+	}
+
 	async stAfterInit() {
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 		data['namespace'] = await UserService.getNamespace();
-		const result = await this.wspaceService.listFiles();
-		this.filesFromList = (result || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
-
+		await this.getFilesList();
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController		
 		if ([false, undefined].includes(this.isImport) || this.aiGenerated) this.setupOnChangeListen();
 
 		if(this.aiGenerated){
-
 			const bucketUrl = this.importFields.url ? this.importFields.url : this.importFields.bucketUrl;
 			const flPattern = this.importFields.file ? this.importFields.file : this.importFields.filePattern;
 			this.filePattern = flPattern || '';
 			this.bucketUrl = bucketUrl || '';
 
 			if(this.bucketUrl.value.length > 0) this.bucketFileSource = 2;
-			
 		}
 
 		// At this point the WorkSpaceController was loaded by WorkSpace component

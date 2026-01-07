@@ -36,11 +36,19 @@ export class InputAPI extends AbstractNode {
 		this.importData = data;
 	}
 
+	async reloadMe(){
+		this.showLoading = true;
+		this.secretsList = await WorkspaceService.listSecrets(2);
+		this.selectedSecret = '';
+		this.showLoading = false;
+	}
+
 	async stAfterInit(){
 		this.secretsList = await WorkspaceService.listSecrets(2);
 		this.showLoading = false;
 
 		this.selectedSecret.onChange(value => {
+			if(value.trim() === '') return;
 			const selectedSecret = this.secretsList.value.find(obj => obj.name === value);
 			
 			WorkSpaceController.getNode(this.nodeId).data['connectionName'] = value;

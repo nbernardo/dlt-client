@@ -1,7 +1,14 @@
 <div class="@cmpInternalId" style="z-index: -1;">
 	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
 	<div class="title-box pipeline-node-type-title-box">
-		<div class="workspace-node-type-header">
+		<div class="workspace-node-type-header node-header-grouper">
+			<div class="reload-icon-wrapper">
+				<img 
+					onclick="component.reloadMe()"
+					src="app/assets/imgs/refresh-svgrepo-com.svg" 
+					class="reload-db-source" 
+					alt="">
+			</div>
 			<img src="@dbIcon" class="database-icon" style="float: left; margin-top: 10px; margin-left: 0px;" width="35">
 			@label
 		</div>
