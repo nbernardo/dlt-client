@@ -331,6 +331,7 @@ def handle_transform_indent(transformation: str):
 def template_final_parsing(template, pipeline_name, payload, duckdb_path, context: RequestContext = None):
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
     template = template.replace('%Dbfile_name%', pipeline_name)
+    template = template.replace('__current.PIPELINE_NAME', f"'{pipeline_name}'")
     template = template.replace('%User_folder%', payload['user'])
     # %table_format% replace might be preceeded by the DLTCodeOutput node type which
     # means that if this was stated at the node level, this one won't take any effect 

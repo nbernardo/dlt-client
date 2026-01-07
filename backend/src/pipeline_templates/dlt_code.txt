@@ -1,11 +1,11 @@
 %metadata_section%import json
-import sys
+from sys import path
 from pathlib import Path
 
 #Adding root folder to allow import from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
-sys.path.insert(0, src_path)
-sys.path.insert(0, src_path+'/src')
+path.insert(0, src_path)
+path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import referencedSecrets%secret_manager_import%
