@@ -245,7 +245,7 @@ export class DatabaseTransformation {
     static parseCalculate(transform = '') {
         if(transform === undefined) return null;
         return transform
-            .replace(/\s{0,}[A-Z]{1,}[0-9]{0,}/ig, (wrd, pos) => {
+            .replace(/\s{0,}[A-Z\_]{1,}[0-9]{0,}/ig, (wrd, pos) => {
                 if (pos === 0 && !wrd.startsWith("'") && !wrd.startsWith("\""))
                     return ` pl.col('${wrd.trim()}') `;
                 else if (pos > 0 && !transform[pos - 1].startsWith("'") && !transform[pos - 1].startsWith("\""))
@@ -253,7 +253,7 @@ export class DatabaseTransformation {
                 else return wrd;
             })
             .replace(/[0-9\s\*\+\-\/\%\^]{3,}/, (wrd) => {
-                if(/[A-Za-z]{1,}/.test(transform)) return wrd;
+                if(/[A-Za-z\_]{1,}/.test(transform)) return wrd;
                 else return `pl.lit(${wrd})`;
             });
     }

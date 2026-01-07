@@ -13,7 +13,7 @@ import { SqlDBComponent } from "./SqlDBComponent.js";
 import { TRANFORM_ROW_PREFIX, TransformRow } from "./transform/TransformRow.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { NodeUtil } from "./util/nodeUtil.js";
-import { DatabaseTransformation, NonDatabaseSourceTransform, TransformExecution } from "./util/tranformation.js";
+import { DatabaseTransformation, TransformExecution } from "./util/tranformation.js";
 
 /** @implements { NodeTypeInterface } */
 export class Transformation extends AbstractNode {
@@ -409,6 +409,7 @@ export class Transformation extends AbstractNode {
 	}
 
 	resetTransformation(){
+		this.gettingTransformation = false;
 		[...this.fieldRows].forEach(([_, /** @type { Transformation } */row], idx) => {
 			const /** @type { TransformRow } */ curRow = row;
 			if(idx === 0) {
@@ -418,5 +419,6 @@ export class Transformation extends AbstractNode {
 			}
 			else curRow.removeMe();
 		});
+		this.gettingTransformation = false;
 	}
 }

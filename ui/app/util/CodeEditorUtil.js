@@ -87,12 +87,19 @@ export class CodeEditorUtil {
                 insertText: '__secrets',
                 documentation: 'Provide access to the diferent Secrets.',
                 insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+            },
+            {
+                label: '__current',
+                kind: monaco.languages.CompletionItemKind.Keyword,
+                insertText: '__current',
+                documentation: 'Provide access to the diferent Secrets.',
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
             }
         ]
     }
 
     static loadedSuggestions = new Set();
-    static addSecretSugestion(lang, suggestions) {
+    static addSecretSugestion(lang, suggestions, additions) {
 
         if(CodeEditorUtil.loadedSuggestions.has(lang))
             return;
@@ -116,7 +123,10 @@ export class CodeEditorUtil {
                 });
                 
                 const isMatch = text.match(/__secrets\.([a-zA-Z0-9_]*)$/);
-                if (!isMatch) return { suggestions: [] };                
+                const is__Current = text.match(/__current\.([a-zA-Z0-9_]*)$/);
+                
+                if (!isMatch && !is__Current) return { suggestions: [] };
+                if(is__Current) return { suggestions: additions.__current };
 
                 return { suggestions: suggestions.map(s => ({ ...s, range })) };
             }

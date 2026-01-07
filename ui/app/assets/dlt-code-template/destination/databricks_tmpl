@@ -8,7 +8,7 @@ config = {
 }
 
 pipeline = dlt.pipeline(
-    pipeline_name="<pipeline_name>",
+    pipeline_name=__current.PIPELINE_NAME,
     destination=dlt.destinations.databricks(credentials=config),
     dataset_name="<dataset_name>"
 )
