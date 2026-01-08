@@ -1,10 +1,11 @@
-import json
 from sqlalchemy import create_engine, inspect, MetaData, Engine, Table, text
 from sqlalchemy.engine import reflection
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import NoInspectionAvailable
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import traceback
 import platform
+import polars as pl
+from utils.SQLServerUtil import column_type_conversion
 
 class SQLDatabase:
 
@@ -79,35 +80,40 @@ class SQLDatabase:
 
     def get_mssql_tables(namespace, connection_name, secret):
         
-        mssql_conection, database = SQLConnection\
-                    .mssql_connect(namespace, connection_name, secret)
+        try:
 
-        query_string = """
-            SELECT 
-                TABLE_CATALOG AS database_name,
-                TABLE_SCHEMA AS schema_name,
-                TABLE_NAME AS table_name,
-                COLUMN_NAME AS column_name,
-                '"' + DATA_TYPE + '"' AS quoted_type
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_CATALOG = :database_name
-            ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;
-        """
+            mssql_conection, database = SQLConnection\
+                        .mssql_connect(namespace, connection_name, secret)
 
-        tables = {}
-        result = mssql_conection.connect().execute(text(query_string), { 'database_name': database })
-        for dbo, table_schema, table_name, column_name, col_type in result.fetchall():
-   
-            if table_schema not in tables:
-                tables[table_schema] = {}
+            query_string = """
+                SELECT 
+                    TABLE_CATALOG AS database_name,
+                    TABLE_SCHEMA AS schema_name,
+                    TABLE_NAME AS table_name,
+                    COLUMN_NAME AS column_name,
+                    '"' + DATA_TYPE + '"' AS quoted_type
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_CATALOG = :database_name
+                ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;
+            """
 
-            if table_name not in tables[table_schema]:
-                tables[table_schema][table_name] = []
+            tables = {}
+            result = mssql_conection.connect().execute(text(query_string), { 'database_name': database })
+            for dbo, table_schema, table_name, column_name, col_type in result.fetchall():
+    
+                if table_schema not in tables:
+                    tables[table_schema] = {}
 
-            tables[table_schema][table_name].append({ 'column': column_name, 'type':  col_type  })
+                if table_name not in tables[table_schema]:
+                    tables[table_schema][table_name] = []
 
-        tables['schema_based'] = True
-        return tables
+                tables[table_schema][table_name].append({ 'column': column_name, 'type':  col_type  })
+
+            tables['schema_based'] = True
+            return tables
+        
+        except Exception as err:
+            return None
 
 
     def get_oracle_tables(namespace, connection_name, secret):
@@ -166,23 +172,28 @@ class SQLDatabase:
             return { 'error': True, 'message': str(err) }
 
 
+    def get_connnection(namespace, dbengine, connection_name) -> Engine:
+        db_conection = None
+        if(dbengine == 'mysql'):
+            db_conection, _ = SQLConnection.mysql_connect(namespace, connection_name, None)
+
+        if(dbengine == 'postgresql'):
+            db_conection, _ = SQLConnection.pgsql_connect(namespace, connection_name, None)
+
+        if(dbengine == 'mssql'):
+            db_conection, _ = SQLConnection.mssql_connect(namespace, connection_name, None)
+
+        if(dbengine == 'oracle'):
+            db_conection, _ = SQLConnection.oracle_connect(namespace, connection_name, None)
+        
+        return db_conection
+
+
     def get_fields_from_table(namespace, dbengine, connection_name, table_name: str, metadata = None):
 
         try:
             fields = []
-            db_conection = None
-            if(dbengine == 'mysql'):
-                db_conection, _ = SQLConnection.mysql_connect(namespace, connection_name, None)
-
-            if(dbengine == 'postgresql'):
-                db_conection, _ = SQLConnection.pgsql_connect(namespace, connection_name, None)
-
-            if(dbengine == 'mssql'):
-                db_conection, _ = SQLConnection.mssql_connect(namespace, connection_name, None)
-
-            if(dbengine == 'oracle'):
-                db_conection, _ = SQLConnection.oracle_connect(namespace, connection_name, None)
-            
+            db_conection = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
             if not metadata:
 
                 metadata = MetaData()

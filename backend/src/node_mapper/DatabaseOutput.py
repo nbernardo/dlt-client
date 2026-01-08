@@ -15,7 +15,7 @@ class DatabaseOutput(TemplateNodeType):
 
         self.context = context
         self.component_id = data['componentId']
-        self.output_dest_name = data['databaseName']
+        self.output_dest_name = data['databaseName'].replace('-','_')
 
         self.context.emit_start(self, '')
         # outdb_secret_name is mapped to any pipeline template (in the /pipeline_templates folder) 

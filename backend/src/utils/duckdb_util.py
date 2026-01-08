@@ -105,7 +105,6 @@ class DuckdbUtil:
         return result
 
 
-
     @staticmethod
     def get_socket_id(namespace):
         cnx = DuckdbUtil.get_workspace_db_instance()
@@ -122,7 +121,6 @@ class DuckdbUtil:
         query = f"SELECT namespaces_alias FROM namespace WHERE namespace_id = '{namespace}'"
         result = cursor.execute(query).fetchall()[0][0]   
         return result
-
 
 
     db_connections: list[DuckDBPyConnection] = {}

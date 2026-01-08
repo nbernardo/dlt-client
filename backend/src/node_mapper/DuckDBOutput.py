@@ -24,7 +24,7 @@ class DuckDBOutput(TemplateNodeType):
 
         self.context.emit_start(self, '')
         # database is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
-        self.output_dest_name = data['database']
+        self.output_dest_name = data['database'].replace('-','_')
         # table_name is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
         self.ppline_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
 

@@ -3,12 +3,12 @@ from dlt.sources.credentials import ConnectionStringCredentials
 from dlt.sources.sql_database import sql_database, sql_table
 from os import getenv as env
 from pathlib import Path
-import sys
+from sys import path
 
 #Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
-sys.path.insert(0, src_path)
-sys.path.insert(0, src_path+'/src')
+path.insert(0, src_path)
+path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
 
@@ -51,5 +51,6 @@ def load_select_tables_from_db():
 
     info = pipeline.run(source)
     print(info)
+    print('RUN_SUCCESSFULLY', flush=True)
 
 load_select_tables_from_db()

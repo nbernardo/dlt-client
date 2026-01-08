@@ -26,12 +26,15 @@ export function addSQLComponentTableField(self, tableId, value = '', disabled = 
         delBtn = document.createElement('div');
         delBtn.className = 'remove-dyn-field';
         delBtn.innerHTML = 'x';
-        delBtn.onclick = function () {
+        delBtn.onclick = () => removeMe();
+        function removeMe() {
             FormHelper.delField(self, self.formRef, pkFieldName);
             FormHelper.delField(self, self.formRef, tblFieldName);
             delete self.selectedTablesName[tblFieldName];
             div.remove();
         }
+        if(!Array.isArray(self.removeAddedTableCallbacks)) self.removeAddedTableCallbacks = [];
+        self.removeAddedTableCallbacks.push(removeMe);
     }
 
     div.style.marginTop = '3px';

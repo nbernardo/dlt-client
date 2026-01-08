@@ -1,11 +1,11 @@
-%metadata_section%import json
-import sys
+%metadata_section%from json import loads
+from sys import path
 from pathlib import Path
 
 #Adding root folder to allow import from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
-sys.path.insert(0, src_path)
-sys.path.insert(0, src_path+'/src')
+path.insert(0, src_path)
+path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import referencedSecrets%secret_manager_import%
@@ -23,5 +23,6 @@ print(f"Running the pipeline", flush=True)
 try:
     load_info = pipeline.run(data)
     print(load_info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
 except Exception as err:
     print(f'RUNTIME_ERROR:Runtime Pipeline error: {err}')

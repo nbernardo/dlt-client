@@ -231,7 +231,8 @@ export class WorkspaceService extends BaseService {
     getCsvDataSourceFields = (sourceName) => this.dataSourceFieldsMap.get(sourceName);
     
     async updateSocketId(socketId) {
-        const response = await $still.HTTPClient.post('/workcpace/socket_id/' + UserUtil.email + '/' + socketId);
+        const namespace = await UserService.getNamespace();
+        const response = await $still.HTTPClient.post('/workcpace/socket_id/' + namespace + '/' + socketId);
         if (response.ok)
             return await response.text();
         return null;
@@ -388,44 +389,48 @@ export class WorkspaceService extends BaseService {
 
     /** @returns { Array<string> | {} } */
     static async listSecrets(type, cb = () => {}) {
-        
-        const namespace = await UserService.getNamespace();
-        const url = '/secret/' + namespace, allSecrets = {};
-        const response = await $still.HTTPClient.get(url);
-
-        if (response.ok && !response.error){
-
-            const secretList = (await response.json()).result;
-            let secretAndServerList;
-
-            if((type == 2 || type == 'all') && Array.isArray(secretList?.api_secrets)){
-				secretAndServerList = secretList.api_secrets.map(secret => 
-                    ({ 
-                        name: secret, host: secretList.metadata[secret].host, 
-                        totalEndpoints: secretList.metadata[secret].totalEndpoints 
-                    })
-                );
-                if(type == 'all') allSecrets['api'] = secretAndServerList;
-            }
+        try {
             
-            if((type == 1 || type == 'all') && Array.isArray(secretList?.db_secrets)){
-                const secretNames = [];
-				secretAndServerList = secretList.db_secrets.map(secret => {
-                    if(!secretList.metadata[secret]) secretNames.push(secret);
-                    return { name: secret, host: secretList.metadata[secret] || 'None' };
-                });
-                cb({dbSecrets: secretAndServerList, secretNames});
-                if(type == 'all') allSecrets['db'] = secretAndServerList;
+            const namespace = await UserService.getNamespace();
+            const url = '/secret/' + namespace, allSecrets = {};
+            const response = await $still.HTTPClient.get(url);
+    
+            if (response.ok && !response.error){
+    
+                const secretList = (await response.json()).result;
+                let secretAndServerList;
+    
+                if((type == 2 || type == 'all') && Array.isArray(secretList?.api_secrets)){
+                    secretAndServerList = secretList.api_secrets.map(secret => 
+                        ({ 
+                            name: secret, host: secretList.metadata[secret].host, 
+                            totalEndpoints: secretList.metadata[secret].totalEndpoints 
+                        })
+                    );
+                    if(type == 'all') allSecrets['api'] = secretAndServerList;
+                }
+                
+                if((type == 1 || type == 'all') && Array.isArray(secretList?.db_secrets)){
+                    const secretNames = [];
+                    secretAndServerList = secretList.db_secrets.map(secret => {
+                        if(!secretList.metadata[secret]) secretNames.push(secret);
+                        return { name: secret, host: secretList.metadata[secret] || 'None' };
+                    });
+                    cb({dbSecrets: secretAndServerList, secretNames});
+                    if(type == 'all') allSecrets['db'] = secretAndServerList;
+                }
+                
+                if(Object.keys(allSecrets).length > 0) return allSecrets;
+                return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
+    
+            } else {
+                const result = await response.json();
+                AppTemplate.toast.error(result.result);
             }
-			
-            if(Object.keys(allSecrets).length > 0) return allSecrets;
-            return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
 
-        } else {
-            const result = await response.json();
-            AppTemplate.toast.error(result.result);
+        } catch (error) {
+            return [];
         }
-
     }
 
     /** @returns { Object } */
@@ -484,6 +489,42 @@ export class WorkspaceService extends BaseService {
             return result.result;
         else
             AppTemplate.toast.error(result.result);
+    }
+
+    /** @returns { { fields } | undefined } */
+    static async getTransformationPreview(
+        connectionName, previewScript, dbEngine = null, 
+        sourceType = null, fileSource = null
+    ) {
+        
+        const namespace = await UserService.getNamespace();
+        const url = `/${namespace}/db/transformation/preview`;
+
+        try {
+            
+            const response = await $still.HTTPClient.post(url, JSON.stringify(
+                { connectionName, previewScript, dbEngine, sourceType, fileSource }
+            ),{
+                headers: { 'content-type': 'Application/json' }
+            });
+            const result = await response.json();
+            
+            if (response.ok && !result.error)
+                return result.result;
+            else{
+                if(result.result.code === '\n')
+                    AppTemplate.toast.error('No row transformation was processed');
+                else
+                    AppTemplate.toast.error(result.result.msg);
+
+                return { ...result.result, error: true }
+            }
+
+        } catch (error) {
+            return null;
+        }
+
+
     }
 
 }

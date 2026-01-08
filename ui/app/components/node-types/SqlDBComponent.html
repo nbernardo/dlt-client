@@ -1,9 +1,16 @@
 <div class="@cmpInternalId" style="z-index: -1;">
 	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
 	<div class="title-box pipeline-node-type-title-box">
-		<div>
+		<div class="node-header-grouper">
 			<img src="@dbIcon" class="database-icon" width="22">
 			@label
+			<div class="reload-icon-wrapper">
+				<img 
+					onclick="component.reloadMe()"
+					src="app/assets/imgs/refresh-svgrepo-com.svg" 
+					class="reload-db-source" 
+					alt="">
+			</div>
 		</div>
 		<div class="statusicon">@nodeCount</div>
 	</div>

@@ -202,7 +202,7 @@
 	    background: #0056b3;
 	}
 
-	.add-btn-primary{
+	.add-btn-primary, .e2e-btn-secondary{
 		padding: 7px;
 		background: #008000b8;
 		border: none;
@@ -211,7 +211,12 @@
 		cursor: pointer;
 	}
 
+	.btn-padding-height7{ padding: 4px 7px; }
+
+	.e2e-btn-secondary{ margin-left: 18px; background: #2c3e50; }
+	
 	.add-btn-primary:hover{ background: green; }
+	.e2e-btn-secondary:hover{ margin-left: 18px; background: #17232e; }
 
 	/** End Dialog styling */
 
@@ -451,3 +456,29 @@
     }
 
 	/** End of Small Blue Menu Styling  */
+
+
+
+	.node-header-grouper{    
+		display: flex;
+		align-items: center;
+		width: 100%;
+		
+		.database-icon { width: 28px; height: 23px; padding-right: 7px; }
+
+		.reload-db-source{
+			width: 19px;
+			margin-left: 10px;
+			margin-top: 19px;
+			cursor: pointer;
+
+			border-radius: 60pc;
+			width: 22px;
+			padding: 3px;
+			background: #8b8e90;
+		}
+
+		.reload-db-source:hover{ background: #2c3e50; }
+
+		.reload-icon-wrapper{ margin-top: -56px; margin-left: 30px; position: absolute; }
+	}

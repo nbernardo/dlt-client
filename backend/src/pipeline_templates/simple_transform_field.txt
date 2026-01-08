@@ -2,7 +2,7 @@
 from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
 from typing import Iterator, Any
-import pandas as pd
+import polars as pl
 %import_from_src%
 """
 The pipeline run in a different process/sub-process
@@ -14,22 +14,26 @@ will communicate with the main process about the progress
 files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
 
 @dlt.transformer()
-def read_csv_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
+def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
     print('Starting tranformation(s)', flush=True)
     for cur_file in files_list:
         with cur_file.open() as file:
-            df = pd.read_csv(file)
+            df = pl.scan_%read_file_type%(file)
             # <transformation>
             %transformation%
+            df = df.with_columns(list(transformation.values())[0])
+            %transformation2%
+            for transform in transformations2: df = transform(df)
             # </transformation> DO NOT REMOVE THIS LINE
-            yield df.to_dict(orient="records")
+            for batch in df.collect(engine="streaming").iter_slices(n_rows=10_000):
+                yield batch.rows(named=True)
 
 
 print('Starting the pipeline', flush=True)
 
 try:
     # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
-    transformed_source = (files | read_csv_and_transform_fields()).with_name(%ppline_dest_table%)
+    transformed_source = (files | read_file_and_transform_fields()).with_name(%ppline_dest_table%)
 
     if %primary_key% != 'UNDEFINED':
         # Bellow mapping: primary_key = Bucket.primary_key
@@ -39,6 +43,7 @@ try:
 
     info = pipeline.run(transformed_source, write_disposition="merge")
     print(info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
 except Exception as err:
     print('RUNTIME_ERROR:Runtime Pipeline error')
     print(err)

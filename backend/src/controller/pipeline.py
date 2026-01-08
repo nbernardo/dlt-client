@@ -14,6 +14,7 @@ pipeline = Blueprint('pipeline', __name__)
 
 class BasePipeline:
     folder = None
+    file_folder_map = { 'data':'dbs/files', 'pipeline': 'destinations/pipeline'}
 
 
 @pipeline.route('/pipeline/create', methods=['POST','PUT'])
@@ -26,6 +27,9 @@ def create():
     context = RequestContext(pipeline_name, payload['socketSid'])
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
     context.is_code_destination = payload['codeOutput']
+
+    if('actionType' in payload):
+        context.pipeline_action = payload['actionType']
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -47,9 +51,11 @@ def create():
     context.ppline_path = ppline_path
     context.diagrm_path = diagrm_path
     context.pipeline_lbl = pipeline_lbl
+    context.pipeline_name = pipeline_name
     context.connections = connections
     context.node_params = node_params
     context.sql_destinations = sql_destinations
+    context.sql_dest = payload['sqlDest']
     context.is_cloud_url = True if is_cloud_bucket_req else False
     context.code_source = payload['codeInput']
 
@@ -226,26 +232,46 @@ def parse_transformation_task(node_params, context: RequestContext):
             transformation_count = transformation_count + 1
             node_data = node_params[id]['data']
             source_type = node_data['dataSourceType']
-            transformation_str = None
+            transformation_str, transformation_str2 = None, None
 
             if source_type == 'SQL':
                 context.transformation_ui_node_id = node_data['componentId']
                 context.transformation_type = source_type
-                tables = list(node_data['code'].keys())
+                all_tables = list(node_data['code'].keys()) + list(node_data['code2'].keys())
+                tables = []
+                [tables.append(table) for table in all_tables if table not in tables]
+                
                 transformation_str = '{'
+                transformation_str2 = ''
 
                 for table in tables:
-                    pl_script = str(node_data['code'][table])\
-                                    .replace('["','|inBracket|')\
-                                    .replace('"]','|outBracket|')+','
+
+                    if(table in node_data['code']):
+                        pl_script = str(node_data['code'][table])\
+                                        .replace('["','|inBracket|')\
+                                        .replace('"]','|outBracket|')+','
+                        
+                        transformation_str += f"\n'{table}': {pl_script}"
                     
-                    transformation_str += f"\n'{table}': {pl_script}"
+                    if(table in node_data['code2']):
+                        pl_script2 = str(node_data['code2'][table])\
+                                        .replace('["','|inBracket|')\
+                                        .replace('"]','|outBracket|')+','
+                        
+                        transformation_str2 += f"\n'{table}': {pl_script2}"
                     
                 transformation_str = transformation_str\
                                             .replace('|inBracket|','[')\
                                             .replace('|outBracket|',']')\
                                             .replace(')"',')')\
                                             .replace('"pl','pl')
+                
+                transformation_str2 = transformation_str2\
+                                            .replace('|inBracket|','[')\
+                                            .replace('|outBracket|',']')\
+                                            .replace(')"',')')\
+                                            .replace('"pl','pl')\
+                                            .replace('"lambda df','lambda df') #TODO: Improve this from UI. This is a workareound for the transformation2
                                             
             else:
                 code_lines = node_data['code'].split('\n')
@@ -269,6 +295,10 @@ def parse_transformation_task(node_params, context: RequestContext):
             if transformation_str != None:
                 transformation_str = transformation_str[0:-1] + '\n}'
                 context.transformation = transformation_str
+            
+            if transformation_str2 != None:
+                transformation_str2 = '{'+ transformation_str2 + '\n}'
+                context.transformation2 = transformation_str2
 
     return node_params
 
@@ -291,18 +321,43 @@ def set_pipeline_name(payload):
     pipeline_name = payload['activeGrid'] if 'activeGrid' in payload else ''
     pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
     return pipeline_name, pipeline_lbl
-    
+
+def handle_transform_indent(transformation: str):
+    return transformation\
+                        .replace('\n','\n\t\t\t\t')\
+                        .replace('\n\t\t\t\t{','\n\t\t\t{')\
+                        .replace('\t}','}')
+
 
 def template_final_parsing(template, pipeline_name, payload, duckdb_path, context: RequestContext = None):
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
     template = template.replace('%Dbfile_name%', pipeline_name)
+    template = template.replace('__current.PIPELINE_NAME', f"'{pipeline_name}'")
     template = template.replace('%User_folder%', payload['user'])
     # %table_format% replace might be preceeded by the DLTCodeOutput node type which
     # means that if this was stated at the node level, this one won't take any effect 
     template = template.replace('%table_format%', '')
     
     if(context.transformation):
-        template = template.replace('%transformation%', context.transformation)
+        transformation = context.transformation
+        if(context.source_type == 'BUCKET'):
+            transformation = f'transformation = {transformation}'
+            transformation = handle_transform_indent(transformation)
+            
+        template = template.replace('%transformation%', transformation)
+    
+    placeholder = '%transformation2%'
+    if(context.transformation2):
+        transformation2 = context.transformation2
+        if(context.source_type == 'BUCKET'):
+            t = '    '
+            transformation2 = context.transformation2
+            transformation2 = handle_transform_indent(transformation2)
+            transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = list(transformations2.values())[0]'
+            
+        template = template.replace(placeholder, f'transformations2 = {transformation2}')
+    else:
+        template = template.replace(placeholder, 'transformations2 = []')
     
     return template
 
@@ -456,12 +511,21 @@ def read_diagram_content(namespace, filename):
    
    
 @pipeline.route('/ppline/data/csv/<user>/<filename>')
-def read_csv_file_fields(user, filename):
+def read_csv_file_fields(user, filename: str):
     from .file_upload import BaseUpload
     file_path = BaseUpload.upload_folder+'/'+user+'/'+filename
     
-    df = pd.read_csv(file_path, nrows=1)
-    return str(df.columns)
+    if(filename.lower().endswith('csv')):
+        df = pd.read_csv(file_path, nrows=1)
+        return str(df.columns)
+
+    import polars as pl
+    if(filename.lower().endswith('parquet')):
+        return list(pl.scan_parquet(file_path).collect_schema().keys())
+
+    if(filename.lower().endswith('jsonl')):
+        return list(pl.scan_ndjson(file_path).collect_schema().keys())
+
     
 
 
@@ -505,3 +569,33 @@ def message_ai_agent(namespace):
         result = 'No medatata was loaded about your namespace.'\
               if str(error).strip() == namespace else 'Could not load details about your namespace.'
         return { 'error': True, 'result': { 'result': result } }
+
+
+@pipeline.route('/<namespace>/db/transformation/preview', methods=['POST'])
+def preview_transformation(namespace):
+
+    try:
+
+        payload = request.get_json()
+        
+        preview_script = payload['previewScript']
+        source_type = payload['sourceType']
+
+        if(source_type == 'BUCKET'):
+            base_path = str(BasePipeline.folder).replace('/destinations','')
+            fiile_path = f'{base_path}/{BasePipeline.file_folder_map['data']}/{namespace}/'
+            preview_script = preview_script.replace('%pathToFile%/',fiile_path)
+            preview_result = DltPipeline.get_file_data_transformation_preview(preview_script)
+        else:
+            connection_name = payload['connectionName']
+            dbengine = payload['dbEngine']
+            preview_result = DltPipeline.get_sqldb_transformation_preview(
+                namespace, dbengine,connection_name, preview_script
+            )
+        return preview_result
+    
+    except Exception as err:
+        error = f'Error while running transformation preview {str(err)}'
+        print(error)
+        traceback.print_exc()
+        return { 'error': True, 'result': { 'result': err } }

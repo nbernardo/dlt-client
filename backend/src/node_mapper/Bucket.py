@@ -25,16 +25,21 @@ class Bucket(TemplateNodeType):
                 self.template = DltPipeline.get_template()\
                                     if context.transformation == None else DltPipeline.get_transform_template()
             
-            self.template = self.parse_destination_string(self.template)
+            n = '\n    ' if self.context.transformation != None else '\n'
+            self.template = self.parse_destination_string(self.template, n)
+            self.context.source_type = 'BUCKET'
 
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself
             if data is None: return None
             if len(data.keys()) == 0: return None
 
-            self.namespace = data['namespace']
+            self.parse_to_literal = ['read_file_type']
 
+            self.namespace = data['namespace']
+            self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
             self.component_id = data['componentId']
+
             user_folder = BaseUpload.upload_folder+'/'+context.user
 
             self.context.emit_start(self, '')

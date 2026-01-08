@@ -2,12 +2,12 @@
 from dlt.sources.helpers.rest_client import RESTClient
 import requests
 from pathlib import Path
-import sys
+from sys import path
 %auth_strategy%
 #Adding root folder to allow import from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
-sys.path.insert(0, src_path)
-sys.path.insert(0, src_path+'/src')
+path.insert(0, src_path)
+path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
@@ -105,3 +105,4 @@ dest_folder = Workspace.get_duckdb_path_on_ppline()
 
 load_info = pipeline.run(get_api_data())
 print(load_info, flush=True)
+print('RUN_SUCCESSFULLY', flush=True)

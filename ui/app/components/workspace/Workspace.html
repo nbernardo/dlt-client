@@ -112,11 +112,16 @@
 					<div id="drawflow" (showIf)="self.showDrawFlow" ondrop="controller.drop(event)"
 						ondragover="controller.allowDrop(event)">
 
-						<div style="display: flex;" class="clearAndSaveButton">
-							<div class="btn-clear clear-workspace-btn" style="right: 94px;"
-								onclick="component.resetWorkspace()">Clear</div>
-							<div class="btn-export save-pipeline-btn" (showIf)="self.showSaveButton"
+						<div style="position: absolute; right: 0;" class="clearAndSaveButton">
+							<div class="btn-clear clear-workspace-btn" style="margin-left: 89px; position: relative;"
+								onclick="component.resetWorkspace()">Clear
+							</div>
+							<div class="btn-export save-pipeline-btn save-and-run-pipeline-btn" (showIf)="self.showSaveButton"
 								onclick="component.savePipeline()">
+								<i class="fa fa-play"></i> Run & Save
+							</div>
+							<div class="btn-export save-pipeline-btn" (showIf)="self.showSaveButton"
+								onclick="component.savePipeline('onlysave')">
 								<i class="fa fa-save"></i> Save
 							</div>
 							<div class="btn-export update-pipeline-btn" (showIf)="!self.showSaveButton"
@@ -146,5 +151,9 @@
 			</div>
 		</div>
 </div>
-
+<style>
+	.save-pipeline-btn, .update-pipeline-btn{ position: relative; margin-left: 4px; }
+	.update-pipeline-btn{ right: 25px; }
+	.save-and-run-pipeline-btn { background: #008000d6; }
+</style>
 <div class="ai-agent-placeholder" (showIf)="self.openAgent"></div>

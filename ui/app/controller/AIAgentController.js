@@ -4,6 +4,7 @@ import { AIResponseLinterUtil } from "../components/agent/AIResponseLinterUtil.j
 import { agentOptions, aiStartOptions, BOT, botSubRoutineCall, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt } from "../components/agent/chatbotbrain/main.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { WorkspaceService } from "../services/WorkspaceService.js";
+import { dataToTable } from "../util/dataPresentationUtil.js";
 import { NodeTypeEnum, WorkSpaceController } from "./WorkSpaceController.js";
 
 export class AIAgentController extends BaseController {
@@ -156,27 +157,7 @@ export class AIAgentController extends BaseController {
         return { message: userPrompt, botResponse };
     }
 
-    dataToTable(data, title = null){
-
-        const headerStyle = 'style="background: #808080b5; color: white; font-weight: bold;"';
-        let rows = Object.values(Object.values(data)), tableBody = '';
-        const fields = Object.keys(rows[0]);
-        const header = `${fields.map(field => `<td>${field}</td>`).join('')}`;
-        title = title != null ? `<tr ${headerStyle}><td colspan="${fields.length}">${title}</td></tr>` : '';
-
-        for(const row of rows)
-            tableBody += `<tr>${fields.map(field => `<td>${row[field]}</td>`).join('')}</tr>`;
-        
-        return `<table>
-                    <thead>
-                        ${title}
-                        <tr ${headerStyle}>${header}</tr>
-                    </thead>
-                    <tbody>${tableBody}</tbody>
-                </table>
-                `;
-
-    }
+    dataToTable = (data, title = null) => dataToTable(data, title);
 
     initialAiAgentOptions(complementMessage, agentInstance){
         let content = `

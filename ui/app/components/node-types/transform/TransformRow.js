@@ -3,6 +3,7 @@ import { ViewComponent } from "../../../../@still/component/super/ViewComponent.
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { Transformation } from "../Transformation.js";
+import { TransformExecution } from "../util/tranformation.js";
 
 export const TRANFORM_ROW_PREFIX = 'transformRow';
 
@@ -21,30 +22,29 @@ export class TransformRow extends ViewComponent {
 	/** @Prop */ isImport;
 	/** @Prop */ databaseFields; //This is in particular when the data source is DB (e.g. SQL)
 	/** @Prop */ configData = null; // This is only used when importing/reviewing a previous created node
+	/** @Prop */ isNewField = false; // This is for shiwing input text for new field name creation
 
 	dataSourceList;
 	selectedSource;
 	selectedField;
 	selectedType;
-	transformation;
+	transformation = '';
 	separatorChar;
 	fieldList = []; //Setting initial value
 
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport }) {
-		this.fieldList = tablesFieldsMap;
+	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField }) {
+		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
-		
-		//if (importFields) this.configData = { ...importFields, dataSources };
-		this.configData = { ...importFields, dataSources };
-		
+		this.configData = { ...importFields, dataSources };		
+		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;
 	}
 
 	async stAfterInit() {
 		
-		this.$parent.transformPieces.set(this.rowId, {});
+		this.$parent.transformPieces.set(this.rowId, { isNewField : this.isNewField });
 		const tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails?.tables;
 		
 		this.dataSourceList = this.configData.dataSources;
@@ -88,7 +88,9 @@ export class TransformRow extends ViewComponent {
 				}
 			}
 
-			this.fieldList = fieldList;
+			fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
+			
+			this.fieldList = [{name: '- No Field -'}, ...fieldList];
 			this.updateTransformValue({ dataSource });
 		});
 
@@ -98,6 +100,9 @@ export class TransformRow extends ViewComponent {
 		this.selectedSource.onChange(table => this.updateTransformValue({ table }));
 
 		this.selectedType.onChange(value => {
+			if(value?.trim() === 'FILTER' && this.selectedField.value !== '- No Field -')
+				this.selectedField = '- No Field -';
+
 			this.transformType = value?.trim();
 			this.updateTransformValue({ type: this.transformType });
 		});
@@ -118,8 +123,10 @@ export class TransformRow extends ViewComponent {
 		field !== undefined ? this.selectedField = field : '';
 		type !== undefined ? this.selectedType = type : '';
 
-		if (type === 'CODE') document.getElementById(`${this.rowId}-code`).value = transform;
-		this.transformation = transform;
+		if (type === 'CODE') document.getElementById(`${this.rowId}-codeTransform`).value = transform;
+		if (type === 'FILTER') document.getElementById(`${this.rowId}-filterTransform`).value = transform;
+		if (type === 'CALCULATE') document.getElementById(`${this.rowId}-calcTransform`).value = transform;
+		this.transformation = (transform || '');
 	}
 
 	updateTransformValue(value) {
@@ -133,8 +140,7 @@ export class TransformRow extends ViewComponent {
 			obj.unload();
 			obj.$parent.removeField(obj.rowId);
 		}
-
-		if (this.configData !== null && this.$parent.confirmModification === false) 
+		if (this.configData !== null && this.$parent.confirmModification === false && this.isImport) 
 			return this.$parent.confirmActionDialog(handleDeletion);
 		handleDeletion(this);
 	}
@@ -144,4 +150,6 @@ export class TransformRow extends ViewComponent {
 		const pkRelatedField = self.relatedFields[0];
 		pkRelatedField.setDataSource(data.fields);
 	}
+
+	displayTransformationError = (error) => TransformExecution.validationErrDisplay(this.rowId, error);
 }

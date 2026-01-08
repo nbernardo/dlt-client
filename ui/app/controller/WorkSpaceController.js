@@ -871,7 +871,8 @@ export class WorkSpaceController extends BaseController {
     loadMonacoEditor(container, params = monacoLoadInitVal){
 		
         const { lang, fontSize, theme, suggestions, suggestionType } = params;
-        if(suggestionType === 'secret') CodeEditorUtil.addSecretSugestion(lang, suggestions)
+        const __current = [{label: 'PIPELINE_NAME', kind: 27, insertText: 'PIPELINE_NAME', insertTextRules: 4}];
+        if(suggestionType === 'secret') CodeEditorUtil.addSecretSugestion(lang, suggestions, { __current });
 
 		return window.monaco.editor.create(container, {
 			value: this.query, language: lang,
@@ -898,7 +899,7 @@ export class WorkSpaceController extends BaseController {
         }
     }
 
-    handleNodeMinimize(icon, minimizedWidth){
+    handleNodeMinimize(icon, minimizedWidth, nodeType){
         const mainContainer = icon.parentNode;
         const outerContainer = icon.parentNode.parentNode.parentNode;
 		if(mainContainer.classList.contains('minimize-node')){
@@ -907,12 +908,18 @@ export class WorkSpaceController extends BaseController {
 			mainContainer.classList.remove('minimize-node');
             icon.innerHTML = '_';
             icon.style.height = '27px';
+            if(nodeType === 'transform')
+                mainContainer.querySelector('.statusicon').style.width = '20px';
+
         }else{
             mainContainer.normalWidth = outerContainer.style.width;
 			mainContainer.classList.add('minimize-node');
             outerContainer.style.width = minimizedWidth;
             icon.innerHTML = '+';
             icon.style.height = '15px';
+
+            if(nodeType === 'transform')
+                mainContainer.querySelector('.statusicon').style.width = '56px';
         }
     }
 

@@ -110,6 +110,13 @@ export class DatabaseOutput extends ViewComponent {
 		this.secretList = (await WorkspaceService.listSecrets(1)).filter(itm => itm.host != 'None');
 	}
 
+	async reloadMe(){
+		this.showLoading = true;
+		await this.getDBSecrets();
+		this.selectedSecret = '';
+		this.showLoading = false;
+	}
+
 	updateConnection(){
 		const connectionName = this.tableName !== null ? this.tableName : this.selectedSecret.value;
 		if(this.isConnected){

@@ -35,7 +35,7 @@ class TemplateNodeType:
             return self.context.FAILED
     
 
-    def parse_destination_string(self, template: str):
+    def parse_destination_string(self, template: str, n = None):
         
         destinations = self.context.sql_destinations
         template_type = None
@@ -43,15 +43,16 @@ class TemplateNodeType:
         if self.__dict__.__contains__('template_type'):
             template_type = self.template_type
 
-        if len(destinations) > 0:
+        if len(destinations) > 0 and self.context.sql_dest == True:
             destination_string = "dlt.destinations.sqlalchemy(credentials=dbcredentials)"
             if template_type == 'non_database_source':
                 # TODO: Implement this scenario
-                template = self.parse_nondb_source_pipeline_template(template, template_type, destinations)
+                template = self.parse_nondb_source_pipeline_template(template, template_type, destinations, n)
             else:
                 template = self.parse_pipeline_template(template, template_type)
         else:
-            n = '\n    ' if self.context.transformation else '\n' # New line character
+            if(n == None):
+                n = '\n' if self.context.transformation else '\n    ' # New line character
             template = self.regular_template_destination_config(n, template)
             # Remove placeholder for in-file pipeline metadata (e.g. destination tables when SQL DB)
             template = template.replace('%metadata_section%','')
@@ -91,7 +92,7 @@ class TemplateNodeType:
         return template.replace('%dest_secret_code%',secret_code)
             
 
-    def parse_nondb_source_pipeline_template(self, template, template_type, destinations):
+    def parse_nondb_source_pipeline_template(self, template, template_type, destinations, n):
         dest_table_name = str(destinations[0]).lower().strip().replace(' ','_')
         has_tranformation = self.context.transformation != None
 
@@ -101,11 +102,12 @@ class TemplateNodeType:
         template = template.replace('%metadata_section%',metadata_section)
 
         if self.context.transformation_type == 'SQL':
-            n = '\n'
+            n = n if n != None else '\n'
             template = self.transform_template_destination_config(n, template)
         else:
             # n variable is to add a new line and alikely space * 4 (corresponding to tab)
-            n = '\n    ' if (template_type == 'sql_database' or has_tranformation) else '\n'
+            if n == None:
+                n = '\n    ' if (template_type == 'sql_database' or has_tranformation) else '\n'
             template = self.regular_template_destination_config(n, template)
 
         # Edge case for when the pipeline has transformation

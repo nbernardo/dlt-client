@@ -2,12 +2,12 @@
 import polars as pl
 from sqlalchemy import create_engine
 from pathlib import Path
-import sys
+from sys import path
 
 #Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
-sys.path.insert(0, src_path)
-sys.path.insert(0, src_path+'/src')
+path.insert(0, src_path)
+path.insert(0, src_path+'/src')
 
 from src.services.workspace.SecretManager import SecretManager
 from src.services.workspace.Workspace import Workspace
@@ -42,7 +42,7 @@ schemas = %schemas%
 # Bellow mapping is parse on transformation 
 # controller.pipeline.template_final_parsing
 transformations = %transformation%
-
+%transformation2%
 @dlt.source
 def polars_db_source(tables: list[str], tables_pk: list[str]):
 
@@ -53,16 +53,23 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
             schema, table = table_name.split(".")
             select_columns = SQLServerUtil.column_type_conversion([], engine.connect(), table, schema)
             
-            df = pl.read_database(f"SELECT {select_columns} FROM {table_name}", engine)
-            print(f'fetch data from {table_name}', flush=True)
+            for df in pl.read_database(
+                query=f"SELECT {select_columns} FROM {table_name}",
+                connection=engine,
+                iter_batches=True,
+                batch_size=10_000,
+            ):
+                print(f'fetch data chunk from {table_name}', flush=True)
 
-            # Apply table-specific transformations
-            if transformations.get(table_name, None) != None:
-                df = df.with_columns(transformations[table_name])
-                print(f'applied transformation for {table_name}', flush=True)
+                # Apply table-specific transformations
+                if transformations.get(table_name, None) != None:
+                    df = df.with_columns(transformations[table_name])
+                    print(f'applied transformation for {table_name}', flush=True)
+                # Transformation with not column format change (e.g. dedup, column drop)
+                if table_name in transformations2:
+                    for transform in transformations2[table_name]: df = transform(df)
 
-            for row in df.iter_rows(named=True):
-                yield row
+                for row in df.iter_rows(named=True): yield row
 
         return load_table.apply_hints(primary_key=pk)
 
@@ -81,4 +88,5 @@ source = polars_db_source(tables, tables_pk)
 print(f'Running the pipeline', flush=True)
 load_info = pipeline.run(source)
 
-print(load_info)
+print(load_info, flush=True)
+print('RUN_SUCCESSFULLY', flush=True)

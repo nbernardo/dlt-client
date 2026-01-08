@@ -29,6 +29,7 @@ export class SqlDBComponent extends AbstractNode {
 	/** @Prop */ tablesFieldsMap;
 	/** @Prop */ dbIcon = databaseIcons.generic;
 	/** @Prop */ selectedTablesName = {};
+	/** @Prop */ removeAddedTableCallbacks = [];
 
 	selectedSecretTableList = [];
 	selectedTableList = [];
@@ -206,8 +207,16 @@ export class SqlDBComponent extends AbstractNode {
 
 	/** Brings the existing Databases secret */
 	async getDBSecrets(){
-		const dbSecretType = 1;		
+		const dbSecretType = 1;	
 		this.secretList = (await WorkspaceService.listSecrets(dbSecretType)).filter(itm => itm.host != 'None');
+	}
+
+	async reloadMe(){
+		this.showLoading = true;
+		await this.getDBSecrets();
+		this.selectedSecret = '';
+		this.showLoading = false;
+		this.removeAddedTableCallbacks.forEach((func) => func());
 	}
 
 	addField(){

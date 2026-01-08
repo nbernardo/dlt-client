@@ -16,3 +16,4 @@ if %primary_key% != 'UNDEFINED':
 
 info = pipeline.run(reader,write_disposition="merge")
 print(info, flush=True)
+print('RUN_SUCCESSFULLY', flush=True)
