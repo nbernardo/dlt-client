@@ -5,7 +5,6 @@ import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
-import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class InputAPI extends AbstractNode {
@@ -71,13 +70,13 @@ export class InputAPI extends AbstractNode {
 	}
 
 	onOutputConnection(){
-		NodeUtil.handleOutputConnection(this);
+		InputAPI.handleOutputConnection(this);
 		return { nodeCount: this.nodeCount.value };
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
-		NodeUtil.handleInputConnection(this, data, type);
+		InputAPI.handleInputConnection(this, data, type);
 	}
 
 }

@@ -4,7 +4,6 @@ import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { loadTemplate } from "../util/codeTemplateUtil.js";
-import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class DLTCodeOutput extends AbstractNode {
@@ -151,13 +150,13 @@ export class DLTCodeOutput extends AbstractNode {
 	}
 
 	onOutputConnection(){
-		NodeUtil.handleOutputConnection(this);
+		DLTCodeOutput.handleOutputConnection(this);
 		return { nodeCount: this.nodeCount.value };
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
-		NodeUtil.handleInputConnection(this, data, type);
+		DLTCodeOutput.handleInputConnection(this, data, type);
 	}
 	
 }

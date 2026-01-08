@@ -9,7 +9,6 @@ import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { databaseEnginesList, databaseIcons } from "./util/databaseUtil.js";
 import { addSQLComponentTableField } from "./util/formUtil.js";
-import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class SqlDBComponent extends AbstractNode {
@@ -255,7 +254,7 @@ export class SqlDBComponent extends AbstractNode {
 	}
 
 	onOutputConnection(){
-		NodeUtil.handleOutputConnection(this);
+		SqlDBComponent.handleOutputConnection(this);
 		return {
 			tables: this.selectedSecretTableList?.value?.map(table => ({ name: table, file: table })),
 			sourceNode: this,
@@ -265,7 +264,7 @@ export class SqlDBComponent extends AbstractNode {
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
-		NodeUtil.handleInputConnection(this, data, type);
+		SqlDBComponent.handleInputConnection(this, data, type);
 	}
 
 }

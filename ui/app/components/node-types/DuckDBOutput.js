@@ -2,7 +2,6 @@ import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
-import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class DuckDBOutput extends AbstractNode {
@@ -88,7 +87,7 @@ export class DuckDBOutput extends AbstractNode {
 
 	/** @param {InputConnectionType<{}>} param0  */
 	onInputConnection({data, type}){
-		NodeUtil.handleInputConnection(this, data, type);
+		DuckDBOutput.handleInputConnection(this, data, type);
 	}
 
 }
