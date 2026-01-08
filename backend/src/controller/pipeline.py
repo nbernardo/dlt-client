@@ -51,6 +51,7 @@ def create():
     context.ppline_path = ppline_path
     context.diagrm_path = diagrm_path
     context.pipeline_lbl = pipeline_lbl
+    context.pipeline_name = pipeline_name
     context.connections = connections
     context.node_params = node_params
     context.sql_destinations = sql_destinations

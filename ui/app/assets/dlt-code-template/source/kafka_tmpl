@@ -1,7 +1,7 @@
 import dlt
 from kafka import KafkaConsumer
 from certifi import where
-from json import loads
+from json import loads, JSONDecodeError
 
 @dlt.source
 def data_source():
@@ -38,7 +38,7 @@ def data_source():
                     for record in data
                 )
                                 
-            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            except (JSONDecodeError, UnicodeDecodeError) as e:
                 print(f"Skipping non-JSON message at offset {message.offset}: {e}")
                 continue
             except Exception as e:

@@ -1,4 +1,4 @@
-%metadata_section%import json
+%metadata_section%from json import loads
 from sys import path
 from pathlib import Path
 

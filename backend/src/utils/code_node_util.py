@@ -1,0 +1,31 @@
+import re
+
+valid_imports = [
+    'import dlt',
+    'import polars as pl',
+    'import pandas as pd',
+    'from dlt.sources.credentials import ConnectionStringCredentials',
+    'from pathlib import Path',
+    'from sys import path',
+    'from src.services.workspace.Workspace import Workspace',
+    'from src.services.workspace.SecretManager import SecretManager',
+    'from src.services.workspace.SecretManager import referencedSecrets',
+    'from src.utils import SQLServerUtil',
+    'from dlt.sources.sql_database import sql_database, sql_table',
+    'from os import getenv as env',
+    'from src.utils.SQLDatabase import normalize_table_names, converts_field_type',
+    'from sqlalchemy import create_engine',
+    'from kafka import KafkaConsumer',
+    'from certifi import where',
+    'from json import loads',
+    'from json import loads, JSONDecodeError',
+    'from pymongo import MongoClient'
+]
+
+FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
+
+FORBIDDEN_CALLS_REGEX = re.compile(
+    r'(?<![.\w])\b(exec|eval|compile|open|__import__|input|getattr|setattr|delattr|globals|locals|vars|dir|help)\s*\('
+    r'|\b(__builtins__|builtins)\s*\.\s*(exec|eval|compile|open|__import__|input|getattr|setattr|delattr|globals|locals|vars|dir|help)\b'
+    r'|\b\w+\s*=\s*(?<![.\w])(exec|eval|compile|open|__import__|input|getattr|setattr|delattr|globals|locals|vars|dir|help)\b'
+)

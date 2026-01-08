@@ -32,6 +32,7 @@ class DLTCodeOutput(TemplateNodeType):
 
         # destination_settings is mapped in /pipeline_templates/dlt_code.txt
         self.destination_settings = re.sub(import_stmnt,'',data['dltCode'])
+        self.destination_settings = self.destination_settings.replace('__current.PIPELINE_NAME', f"'{context.pipeline_name}'")
         no_transformation = True if self.context.transformation == None else False
 
         if len(context.sql_destinations) > 0:

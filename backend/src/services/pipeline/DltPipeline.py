@@ -13,6 +13,7 @@ from utils.SQLDatabase import SQLDatabase
 import uuid
 from datetime import datetime
 import time
+from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS_REGEX
 
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
@@ -67,6 +68,11 @@ class DltPipeline:
         """
         This is the pipeline new version creation
         """
+        try:
+            check_invalid_code(data)
+        except RuntimeError as err:
+            return { 'error': True, 'status': False, 'message': str(err) }
+        
         is_sql_destination = len(context.sql_destinations) > 0
         is_code_to_code_ppline = context.code_source and context.is_code_destination
         does_have_metadata = is_sql_destination == True or is_code_to_code_ppline == True
@@ -551,7 +557,6 @@ def clear_job_transaction_id(job_transaction_id):
 
 
 import ast
-FORBIDDEN_CALLS = {"eval", "exec", "compile", "open", "__import__"}
 
 def check_unsafe_statements(code):
     """
@@ -572,8 +577,30 @@ def check_unsafe_statements(code):
             #    raise ValueError("Attribute calls are not allowed")
 
 
-import resource
-import signal
+def check_invalid_code(code):
+    """
+    Raises ValueError if code contains disallowed statements or function calls
+    """
+    
+    code_lines = str(code).split('\n')
+
+    for line in code_lines:
+
+        if FORBIDDEN_CALLS_REGEX.search(line):
+            raise RuntimeError('Invalid code provided which might cause security breach')
+
+        line_of_code = line.strip()
+        is_from_import = line_of_code.startswith('from ')\
+              and line.strip().__contains__(' import ')
+        
+        is_import = line_of_code.strip().startswith('import ')
+
+        if(is_from_import or is_import):
+            if not(line_of_code in valid_imports):
+                raise RuntimeError('Invalid code provided which might cause security breach')
+
+
+
 from utils.SQLServerUtil import column_type_conversion
 from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy import inspect

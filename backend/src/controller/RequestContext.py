@@ -46,11 +46,15 @@ class RequestContext:
         self.pipeline_action = None
         self.success_emitted = None
 
+        from node_mapper.TemplateNodeType import TemplateNodeType
+        self.first_node: TemplateNodeType = None
+
         self.connections = None
         self.node_params = None 
         self.ppline_path = None
         self.diagrm_path = None
         self.pipeline_lbl = None
+        self.pipeline_name = None
         self.is_cloud_url = False
         # Flaged true in case the data source is code 
         self.code_source = False
