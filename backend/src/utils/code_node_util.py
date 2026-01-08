@@ -19,7 +19,8 @@ valid_imports = [
     'from certifi import where',
     'from json import loads',
     'from json import loads, JSONDecodeError',
-    'from pymongo import MongoClient'
+    'from pymongo import MongoClient',
+    'from src.services.workspace.SecretManager import referencedSecrets,SecretManager'
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
