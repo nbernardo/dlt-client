@@ -1,1 +1,0 @@
-This folder holds the .duckdb file, do not remove
