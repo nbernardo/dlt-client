@@ -483,6 +483,7 @@ export class Workspace extends ViewComponent {
 
 	async viewPipelineDiagram(event, pplineName) {
 		event.preventDefault();
+		pplineName = this.leftMenuProxy.currentDBFile;
 		const self = this;
 		AppTemplate.showLoading();
 		if (this.checkActiveDiagram())

@@ -136,9 +136,13 @@ export class LeftTabs extends ViewComponent {
 	pipelineTreeViewTemplate(dbfile, flag){
 		return `<div class="ppline-treeview">
 					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
-					<span tooltip="Show pipeline diagram" tooltip-x="-160" 
-						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span>
+					<!-- <span tooltip="Show pipeline diagram" tooltip-x="-160" 
+						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span> -->
 				</div>
+				<span class="pipeline-menu-holder" onclick="self.showPipelineOptions($event,'${dbfile}')">
+					<img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+					<div class="pipeline-menu-wrapper pipeline-menu-wrap-${dbfile}"></div>
+				</span>
 				${flag != undefined ? '<span class="pipeline-locked">In use by another proces/job, try after completion.<span>': ''}
 				`;
 	}
@@ -258,6 +262,26 @@ export class LeftTabs extends ViewComponent {
 
 	/** @template */
 	viewPipelineDiagram(event, dbfile){}
+
+	/** @Prop */ currentDBFile;
+
+	/** @template */
+	showPipelineOptions(event, dbfile){
+		event.preventDefault();
+		this.currentDBFile = dbfile;
+		this.renderDropDownMenu(dbfile);
+	}
+
+	renderDropDownMenu(dbfile){
+		const content = document.querySelector('.pipeline-submenu-contents').innerHTML;
+		const target = document.querySelector(`.pipeline-menu-wrap-${dbfile}`);
+		target.style.display = '';
+		target.innerHTML = content;
+		document.addEventListener('click', (event) => {
+			if(event.target.classList.contains('dots')) return;
+			target.style.display = 'none';
+		});
+	}
 
 	async startAIAssistant(retry = false){
 		this.selectTab('content-ai'); 

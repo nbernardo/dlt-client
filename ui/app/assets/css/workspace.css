@@ -477,8 +477,34 @@
 			padding: 3px;
 			background: #8b8e90;
 		}
-
 		.reload-db-source:hover{ background: #2c3e50; }
-
 		.reload-icon-wrapper{ margin-top: -56px; margin-left: 30px; position: absolute; }
 	}
+
+.pipeline-menu-holder{
+
+	margin-right: 6px;
+	border: none;
+	float: right;
+	margin-top: -29px;
+
+	img {
+		width: 13px;
+		padding: 0;
+		margin-top: -4px;					
+	}
+	
+	.pipeline-menu-wrapper{
+		position: absolute;
+		z-index: 10000;
+		margin-left: -136px;
+		width: 150px;
+		margin-top: -7px;
+		background: #2c3e50;
+		background: #2c3e50e3;
+		color: white;
+		font-size: 13px;
+		border-radius: 5px;
+	}
+
+}
