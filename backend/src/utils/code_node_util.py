@@ -20,7 +20,22 @@ valid_imports = [
     'from json import loads',
     'from json import loads, JSONDecodeError',
     'from pymongo import MongoClient',
-    'from src.services.workspace.SecretManager import referencedSecrets,SecretManager'
+    'from src.services.workspace.SecretManager import referencedSecrets,SecretManager',
+    'from dlt.sources.filesystem import filesystem, read_csv',
+    'from dlt.sources import TDataItems',
+    'from typing import Iterator, Any',
+    'import requests',
+    'from src.utils.APIClientUtil import PaginateParam',
+    'import boto3',
+    'from botocore import UNSIGNED',
+    'from botocore.client import Config',
+    'import fnmatch',
+    'from dlt.sources.filesystem import filesystem, FileItemDict',
+    'import fnmatch',
+    'import fnmatch',
+    'import fnmatch',
+    'import fnmatch',
+    'import fnmatch',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
