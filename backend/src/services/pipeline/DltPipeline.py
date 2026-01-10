@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime
 import time
 from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS_REGEX, FORBIDDEN_DUNDER_REGEX
-
+import schedule
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
 destinations_dir = f'{root_dir}/destinations/pipeline'
@@ -496,6 +496,18 @@ class DltPipeline:
                         namespace='{namespace}'\
                         and ppline_name='{ppline}'"
         cnx.execute(query)
+
+        if is_paused != 'paused':
+            from services.workspace.Workspace import Workspace
+            Workspace.schedule_pipeline_job(namespace, ppline)
+        else:
+            tag_name = f'{namespace}_{ppline}'
+            if schedule.get_jobs(tag_name):
+                schedule.clear(tag_name)
+
+            if schedule.get_jobs(f'{tag_name}-tracinglog'):
+                schedule.clear(f'{tag_name}-tracinglog')
+                        
 
 
     @staticmethod

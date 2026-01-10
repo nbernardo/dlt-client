@@ -509,7 +509,7 @@ class Workspace:
     
 
     @staticmethod
-    def get_ppline_schedule(namespace = None):
+    def get_ppline_schedule(namespace = None, ppline = None):
 
         field_names = [
             'id','ppline_name','schedule_settings','namespace',
@@ -522,6 +522,8 @@ class Workspace:
                 DuckdbUtil.create_ppline_schedule_table()
 
             where = f"WHERE namespace = '{namespace}'" if namespace != None else ''
+            where = f"{where} AND ppline_name = '{ppline}'" if ppline != None else where
+
             cnx = DuckdbUtil.get_workspace_db_instance()
             cursor = cnx.cursor()
             query = f"SELECT {','.join(field_names)} FROM {table} {where}"
@@ -568,33 +570,38 @@ class Workspace:
 
 
     @staticmethod
-    def schedule_pipeline_job():
-        result = Workspace.get_ppline_schedule()
+    def schedule_pipeline_job(namespace = None, ppline = None):
+        result = Workspace.get_ppline_schedule(namespace, ppline)
         if result['error'] != True:
             schedules = result['data'] if 'data' in result else {}
         
             for ppline_name, sched in schedules.items():
                 is_paused = sched['is_paused']
-                if is_paused: continue
+                if is_paused == 'paused': continue
 
                 namespace = sched['namespace']
                 type = sched['type']
                 periodicity = sched['periodicity']
                 time = int(sched['time'])
                 file_path = f'{namespace}/{ppline_name}'
-                
+                tag_name = f'{namespace}_{ppline_name}'
+
                 if(Workspace.schedule_jobs.get(file_path,None) != True):
                     if(type == 'min'):
-                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
+                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
                     if(type == 'hour'):
-                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, namespace)
+                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
 
                     print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
                     Workspace.schedule_jobs[file_path] = True
 
-            while True:
-                schedule.run_pending()
-                timelib.sleep(1)
+            # The infinit loop will be running in a separate thread
+            # which will consider all scheduled jobs, when if specified
+            # the jobe name (whithin a namespace), it'll run in the mai thread
+            if namespace == None and ppline == None:
+                while True:
+                    schedule.run_pending()
+                    timelib.sleep(1)
         else:
             ...
 
