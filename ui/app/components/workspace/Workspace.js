@@ -570,11 +570,13 @@ export class Workspace extends ViewComponent {
 		const result = await this.service.schedulePipeline(JSON.stringify(payload));
 		if ([false, 'failed'].includes(result))
 			AppTemplate.toast.error('Error while scheduling job for ' + this.activeGrid.value);
-		else
+		else{
 			AppTemplate.toast.success('New schedule for ' + this.activeGrid.value + ' created successfully');
+			await this.leftMenuProxy.showHideDatabase();
+		}
 
 		const response = await WorkspaceService.getPipelineSchedules();
-		this.headerProxy.scheduledPipelines = response.data;
+		this.headerProxy.scheduledPipelines = response;
 		this.schedulePeriodicity = '';
 		this.scheduleTime = '';
 		btnPipelineSchedule.disabled = false;

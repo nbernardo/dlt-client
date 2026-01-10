@@ -481,6 +481,12 @@
 		.reload-icon-wrapper{ margin-top: -56px; margin-left: 30px; position: absolute; }
 	}
 
+.pipeline-menu-holder-table {
+	float: right !important;		
+	margin-top: 0 !important;		
+	margin-right: 10px !important;
+}
+
 .pipeline-menu-holder{
 
 	margin-right: 6px;
@@ -488,13 +494,10 @@
 	float: right;
 	margin-top: -29px;
 
-	img {
-		width: 13px;
-		padding: 0;
-		margin-top: -4px;					
-	}
+	.pipeline-menu-dots { width: 13px; padding: 0; margin-top: -4px; }
+	.scheduled-pipeline-icone { position: absolute; margin-left: -11px; margin-top: 5px; }
 	
-	.pipeline-menu-wrapper{
+	.pipeline-menu-wrapper, .pipeline-table-menu-wrapper {
 		position: absolute;
 		z-index: 10000;
 		margin-left: -136px;
