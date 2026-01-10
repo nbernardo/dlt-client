@@ -42,8 +42,9 @@ def list_pipelines(user, socket_id):
     ppelines_path = BasePipeline.folder+'/pipeline/'+user+'/'
     duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+user+'/'
 
-    ppelines = Workspace.list_pipeline_from_files(ppelines_path)
-    duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user,ppelines)
+    pipeline_schedules = Workspace.get_ppline_schedule(user)
+    ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
+    duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user, ppelines, pipeline_schedules)
     
     errors_list = None
 

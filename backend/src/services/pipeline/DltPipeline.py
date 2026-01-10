@@ -13,7 +13,7 @@ from utils.SQLDatabase import SQLDatabase
 import uuid
 from datetime import datetime
 import time
-from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS_REGEX
+from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS_REGEX, FORBIDDEN_DUNDER_REGEX
 
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
@@ -488,6 +488,17 @@ class DltPipeline:
 
 
     @staticmethod
+    def update_pipline_pause_status(namespace, ppline, is_paused):
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = f"UPDATE ppline_schedule\
+                    SET is_paused='{is_paused}'\
+                    WHERE\
+                        namespace='{namespace}'\
+                        and ppline_name='{ppline}'"
+        cnx.execute(query)
+
+
+    @staticmethod
     def get_pipline_runtime(namespace, ppline):
         time = datetime.now()
         cnx = DuckdbUtil.get_workspace_db_instance()
@@ -586,7 +597,7 @@ def check_invalid_code(code):
 
     for line in code_lines:
 
-        if FORBIDDEN_CALLS_REGEX.search(line):
+        if FORBIDDEN_CALLS_REGEX.search(line) or FORBIDDEN_DUNDER_REGEX.search(line):
             raise RuntimeError('Invalid code provided which might cause security breach')
 
         line_of_code = line.strip()
