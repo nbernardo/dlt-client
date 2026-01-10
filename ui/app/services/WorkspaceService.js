@@ -541,7 +541,7 @@ export class WorkspaceService extends BaseService {
         const result = await response.json();
         
         if (response.ok && !result.error){
-            AppTemplate.toast.success('Pipeline scheduled job paused');
+            AppTemplate.toast.success(`Pipeline scheduled job ${pplineJobStatus === 'paused' ? pplineJobStatus : 'resumed'}`);
             return true;
         }
         else
