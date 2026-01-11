@@ -281,7 +281,7 @@ export class WorkSpaceController extends BaseController {
         return WorkSpaceController.get();
     }
 
-    async processImportingNodes(nodeData) {
+    async processImportingNodes(nodeData, asTemplate = false) {
 
         WorkSpaceController.importNodeIdMapping = {};
         const [inOutputMapping, nodeList] = [{}, Object.entries(nodeData)];
@@ -298,7 +298,7 @@ export class WorkSpaceController extends BaseController {
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { componentId: removedId, ...fields } = data;
                 const parentId = this.wSpaceComponent.cmpInternalId;
-                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true }, parentId);
+                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true, asTemplate }, parentId);
 
                 this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
                 setTimeout(() => Object.keys(fields).forEach((f) => component[f] = fields[f]), 10);
@@ -710,12 +710,16 @@ export class WorkSpaceController extends BaseController {
         navigator.clipboard.writeText(content);
     }
 
+    shouldDisableNodeFormInputs = true;
+
     disableNodeFormInputs(formWrapClass) {
-        const disable = true, defautlFields = 'input[type=text], select';
-        // Disable the default form inputs
-        document.querySelector('.' + formWrapClass).querySelectorAll(defautlFields).forEach(elm => {
-            elm.disabled = disable;
-        });
+        if(this.shouldDisableNodeFormInputs){
+            const disable = true, defautlFields = 'input[type=text], select';
+            // Disable the default form inputs
+            document.querySelector('.' + formWrapClass).querySelectorAll(defautlFields).forEach(elm => {
+                elm.disabled = disable;
+            });
+        }
     }
 
     /**

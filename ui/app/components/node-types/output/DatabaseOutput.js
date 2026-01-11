@@ -1,17 +1,16 @@
-import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { STForm } from "../../../../@still/component/type/ComponentType.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { AbstractNode } from "../abstract/AbstractNode.js";
 import { InputAPI } from "../api/InputAPI.js";
 import { Bucket } from "../Bucket.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { Transformation } from "../Transformation.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
 import { databaseIcons, databaseEnginesList } from "../util/databaseUtil.js";
-import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
-export class DatabaseOutput extends ViewComponent {
+export class DatabaseOutput extends AbstractNode {
 
 	isPublic = true;
 
@@ -70,7 +69,7 @@ export class DatabaseOutput extends ViewComponent {
 			this.selectedSecret = this.importFields.outDBconnectionName;
 			this.database = this.importFields.databaseName;
 			this.hostName = this.importFields.host || 'None';
-			document.querySelector(`.${this.cmpInternalId} select[data-dropdown]`).disabled = true;
+			document.querySelector(`.${this.cmpInternalId} select[data-dropdown]`).disabled = this.wSpaceController.shouldDisableNodeFormInputs;
 		}
 		this.setupOnChangeListen();
 		if(this.aiGenerated) this.handleAiGenerated();
@@ -130,7 +129,7 @@ export class DatabaseOutput extends ViewComponent {
 	/** @param {InputConnectionType<{}>} param0  */
 	onInputConnection({data, type}){
 		
-		NodeUtil.handleInputConnection(this, data, type);
+		DatabaseOutput.handleInputConnection(this, data, type);
 	
 		const sourceNode = data?.sourceNode;
 		if((type == Bucket.name || type == Transformation.name) && sourceNode){

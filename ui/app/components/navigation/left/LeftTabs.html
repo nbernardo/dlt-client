@@ -445,25 +445,26 @@
         <i class='fas fa-eye' style='color: white;'></i>
         &nbsp;View Diagram
     </div>
-    <div class="pipeline-foldable-menu-option scheduled-pipeline-menu-option" style="padding: 5px; justify-content: space-between; display: none; cursor:pointer;">
+    <div class="pipeline-foldable-menu-option scheduled-pipeline-menu-option" onclick="component.doNothing(event)"
+        style="padding: 5px; justify-content: space-between; display: none; cursor:default;">
         <div style="display: flex; justify-content: space-between;">
             <span><i class='fas fa-clock' style='color: white;'></i>&nbsp;Schedule</span>
             <span class="stop-pipeline-job-icon" onclick="component.pauseOrResumePipelineJob()">Pause</span>
         </div>
     </div>
-    <div style="padding: 5px;" class="pipeline-foldable-menu-option">
+    <div style="padding: 5px;" class="pipeline-foldable-menu-option" onclick="component.viewPipelineDiagram(event, null, true)">
         <img 
             style="float: left; margin-top: 0px; margin-left: -3px; width: 22px;"
             src="app/assets/imgs/duplicate.svg" width="20px" alt="">
             &nbsp;Use as template
     </div>
-    <div style="padding: 5px;" class="pipeline-foldable-menu-option">
+    <div style="padding: 5px;" class="pipeline-foldable-menu-option pipeline-foldable-menu-option-disable">
         <img 
             style="float: left; margin-top: 2px; width: 15px;"
             src="app/assets/imgs/arrow-up-square-svgrepo-com.svg" width="20px" alt="">
             &nbsp;Use as source
     </div>
-    <div style="padding: 5px;" class="pipeline-foldable-menu-option">
+    <div style="padding: 5px;" class="pipeline-foldable-menu-option pipeline-foldable-menu-option-disable">
         <img 
             style="float: left; margin-top: 2px; width: 15px;"
             src="app/assets/imgs/arrow-down-square-svgrepo-com.svg" width="20px" alt="">
@@ -483,16 +484,22 @@
 </div>
 
 <style>
+    .ppline-treeview, .table-in-treeview{ padding-top: 3px; border-radius: 6px; }
+    .ppline-treeview:hover, .table-in-treeview:hover{ background: #d3d3d340; padding-bottom: 0; padding-top: 3px; }
+    summary:has(.pipeline-menu-dots:hover){ background: #d3d3d340; }
 
     .stop-pipeline-job-icon{
         font-size: 10px;
-        background: #acababd1;
         padding: 0 3px;
         height: 16px;
         display: flex;
         border-radius: 3px;
         margin-top: 3px;
+        cursor: pointer;
     }
+
+    .stop-pipeline-job-icon-Resume{ background: #4c9c6b8a !important; }
+    .stop-pipeline-job-icon-Pause{ background: #ed8d52d1 !important; }
 
     .pipeline-foldable-menu-option:hover,
     .pipeline-table-menu-option:hover {
@@ -500,9 +507,13 @@
         border-radius: 5px;
     }
 
+    .pipeline-foldable-menu-option-disable, .pipeline-foldable-menu-option-disable:hover {
+        color: #b3b4b5 !important; cursor:not-allowed; border-radius: 4px;
+    }
+
     .pipeline-menu-dots { padding-top: 2px; padding-bottom: 2px; border-radius: 3px; cursor: pointer; }
 
-    .pipeline-menu-dots:hover { background: rgb(232, 232, 232); padding-top: 2px; padding-bottom: 2px; }
+    .pipeline-menu-dots:hover { background: rgb(205, 205, 205); padding-top: 2px; padding-bottom: 2px; }
 
     .pipeline-table-menu-option{ padding: 5px; cursor: pointer; }
 

@@ -261,7 +261,7 @@ export class LeftTabs extends ViewComponent {
 	async openDataFileOnEditor(){}
 
 	/** @template */
-	viewPipelineDiagram(event, dbfile){}
+	viewPipelineDiagram(event, dbfile, asTemplate){}
 
 	showPipelineOptions(event, dbfile, isScheduled, isSchedulePaused){
 		event.preventDefault();
@@ -280,7 +280,7 @@ export class LeftTabs extends ViewComponent {
 		target.style.display = '';
 		target.innerHTML = content;
 		document.addEventListener('click', (event) => {
-			if(event.target.classList.contains(`${dbfile}${table}`)) return;
+			if(event.target.classList.contains(`${dbfile}${table}`) || event.target.classList.contains('stop-pipeline-job-icon')) return;
 			target.style.display = 'none';
 		});
 		
@@ -300,9 +300,14 @@ export class LeftTabs extends ViewComponent {
 			WorkspaceService.currentSelectedPpeline = dbfile;
 			WorkspaceService.currentSelectedPpelineStatus = isSchedulePaused;
 			const label = isSchedulePaused === 'paused' ? 'Resume' : 'Pause';
+			const delLabel = isSchedulePaused !== 'paused' ? 'Resume' : 'Pause';
+			const button = target.querySelector('.stop-pipeline-job-icon');
+			button.classList.remove(`stop-pipeline-job-icon-${delLabel}`), button.classList.add(`stop-pipeline-job-icon-${label}`);
 			target.querySelector('.stop-pipeline-job-icon').textContent = label;
 		}
 	}
+
+	doNothing = (event) => event.preventDefault();
 
 	pauseOrResumePipelineJob = async () => {
 		const result = await this.service.pausePipelineScheduledJob();
@@ -364,9 +369,10 @@ export class LeftTabs extends ViewComponent {
 	hideSelectedPromptMenu = () => this.promptSamplesMenu.classList.remove('is-active');
 
 	filderPipeline(filter){
+		const filterVal = String(filter).toLowerCase().replace(/\s+/g,'_');
 		const pipelineList = document.querySelectorAll('.ppline-treeview-label');
 		for(const pipeline of pipelineList){
-			if(pipeline.textContent.search(filter) < 0)
+			if(pipeline.textContent.search(filterVal) < 0)
 				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
 			else
 				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = '';

@@ -8,7 +8,6 @@ import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
 import { loadTemplate } from "../util/codeTemplateUtil.js";
-import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class DLTCode extends AbstractNode {
@@ -156,12 +155,12 @@ export class DLTCode extends AbstractNode {
 	}
 
 	onOutputConnection(){
-		NodeUtil.handleOutputConnection(this);
+		DLTCode.handleOutputConnection(this);
 		return { nodeCount: this.nodeCount.value };
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
-		NodeUtil.handleInputConnection(this, data, type);
+		DLTCode.handleInputConnection(this, data, type);
 	}
 }

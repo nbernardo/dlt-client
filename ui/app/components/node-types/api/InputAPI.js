@@ -1,11 +1,9 @@
-import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
-import { NodeUtil } from "../util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class InputAPI extends AbstractNode {
@@ -71,13 +69,13 @@ export class InputAPI extends AbstractNode {
 	}
 
 	onOutputConnection(){
-		NodeUtil.handleOutputConnection(this);
+		InputAPI.handleOutputConnection(this);
 		return { nodeCount: this.nodeCount.value };
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
-		NodeUtil.handleInputConnection(this, data, type);
+		InputAPI.handleInputConnection(this, data, type);
 	}
 
 }
