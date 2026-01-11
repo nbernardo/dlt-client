@@ -12,7 +12,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
         this.setHomeComponent(Workspace);
 
         const isCloud = window.location.href.toString().startsWith('dlt-c.cloud') 
-            || window.location.hostname.toString().startsWith('dlt-client-ui.onrender.com');
+            || window.location.hostname.toString().startsWith('mvp2.e2e-data.com');
 
         if(isCloud) 
             this.cloudEnv();

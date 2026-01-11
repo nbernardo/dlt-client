@@ -1,8 +1,8 @@
 {
     "httpClient": {
-        "baseUrl": "https://dlt-c.cloud:8443"
+        "baseUrl": "https://e2e-data.com:443"
     },
-    "websocketAddr": "wss://dlt-c.cloud:8443/pipeline",
+    "websocketAddr": "wss://e2e-data.com:443/pipeline",
     "logs": {
         "default": true,
         "error": false,
