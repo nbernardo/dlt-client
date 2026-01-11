@@ -120,6 +120,7 @@ export class Bucket extends AbstractNode {
 				this.showLoading = false;
 			}
 			data['filePattern'] = this.filePattern.value;
+			data['readFileType'] = this.filePattern.value.split('.').slice(-1);
 		}
 	}
 

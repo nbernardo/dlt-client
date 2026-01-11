@@ -286,15 +286,14 @@ export class WorkSpaceController extends BaseController {
         WorkSpaceController.importNodeIdMapping = {};
         const [inOutputMapping, nodeList] = [{}, Object.entries(nodeData)];
         let nodeId = 0;
-        this.isImportProgress = nodeList.length > 0 ? true : false;
+        this.isImportProgress = nodeList.length > 0 ? true : false, this.idCounter = 0;
 
         for (let [originalNodeId, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList) {
             
             nodeId++;
             WorkSpaceController.importNodeIdMapping[originalNodeId] = Number(nodeId)
-
+            
             if (!['Start', 'End'].includes(name)) {
-
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { componentId: removedId, ...fields } = data;
                 const parentId = this.wSpaceComponent.cmpInternalId;
@@ -307,7 +306,6 @@ export class WorkSpaceController extends BaseController {
                 inOutputMapping[nodeId] = { inputs, outputs };
 
             } else {
-
                 [source, dest] = [name === 'End', name === 'Start'];
                 this.addStartOrEndNode(name, source, dest, pos_x, pos_y);
                 inOutputMapping[nodeId] = { inputs, outputs };
@@ -315,7 +313,7 @@ export class WorkSpaceController extends BaseController {
                     this.edgeTypeAdded[NodeTypeEnum.START] = nodeId;
             }
         }
-
+        this.idCounter = nodeId;
         setTimeout(() => {
 
             Object.keys(inOutputMapping).forEach(nodeId => {
@@ -666,7 +664,7 @@ export class WorkSpaceController extends BaseController {
                 obj.edgeTypeAdded[output_id].add(input_id);
 
             if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
-                obj.edgeTypeAdded[input_id].add(output_id);
+                obj.edgeTypeAdded[input_id]?.add(output_id);
         }
     }
 
