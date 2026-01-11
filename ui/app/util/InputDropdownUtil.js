@@ -87,22 +87,26 @@ export class InputDropdown {
         this.populateList();
     }
 
-    filterList() {
+    filterList(event) {
+        
         const filterText = this.filterInput.value.toLowerCase().trim();
-        let matchFound = false;
+        let matchFound = false, showAll = false;
+        if(event?.key === 'Control') showAll = true;
 
         for (let i = 0; i < this.listItems.length; i++) {
             const item = this.listItems[i];
             const itemText = item.textContent || item.innerText;
-
-            if (itemText.toLowerCase().includes(filterText)) {
-                item.classList.remove('hidden');
-                matchFound = true;
-            } else
-                item.classList.add('hidden');
+            if(showAll) item.classList.remove('hidden');
+            else {
+                if (itemText.toLowerCase().includes(filterText)) {
+                    item.classList.remove('hidden');
+                    matchFound = true;
+                }
+                else item.classList.add('hidden');
+            }
         }
 
-        if (filterText.length > 0 && matchFound)
+        if ((filterText.length > 0 && matchFound) || (showAll && this.listItems.length > 0))
             this.filterableList.classList.remove('hidden');
         else
             this.filterableList.classList.add('hidden');
@@ -110,7 +114,8 @@ export class InputDropdown {
 
     initInputHandling() {
         const self = this;
-        this.filterInput.addEventListener('input', () => self.filterList());
+        this.filterInput.addEventListener('input', (event) => self.filterList(event));
+        this.filterInput.addEventListener('keyup', (event) => self.filterList(event));
 
         this.filterableList.addEventListener('click', (event) => {
             if (event.target.tagName === 'LI' && !event.target.classList.contains('hidden')) {
