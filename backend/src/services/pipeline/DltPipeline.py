@@ -77,6 +77,9 @@ class DltPipeline:
         is_code_to_code_ppline = context.code_source and context.is_code_destination
         does_have_metadata = is_sql_destination == True or is_code_to_code_ppline == True
 
+        if not(does_have_metadata):
+            does_have_metadata = True if (context.bucket_source and context.is_code_destination) else False
+
         filename_suffixe = '|withmetadata|' if does_have_metadata else ''
         if(filename_suffixe == ''):
             filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
@@ -154,6 +157,7 @@ class DltPipeline:
             error_messages = result.stderr.read().split('\n')
             if(str(error_messages).__contains__('[WARNING]')):
                 context.emit_ppline_trace(error_messages, warn=True)
+                context.emit_ppsuccess()
                 warning_status = True
             else:
                 message, status = '\n'.join(error_messages[1:]), False
@@ -458,6 +462,7 @@ class DltPipeline:
 
             if(status):
                 context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
+                context.emit_ppsuccess()
 
             clear_job_transaction_id(job_execution_id)
 
