@@ -5,6 +5,7 @@ import { AbstractNode } from "../abstract/AbstractNode.js";
 import { InputAPI } from "../api/InputAPI.js";
 import { Bucket } from "../Bucket.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
+import { SqlDBComponent } from "../SqlDBComponent.js";
 import { Transformation } from "../Transformation.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
 import { databaseIcons, databaseEnginesList } from "../util/databaseUtil.js";
@@ -37,6 +38,7 @@ export class DatabaseOutput extends AbstractNode {
 	/** @Prop */ importFields;
 	/** @Prop */ secretedSecretTrace = null;
 	/** @Prop */ aiGenerated = null;
+	/** @Prop */ sourceNode = null;
 
 	//This is only used in case the source 
 	// is not a Database (e.g. Bucket, InputAPI)
@@ -117,12 +119,18 @@ export class DatabaseOutput extends AbstractNode {
 	}
 
 	updateConnection(){
-		const connectionName = this.tableName !== null ? this.tableName : this.selectedSecret.value;
+		let connectionName = this.tableName !== null ? this.tableName : this.selectedSecret.value;
 		if(this.isConnected){
+						
 			if(connectionName === '')
 				delete this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId];
-			else
+			else{
+				if(this.sourceNode?.getName() === SqlDBComponent.name){
+					connectionName = this.sourceNode.selectedSecret.value;
+				}
+
 				this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId] = connectionName;
+			}
 		}
 	}
 
@@ -130,8 +138,9 @@ export class DatabaseOutput extends AbstractNode {
 	onInputConnection({data, type}){
 		
 		DatabaseOutput.handleInputConnection(this, data, type);
-	
-		const sourceNode = data?.sourceNode;
+		
+		const sourceNode = data?.sourceNode; 
+		this.sourceNode = data?.sourceNode;
 		if((type == Bucket.name || type == Transformation.name) && sourceNode){
 			if(sourceNode.filePattern){
 				/** @type { Bucket } */
@@ -155,7 +164,8 @@ export class DatabaseOutput extends AbstractNode {
 	}
 
 	stOnUnload(){
-		delete this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId];
+		if(!this.isImport)
+			delete this.wSpaceController.pipelineDestinationTrace.sql[this.cmpInternalId];
 	}
 
 	onConectionDelete(sourceType){

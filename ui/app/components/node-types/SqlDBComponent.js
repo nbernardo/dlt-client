@@ -104,18 +104,22 @@ export class SqlDBComponent extends AbstractNode {
 		const disable = this.wSpaceController.shouldDisableNodeFormInputs;
 		const allTables = Object.values(this.tables);
 		const allKeys = Object.values(this.primaryKeys);
+		const data = WorkSpaceController.getNode(this.nodeId).data;
 
 		// Assign the first table
 		this.tableName = this.tables['tableName'];
 		this.primaryKey = allKeys[0];
 		// Assign remaining tables if more than one in the pipeline
-		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
+		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable, allKeys[idx+1]));
 		this.dbInputCounter = allTables.length;
 		this.selectedDbEngine = this.importFields.dbengine;
 		this.setDBIcon(this.selectedDbEngine);
 		this.selectedSecret = this.importFields.connectionName;
 		this.hostName = this.importFields.host || 'None';
 		document.querySelector('.add-table-buttons').disabled = this.wSpaceController.shouldDisableNodeFormInputs;
+		data['database'] = this.database.value;
+		data['dbengine'] = this.selectedDbEngine.value;
+		data['host'] = this.hostName.value;
 	}
 
 	handleAiGenerated(){
@@ -224,8 +228,8 @@ export class SqlDBComponent extends AbstractNode {
 		this.newTableField(tableId);
 	}
 
-	newTableField = (tableId, value = '', disabled = false) => 
-		addSQLComponentTableField(this, tableId, value, disabled, this.isOldUI);
+	newTableField = (tableId, value = '', disabled = false, pkValue = '') => 
+		addSQLComponentTableField(this, tableId, value, pkValue, disabled, this.isOldUI);
 
 	async getTables(){
 		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 
