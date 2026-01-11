@@ -17,6 +17,7 @@ class Bucket(TemplateNodeType):
         
         try:
             self.context = context
+            self.context.bucket_source = True
             self.bucket_path_prefix = ""
             self.template_type = 'non_database_source'
             self.template = DltPipeline.get_s3_no_auth_template()
