@@ -152,7 +152,7 @@ export class LeftTabs extends ViewComponent {
 						class="ppline-treeview-label scheduled-${isScheduled}" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
 				</div>
 				<span class="pipeline-menu-holder">
-					${isScheduled ? `<span tooltip-x="-190" tooltip="Pipeline schedule for ${scheduleSettings}"><i class="fas fa-clock" style="color: ${isSchedulePaused !== 'paused' ? '#ced0cecd;' : '#008000ac;'}"></i></span>` : ''}
+					${isScheduled ? `<span tooltip-x="-190" tooltip="Pipeline schedule for ${scheduleSettings}"><i class="fas fa-clock" style="color: ${isSchedulePaused === 'paused' ? '#ced0cecd;' : '#008000ac;'}"></i></span>` : ''}
 					<!-- <img class="scheduled-pipeline-icone" src="app/assets/imgs/file-list/dots.svg" width="12"> -->
 					<img class="dots pipeline-menu-dots pipeline-${dbfile}" src="app/assets/imgs/file-list/dots.svg" 
 						 onclick="self.showPipelineOptions($event,'${dbfile}',${isScheduled}, '${isSchedulePaused}')" width="12">

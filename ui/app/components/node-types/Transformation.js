@@ -153,7 +153,7 @@ export class Transformation extends AbstractNode {
 
 		const obj = this;
 
-		if(this.isImport === true && inTheLoop === false && this.confirmModification === false){
+		if(this.isImport === true && inTheLoop === false && this.confirmModification === false && this.$parent.isAnyDiagramActive){
 			this.confirmActionDialog(handleAddField);
 		}else handleAddField();
 		
