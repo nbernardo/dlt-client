@@ -172,6 +172,7 @@ class Workspace:
 
             if _file.endswith('.duckdb') or _file.endswith('.db'):
                 ppline_name = str(_file).replace('.duckdb','')
+                if (ppline_name in ppelines): continue
                 if _file not in result:
                     if ppline_name in ppelines:
                         del ppelines[ppline_name]

@@ -389,7 +389,9 @@ class DltPipeline:
 
         db_root_path = destinations_dir.replace('pipeline','duckdb')
         # DB Lock in the pplication level
-        DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
+        if not(ppline_file.endswith('withmetadata|.py')\
+              and ppline_file.endswith('withmetadata|.py')):
+            DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
 
         socket_id = DuckdbUtil.get_socket_id(namespace)
         context = RequestContext(None, socket_id)
