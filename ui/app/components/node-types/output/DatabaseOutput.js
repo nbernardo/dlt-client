@@ -72,6 +72,10 @@ export class DatabaseOutput extends AbstractNode {
 			this.database = this.importFields.databaseName;
 			this.hostName = this.importFields.host || 'None';
 			document.querySelector(`.${this.cmpInternalId} select[data-dropdown]`).disabled = this.wSpaceController.shouldDisableNodeFormInputs;
+			WorkSpaceController.getNode(this.nodeId).data['outDBconnectionName'] = this.importFields.outDBconnectionName;
+			WorkSpaceController.getNode(this.nodeId).data['databaseName'] = this.importFields.databaseName;
+			WorkSpaceController.getNode(this.nodeId).data['host'] = this.importFields.host;
+			WorkSpaceController.getNode(this.nodeId).data['dbengine'] = this.importFields.dbengine;
 		}
 		this.setupOnChangeListen();
 		if(this.aiGenerated) this.handleAiGenerated();

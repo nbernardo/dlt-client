@@ -491,7 +491,6 @@
 	float: right;
 	margin-top: -29px;
 
-	.pipeline-menu-dots { width: 13px; padding: 0; margin-top: -4px; }
 	.scheduled-pipeline-icone { position: absolute; margin-left: -11px; margin-top: 5px; }
 	
 	.pipeline-menu-wrapper, .pipeline-table-menu-wrapper {
@@ -499,7 +498,7 @@
 		z-index: 10000;
 		margin-left: -136px;
 		width: 150px;
-		margin-top: -7px;
+		margin-top: 19px;
 		background: #2c3e50;
 		background: #2c3e50e3;
 		color: white;

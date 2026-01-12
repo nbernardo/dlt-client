@@ -280,6 +280,7 @@ export class Transformation extends AbstractNode {
 			let transformCount = 0;
 
 			for(let transformation of transformations){
+				if(transformation.trim() == '') continue;
 				const { type, isNewField } = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`];
 				const isDedupTransform = type === 'DEDUP';
 				const isDropTransform = type === 'DROP';
@@ -370,6 +371,7 @@ export class Transformation extends AbstractNode {
 		}
 		
 		finalScript = finalScript.replaceAll(".alias('+",".alias('").replace("pl.col('+","pl.col('");
+		finalScript = finalScript.replaceAll('"(pl.','(pl.');
 
 		const sourceType = this.dataSourceType;
 		const previewResult = await WorkspaceService.getTransformationPreview(
