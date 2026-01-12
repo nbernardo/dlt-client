@@ -112,6 +112,7 @@ export class WorkSpaceController extends BaseController {
         this.drawnNodeList = [];
         this.drawnNodes = 0;
         this.importingPipelineSourceDetails = null;
+        this.isTemplating = false;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */
@@ -281,6 +282,7 @@ export class WorkSpaceController extends BaseController {
         return WorkSpaceController.get();
     }
 
+    isTemplating = false;
     async processImportingNodes(nodeData, asTemplate = false) {
 
         WorkSpaceController.importNodeIdMapping = {};
@@ -315,7 +317,6 @@ export class WorkSpaceController extends BaseController {
         }
         this.idCounter = nodeId;
         setTimeout(() => {
-
             Object.keys(inOutputMapping).forEach(nodeId => {
                 const { outputs } = inOutputMapping[nodeId];
                 outputs?.output_1?.connections.forEach((link) => {
@@ -323,9 +324,8 @@ export class WorkSpaceController extends BaseController {
                     this.editor.addConnection(Number(nodeId), targetNode, 'output_1', 'input_1');
                 });
             });
-
         },100);
-
+        this.isTemplating = asTemplate;
     }
 
     addStartOrEndNode(name, source, dest, pos_x, pos_y) {
@@ -336,7 +336,7 @@ export class WorkSpaceController extends BaseController {
     }
 
     handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl) {
-        
+        this.isTemplating = true;
         const { inConnectors, outConnectors } = component;
         const initData = { componentId: component.cmpInternalId };
         this.formReferences.set(nodeId, component.cmpInternalId);
@@ -777,13 +777,19 @@ export class WorkSpaceController extends BaseController {
     moreThanOnePipelineOpenAlert(cb = () => {}){
         const message = 'You cannot load more than one pipelin at time, <br><b>Do you want to discard the existing diagram to render the clicked one?</b>';
 		const title = 'Cannot load multiple pipeline.';
-		return this.showDialog(message, { type: 'confirm', title, onConfirm: async () => await cb(true)  });	
+		return this.showDialog(message, { type: 'confirm', title, onConfirm: async () => await cb(true) });	
     }
     
     noPipelineToSaveAlert(){
         const message = 'There is no pipeline in the workspace to be save/updated';
 		const title = 'Nothing to be saved.';
 		return this.showDialog(message, { type: 'ok', title });	
+    }
+    
+    clearActiveDiagramAlert(cb = () => {}){
+        const message = 'You sure you want to clear the current diagram?';
+		const title = 'Clearing active diagram.';
+		return this.showDialog(message, { type: 'confirm', title, onConfirm: async () => await cb(true) });	
     }
 
     isTherePipelineToSave(){

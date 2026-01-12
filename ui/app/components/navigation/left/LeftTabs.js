@@ -58,6 +58,8 @@ export class LeftTabs extends ViewComponent {
 	
 	/** @Prop */ currentTableToQuery;
 
+	/** @Prop */ onlyScheduledPplineFilter = false;
+
 	dataFetchilgLabel = 'Fetching Data';
 	dbSecretsList = [];
 	apiSecretsList = [];
@@ -145,10 +147,12 @@ export class LeftTabs extends ViewComponent {
 	pipelineTreeViewTemplate(dbfile, flag, schedule){
 		const { isScheduled, scheduleSettings, isSchedulePaused } = schedule;
 		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
+					<span
+						tooltip-x="0" tooltip-y="-15" tooltip="${dbfile}" 
+						class="ppline-treeview-label scheduled-${isScheduled}" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
 				</div>
 				<span class="pipeline-menu-holder">
-					${isScheduled ? `<span tooltip-x="-190" tooltip="Pipeline schedule for ${scheduleSettings}"><i class="fas fa-clock" style="color: #0080008a;"></i></span>` : ''}
+					${isScheduled ? `<span tooltip-x="-190" tooltip="Pipeline schedule for ${scheduleSettings}"><i class="fas fa-clock" style="color: ${isSchedulePaused !== 'paused' ? '#ced0cecd;' : '#008000ac;'}"></i></span>` : ''}
 					<!-- <img class="scheduled-pipeline-icone" src="app/assets/imgs/file-list/dots.svg" width="12"> -->
 					<img class="dots pipeline-menu-dots pipeline-${dbfile}" src="app/assets/imgs/file-list/dots.svg" 
 						 onclick="self.showPipelineOptions($event,'${dbfile}',${isScheduled}, '${isSchedulePaused}')" width="12">
@@ -311,6 +315,8 @@ export class LeftTabs extends ViewComponent {
 
 	pauseOrResumePipelineJob = async () => {
 		const result = await this.service.pausePipelineScheduledJob();
+		if(this.onlyScheduledPplineFilter)
+			document.querySelector('.filterSchedulePPlineToggle').checked = false;
 		if(result === true) await this.showHideDatabase();
 	}
 
@@ -368,17 +374,22 @@ export class LeftTabs extends ViewComponent {
 
 	hideSelectedPromptMenu = () => this.promptSamplesMenu.classList.remove('is-active');
 
-	filderPipeline(filter){
+	filderPipeline(filter, findAll){
 		const filterVal = String(filter).toLowerCase().replace(/\s+/g,'_');
-		const pipelineList = document.querySelectorAll('.ppline-treeview-label');
+		const pipelineList = document.querySelectorAll(`.ppline-treeview-label`);
+		const andFilter = this.onlyScheduledPplineFilter ? false : true;
 		for(const pipeline of pipelineList){
-			if(pipeline.textContent.search(filterVal) < 0)
-				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
-			else
+			const isScheduled = pipeline.classList.contains('scheduled-true');
+			if(!(pipeline.textContent.search(filterVal) < 0) && (isScheduled || andFilter))
 				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = '';
+			else
+				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
 		}
 	}
 
 	filterScriptFile = (name) => this.scriptListProxy.filterFileByName('script',name);
 	filterDataFile = (name) => this.fileListProxy.filterFileByName('data', name);
+
+	toggleFilterSchedulePPline = (isChecked) => this.onlyScheduledPplineFilter = isChecked;
+	
 }

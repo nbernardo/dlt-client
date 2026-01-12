@@ -1,6 +1,7 @@
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
+import { SqlDBComponent } from "./SqlDBComponent.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 
 /** @implements { NodeTypeInterface } */
@@ -87,7 +88,14 @@ export class DuckDBOutput extends AbstractNode {
 
 	/** @param {InputConnectionType<{}>} param0  */
 	onInputConnection({data, type}){
+		let showTableInput = '';
+		if( type === SqlDBComponent.name || data.sourceNode instanceof SqlDBComponent )
+			showTableInput = 'none';		
+		document.querySelectorAll(`.${this.cmpInternalId} .duckdb-table`).forEach(itm => itm.style.display = showTableInput);	
 		DuckDBOutput.handleInputConnection(this, data, type);
 	}
+
+	onConectionDelete = () => 
+		document.querySelectorAll(`.${this.cmpInternalId} .duckdb-table`).forEach(itm => itm.style.display = '');
 
 }

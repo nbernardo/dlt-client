@@ -143,6 +143,8 @@ export class SqlDBComponent extends AbstractNode {
 				this.selectedTablesName[self.componentFieldName] = table;
 				const pkRelatedField = self.relatedFields[0];
 				pkRelatedField.setDataSource(data.map(col => col.column));
+				self.relatedFields[0].filterInput.value = '';
+				
 			}
 		});
 

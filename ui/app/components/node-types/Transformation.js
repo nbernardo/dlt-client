@@ -107,12 +107,11 @@ export class Transformation extends AbstractNode {
 
 		let { tables, sourceNode } = data;
 		Transformation.handleInputConnection(this, data, type);
-		
+		// This is the bucket component itself
+		this.sourceNode = sourceNode;
+
 		this.dataSourceType = null, this.sqlConnectionName = null, this.fileSource = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
-
-			// This is the bucket component itself
-			this.sourceNode = sourceNode;
 			
 			this.databaseList = tables;
 			[...this.fieldRows].forEach(([_, row]) => {

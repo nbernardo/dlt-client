@@ -246,7 +246,8 @@ export class Workspace extends ViewComponent {
 	}
 
 	async updatePipeline() {
-
+		//This is disable until MVP3 or before to work with Pipeline versioning, Rollover and Rollback
+		return null;
 		if (!this.controller.isTherePipelineToSave()) return null;
 
 		if (this.wasDiagramSaved && this.controller.pipelineSuccess)
@@ -322,16 +323,21 @@ export class Workspace extends ViewComponent {
 	}
 
 	resetWorkspace() {
-		this.editor.clearModuleSelected();
-		this.controller.resetEdges();
-		document.querySelector('.clear-workspace-btn').style.right = '95px';
-		this.activeGrid = 'Enter pipeline name';
-		document.getElementById('pplineNamePlaceHolder').contentEditable = true;
-		if (this.showSaveButton !== true)
-			this.showSaveButton = true;
-		this.wasDiagramSaved = false;
-		this.isAnyDiagramActive = false;
-		this.isAnyDiagramActive = false;
+		if(this.isAnyDiagramActive === true || this.controller.isTemplating === true){
+			this.controller.clearActiveDiagramAlert(() => {
+				this.editor.clearModuleSelected();
+				this.controller.resetEdges();
+				document.querySelector('.clear-workspace-btn').style.right = '95px';
+				this.activeGrid = 'Enter pipeline name';
+				document.getElementById('pplineNamePlaceHolder').querySelector('state').innerHTML = 'Enter pipeline name';
+				document.getElementById('pplineNamePlaceHolder').contentEditable = true;
+				if (this.showSaveButton !== true)
+					this.showSaveButton = true;
+				this.wasDiagramSaved = false;
+				this.isAnyDiagramActive = false;
+				this.isAnyDiagramActive = false;
+			});
+		}
 	}
 
 	onPplineNameKeyPress(e, cursorMovedOut) {

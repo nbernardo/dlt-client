@@ -100,8 +100,22 @@
                         type="text" 
                         oninput="component.filderPipeline(this.value)"
                         placeholder="Filter by pipeline name">
+                    <div>
+                        <form>
+                            <span style="font-size: 12px; font-weight: normal;">
+                                Scheduled pipeline only
+                                <label class="e2e-switch">
+                                    <input
+                                        class="filterSchedulePPlineToggle" 
+                                        type="checkbox" 
+                                        oninput="component.toggleFilterSchedulePPline(this.checked); component.filderPipeline('',true)">
+                                    <span class="e2e-slider round"></span>
+                                </label>
+                            </span>
+                        </form>
+                    </div>
                 </h3>
-                <section id="data-panel" class="tab-panel data-panel" style="padding-bottom: 110px;">
+                <section id="data-panel" class="tab-panel data-panel" style="padding-bottom: 110px; padding-top: 0px;">
                     <div style="text-align: center; font-size: 1.3em; width: 96%; color: #da5353;">
                         @dataFetchilgLabel
                     </div>
