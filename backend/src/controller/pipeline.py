@@ -599,3 +599,13 @@ def preview_transformation(namespace):
         print(error)
         traceback.print_exc()
         return { 'error': True, 'result': { 'result': err } }
+    
+
+@pipeline.route('/ppline/schedule/<namespace>/<pipeline>/<status>', methods=['POST'])
+@pipeline.route('/ppline/schedule/<namespace>/<pipeline>/<status>/', methods=['POST'])
+def update_pipeline_pause(namespace, pipeline, status):
+    try:
+        DltPipeline.update_pipline_pause_status(namespace, pipeline, status)
+        return { 'error': False, 'result': { 'result': 'Pipeline job paused' } }
+    except Exception as err:
+        return { 'error': True, 'result': { 'result': err } }

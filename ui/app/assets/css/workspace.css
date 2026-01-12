@@ -108,10 +108,7 @@
 	.table-in-treeview { width: 103%; .table-name { overflow: hidden;text-overflow: ellipsis;width: 71%; } }
 
 	.ppline-treeview-label {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		max-width: 90%;
-		white-space: nowrap; 
+		overflow: hidden; text-overflow: ellipsis; max-width: 90%; white-space: nowrap; border-bottom: none;
 	}
 	
 	.ppline-treeview .ppline-treeview-label {
@@ -481,6 +478,12 @@
 		.reload-icon-wrapper{ margin-top: -56px; margin-left: 30px; position: absolute; }
 	}
 
+.pipeline-menu-holder-table {
+	float: right !important;		
+	margin-top: 0 !important;		
+	margin-right: 10px !important;
+}
+
 .pipeline-menu-holder{
 
 	margin-right: 6px;
@@ -488,13 +491,10 @@
 	float: right;
 	margin-top: -29px;
 
-	img {
-		width: 13px;
-		padding: 0;
-		margin-top: -4px;					
-	}
+	.pipeline-menu-dots { width: 13px; padding: 0; margin-top: -4px; }
+	.scheduled-pipeline-icone { position: absolute; margin-left: -11px; margin-top: 5px; }
 	
-	.pipeline-menu-wrapper{
+	.pipeline-menu-wrapper, .pipeline-table-menu-wrapper {
 		position: absolute;
 		z-index: 10000;
 		margin-left: -136px;
@@ -508,3 +508,74 @@
 	}
 
 }
+
+
+/** Toggle CSS styling */
+
+:root {
+  --e2e-switch-width: 30px;
+
+  --e2e-switch-height: calc(var(--e2e-switch-width) * 0.566);
+  --e2e-switch-padding: calc(var(--e2e-switch-width) * 0.066);
+  --e2e-switch-knob-size: calc(
+    var(--e2e-switch-height) - (var(--e2e-switch-padding) * 2)
+  );
+  --e2e-switch-translate: calc(
+    var(--e2e-switch-width) - var(--e2e-switch-knob-size) - (var(--e2e-switch-padding) * 2)
+  );
+}
+
+.e2e-switch {
+  position: relative;
+  display: inline-block;
+  width: var(--e2e-switch-width);
+  height: var(--e2e-switch-height);
+}
+
+.e2e-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.e2e-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+}
+
+.e2e-slider::before {
+  position: absolute;
+  content: "";
+  height: var(--e2e-switch-knob-size);
+  width: var(--e2e-switch-knob-size);
+  left: var(--e2e-switch-padding);
+  bottom: var(--e2e-switch-padding);
+  background-color: white;
+  transition: 0.4s;
+}
+
+.e2e-switch input:checked + .e2e-slider {
+  background-color: #2196F3;
+}
+
+.e2e-switch input:focus + .e2e-slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+.e2e-switch input:checked + .e2e-slider::before {
+  transform: translateX(var(--e2e-switch-translate));
+}
+
+/* Rounded variant */
+.e2e-slider.round {
+  border-radius: var(--e2e-switch-height);
+}
+
+.e2e-slider.round::before {
+  border-radius: 50%;
+}
+
+/** End of Toggle CSS styling */

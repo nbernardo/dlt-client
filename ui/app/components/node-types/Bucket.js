@@ -6,7 +6,6 @@ import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
-import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class Bucket extends AbstractNode {
@@ -121,6 +120,7 @@ export class Bucket extends AbstractNode {
 				this.showLoading = false;
 			}
 			data['filePattern'] = this.filePattern.value;
+			data['readFileType'] = this.filePattern.value.split('.').slice(-1);
 		}
 	}
 
@@ -238,7 +238,7 @@ export class Bucket extends AbstractNode {
 	}
 
 	onOutputConnection() {
-		NodeUtil.handleOutputConnection(this);
+		Bucket.handleOutputConnection(this);
 		return {
 			tables: this.filesFromList.value,
 			sourceNode: this,
@@ -248,7 +248,7 @@ export class Bucket extends AbstractNode {
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
-		NodeUtil.handleInputConnection(this, data, type);
+		Bucket.handleInputConnection(this, data, type);
 	}
 
 }

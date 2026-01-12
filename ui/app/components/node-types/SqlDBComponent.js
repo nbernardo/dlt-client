@@ -9,7 +9,6 @@ import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { databaseEnginesList, databaseIcons } from "./util/databaseUtil.js";
 import { addSQLComponentTableField } from "./util/formUtil.js";
-import { NodeUtil } from "./util/nodeUtil.js";
 
 /** @implements { NodeTypeInterface } */
 export class SqlDBComponent extends AbstractNode {
@@ -102,21 +101,25 @@ export class SqlDBComponent extends AbstractNode {
 		this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 		this.notifyReadiness();
 
-		const disable = true;
+		const disable = this.wSpaceController.shouldDisableNodeFormInputs;
 		const allTables = Object.values(this.tables);
 		const allKeys = Object.values(this.primaryKeys);
+		const data = WorkSpaceController.getNode(this.nodeId).data;
 
 		// Assign the first table
 		this.tableName = this.tables['tableName'];
 		this.primaryKey = allKeys[0];
 		// Assign remaining tables if more than one in the pipeline
-		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable));
+		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable, allKeys[idx+1]));
 		this.dbInputCounter = allTables.length;
 		this.selectedDbEngine = this.importFields.dbengine;
 		this.setDBIcon(this.selectedDbEngine);
 		this.selectedSecret = this.importFields.connectionName;
 		this.hostName = this.importFields.host || 'None';
-		document.querySelector('.add-table-buttons').disabled = true;
+		document.querySelector('.add-table-buttons').disabled = this.wSpaceController.shouldDisableNodeFormInputs;
+		data['database'] = this.database.value;
+		data['dbengine'] = this.selectedDbEngine.value;
+		data['host'] = this.hostName.value;
 	}
 
 	handleAiGenerated(){
@@ -140,6 +143,8 @@ export class SqlDBComponent extends AbstractNode {
 				this.selectedTablesName[self.componentFieldName] = table;
 				const pkRelatedField = self.relatedFields[0];
 				pkRelatedField.setDataSource(data.map(col => col.column));
+				self.relatedFields[0].filterInput.value = '';
+				
 			}
 		});
 
@@ -225,8 +230,8 @@ export class SqlDBComponent extends AbstractNode {
 		this.newTableField(tableId);
 	}
 
-	newTableField = (tableId, value = '', disabled = false) => 
-		addSQLComponentTableField(this, tableId, value, disabled, this.isOldUI);
+	newTableField = (tableId, value = '', disabled = false, pkValue = '') => 
+		addSQLComponentTableField(this, tableId, value, pkValue, disabled, this.isOldUI);
 
 	async getTables(){
 		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 
@@ -255,7 +260,7 @@ export class SqlDBComponent extends AbstractNode {
 	}
 
 	onOutputConnection(){
-		NodeUtil.handleOutputConnection(this);
+		SqlDBComponent.handleOutputConnection(this);
 		return {
 			tables: this.selectedSecretTableList?.value?.map(table => ({ name: table, file: table })),
 			sourceNode: this,
@@ -265,7 +270,7 @@ export class SqlDBComponent extends AbstractNode {
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
-		NodeUtil.handleInputConnection(this, data, type);
+		SqlDBComponent.handleInputConnection(this, data, type);
 	}
 
 }

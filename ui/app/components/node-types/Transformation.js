@@ -12,7 +12,6 @@ import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "./SqlDBComponent.js";
 import { TRANFORM_ROW_PREFIX, TransformRow } from "./transform/TransformRow.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
-import { NodeUtil } from "./util/nodeUtil.js";
 import { DatabaseTransformation, TransformExecution } from "./util/tranformation.js";
 
 /** @implements { NodeTypeInterface } */
@@ -107,13 +106,12 @@ export class Transformation extends AbstractNode {
 	onInputConnection({ data, type }) {
 
 		let { tables, sourceNode } = data;
-		NodeUtil.handleInputConnection(this, data, type);
-		
+		Transformation.handleInputConnection(this, data, type);
+		// This is the bucket component itself
+		this.sourceNode = sourceNode;
+
 		this.dataSourceType = null, this.sqlConnectionName = null, this.fileSource = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
-
-			// This is the bucket component itself
-			this.sourceNode = sourceNode;
 			
 			this.databaseList = tables;
 			[...this.fieldRows].forEach(([_, row]) => {
@@ -146,7 +144,7 @@ export class Transformation extends AbstractNode {
 
 	/** @returns { InputConnectionType } */
 	onOutputConnection(){
-		NodeUtil.handleOutputConnection(this);
+		Transformation.handleOutputConnection(this);
 		//This will emit the source node as Bucket or SQLDB to the node it'll connect
 		return { sourceNode: this.sourceNode, nodeCount: this.nodeCount.value };
 	}
@@ -155,7 +153,7 @@ export class Transformation extends AbstractNode {
 
 		const obj = this;
 
-		if(this.isImport === true && inTheLoop === false && this.confirmModification === false){
+		if(this.isImport === true && inTheLoop === false && this.confirmModification === false && this.$parent.isAnyDiagramActive){
 			this.confirmActionDialog(handleAddField);
 		}else handleAddField();
 		

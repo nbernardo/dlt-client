@@ -4,7 +4,7 @@ import { SqlDBComponent } from "../SqlDBComponent.js";
 /**
  * @param { SqlDBComponent } self 
  */
-export function addSQLComponentTableField(self, tableId, value = '', disabled = false, isOld = false){
+export function addSQLComponentTableField(self, tableId, value = '', pkValue = '', disabled = false, isOld = false){
     
     let tblFieldName = `tableName` + tableId, placeholder = 'Enter table ' + tableId + ' name', pkFieldName;
     const table = FormHelper
@@ -16,7 +16,7 @@ export function addSQLComponentTableField(self, tableId, value = '', disabled = 
 
     pkFieldName = 'primaryKey' + tableId, placeholder = 'PK Field';
     const pkField = FormHelper
-        .newField(self, self.formRef, pkFieldName, value)
+        .newField(self, self.formRef, pkFieldName, pkValue)
         .input({ required: true, placeholder, validator: 'text', value, disabled, className: `dynamic-db-table-field ${pkFieldName}` })
         .element;
 

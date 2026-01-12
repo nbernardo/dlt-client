@@ -6,7 +6,7 @@ import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { FileList } from "../../filelist/FileList.js";
 import { FileUpload } from "../../fileupload/FileUpload.js";
-import { connectIcon, copyClipboardIcin, dbIcon, pipelineIcon, tableIcon, tableIconOpaqued, tableToTerminaIcon, viewpplineIcon } from "../../workspace/icons/database.js";
+import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspace/icons/database.js";
 import { Workspace } from "../../workspace/Workspace.js";
 
 export class LeftTabs extends ViewComponent {
@@ -51,6 +51,14 @@ export class LeftTabs extends ViewComponent {
 	/** @Prop */ underContructionImg = '/app/assets/imgs/bricks.gif';
 
 	/** @Prop */ showLoading = false;
+
+	/** @Prop */ currentDBFile;
+
+	/** @Prop */ currentTableName;
+	
+	/** @Prop */ currentTableToQuery;
+
+	/** @Prop */ onlyScheduledPplineFilter = false;
 
 	dataFetchilgLabel = 'Fetching Data';
 	dbSecretsList = [];
@@ -98,10 +106,13 @@ export class LeftTabs extends ViewComponent {
 		
 		for(const [_file, tables] of Object.entries(response)){
 			const data = Object.values(tables);
-			const dbfile = _file.replace('.duckdb',''), flag = data[0]?.flag;
-			const pipeline = this.dbTreeviewProxy.addNode(
-				{
-					content: this.pipelineTreeViewTemplate(dbfile, flag),
+			const dbfile = _file.replace('.duckdb',''), flag = data[0]?.flag, 
+				  isScheduled = data[0]?.is_scheduled, 
+				  scheduleSettings = data[0]?.short_settings,
+				  isSchedulePaused = data[0]?.is_scheduled_paused;
+
+			const pipeline = this.dbTreeviewProxy.addNode({
+					content: this.pipelineTreeViewTemplate(dbfile, flag, {isScheduled, scheduleSettings, isSchedulePaused}),
 					isTopLevel: true,
 			});
 
@@ -133,54 +144,47 @@ export class LeftTabs extends ViewComponent {
 		this.dataFetchilgLabel = '';
 	}
 
-	pipelineTreeViewTemplate(dbfile, flag){
+	pipelineTreeViewTemplate(dbfile, flag, schedule){
+		const { isScheduled, scheduleSettings, isSchedulePaused } = schedule;
 		return `<div class="ppline-treeview">
-					<span class="ppline-treeview-label" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
-					<!-- <span tooltip="Show pipeline diagram" tooltip-x="-160" 
-						onclick="self.viewPipelineDiagram($event,'${dbfile}')">${viewpplineIcon}<span> -->
+					<span
+						tooltip-x="0" tooltip-y="-15" tooltip="${dbfile}" 
+						class="ppline-treeview-label scheduled-${isScheduled}" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
 				</div>
-				<span class="pipeline-menu-holder" onclick="self.showPipelineOptions($event,'${dbfile}')">
-					<img class="dots" src="app/assets/imgs/file-list/dots.svg" width="12">
+				<span class="pipeline-menu-holder">
+					${isScheduled ? `<span tooltip-x="-190" tooltip="Pipeline schedule for ${scheduleSettings}"><i class="fas fa-clock" style="color: ${isSchedulePaused === 'paused' ? '#ced0cecd;' : '#008000ac;'}"></i></span>` : ''}
+					<!-- <img class="scheduled-pipeline-icone" src="app/assets/imgs/file-list/dots.svg" width="12"> -->
+					<img class="dots pipeline-menu-dots pipeline-${dbfile}" src="app/assets/imgs/file-list/dots.svg" 
+						 onclick="self.showPipelineOptions($event,'${dbfile}',${isScheduled}, '${isSchedulePaused}')" width="12">
 					<div class="pipeline-menu-wrapper pipeline-menu-wrap-${dbfile}"></div>
 				</span>
 				${flag != undefined ? '<span class="pipeline-locked">In use by another proces/job, try after completion.<span>': ''}
 				`;
 	}
 
-	dbSchemaTreeViewTemplate(dbname, dbfile){
-		return `<div class="table-in-treeview">
-					<span> ${dbIcon} <b>${dbname}</b></span>
-					<!-- <span onclick="self.connectToDatabase($event, '${dbfile}')">${connectIcon}</span> -->
-				</div>`;
-	}
+	dbSchemaTreeViewTemplate = (dbname) =>
+		`<div class="table-in-treeview"><span> ${dbIcon} <b>${dbname}</b></span></div>`;
+	
+	copyToClipboard = () =>
+		this.$parent.controller.copyToClipboard(this.currentTableName);
 
-	copyToClipboard(content){
-		this.$parent.controller.copyToClipboard(content);
-	}
-
-	queryTable(dbname, dbfile){
-		this.$parent.expandDataTableView(null, dbname, dbfile)
-	}
-
+	queryTable = () =>
+		this.$parent.expandDataTableView(null, this.currentTableToQuery, this.currentDBFile)
+	
 	refreshTree = async () => await this.showHideDatabase();
 
 	databaseTreeViewTemplate(tableData, tableToQuery, dbfile, showIcons = true){
 		let tableRow = `<div class='table-name'>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</div>`;
+		let cleanTableName = tableToQuery.replace(/\./g,'_');
 		if(showIcons === true) {
 			tableRow += `
-				<span class="tables-icn-container">
-					<span tooltip-x="-140" tooltip="Copy table path to clipboard"
-						  onclick="self.copyToClipboard('${tableToQuery}')"
-					>
-						${copyClipboardIcin}
-					</span>
-					<span 
-						onclick="self.queryTable('${dbfile}.duckdb.${tableToQuery}','${dbfile}')"
-						tooltip-x="-130" tooltip="Query ${tableData.table} table"
-					>
-						${tableToTerminaIcon}
-					</span>
-				</span>`;
+				<span
+					onclick="self.showTableOptions('${cleanTableName}','${dbfile}','${tableToQuery}', '${dbfile}.duckdb.${tableToQuery}')"
+					class="pipeline-menu-holder pipeline-menu-holder-table">
+					<img class="dots pipeline-menu-dots ${dbfile}${cleanTableName}" src="app/assets/imgs/file-list/dots.svg" width="12">
+					<div class="pipeline-table-menu-wrapper pipeline-table-menu-wrap-${dbfile}${cleanTableName}"></div>
+				</span>
+				`;
 		};
 
 		return `<div class="table-in-treeview">${tableRow}</div>`;
@@ -261,26 +265,59 @@ export class LeftTabs extends ViewComponent {
 	async openDataFileOnEditor(){}
 
 	/** @template */
-	viewPipelineDiagram(event, dbfile){}
+	viewPipelineDiagram(event, dbfile, asTemplate){}
 
-	/** @Prop */ currentDBFile;
-
-	/** @template */
-	showPipelineOptions(event, dbfile){
+	showPipelineOptions(event, dbfile, isScheduled, isSchedulePaused){
 		event.preventDefault();
 		this.currentDBFile = dbfile;
-		this.renderDropDownMenu(dbfile);
+		this.renderDropDownMenu(dbfile, isScheduled, isSchedulePaused);
 	}
 
-	renderDropDownMenu(dbfile){
+	showTableOptions(table, dbfile, tableName, tablePath){
+		
+		this.currentDBFile = dbfile;
+		this.currentTableToQuery = tablePath;
+		this.currentTableName = tableName;
+
+		const content = document.querySelector('.pipeline-submenu-contents-for-table').innerHTML;
+		const target = document.querySelector(`.pipeline-table-menu-wrap-${dbfile}${table}`);
+		target.style.display = '';
+		target.innerHTML = content;
+		document.addEventListener('click', (event) => {
+			if(event.target.classList.contains(`${dbfile}${table}`) || event.target.classList.contains('stop-pipeline-job-icon')) return;
+			target.style.display = 'none';
+		});
+		
+	}
+
+	renderDropDownMenu(dbfile, isScheduled, isSchedulePaused){
 		const content = document.querySelector('.pipeline-submenu-contents').innerHTML;
 		const target = document.querySelector(`.pipeline-menu-wrap-${dbfile}`);
 		target.style.display = '';
 		target.innerHTML = content;
 		document.addEventListener('click', (event) => {
-			if(event.target.classList.contains('dots')) return;
+			if(event.target.classList.contains(`pipeline-${dbfile}`)) return;
 			target.style.display = 'none';
 		});
+		if(isScheduled) {
+			target.querySelector('.scheduled-pipeline-menu-option').style.display = '';
+			WorkspaceService.currentSelectedPpeline = dbfile;
+			WorkspaceService.currentSelectedPpelineStatus = isSchedulePaused;
+			const label = isSchedulePaused === 'paused' ? 'Resume' : 'Pause';
+			const delLabel = isSchedulePaused !== 'paused' ? 'Resume' : 'Pause';
+			const button = target.querySelector('.stop-pipeline-job-icon');
+			button.classList.remove(`stop-pipeline-job-icon-${delLabel}`), button.classList.add(`stop-pipeline-job-icon-${label}`);
+			target.querySelector('.stop-pipeline-job-icon').textContent = label;
+		}
+	}
+
+	doNothing = (event) => event.preventDefault();
+
+	pauseOrResumePipelineJob = async () => {
+		const result = await this.service.pausePipelineScheduledJob();
+		if(this.onlyScheduledPplineFilter)
+			document.querySelector('.filterSchedulePPlineToggle').checked = false;
+		if(result === true) await this.showHideDatabase();
 	}
 
 	async startAIAssistant(retry = false){
@@ -337,16 +374,22 @@ export class LeftTabs extends ViewComponent {
 
 	hideSelectedPromptMenu = () => this.promptSamplesMenu.classList.remove('is-active');
 
-	filderPipeline(filter){
-		const pipelineList = document.querySelectorAll('.ppline-treeview-label');
+	filderPipeline(filter, findAll){
+		const filterVal = String(filter).toLowerCase().replace(/\s+/g,'_');
+		const pipelineList = document.querySelectorAll(`.ppline-treeview-label`);
+		const andFilter = this.onlyScheduledPplineFilter ? false : true;
 		for(const pipeline of pipelineList){
-			if(pipeline.textContent.search(filter) < 0)
-				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
-			else
+			const isScheduled = pipeline.classList.contains('scheduled-true');
+			if(!(pipeline.textContent.search(filterVal) < 0) && (isScheduled || andFilter))
 				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = '';
+			else
+				pipeline.parentNode.parentNode.parentNode.parentNode.style.display = 'none';
 		}
 	}
 
 	filterScriptFile = (name) => this.scriptListProxy.filterFileByName('script',name);
 	filterDataFile = (name) => this.fileListProxy.filterFileByName('data', name);
+
+	toggleFilterSchedulePPline = (isChecked) => this.onlyScheduledPplineFilter = isChecked;
+	
 }

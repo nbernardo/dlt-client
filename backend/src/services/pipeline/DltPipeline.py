@@ -13,8 +13,8 @@ from utils.SQLDatabase import SQLDatabase
 import uuid
 from datetime import datetime
 import time
-from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS_REGEX
-
+from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS_REGEX, FORBIDDEN_DUNDER_REGEX
+import schedule
 
 root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
 destinations_dir = f'{root_dir}/destinations/pipeline'
@@ -76,6 +76,9 @@ class DltPipeline:
         is_sql_destination = len(context.sql_destinations) > 0
         is_code_to_code_ppline = context.code_source and context.is_code_destination
         does_have_metadata = is_sql_destination == True or is_code_to_code_ppline == True
+
+        if not(does_have_metadata):
+            does_have_metadata = True if (context.bucket_source and context.is_code_destination) else False
 
         filename_suffixe = '|withmetadata|' if does_have_metadata else ''
         if(filename_suffixe == ''):
@@ -154,6 +157,7 @@ class DltPipeline:
             error_messages = result.stderr.read().split('\n')
             if(str(error_messages).__contains__('[WARNING]')):
                 context.emit_ppline_trace(error_messages, warn=True)
+                context.emit_ppsuccess()
                 warning_status = True
             else:
                 message, status = '\n'.join(error_messages[1:]), False
@@ -385,7 +389,9 @@ class DltPipeline:
 
         db_root_path = destinations_dir.replace('pipeline','duckdb')
         # DB Lock in the pplication level
-        DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
+        if not(ppline_file.endswith('withmetadata|.py')\
+              and ppline_file.endswith('withmetadata|.py')):
+            DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
 
         socket_id = DuckdbUtil.get_socket_id(namespace)
         context = RequestContext(None, socket_id)
@@ -458,6 +464,7 @@ class DltPipeline:
 
             if(status):
                 context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
+                context.emit_ppsuccess()
 
             clear_job_transaction_id(job_execution_id)
 
@@ -485,6 +492,29 @@ class DltPipeline:
                         namespace='{namespace}'\
                         and ppline_name='{ppline}'"
         cnx.execute(query)
+
+
+    @staticmethod
+    def update_pipline_pause_status(namespace, ppline, is_paused):
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = f"UPDATE ppline_schedule\
+                    SET is_paused='{is_paused}'\
+                    WHERE\
+                        namespace='{namespace}'\
+                        and ppline_name='{ppline}'"
+        cnx.execute(query)
+
+        if is_paused != 'paused':
+            from services.workspace.Workspace import Workspace
+            Workspace.schedule_pipeline_job(namespace, ppline)
+        else:
+            tag_name = f'{namespace}_{ppline}'
+            if schedule.get_jobs(tag_name):
+                schedule.clear(tag_name)
+
+            if schedule.get_jobs(f'{tag_name}-tracinglog'):
+                schedule.clear(f'{tag_name}-tracinglog')
+                        
 
 
     @staticmethod
@@ -586,7 +616,7 @@ def check_invalid_code(code):
 
     for line in code_lines:
 
-        if FORBIDDEN_CALLS_REGEX.search(line):
+        if FORBIDDEN_CALLS_REGEX.search(line) or FORBIDDEN_DUNDER_REGEX.search(line):
             raise RuntimeError('Invalid code provided which might cause security breach')
 
         line_of_code = line.strip()

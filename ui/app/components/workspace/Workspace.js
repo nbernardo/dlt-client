@@ -246,7 +246,8 @@ export class Workspace extends ViewComponent {
 	}
 
 	async updatePipeline() {
-
+		//This is disable until MVP3 or before to work with Pipeline versioning, Rollover and Rollback
+		return null;
 		if (!this.controller.isTherePipelineToSave()) return null;
 
 		if (this.wasDiagramSaved && this.controller.pipelineSuccess)
@@ -322,16 +323,21 @@ export class Workspace extends ViewComponent {
 	}
 
 	resetWorkspace() {
-		this.editor.clearModuleSelected();
-		this.controller.resetEdges();
-		document.querySelector('.clear-workspace-btn').style.right = '95px';
-		this.activeGrid = 'Enter pipeline name';
-		document.getElementById('pplineNamePlaceHolder').contentEditable = true;
-		if (this.showSaveButton !== true)
-			this.showSaveButton = true;
-		this.wasDiagramSaved = false;
-		this.isAnyDiagramActive = false;
-		this.isAnyDiagramActive = false;
+		if(this.isAnyDiagramActive === true || this.controller.isTemplating === true){
+			this.controller.clearActiveDiagramAlert(() => {
+				this.editor.clearModuleSelected();
+				this.controller.resetEdges();
+				document.querySelector('.clear-workspace-btn').style.right = '95px';
+				this.activeGrid = 'Enter pipeline name';
+				document.getElementById('pplineNamePlaceHolder').querySelector('state').innerHTML = 'Enter pipeline name';
+				document.getElementById('pplineNamePlaceHolder').contentEditable = true;
+				if (this.showSaveButton !== true)
+					this.showSaveButton = true;
+				this.wasDiagramSaved = false;
+				this.isAnyDiagramActive = false;
+				this.isAnyDiagramActive = false;
+			});
+		}
 	}
 
 	onPplineNameKeyPress(e, cursorMovedOut) {
@@ -481,7 +487,8 @@ export class Workspace extends ViewComponent {
 		return this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0;
 	}
 
-	async viewPipelineDiagram(event, pplineName) {
+	async viewPipelineDiagram(event, pplineName, asTemplate = false) {
+		this.controller.shouldDisableNodeFormInputs = true;
 		event.preventDefault();
 		pplineName = this.leftMenuProxy.currentDBFile;
 		const self = this;
@@ -495,15 +502,19 @@ export class Workspace extends ViewComponent {
 			const result = JSON.parse(response);
 
 			self.controller.importingPipelineSourceDetails = result?.dbDetailes || null;
-			self.activeGrid = result?.pipelineCode?.pipeline_lbl;
-			document.querySelector('.clear-workspace-btn').style.right = '110px';
-			self.showSaveButton = false;
-			self.isAnyDiagramActive = true;
-			document.getElementById('pplineNamePlaceHolder').contentEditable = false;
-			await self.controller.processImportingNodes(result?.pipelineCode?.content['Home'].data);
+			if(asTemplate === false) {
+				self.activeGrid = result?.pipelineCode?.pipeline_lbl;
+				document.querySelector('.clear-workspace-btn').style.right = '110px';
+				self.showSaveButton = false;
+				document.getElementById('pplineNamePlaceHolder').contentEditable = false;
+				self.selectedPplineName = pplineName;
+				self.isAnyDiagramActive = true;
+			}else{
+				self.controller.shouldDisableNodeFormInputs = false;
+			}
+			await self.controller.processImportingNodes(result?.pipelineCode?.content['Home'].data, asTemplate);
 			AppTemplate.hideLoading();
 			self.wasDiagramSaved = false;
-			self.selectedPplineName = pplineName;
 		}
 		await openDiagram();
 	}
@@ -570,11 +581,13 @@ export class Workspace extends ViewComponent {
 		const result = await this.service.schedulePipeline(JSON.stringify(payload));
 		if ([false, 'failed'].includes(result))
 			AppTemplate.toast.error('Error while scheduling job for ' + this.activeGrid.value);
-		else
+		else{
 			AppTemplate.toast.success('New schedule for ' + this.activeGrid.value + ' created successfully');
+			await this.leftMenuProxy.showHideDatabase();
+		}
 
 		const response = await WorkspaceService.getPipelineSchedules();
-		this.headerProxy.scheduledPipelines = response.data;
+		this.headerProxy.scheduledPipelines = response;
 		this.schedulePeriodicity = '';
 		this.scheduleTime = '';
 		btnPipelineSchedule.disabled = false;

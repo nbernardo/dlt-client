@@ -112,6 +112,7 @@ export class WorkSpaceController extends BaseController {
         this.drawnNodeList = [];
         this.drawnNodes = 0;
         this.importingPipelineSourceDetails = null;
+        this.isTemplating = false;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */
@@ -281,24 +282,24 @@ export class WorkSpaceController extends BaseController {
         return WorkSpaceController.get();
     }
 
-    async processImportingNodes(nodeData) {
+    isTemplating = false;
+    async processImportingNodes(nodeData, asTemplate = false) {
 
         WorkSpaceController.importNodeIdMapping = {};
         const [inOutputMapping, nodeList] = [{}, Object.entries(nodeData)];
         let nodeId = 0;
-        this.isImportProgress = nodeList.length > 0 ? true : false;
+        this.isImportProgress = nodeList.length > 0 ? true : false, this.idCounter = 0;
 
         for (let [originalNodeId, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList) {
             
             nodeId++;
             WorkSpaceController.importNodeIdMapping[originalNodeId] = Number(nodeId)
-
+            
             if (!['Start', 'End'].includes(name)) {
-
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { componentId: removedId, ...fields } = data;
                 const parentId = this.wSpaceComponent.cmpInternalId;
-                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true }, parentId);
+                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true, asTemplate }, parentId);
 
                 this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
                 setTimeout(() => Object.keys(fields).forEach((f) => component[f] = fields[f]), 10);
@@ -307,7 +308,6 @@ export class WorkSpaceController extends BaseController {
                 inOutputMapping[nodeId] = { inputs, outputs };
 
             } else {
-
                 [source, dest] = [name === 'End', name === 'Start'];
                 this.addStartOrEndNode(name, source, dest, pos_x, pos_y);
                 inOutputMapping[nodeId] = { inputs, outputs };
@@ -315,9 +315,8 @@ export class WorkSpaceController extends BaseController {
                     this.edgeTypeAdded[NodeTypeEnum.START] = nodeId;
             }
         }
-
+        this.idCounter = nodeId;
         setTimeout(() => {
-
             Object.keys(inOutputMapping).forEach(nodeId => {
                 const { outputs } = inOutputMapping[nodeId];
                 outputs?.output_1?.connections.forEach((link) => {
@@ -325,9 +324,8 @@ export class WorkSpaceController extends BaseController {
                     this.editor.addConnection(Number(nodeId), targetNode, 'output_1', 'input_1');
                 });
             });
-
         },100);
-
+        this.isTemplating = asTemplate;
     }
 
     addStartOrEndNode(name, source, dest, pos_x, pos_y) {
@@ -338,7 +336,7 @@ export class WorkSpaceController extends BaseController {
     }
 
     handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl) {
-        
+        this.isTemplating = true;
         const { inConnectors, outConnectors } = component;
         const initData = { componentId: component.cmpInternalId };
         this.formReferences.set(nodeId, component.cmpInternalId);
@@ -666,7 +664,7 @@ export class WorkSpaceController extends BaseController {
                 obj.edgeTypeAdded[output_id].add(input_id);
 
             if (input_id != obj.edgeTypeAdded[NodeTypeEnum.END])
-                obj.edgeTypeAdded[input_id].add(output_id);
+                obj.edgeTypeAdded[input_id]?.add(output_id);
         }
     }
 
@@ -710,12 +708,16 @@ export class WorkSpaceController extends BaseController {
         navigator.clipboard.writeText(content);
     }
 
+    shouldDisableNodeFormInputs = true;
+
     disableNodeFormInputs(formWrapClass) {
-        const disable = true, defautlFields = 'input[type=text], select';
-        // Disable the default form inputs
-        document.querySelector('.' + formWrapClass).querySelectorAll(defautlFields).forEach(elm => {
-            elm.disabled = disable;
-        });
+        if(this.shouldDisableNodeFormInputs){
+            const disable = true, defautlFields = 'input[type=text], select';
+            // Disable the default form inputs
+            document.querySelector('.' + formWrapClass).querySelectorAll(defautlFields).forEach(elm => {
+                elm.disabled = disable;
+            });
+        }
     }
 
     /**
@@ -775,13 +777,19 @@ export class WorkSpaceController extends BaseController {
     moreThanOnePipelineOpenAlert(cb = () => {}){
         const message = 'You cannot load more than one pipelin at time, <br><b>Do you want to discard the existing diagram to render the clicked one?</b>';
 		const title = 'Cannot load multiple pipeline.';
-		return this.showDialog(message, { type: 'confirm', title, onConfirm: async () => await cb(true)  });	
+		return this.showDialog(message, { type: 'confirm', title, onConfirm: async () => await cb(true) });	
     }
     
     noPipelineToSaveAlert(){
         const message = 'There is no pipeline in the workspace to be save/updated';
 		const title = 'Nothing to be saved.';
 		return this.showDialog(message, { type: 'ok', title });	
+    }
+    
+    clearActiveDiagramAlert(cb = () => {}){
+        const message = 'You sure you want to clear the current diagram?';
+		const title = 'Clearing active diagram.';
+		return this.showDialog(message, { type: 'confirm', title, onConfirm: async () => await cb(true) });	
     }
 
     isTherePipelineToSave(){

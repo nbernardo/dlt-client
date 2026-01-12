@@ -154,7 +154,7 @@ class Workspace:
 
 
     @staticmethod
-    def list_duckdb_dest_pipelines(files_path, user, ppelines):
+    def list_duckdb_dest_pipelines(files_path, user, ppelines, pipeline_schedules: dict = {}):
 
         if(not os.path.exists(files_path)):
             return {'no_data': True }
@@ -171,16 +171,22 @@ class Workspace:
         for _file in file_list:
 
             if _file.endswith('.duckdb') or _file.endswith('.db'):
+                ppline_name = str(_file).replace('.duckdb','')
+                if (ppline_name in ppelines): continue
                 if _file not in result:
-                    if str(_file).replace('.duckdb','') in ppelines:
-                        del ppelines[str(_file).replace('.duckdb','')]
+                    if ppline_name in ppelines:
+                        del ppelines[ppline_name]
                     result[_file] = {}
 
                 if DuckDBCache.get(f'{files_path}{_file}') != None:
+                    curr_schedule = pipeline_schedules['data'].get(ppline_name, {})
                     result[_file][k] = { 
-                        'ppline': str(_file).replace('.duckdb',''),
+                        'ppline': ppline_name,
                         'dbname': None, 'table': [], 'db_size': None, 'col_count': 0, 'fields': [],
-                        'flag': 'Pipeline tables in use by another process/Job'
+                        'flag': 'Pipeline tables in use by another process/Job',
+                        'is_scheduled': pipeline_schedules['data'].get(ppline_name, None) != None,
+                        'is_scheduled_paused': curr_schedule.get('is_paused'),
+                        'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
                     }
                     continue
 
@@ -206,13 +212,17 @@ class Workspace:
                             continue
 
                         if(k != prev_key):
+                            curr_schedule = pipeline_schedules['data'].get(ppline_name, None)
                             result[_file][k] = { 
                                 'ppline': ppline,
                                 'dbname': dbname,
                                 'table': table, 
                                 'db_size': db_size,
                                 'col_count': col_count,
-                                'fields': [{ 'name': col_name, 'type': col_type }]
+                                'fields': [{ 'name': col_name, 'type': col_type }],
+                                'is_scheduled': curr_schedule != None,
+                                'is_scheduled_paused': curr_schedule['is_paused'] if curr_schedule != None else '',
+                                'short_settings': f'{curr_schedule['periodicity']} {curr_schedule['time']} {curr_schedule['type']}' if curr_schedule != None else '',
                             }
 
                         else:
@@ -225,7 +235,7 @@ class Workspace:
 
 
     @staticmethod
-    def list_pipeline_from_files(files_path):
+    def list_pipeline_from_files(files_path, pipeline_schedules: dict = {}):
 
         if(not os.path.exists(files_path)):
             return {}
@@ -272,6 +282,7 @@ class Workspace:
                     k = f'{ppline_name}-{table_name}'
 
                     if(k != prev_key):
+                        curr_schedule = pipeline_schedules['data'].get(ppline_name)
                         result[ppline_name][table_name] = { 
                             'ppline': '',
                             'dbname': '',
@@ -279,7 +290,10 @@ class Workspace:
                             'db_size': '',
                             'col_count': '',
                             'fields': [],
-                            'dest': 'sql'
+                            'dest': 'sql',
+                            'is_scheduled': pipeline_schedules['data'].get(ppline_name, None) != None,
+                            'is_scheduled_paused': curr_schedule.get('is_paused') if curr_schedule != None else '',
+                            'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
                         }
 
                     else:
@@ -496,11 +510,11 @@ class Workspace:
     
 
     @staticmethod
-    def get_ppline_schedule(namespace = None):
+    def get_ppline_schedule(namespace = None, ppline = None):
 
         field_names = [
             'id','ppline_name','schedule_settings','namespace',
-            'type','periodicity','time', 'last_run'
+            'type','periodicity','time', 'last_run', 'is_paused'
         ]
 
         try:
@@ -509,19 +523,23 @@ class Workspace:
                 DuckdbUtil.create_ppline_schedule_table()
 
             where = f"WHERE namespace = '{namespace}'" if namespace != None else ''
+            where = f"{where} AND ppline_name = '{ppline}'" if ppline != None else where
+
             cnx = DuckdbUtil.get_workspace_db_instance()
             cursor = cnx.cursor()
             query = f"SELECT {','.join(field_names)} FROM {table} {where}"
             cursor.execute(query)
             result = cursor.fetchall()
             final_data = []
+            final_data_map = {}
 
             if(len(result)):
                 for row in result:
                     row_to_json = dict(zip(field_names,row))
-                    final_data.append(row_to_json)
+                    final_data.append({ row_to_json['ppline_name']: row_to_json})
+                    final_data_map[row_to_json['ppline_name']] = row_to_json
 
-            return { 'data': final_data, 'error': False }
+            return { 'data': final_data_map, 'error': False }
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': err })
@@ -553,31 +571,38 @@ class Workspace:
 
 
     @staticmethod
-    def schedule_pipeline_job():
-        result = Workspace.get_ppline_schedule()
+    def schedule_pipeline_job(namespace = None, ppline = None):
+        result = Workspace.get_ppline_schedule(namespace, ppline)
         if result['error'] != True:
-            schedules = result['data']
+            schedules = result['data'] if 'data' in result else {}
         
-            for sched in schedules:
-                ppline_name = sched['ppline_name']
+            for ppline_name, sched in schedules.items():
+                is_paused = sched['is_paused']
+                if is_paused == 'paused': continue
+
                 namespace = sched['namespace']
                 type = sched['type']
                 periodicity = sched['periodicity']
                 time = int(sched['time'])
                 file_path = f'{namespace}/{ppline_name}'
-                
+                tag_name = f'{namespace}_{ppline_name}'
+
                 if(Workspace.schedule_jobs.get(file_path,None) != True):
                     if(type == 'min'):
-                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
+                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
                     if(type == 'hour'):
-                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, namespace)
+                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
 
                     print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
                     Workspace.schedule_jobs[file_path] = True
 
-            while True:
-                schedule.run_pending()
-                timelib.sleep(1)
+            # The infinit loop will be running in a separate thread
+            # which will consider all scheduled jobs, when if specified
+            # the jobe name (whithin a namespace), it'll run in the mai thread
+            if namespace == None and ppline == None:
+                while True:
+                    schedule.run_pending()
+                    timelib.sleep(1)
         else:
             ...
 

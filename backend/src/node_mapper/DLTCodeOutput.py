@@ -47,12 +47,26 @@ class DLTCodeOutput(TemplateNodeType):
         self.ppline_dest_table = 'no_table_name'
 
         referenced_secrets = self.parse__secrets(data['namespace'])
+        use_secrets = False
         if len(referenced_secrets) > 0:
             if self.context.code_source:
                 self.context.additional_secrets.append(str(referenced_secrets).replace('[','').replace(']',''))
             else:
-                n = '\n    ' if no_transformation else '\n'
+                if self.context.bucket_source:
+                    n = '\n'
+                    use_secrets = True
+                else:
+                    n = '\n    ' if no_transformation else '\n'
                 self.destination_settings = f"namespace = '{data['namespace']}'{n}secret_names = {referenced_secrets}{n}__secrets = SecretManager.referencedSecrets(namespace, secret_names){n}{self.destination_settings}"
+                
+                if use_secrets:
+                    import_path_libs = f'from sys import path{n}from pathlib import Path'
+                    add_import_path = f"{import_path_libs}{n}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/{context.user}',''){n}"
+                    add_import_path = f"{add_import_path}path.insert(0, src_path){n}"
+                    add_import_path = f"{add_import_path}path.insert(0, src_path+'/src'){n}"
+                    add_import_path = f"{add_import_path}path.insert(0, src_path+'/src'){n}{n}"
+                    import_secret_manager = f'{add_import_path}from src.services.workspace.SecretManager import SecretManager{n}'
+                    self.destination_settings = f"{import_secret_manager}{n}{self.destination_settings}{n}"
 
         self.notify_completion_to_ui()
 

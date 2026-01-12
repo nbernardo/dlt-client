@@ -37,6 +37,8 @@ export class WorkspaceService extends BaseService {
     dbPath = null;
     parsedTableListStore = new ServiceEvent([]);
     schedulePipelinesStore = new ServiceEvent([]);
+    static currentSelectedPpeline = null;
+    static currentSelectedPpelineStatus = null;
 
     static DISCONECT_DB = 'DISCONECT';
     static CONNECT_DB = 'CONNECT';
@@ -253,8 +255,10 @@ export class WorkspaceService extends BaseService {
         const url = '/workcpace/ppline/schedule/' + namespace;
         const response = await $still.HTTPClient.get(url);
         
-        if (response.ok && !response.error)
-            return await response.json();
+        if (response.ok && !response.error){
+            const result = await response.json();
+            return Object.values(result?.data || {});
+        }
         return null;
     }
 
@@ -263,8 +267,9 @@ export class WorkspaceService extends BaseService {
         const url = '/workcpace/init/' + namespace;
         const response = await $still.HTTPClient.get(url);
         
-        if (response.ok && !response.error)
+        if (response.ok && !response.error){
             return await response.json();
+        }
         return null;
     }
 
@@ -501,7 +506,6 @@ export class WorkspaceService extends BaseService {
         const url = `/${namespace}/db/transformation/preview`;
 
         try {
-            
             const response = await $still.HTTPClient.post(url, JSON.stringify(
                 { connectionName, previewScript, dbEngine, sourceType, fileSource }
             ),{
@@ -519,12 +523,29 @@ export class WorkspaceService extends BaseService {
 
                 return { ...result.result, error: true }
             }
+        } catch (error) { return null; }
 
-        } catch (error) {
-            return null;
+    }
+
+    async pausePipelineScheduledJob(){
+        const namespace = await UserService.getNamespace();
+        const pipeline = WorkspaceService.currentSelectedPpeline;
+        let pplineJobStatus = WorkspaceService.currentSelectedPpelineStatus;
+
+        if(pplineJobStatus !== 'paused') pplineJobStatus = 'paused';
+        else pplineJobStatus = 'active'
+
+        const url = `/ppline/schedule/${namespace}/${pipeline}/${pplineJobStatus}`;
+
+        const response = await $still.HTTPClient.post(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            AppTemplate.toast.success(`Pipeline scheduled job ${pplineJobStatus === 'paused' ? pplineJobStatus : 'resumed'}`);
+            return true;
         }
-
-
+        else
+            AppTemplate.toast.error(result.result);
     }
 
 }

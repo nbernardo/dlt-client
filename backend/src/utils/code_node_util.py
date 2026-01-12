@@ -41,7 +41,18 @@ valid_imports = [
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
 
 FORBIDDEN_CALLS_REGEX = re.compile(
-    r'(?<![.\w])\b(exec|eval|compile|open|__import__|input|getattr|setattr|delattr|globals|locals|vars|dir|help)\s*\('
-    r'|\b(__builtins__|builtins)\s*\.\s*(exec|eval|compile|open|__import__|input|getattr|setattr|delattr|globals|locals|vars|dir|help)\b'
-    r'|\b\w+\s*=\s*(?<![.\w])(exec|eval|compile|open|__import__|input|getattr|setattr|delattr|globals|locals|vars|dir|help)\b'
+(
+    r'(?<![.\w])\b(exec|eval|compile|open|__import__|input|getattr|setattr|delattr|'
+    r'globals|locals|vars|dir|help)\s*\((?!\s*[a-zA-Z_][\w]*\s*,)'
+    r'|'
+    r'(?<![.\w])\b(__builtins__|builtins)\s*\.\s*(exec|eval|compile|open|__import__|'
+    r'input|getattr|setattr|delattr|globals|locals|vars|dir|help)\b'
+    r'|'
+    r'(?<![.\w])\b(exec|eval|compile|open|__import__|input|getattr|setattr|delattr|'
+    r'globals|locals|vars|dir|help)\s*='
+)
+)
+
+FORBIDDEN_DUNDER_REGEX = re.compile(
+    r'\b(getattr|setattr|delattr)\s*\([^,)]+,\s*[\'\"]\s*__\w+__\s*[\'\"]\s*\)'
 )

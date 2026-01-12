@@ -18,7 +18,7 @@
 
 				<div style="width: 500px;" class="divederLeftSide">
 					<st-element component="LeftTabs" 
-						(viewPipelineDiagram)="viewPipelineDiagram(event, dbfile)"
+						(viewPipelineDiagram)="viewPipelineDiagram(event, dbfile, asTemplate)"
 						(openScriptOnEditor)="viewScriptOnEditor()" proxy="leftMenuProxy"
 						(openDataFileOnEditor)="viewFileOnEditor()"></st-element>
 				</div>
@@ -115,7 +115,8 @@
 
 						<div style="position: absolute; right: 0;" class="clearAndSaveButton">
 							<div class="btn-clear clear-workspace-btn" style="margin-left: 89px; position: relative;"
-								onclick="component.resetWorkspace()">Clear
+								onclick="component.resetWorkspace()">
+								<img src="app/assets/imgs/clean.png" style="width: 18px; float: left;" alt=""> &nbsp;Clear
 							</div>
 							<div class="btn-export save-pipeline-btn save-and-run-pipeline-btn" (showIf)="self.showSaveButton"
 								onclick="component.savePipeline()">
@@ -154,7 +155,7 @@
 </div>
 <style>
 	.save-pipeline-btn, .update-pipeline-btn{ position: relative; margin-left: 4px; }
-	.update-pipeline-btn{ right: 25px; }
+	.update-pipeline-btn{ right: 25px; background: #4ea9ff7a; cursor: not-allowed; }
 	.save-and-run-pipeline-btn { background: #008000d6; }
 </style>
 <div class="ai-agent-placeholder" (showIf)="self.openAgent"></div>

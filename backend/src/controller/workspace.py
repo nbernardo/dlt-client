@@ -42,8 +42,9 @@ def list_pipelines(user, socket_id):
     ppelines_path = BasePipeline.folder+'/pipeline/'+user+'/'
     duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+user+'/'
 
-    ppelines = Workspace.list_pipeline_from_files(ppelines_path)
-    duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user,ppelines)
+    pipeline_schedules = Workspace.get_ppline_schedule(user)
+    ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
+    duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user, ppelines, pipeline_schedules)
     
     errors_list = None
 
@@ -116,14 +117,15 @@ def create_ppline_schedule(namespace):
             ppline_name, json.dumps(settings), namespace, type, periodicity, time
         )
         file_path = f'{namespace}/{ppline_name}'
+        tag_name = f'{namespace}_{ppline_name}'
         Workspace.schedule_jobs[file_path] = True
 
         if(type == 'min'):
-            schedule.every(int(time)).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace)
+            schedule.every(int(time)).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
         if(type == 'hour'):
-            schedule.every(int(time)).hours.do(DltPipeline.run_pipeline_job, file_path, namespace)
+            schedule.every(int(time)).hours.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
 
-        schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline'))
+        schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
         print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
         schedule.run_pending()
 
