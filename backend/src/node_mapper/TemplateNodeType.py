@@ -114,9 +114,9 @@ class TemplateNodeType:
         ni = '\n' if has_tranformation else n
 
         src_path_add = '#Adding root folder to allow import  from src'
-        src_path_add += f"{ni}from pathlib import Path{ni}import sys"
+        src_path_add += f"{ni}from pathlib import Path{ni}from sys import path"
         src_path_add += f"{ni}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')"
-        src_path_add += f"{ni}sys.path.insert(0, src_path){ni}sys.path.insert(0, src_path+'/src')"
+        src_path_add += f"{ni}path.insert(0, src_path){ni}path.insert(0, src_path+'/src')"
 
         import_secret_manager = f'{ni}{ni}from src.services.workspace.SecretManager import SecretManager'
         add_path_and_import_secret_manager = f'{src_path_add}{import_secret_manager}'

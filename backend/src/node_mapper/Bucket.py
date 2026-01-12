@@ -38,6 +38,9 @@ class Bucket(TemplateNodeType):
             self.parse_to_literal = ['read_file_type']
 
             self.namespace = data['namespace']
+            
+            if type(data['readFileType']) == list: data['readFileType'] = data['readFileType'][0]
+            
             self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
             self.component_id = data['componentId']
 

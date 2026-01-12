@@ -339,7 +339,7 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('%table_format%', '')
     
     if(context.transformation):
-        transformation = context.transformation
+        transformation = context.transformation.replace('"(pl.','(pl.')
         if(context.source_type == 'BUCKET'):
             transformation = f'transformation = {transformation}'
             transformation = handle_transform_indent(transformation)
