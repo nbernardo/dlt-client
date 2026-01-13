@@ -1,4 +1,5 @@
 import { State, STForm } from "../../../../@still/component/type/ComponentType.js";
+import { sourcesTemplatesMap } from "../../../assets/dlt-code-template/source/known-sources.js";
 import { AIAgentController } from "../../../controller/AIAgentController.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
@@ -32,13 +33,6 @@ export class DLTCode extends AbstractNode {
 	/** @Prop @type { STForm } */ formRef;
 	/** @Prop */ codeContent = '';
 	/** @Prop */ codeInitComment = '# Select a code template or Type your DLT python script code bellow'
-
-	/** @Prop */ templateMap = {
-		kafka_tmpl: 'Kafka',
-		kafka_tmpl_sasl: 'Kafka + SASL',
-		mongo_tmpl: 'MongoDB',
-		undefined: '',
-	}
 
 	/** @type { State } */
 	selectedTemplate = '';
@@ -99,7 +93,7 @@ export class DLTCode extends AbstractNode {
 
 		if (this.importData.isImport) {
 			this.notifyReadiness();
-			this.templateName = ` - <b>${this.templateMap[this.importData.templateName]}</b>`;
+			this.templateName = ` - <b>${sourcesTemplatesMap[this.importData.templateName]}</b>`;
 			this.codeEditor.setValue(this.importData.dltCode)
 		}
 	}
@@ -137,7 +131,7 @@ export class DLTCode extends AbstractNode {
 				let code = self.codeInitComment;
 				if (templateName != '') {
 					code = await loadTemplate(templateName);
-					self.templateName = ` - <b>${self.templateMap[templateName]}</b>`;
+					self.templateName = ` - <b>${sourcesTemplatesMap[templateName]}</b>`;
 					self.codeContent = code;
 					WorkSpaceController.getNode(self.nodeId).data['templateName'] = templateName;
 					WorkSpaceController.getNode(self.nodeId).data['dltCode'] = code;

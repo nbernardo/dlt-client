@@ -5,7 +5,7 @@ import { agentOptions, aiStartOptions, BOT, botSubRoutineCall, dontFollowAgentFl
 import { Workspace } from "../components/workspace/Workspace.js";
 import { WorkspaceService } from "../services/WorkspaceService.js";
 import { dataToTable } from "../util/dataPresentationUtil.js";
-import { NodeTypeEnum, WorkSpaceController } from "./WorkSpaceController.js";
+import { WorkSpaceController } from "./WorkSpaceController.js";
 
 export class AIAgentController extends BaseController {
 
@@ -91,7 +91,7 @@ export class AIAgentController extends BaseController {
     async parsePipelineCreationContent(content){
 
         this.lastPipeline = content;
-        WorkSpaceController.instance().wSpaceComponent.resetWorkspace();
+        WorkSpaceController.instance().wSpaceComponent.resetWorkspace(false);
         content = JSON.parse(content);
         const totalNodes = Object.values(content).length;
 

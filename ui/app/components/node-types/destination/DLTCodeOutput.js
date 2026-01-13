@@ -1,3 +1,4 @@
+import { destnationTemplatesMap } from "../../../assets/dlt-code-template/destination/known-destinations.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
@@ -49,8 +50,8 @@ export class DLTCodeOutput extends AbstractNode {
 		this.aiGenerated = aiGenerated;
 		this.templateName = '';
 		if(aiGenerated){
-			if(AIAgentController.instance().whatCodeTemplateType.source != null)
-				this.importData = { ...this.importData , template: AIAgentController.instance().whatCodeTemplateType.source }
+			if(![null, undefined].includes(data.codeTemplate))
+				this.importData = { ...this.importData , template: data.codeTemplate }
 		}
 	}
 
@@ -88,8 +89,8 @@ export class DLTCodeOutput extends AbstractNode {
 		this.onTemplateSelect();
 
 		if(this.aiGenerated){
-			const template = { 'kafka': 'kafka_tmpl_sasl', 'mongo': 'mongo_tmpl' };
-			this.selectedTemplate = template[this.importData.template.toLowerCase()];
+			if(this.importData.template.toLowerCase() in destnationTemplatesMap)
+				this.selectedTemplate = destnationTemplatesMap[this.importData.template.toLowerCase()];
 		}
 
 		if (this.importData.isImport) {

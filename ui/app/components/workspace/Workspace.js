@@ -322,21 +322,24 @@ export class Workspace extends ViewComponent {
 
 	}
 
-	resetWorkspace() {
-		if(this.isAnyDiagramActive === true || this.controller.isTemplating === true){
-			this.controller.clearActiveDiagramAlert(() => {
-				this.editor.clearModuleSelected();
-				this.controller.resetEdges();
-				document.querySelector('.clear-workspace-btn').style.right = '95px';
-				this.activeGrid = 'Enter pipeline name';
-				document.getElementById('pplineNamePlaceHolder').querySelector('state').innerHTML = 'Enter pipeline name';
-				document.getElementById('pplineNamePlaceHolder').contentEditable = true;
-				if (this.showSaveButton !== true)
-					this.showSaveButton = true;
-				this.wasDiagramSaved = false;
-				this.isAnyDiagramActive = false;
-				this.isAnyDiagramActive = false;
-			});
+	resetWorkspace(alertReset = true) {
+		const self = this;
+		if(this.isAnyDiagramActive === true || this.controller.isTemplating === true && alertReset === true){
+			this.controller.clearActiveDiagramAlert(() => resetWorkspaceCallBack());
+		}else resetWorkspaceCallBack();
+
+		function resetWorkspaceCallBack(){
+			self.editor.clearModuleSelected();
+			self.controller.resetEdges();
+			document.querySelector('.clear-workspace-btn').style.right = '95px';
+			self.activeGrid = 'Enter pipeline name';
+			document.getElementById('pplineNamePlaceHolder').querySelector('state').innerHTML = 'Enter pipeline name';
+			document.getElementById('pplineNamePlaceHolder').contentEditable = true;
+			if (self.showSaveButton !== true)
+				self.showSaveButton = true;
+			self.wasDiagramSaved = false;
+			self.isAnyDiagramActive = false;
+			self.isAnyDiagramActive = false;
 		}
 	}
 
