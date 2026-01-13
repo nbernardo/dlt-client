@@ -17,11 +17,8 @@
 		<div class="box" style="padding: 8px;">
 			<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">See Code <span class="color: black;">@templateName</span></div>
 			<div style="margin-top: 10px;" (showIf)="self.showTemplateList">
-				<select (value)="selectedTemplate">
-					<option value="dlt-code">Code template</option>
-					<option value="kafka_tmpl">Kafka Consumer</option>
-					<option value="kafka_tmpl_sasl">Kafka w\ SASL Auth</option>
-					<option value="mongo_tmpl">Mongo DB</option>
+				<select (value)="selectedTemplate" (forEach)="codeTeamplate">
+					<option each="item" value="{item.value}">{item.name}</option>
 				</select>
 			</div>
 			<span (showIf)="self.showEditor">

@@ -38,10 +38,13 @@ export class DLTCode extends AbstractNode {
 	selectedTemplate = '';
 	templateName = '';
 
+	codeTeamplate;
+
 	/** @Prop */ importData;
 
 	stOnRender(data) {
 		const { nodeId, aiGenerated } = data;
+		this.codeTeamplate = Object.entries(sourcesTemplatesMap).filter(([k,_]) => k !== 'translate').map(([value, name]) => ({ name, value }));
 		this.importData = data;
 		this.nodeId = nodeId;
 		this.$parent.controller.loadMonacoEditorDependencies();
@@ -86,10 +89,8 @@ export class DLTCode extends AbstractNode {
 		this.codeEditor.onDidChangeModelContent(() => this.codeContent = this.codeEditor.getValue());
 		this.onTemplateSelect();
 
-		if(this.aiGenerated){
-			const template = { 'kafka': 'kafka_tmpl_sasl', 'mongo': 'mongo_tmpl' };
-			this.selectedTemplate = template[this.importData.template.toLowerCase()];
-		}
+		if(this.aiGenerated)
+			this.selectedTemplate = sourcesTemplatesMap.translate(this.importData.template.toLowerCase());
 
 		if (this.importData.isImport) {
 			this.notifyReadiness();

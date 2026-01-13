@@ -40,10 +40,13 @@ export class DLTCodeOutput extends AbstractNode {
 	selectedTemplate = '';
 	templateName = '';
 
+	codeTeamplate;
+
 	/** @Prop */ importData;
 
 	stOnRender(data) {
 		const { nodeId, aiGenerated } = data;
+		this.codeTeamplate = Object.entries(destnationTemplatesMap).map(([name, value]) => ({ name: name[0]?.toUpperCase()+''+name.slice(1), value }));
 		this.importData = data;
 		this.nodeId = nodeId;
 		this.$parent.controller.loadMonacoEditorDependencies();
