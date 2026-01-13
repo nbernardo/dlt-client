@@ -1,1 +1,0 @@
-This is where the generated DLT pipelines are saved, do not remove this folder
