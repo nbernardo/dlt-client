@@ -67,13 +67,13 @@ export class SqlDBComponent extends AbstractNode {
 	 * will be passed
 	 * */
 	stOnRender(data){		
-		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName, aiGenerated } = data;		
+		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName, aiGenerated, asTemplate } = data;		
 		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.tables = tables;
 		this.primaryKeys = primaryKeys;	
-		this.importFields = { database, dbengine, connectionName };
+		this.importFields = { database, dbengine, connectionName, asTemplate };
 		if(data?.host) this.importFields.host = data.host;
 	}
 
@@ -169,7 +169,7 @@ export class SqlDBComponent extends AbstractNode {
 
 		this.selectedSecret.onChange(async secretName => {
 			// To prevent running through the bellow steps in case the secret is the same
-			if(this.secretedSecretTrace == secretName || this.isImport) return;
+			if(this.secretedSecretTrace == secretName || (this.isImport && !this.importFields.asTemplate)) return;
 
 			this.secretedSecretTrace = secretName;
 			this.clearSelectedTablesAndPk();
