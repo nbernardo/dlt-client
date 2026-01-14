@@ -73,7 +73,7 @@ export class SqlDBComponent extends AbstractNode {
 		this.isImport = isImport;
 		this.tables = tables;
 		this.primaryKeys = primaryKeys;	
-		this.importFields = { database, dbengine, connectionName, asTemplate };
+		this.importFields = { database, dbengine, connectionName, asTemplate, changeCount: 0 };
 		if(data?.host) this.importFields.host = data.host;
 	}
 
@@ -169,6 +169,7 @@ export class SqlDBComponent extends AbstractNode {
 
 		this.selectedSecret.onChange(async secretName => {
 			// To prevent running through the bellow steps in case the secret is the same
+			if(this.isImport && this.importFields.changeCount == 0) return changeCount++;
 			if(this.secretedSecretTrace == secretName || (this.isImport && !this.importFields.asTemplate)) return;
 
 			this.secretedSecretTrace = secretName;
