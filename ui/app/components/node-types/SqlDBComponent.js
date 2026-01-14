@@ -169,7 +169,7 @@ export class SqlDBComponent extends AbstractNode {
 
 		this.selectedSecret.onChange(async secretName => {
 			// To prevent running through the bellow steps in case the secret is the same
-			if(this.isImport && this.importFields.changeCount == 0) return changeCount++;
+			if(this.isImport && this.importFields.changeCount == 0) return this.importFields.changeCount++;
 			if(this.secretedSecretTrace == secretName || (this.isImport && !this.importFields.asTemplate)) return;
 
 			this.secretedSecretTrace = secretName;
