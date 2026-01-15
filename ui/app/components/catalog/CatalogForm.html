@@ -115,18 +115,19 @@
                           Params&nbsp;
                           <span (showIf)="self.showServiceNameLbl" data="get-oracle-dn-btn">
                             <div>
-                              @if(this.dbConnectionParams == 'searching')
+                              <span (showIf)="!self.showServiceNameLbl">
                                 <div class="mini-loader-container oracle-dn-loader">
                                   <div class="mini-loader-dot"></div>
                                   <div class="mini-loader-dot"></div>
                                   <div class="mini-loader-dot"></div>
                                 </div>
-                              @endif
-                              @if(this.dbConnectionParams != 'searching')
+                              </span>
+
+                              <span (showIf)="self.showServiceNameLbl">
                               - <span style="color: blue; font-weight: bold; cursor: pointer; font-size: 12px;">
                                 Get Oracle DN <input type="checkbox" onclick="component.getOracleDN()">
                                 </span>
-                              @endif
+                              </span>
                             </div>
                           </span>
                         </label>
