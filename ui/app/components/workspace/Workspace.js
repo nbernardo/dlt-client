@@ -333,7 +333,8 @@ export class Workspace extends ViewComponent {
 			self.controller.resetEdges();
 			document.querySelector('.clear-workspace-btn').style.right = '95px';
 			self.activeGrid = 'Enter pipeline name';
-			document.getElementById('pplineNamePlaceHolder').querySelector('state').innerHTML = 'Enter pipeline name';
+			if(document.getElementById('pplineNamePlaceHolder').querySelector('state'))
+				document.getElementById('pplineNamePlaceHolder').querySelector('state').innerHTML = 'Enter pipeline name';
 			document.getElementById('pplineNamePlaceHolder').contentEditable = true;
 			if (self.showSaveButton !== true)
 				self.showSaveButton = true;
@@ -490,7 +491,7 @@ export class Workspace extends ViewComponent {
 		return this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0;
 	}
 
-	async viewPipelineDiagram(event, pplineName, asTemplate = false) {
+	async viewPipelineDiagram(event, pplineName, asTemplate = false, fromReview = false) {
 		this.controller.shouldDisableNodeFormInputs = true;
 		event.preventDefault();
 		pplineName = this.leftMenuProxy.currentDBFile;
@@ -518,6 +519,13 @@ export class Workspace extends ViewComponent {
 			await self.controller.processImportingNodes(result?.pipelineCode?.content['Home'].data, asTemplate);
 			AppTemplate.hideLoading();
 			self.wasDiagramSaved = false;
+
+			if(fromReview){
+				self.isAnyDiagramActive = false;
+				self.activeGrid = 'Enter pipeline name';
+				self.selectedPplineName = false;
+				document.getElementById('pplineNamePlaceHolder').contentEditable = true;
+			}			
 		}
 		await openDiagram();
 	}
