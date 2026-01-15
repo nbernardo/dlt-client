@@ -218,6 +218,7 @@ export class AIAgent extends ViewComponent {
 			message = `${message}, you'll not use the previous pipeline but create a new o`;
 		
 		if(botAnswer.includes(usingSecretPrompt)){
+			this.controller.setAgentFlow(this.controller.flowPrefix.pipeline);
 			const augmentedRequest = `ROUTE(pipeline-agent)\n\nYOU'LL CONSIDER THE BELLOW JSON OF SECRETS MAP:\n${JSON.stringify(this.controller.secretsData)}\nAND DO THE FOLLOWING:\n${message}`;
 			return augmentedRequest.replace(usingSecretPrompt, '');
 		}

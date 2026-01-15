@@ -100,6 +100,14 @@
 									</ul>
 								</li>
 							</span>
+							<span (showIf)="self.isAnyDiagramActive">
+								<div
+									onclick="component.viewPipelineDiagram(event, null, true, true)" 
+									style="display: flex; align-items: center; margin-left: 10px; border-left: 1px solid lightgr; cursor: pointer;" class="schedule-job-menu">
+									<img src="app/assets/imgs/duplicate.svg" style="background: black; border-radius: 5px; padding: 1px;" width="20" alt="">
+									&nbsp;Use as template
+								</div>
+							</span>
 							<li style="display: none;" onclick="controller.changeModule('Other'); controller.changeModule(event);">Space 2</li>
 							<li style="display: none;" onclick="controller.changeModule('Other'); controller.changeModule(event);">Save </li>
 						</ul>
