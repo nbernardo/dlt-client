@@ -2,6 +2,7 @@ import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
+import { SqlDBComponent } from "../SqlDBComponent.js";
 import { Transformation } from "../Transformation.js";
 import { TransformExecution } from "../util/tranformation.js";
 
@@ -23,6 +24,7 @@ export class TransformRow extends ViewComponent {
 	/** @Prop */ databaseFields; //This is in particular when the data source is DB (e.g. SQL)
 	/** @Prop */ configData = null; // This is only used when importing/reviewing a previous created node
 	/** @Prop */ isNewField = false; // This is for shiwing input text for new field name creation
+	/** @Prop */ isSourceSQL = false;
 
 	dataSourceList;
 	selectedSource;
@@ -48,9 +50,10 @@ export class TransformRow extends ViewComponent {
 		const tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails?.tables;
 		
 		this.dataSourceList = this.configData.dataSources;
-		if(this.isImport && this.$parent.dataSourceType === 'SQL') await sleepForSec(20);
+		this.isSourceSQL = this.$parent.dataSourceType === 'SQL' || this.$parent.sourceNode.getName() === SqlDBComponent.name;
+		if(this.isImport && this.isSourceSQL) await sleepForSec(20);
 
-		if(this.isImport === true && String(this.configData.table).indexOf('.') > 0 && this.$parent.dataSourceType === 'SQL'){ 
+		if(this.isImport === true && String(this.configData.table).indexOf('.') > 0 && this.isSourceSQL){ 
 			let schemas = Object.keys(tableSource), tablePaths = [];
 			for(const schema of schemas){
 				const tables = Object.keys(tableSource[schema]);
@@ -76,7 +79,7 @@ export class TransformRow extends ViewComponent {
 				fieldList = table.map(itm => ({ name: itm.column }));
 			}else{
 				if(!newValue) return;
-				if(this.$parent.dataSourceType !== 'SQL'){
+				if(!this.isSourceSQL || this.$parent.sourceNode.getName() === SqlDBComponent.name){
 					dataSource = newValue.length > 0 && newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
 					await this.wspaceService.handleCsvSourceFields(dataSource)
 					fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
