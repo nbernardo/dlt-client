@@ -2,6 +2,7 @@ export class CodeEditorUtil {
 
     static activeLanguage = 'python';
     static pythonSuggestions = [];
+    static disposable = null;
 
     static getPythonSuggestions() {
         return [
@@ -99,13 +100,13 @@ export class CodeEditorUtil {
     }
 
     static loadedSuggestions = new Set();
-    static addSecretSugestion(lang, suggestions, additions) {
+    static addSecretSugestion(lang, suggestions) {
 
-        if(CodeEditorUtil.loadedSuggestions.has(lang))
-            return;
-        
+        if(CodeEditorUtil.disposable !== null) CodeEditorUtil.disposable.dispose();
+
+        const __current = [{label: 'PIPELINE_NAME', kind: 27, insertText: 'PIPELINE_NAME', insertTextRules: 4}];
         CodeEditorUtil.loadedSuggestions.add(lang);
-        window.monaco.languages.registerCompletionItemProvider(lang, {
+        CodeEditorUtil.disposable = window.monaco.languages.registerCompletionItemProvider(lang, {
             triggerCharacters: ['.'],
             provideCompletionItems(model, position) {
 
@@ -126,7 +127,7 @@ export class CodeEditorUtil {
                 const is__Current = text.match(/__current\.([a-zA-Z0-9_]*)$/);
                 
                 if (!isMatch && !is__Current) return { suggestions: [] };
-                if(is__Current) return { suggestions: additions.__current };
+                if(is__Current) return { suggestions: __current };
 
                 return { suggestions: suggestions.map(s => ({ ...s, range })) };
             }

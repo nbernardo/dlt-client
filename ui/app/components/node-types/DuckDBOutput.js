@@ -44,14 +44,14 @@ export class DuckDBOutput extends AbstractNode {
 	 * */
 	stOnRender(data){
 		const { nodeId, isImport, aiGenerated, database, table } = data;
-		
 		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.importFields = { database, table };
 	}
 
-	stAfterInit(){		
+	stAfterInit(){
+		this.wSpaceController.isDuckDBDest = true;
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
 		if(this.isImport === false || this.aiGenerated){
@@ -71,7 +71,6 @@ export class DuckDBOutput extends AbstractNode {
 			data['database'] = this.database.value;
 			data['tableName'] = this.tableName.value;
 		}
-
 	}
 
 	setupOnChangeListen(){
@@ -98,4 +97,7 @@ export class DuckDBOutput extends AbstractNode {
 	onConectionDelete = () => 
 		document.querySelectorAll(`.${this.cmpInternalId} .duckdb-table`).forEach(itm => itm.style.display = '');
 
+	stOnUnload(){
+		this.wSpaceController.isDuckDBDest = false;
+	}
 }

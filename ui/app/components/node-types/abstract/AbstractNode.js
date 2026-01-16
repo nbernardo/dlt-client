@@ -47,4 +47,16 @@ export class AbstractNode extends BaseComponent {
       node.nodeCount = 1;
   }
 
+  startReloadNode(){
+    document
+      .querySelector(`.${this.cmpInternalId}`)
+      .querySelector('.reload-loc-node-btn').classList.add('reload-loc-node-btn-animace-rotation');
+  }
+
+  stopReloadNode(){
+    document
+      .querySelector(`.${this.cmpInternalId}`)
+      .querySelector('.reload-loc-node-btn').classList.remove('reload-loc-node-btn-animace-rotation');
+  }
+
 }
