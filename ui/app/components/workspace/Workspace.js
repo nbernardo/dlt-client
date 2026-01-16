@@ -264,7 +264,7 @@ export class Workspace extends ViewComponent {
 	async preparePipelineContent(update = false) {
 		this.controller.isSubmittingPipeline = true;
 		let sqlPipelineDbEngine = null, isOldSQLNode = false, sqlDest = false, codeOutput = false,
-			sqlSource = false, codeInput = false, duckOutput = this.controller.isDuckDBDest;
+			sqlSource = false, codeInput = false;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		let sourceOrDestTables = Object.values(this.controller.pipelineDestinationTrace.sql);
@@ -315,8 +315,10 @@ export class Workspace extends ViewComponent {
 		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);
 
-		data.sqlDestinations = sourceOrDestTables, data.sqlSource = sqlSource; 
-		data.codeOutput = codeOutput, data.codeInput = codeInput, data.sqlDest = sqlDest, data.duckOutput = duckOutput;
+		data.sqlDestinations = sourceOrDestTables, data.sqlSource = sqlSource, data.codeOutput = codeOutput, 
+		data.codeInput = codeInput, data.sqlDest = sqlDest, data.duckOutput = this.controller.isDuckDBDest;
+
+		this.controller.isDuckDBDest = false;
 
 		if (update === true) data.update = true;
 		return data;

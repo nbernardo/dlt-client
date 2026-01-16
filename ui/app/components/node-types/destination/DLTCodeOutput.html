@@ -22,7 +22,7 @@
 	
 	<form (formRef)="formRef">
 		<div class="box" style="padding: 8px;">
-			<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">See Code <span class="color: black;">@templateName</span></div>
+			<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">See Code <span class="color: black;">@templateNameLbl</span></div>
 			<div style="margin-top: 10px;" (showIf)="self.showTemplateList">
 				<select (value)="selectedTemplate" (forEach)="codeTeamplate">
 					<option each="item" value="{item.value}">{item.name}</option>

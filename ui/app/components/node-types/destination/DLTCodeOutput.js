@@ -2,6 +2,8 @@ import { destnationTemplatesMap } from "../../../assets/dlt-code-template/destin
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { CodeEditorUtil } from "../../../util/CodeEditorUtil.js";
+import { Workspace } from "../../workspace/Workspace.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { loadTemplate } from "../util/codeTemplateUtil.js";
@@ -39,6 +41,7 @@ export class DLTCodeOutput extends AbstractNode {
 	/** @type { State } */
 	selectedTemplate = '';
 	templateName = '';
+	templateNameLbl = '';
 
 	codeTeamplate;
 
@@ -62,22 +65,7 @@ export class DLTCodeOutput extends AbstractNode {
 
 		const container = document
 			.querySelector(`.${this.cmpInternalId} .code-editor-placeholder`);
-		
-		const codeSuggestions = [];
-		await WorkspaceService.listSecrets(1, ({secretNames} = { secretNames: [] }) => {
-			for(const secretName of secretNames){
-				//CodeEditorUtil.pythonSuggestions.push(
-				codeSuggestions.push(
-					{
-						label: secretName,
-						kind: monaco.languages.CompletionItemKind.Snippet,
-						insertText: secretName,
-						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-					}
-				);
-			}
-		});
-
+		const codeSuggestions = await this.getSecrets();
 		this.codeEditor = this.$parent.controller.loadMonacoEditor(
 			container, {
 				lang: 'python',
@@ -98,22 +86,22 @@ export class DLTCodeOutput extends AbstractNode {
 
 		if (this.importData.isImport) {
 			this.notifyReadiness();
-			this.templateName = ` - <b>${this.templateMap[this.importData.templateName]}</b>`;
-			this.codeEditor.setValue(this.importData.dltCode)
+			this.templateNameLbl = ` - <b>${this.templateMap[this.importData.templateName]}</b>`;
+			this.templateName = this.importData.templateName;
+			this.codeEditor.setValue(this.importData.dltCode);
 		}
 	}
 
 	async openEditor() {
 		this.showEditor = !this.showEditor;
 		this.showTemplateList = this.showEditor;
-		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 		if (this.codeContent.length > 0) this.codeEditor.setValue(this.codeContent);
 		else this.codeEditor.setValue(this.codeInitComment);
 	}
 
 	onTemplateSelect() {
 		this.selectedTemplate.onChange(async templateName => {
-			
+			if(this.$parent.controller.isSubmittingPipeline) return;
 			if(templateName === this.prevSelectedTemplate || templateName === 'dlt-code') return;
 			
 			const self = this;
@@ -148,9 +136,35 @@ export class DLTCodeOutput extends AbstractNode {
 		});
 	}
 
+	async getSecrets(){
+		const codeSuggestions = [];
+		await WorkspaceService.listSecrets(1, ({secretNames} = { secretNames: [] }) => {
+			for(const secretName of secretNames){
+				//CodeEditorUtil.pythonSuggestions.push(
+				codeSuggestions.push(
+					{
+						label: secretName,
+						kind: monaco.languages.CompletionItemKind.Snippet,
+						insertText: secretName,
+						insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+					}
+				);
+			}
+		});
+		return codeSuggestions;
+	}
+
+	async reloadMe(){
+		this.startReloadNode();
+		const codeSuggestions = await this.getSecrets();
+		CodeEditorUtil.addSecretSugestion('python', codeSuggestions);
+		this.stopReloadNode();
+	}
+
 	async getCode() {
 		this.showTemplateList = true;
 		WorkSpaceController.getNode(this.nodeId).data['dltCode'] = this.codeContent;
+		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 	}
 
 	onOutputConnection(){

@@ -116,14 +116,13 @@ export class DLTCode extends AbstractNode {
 	async openEditor() {
 		this.showEditor = !this.showEditor;
 		this.showTemplateList = this.showEditor;
-		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 		if (this.codeContent.length > 0) this.codeEditor.setValue(this.codeContent);
 		else this.codeEditor.setValue(this.codeInitComment);
 	}
 
 	onTemplateSelect() {
 		this.selectedTemplate.onChange(async templateName => {
-			
+			if(this.$parent.controller.isSubmittingPipeline) return;
 			if(templateName === this.prevSelectedTemplate || templateName === 'dlt-code') return;
 			
 			const self = this;
@@ -161,6 +160,7 @@ export class DLTCode extends AbstractNode {
 	async getCode() {
 		this.showTemplateList = true;
 		WorkSpaceController.getNode(this.nodeId).data['dltCode'] = this.codeContent;
+		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 	}
 
 	onOutputConnection(){
