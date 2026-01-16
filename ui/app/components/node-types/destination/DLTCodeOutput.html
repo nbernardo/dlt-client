@@ -1,7 +1,14 @@
 <div class="@cmpInternalId">
 	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
 	<div class="title-box pipeline-node-type-title-box">
-		<div style="display: flex; align-items: center;">
+		<div style="display: flex; align-items: center;" class="workspace-node-type-header node-header-grouper">
+			<div class="reload-icon-wrapper">
+				<img 
+					onclick="component.reloadMe()"
+					src="app/assets/imgs/refresh-svgrepo-com.svg" 
+					class="reload-loc-node-btn" 
+					alt="">
+			</div>
 			<img src="app/assets/imgs/dlt-logo-colored.png" style="width: 20px; height: 20px;">
 			&nbsp;@label
 		</div>
@@ -15,7 +22,7 @@
 	
 	<form (formRef)="formRef">
 		<div class="box" style="padding: 8px;">
-			<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">See Code <span class="color: black;">@templateName</span></div>
+			<div onclick="component.openEditor()" style="color: blue; cursor: pointer;">See Code <span class="color: black;">@templateNameLbl</span></div>
 			<div style="margin-top: 10px;" (showIf)="self.showTemplateList">
 				<select (value)="selectedTemplate" (forEach)="codeTeamplate">
 					<option each="item" value="{item.value}">{item.name}</option>

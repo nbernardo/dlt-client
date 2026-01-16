@@ -61,11 +61,12 @@ export class WorkSpaceController extends BaseController {
     /** @type { Workspace } */
     wSpaceComponent;
     isImportProgress = false;
+    isSubmittingPipeline = false;
 
     importingPipelineSourceDetails = null;
 
-    /** @type { Header } */
-    activeHeader = null;
+    /** @type { Header } */ activeHeader = null;
+    /** @type { Header } */ isDuckDBDest = false;
 
     static scheduledPipelinesInitList;
 
@@ -879,8 +880,7 @@ export class WorkSpaceController extends BaseController {
     loadMonacoEditor(container, params = monacoLoadInitVal){
 		
         const { lang, fontSize, theme, suggestions, suggestionType } = params;
-        const __current = [{label: 'PIPELINE_NAME', kind: 27, insertText: 'PIPELINE_NAME', insertTextRules: 4}];
-        if(suggestionType === 'secret') CodeEditorUtil.addSecretSugestion(lang, suggestions, { __current });
+        if(suggestionType === 'secret') CodeEditorUtil.addSecretSugestion(lang, suggestions);
 
 		return window.monaco.editor.create(container, {
 			value: this.query, language: lang,

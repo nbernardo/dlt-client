@@ -4,6 +4,7 @@ import { AIAgentController } from "../../../controller/AIAgentController.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { CodeEditorUtil } from "../../../util/CodeEditorUtil.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
@@ -56,11 +57,14 @@ export class DLTCode extends AbstractNode {
 		}
 	}
 
-	async stAfterInit() {
+	async reloadMe(){
+		this.startReloadNode();
+		const codeSuggestions = await this.getSecrets();
+		CodeEditorUtil.addSecretSugestion('python', codeSuggestions);
+		this.stopReloadNode();
+	}
 
-		const container = document
-			.querySelector(`.${this.cmpInternalId} .code-editor-placeholder`);
-		
+	async getSecrets(){
 		const codeSuggestions = [];
 		await WorkspaceService.listSecrets(1, ({secretNames} = { secretNames: [] }) => {
 			for(const secretName of secretNames){
@@ -75,7 +79,13 @@ export class DLTCode extends AbstractNode {
 				);
 			}
 		});
+		return codeSuggestions;
+	}
 
+	async loadCodeEditor(){
+		const container = document
+			.querySelector(`.${this.cmpInternalId} .code-editor-placeholder`);
+		const codeSuggestions = await this.getSecrets();
 		this.codeEditor = this.$parent.controller.loadMonacoEditor(
 			container, {
 				lang: 'python',
@@ -85,6 +95,10 @@ export class DLTCode extends AbstractNode {
 				fontSize: 14
 			}
 		);
+	}
+
+	async stAfterInit() {
+		await this.loadCodeEditor();
 
 		this.codeEditor.onDidChangeModelContent(() => this.codeContent = this.codeEditor.getValue());
 		this.onTemplateSelect();
@@ -102,14 +116,13 @@ export class DLTCode extends AbstractNode {
 	async openEditor() {
 		this.showEditor = !this.showEditor;
 		this.showTemplateList = this.showEditor;
-		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 		if (this.codeContent.length > 0) this.codeEditor.setValue(this.codeContent);
 		else this.codeEditor.setValue(this.codeInitComment);
 	}
 
 	onTemplateSelect() {
 		this.selectedTemplate.onChange(async templateName => {
-			
+			if(this.$parent.controller.isSubmittingPipeline) return;
 			if(templateName === this.prevSelectedTemplate || templateName === 'dlt-code') return;
 			
 			const self = this;
@@ -147,6 +160,7 @@ export class DLTCode extends AbstractNode {
 	async getCode() {
 		this.showTemplateList = true;
 		WorkSpaceController.getNode(this.nodeId).data['dltCode'] = this.codeContent;
+		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 	}
 
 	onOutputConnection(){

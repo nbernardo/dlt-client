@@ -240,6 +240,7 @@ export class Workspace extends ViewComponent {
 			if(actionType !== 'onlysave') this.logProxy.appendLogEntry('error', result.result, Date.now());
 			return AppTemplate.toast.error(result.result);
 		}
+		this.controller.isSubmittingPipeline = false;
 		if(actionType === 'onlysave')
 			AppTemplate.toast.success(`Pipeline ${this.activeGrid.value} saved successfully`, 15000);
 		return result;
@@ -261,9 +262,9 @@ export class Workspace extends ViewComponent {
 	}
 
 	async preparePipelineContent(update = false) {
-
-		let sqlPipelineDbEngine = null, isOldSQLNode = false, sqlDest = false,
-			codeOutput = false, sqlSource = false, codeInput = false;
+		this.controller.isSubmittingPipeline = true;
+		let sqlPipelineDbEngine = null, isOldSQLNode = false, sqlDest = false, codeOutput = false,
+			sqlSource = false, codeInput = false;
 		this.controller.pplineStatus = PPLineStatEnum.Start;
 		const formReferences = [...this.controller.formReferences.values()];
 		let sourceOrDestTables = Object.values(this.controller.pipelineDestinationTrace.sql);
@@ -314,8 +315,10 @@ export class Workspace extends ViewComponent {
 		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);
 
-		data.sqlDestinations = sourceOrDestTables, data.sqlSource = sqlSource; 
-		data.codeOutput = codeOutput, data.codeInput = codeInput, data.sqlDest = sqlDest;
+		data.sqlDestinations = sourceOrDestTables, data.sqlSource = sqlSource, data.codeOutput = codeOutput, 
+		data.codeInput = codeInput, data.sqlDest = sqlDest, data.duckOutput = this.controller.isDuckDBDest;
+
+		this.controller.isDuckDBDest = false;
 
 		if (update === true) data.update = true;
 		return data;
