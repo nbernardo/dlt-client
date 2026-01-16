@@ -82,7 +82,7 @@ class DltPipeline:
 
         filename_suffixe = ''
         if context.is_duck_destination != True:
-            filename_suffixe = '|withmetadata|' if does_have_metadata else ''
+            filename_suffixe = '|withmetadata|' if does_have_metadata or context.is_code_destination else ''
             if(filename_suffixe == ''):
                 filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
 

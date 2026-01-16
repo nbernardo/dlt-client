@@ -55,7 +55,11 @@ class TemplateNodeType:
                 n = '\n' if self.context.transformation else '\n    ' # New line character
             template = self.regular_template_destination_config(n, template)
             # Remove placeholder for in-file pipeline metadata (e.g. destination tables when SQL DB)
-            template = template.replace('%metadata_section%','')
+            if template_type == 'sql_database' and self.context.is_code_destination:
+                metadata_section = f'# METADATA: dest_tables=%source_tables%\n'
+                template = template.replace('%metadata_section%',metadata_section)
+            else:
+                template = template.replace('%metadata_section%','')
             # Remove placeholder for destination database secrets
             template = template.replace('%dest_secret_code%','')
 
