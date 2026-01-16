@@ -27,6 +27,7 @@ def create():
     context = RequestContext(pipeline_name, payload['socketSid'])
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
     context.is_code_destination = payload['codeOutput']
+    context.is_duck_destination = payload['duckOutput']
 
     if('actionType' in payload):
         context.pipeline_action = payload['actionType']

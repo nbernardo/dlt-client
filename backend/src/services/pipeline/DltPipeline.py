@@ -80,9 +80,12 @@ class DltPipeline:
         if not(does_have_metadata):
             does_have_metadata = True if (context.bucket_source and context.is_code_destination) else False
 
-        filename_suffixe = '|withmetadata|' if does_have_metadata else ''
-        if(filename_suffixe == ''):
-            filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
+        filename_suffixe = ''
+        if context.is_duck_destination != True:
+            filename_suffixe = '|withmetadata|' if does_have_metadata else ''
+            if(filename_suffixe == ''):
+                filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
+
         ppline_file = f'{file_path}/{file_name}{filename_suffixe}.py'
         file_open_flag = 'x+'
         
