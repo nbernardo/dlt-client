@@ -120,7 +120,7 @@ Update the settings in `config/settings/dev.json` as necessary, per your environ
 | **websocketAddr**         | WebSocket endpoint for the pipeline. Must be the backend IP/domain prefixed with `ws://` and suffixed with `/pipeline` (e.g., `ws://localhost:8000/pipeline`). |
 | **anonymousLogin**        | When `true`, allows users to log in without authentication. Authentication is handled by Auth0 (free tier available). To enable Auth0, set `auth0.domain` and `auth0.clientId`, and set **anonymousLogin** to `false`. |
 | **auth0.domain**          | (Required for Auth0) Your Auth0 domain (e.g., `your-app.us.auth0.com`). Only needed when **anonymousLogin** is `false`.                       |
-| **auth0.clientId**        | (Required for Auth0) Your Auth0 client ID. Only needed when **anonymousLogin** is `false`.                                                     |
+| **auth0.clientId**        | (Required for Auth0) Your Auth0 e2e-Data/~client ID~. Only needed when **anonymousLogin** is `false`.                                                     |
 
 Build and run the frontend using the StillJS CLI:
 
