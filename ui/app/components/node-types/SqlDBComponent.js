@@ -169,6 +169,9 @@ export class SqlDBComponent extends AbstractNode {
 
 		this.selectedSecret.onChange(async secretName => {
 			// To prevent running through the bellow steps in case the secret is the same
+			let database = '', dbengine = '', host = '';
+			if(this.importFields.asTemplate) await loadTableList(secretName, database, dbengine, host);
+
 			if(this.wSpaceController.isSubmittingPipeline) return;
 			if(this.isImport && this.importFields.changeCount == 0) return this.importFields.changeCount++;
 			if(this.secretedSecretTrace == secretName || (this.isImport && !this.importFields.asTemplate)) return;
@@ -176,28 +179,28 @@ export class SqlDBComponent extends AbstractNode {
 			this.secretedSecretTrace = secretName;
 			this.clearSelectedTablesAndPk();
 			this.showLoading = true;
-			let database = '', dbengine = '', host = '';
-			if(secretName != ''){
-				const data = await WorkspaceService.getConnectionDetails(secretName);
-
-				if('secret_details' in (data || {})){
-					const detail = data['secret_details'];
-					database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
-					this.tablesFieldsMap = data.tables;
-					this.selectedSecretTableList = Object.keys(data.tables);
-				}
-				
-				WorkSpaceController.getNode(this.nodeId).data['host'] = host;
-				this.dynamicFields.tables.forEach(tbl => {
-					tbl.setDataSource(this.selectedSecretTableList.value);
-				});
-
-			}
+			if(secretName != '') await loadTableList(secretName, database, dbengine, host);
 			this.database = database;
 			this.selectedDbEngine = dbengine;
 			this.hostName = host;
 			this.showLoading = false;
-		})
+		});
+		const self  = this;
+		async function loadTableList(secretName, database, dbengine, host){
+			const data = await WorkspaceService.getConnectionDetails(secretName);
+
+			if('secret_details' in (data || {})){
+				const detail = data['secret_details'];
+				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
+				self.tablesFieldsMap = data.tables;
+				self.selectedSecretTableList = Object.keys(data.tables);
+			}
+				
+			WorkSpaceController.getNode(self.nodeId).data['host'] = host;
+			self.dynamicFields.tables.forEach(tbl => {
+				tbl.setDataSource(self.selectedSecretTableList.value);
+			});
+		}
 	}
 
 	setDBIcon = (db) => {
