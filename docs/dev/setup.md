@@ -51,6 +51,20 @@ CONVERSATION_TURN_LIMIT=-1
 | **TOTAL_ALLOWED_UPLOADS**  | Sets an optional limit on how many data files (e.g., CSV) each user/account can upload.                                |
 | **CONVERSATION_TURN_LIMIT**| Sets an optional daily limit on how many messages a user can send to the AI agent.                                    |
 
+
+As mandatory step, setup the Hashicorp vault using the valut/docker-compose.yml
+
+```
+docker compose -f valut/docker-compose.yml up -d
+```
+
+Update Vault env vars per vault/docker-compose.yml.
+
+```text
+HASHICORP_HOST=http://127.0.0.1:8200
+HASHICORP_TOKEN=root
+```
+
 Now run the app:
 
 ```
