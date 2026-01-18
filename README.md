@@ -1,13 +1,17 @@
+**Client DLT** is now **e2e-Data**. While the DLT library remains a core component, the rebrand avoids conflicts and reflects the platform’s expansion beyond  data pipelines.
 
-<img src="assets/dlt-client-logo-white.png" width="150">
+<img src="assets/e2e-data-logo.svg" width="150">
 
-DLT Client is an MVP Data Engineering project designed to build ETL pipelines through a web interface, using low/no-code
+~DLT Client is an MVP Data Engineering project designed to build ETL pipelines through a web interface, using low/no-code
+features~.
+
+e2e is an MVP Data Engineering project designed to build ETL pipelines through a web interface, using low/no-code
 features.
 
 The front end is built using the <a href="https://stilljs.dev/">Still.js</a> framework and the Backend is built in 
 <a href="https://dlthub.com/">dlt-hub (Python)</a>. This is a single repository comprising both the backend and the UI.
 
-There is a [live version](https://mvp1.dlt-c.cloud/#) deployed in the cloud, you can access and test it using social login.
+There is a [live version](https://mvp2.e2e-data.com/#) deployed in the cloud as MVP2 release, you can access and test it using social login.
 
 To learn how to set up your local dev environment, see [development setup](docs/dev/setup.md)
 
