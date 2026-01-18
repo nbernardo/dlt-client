@@ -180,26 +180,20 @@ export class SqlDBComponent extends AbstractNode {
 			this.clearSelectedTablesAndPk();
 			this.showLoading = true;
 			if(secretName != '') await loadTableList(secretName, database, dbengine, host);
-			this.database = database;
-			this.selectedDbEngine = dbengine;
-			this.hostName = host;
 			this.showLoading = false;
 		});
+
 		const self  = this;
 		async function loadTableList(secretName, database, dbengine, host){
 			const data = await WorkspaceService.getConnectionDetails(secretName);
-
 			if('secret_details' in (data || {})){
 				const detail = data['secret_details'];
 				database = detail?.database, dbengine = detail?.dbengine, host = detail?.host;
-				self.tablesFieldsMap = data.tables;
-				self.selectedSecretTableList = Object.keys(data.tables);
+				self.tablesFieldsMap = data.tables, self.selectedSecretTableList = Object.keys(data.tables);
+				self.database = database, self.selectedDbEngine = dbengine, self.hostName = host;
 			}
-				
 			WorkSpaceController.getNode(self.nodeId).data['host'] = host;
-			self.dynamicFields.tables.forEach(tbl => {
-				tbl.setDataSource(self.selectedSecretTableList.value);
-			});
+			self.dynamicFields.tables.forEach(tbl => tbl.setDataSource(self.selectedSecretTableList.value));
 		}
 	}
 
