@@ -1,6 +1,6 @@
 **Client DLT** is now **e2e-Data**. While the DLT library remains a core component, the rebrand avoids conflicts and reflects the platform’s expansion beyond  data pipelines.
 
-<img src="assets/e2e-data-logo.svg" width="150">
+<img src="assets/e2e-Data-Logo.png" width="150">
 
 ~DLT Client is an MVP Data Engineering project designed to build ETL pipelines through a web interface, using low/no-code
 features~.

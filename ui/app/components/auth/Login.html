@@ -15,18 +15,19 @@
 		@endif
 
 		<div style="text-align: center;">
-			<img src="app/assets/imgs/dlt-client-logo-white.png" width="50%" alt="">
+			<img src="app/assets/imgs/e2e-data-logo.svg" style="padding-bottom: 20px;" width="70%" alt="">
 		</div>
-		<h2>Login</h2>
 		<!-- In case anonymous login is false, hence negating the flag. Show social login -->
 		@if(this.isAnonumousLogin == false)
-		<span>
-			<a href="#" (click)="login('facebook')" class="oauth-btn facebook">Continue with Facebook</a>
-			<a href="#" (click)="login('twitter-oauth2')" class="oauth-btn twitter">Continue with Twitter</a>
-			<a href="#" (click)="login('google-oauth2')" class="oauth-btn google">Continue with Google</a>
-			<a href="#" (click)="login('github')" class="oauth-btn github">Continue with GitHub</a>
-			<a href="#" style="opacity: 0.5; cursor: not-allowed; pointer-events: none; text-decoration: none;" class="oauth-btn windowslive">Continue with Microsoft</a>
-		</span>
+		<div>
+			<div>
+				<a href="#" (click)="login('facebook')" class="oauth-btn facebook">Continue with Facebook</a>
+				<a href="#" (click)="login('twitter-oauth2')" class="oauth-btn twitter">Continue with Twitter</a>
+				<a href="#" (click)="login('google-oauth2')" class="oauth-btn google">Continue with Google</a>
+				<a href="#" (click)="login('github')" class="oauth-btn github">Continue with GitHub</a>
+				<a href="#" style="opacity: 0.5; cursor: not-allowed; pointer-events: none; text-decoration: none;" class="oauth-btn windowslive">Continue with Microsoft</a>
+			</div>
+		</div>
 		@endif
 
 		<!-- In case anonymous login is true, Show only a login button -->
