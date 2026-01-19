@@ -22,6 +22,7 @@ import { SqlEditor } from "../code/sqleditor/SqlEditor.js";
 import { DLTCode } from "../node-types/dlt/DLTCode.js";
 import { DLTCodeOutput } from "../node-types/destination/DLTCodeOutput.js";
 import { DatabaseOutput } from "../node-types/output/DatabaseOutput.js";
+import { sleepForSec } from "../../../@still/component/manager/timer.js";
 
 export class Workspace extends ViewComponent {
 
@@ -500,8 +501,15 @@ export class Workspace extends ViewComponent {
 		pplineName = this.leftMenuProxy.currentDBFile;
 		const self = this;
 		AppTemplate.showLoading();
-		if (this.checkActiveDiagram())
+		if (this.checkActiveDiagram()){
+			if(asTemplate === true) {
+				this.isAnyDiagramActive = false;
+				this.resetWorkspace(false);
+				await sleepForSec(500);
+				return openDiagram(null);
+			}
 			return this.controller.moreThanOnePipelineOpenAlert(openDiagram);
+		}
 
 		async function openDiagram(reset = null){
 			if(reset) self.resetWorkspace();
@@ -528,6 +536,8 @@ export class Workspace extends ViewComponent {
 				self.activeGrid = 'Enter pipeline name';
 				self.selectedPplineName = false;
 				document.getElementById('pplineNamePlaceHolder').contentEditable = true;
+				self.showSaveButton = true;
+				document.querySelector('.clear-workspace-btn').style.right = '96px';
 			}			
 		}
 		await openDiagram();
