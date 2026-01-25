@@ -147,15 +147,18 @@ class SecretManager(SecretManagerType):
 
 
     def get_secret(namespace, path, edit=False):
+        data = {}
         if not edit and not str(path).startswith('main/db/'):
             path = 'metadata' if path == 'metadata' else 'main/api/'+path
-        secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
-            path=path,
-            mount_point=namespace,
-            raise_on_deleted_version=True
-        )
-
-        data = secrets['data']['data']
+        try:
+            secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
+                path=path,
+                mount_point=namespace,
+                raise_on_deleted_version=True
+            )
+            data = secrets['data']['data']
+        except Exception:
+            ...
         return data
 
 
