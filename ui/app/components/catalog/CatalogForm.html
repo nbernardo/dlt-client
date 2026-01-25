@@ -1,35 +1,4 @@
-  <div class="CatalogForm layout">
-
-    <!-- <main class="content">
-      <div class="content-header">
-        <h2>Database Catalog</h2>
-        <button class="btn" id="openModal">+ Add Database</button>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Host</th>
-            <th>Database</th>
-            <th>Owner</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>User DB</td>
-            <td>PostgreSQL</td>
-            <td>db.internal.example.com</td>
-            <td>users</td>
-            <td>data-team</td>
-            <td>2025-10-25</td>
-          </tr>
-        </tbody>
-      </table>
-    </main> -->
-  </div>
+  <div class="CatalogForm layout"></div>
 
   <!-- Modal -->
   <div class="CatalogFormModel modal" id="modal">
@@ -321,29 +290,31 @@
         
 
         <div class="modal-footer">
-          <button 
-            (showIf)="self.showTestConnection"
-            type="button" 
-            onclick="component.testConnection()" 
-            class="btn btn-light-blue save-secret-btn">
-              @if(this.checkConnection == 'in-progress')
-                <div class="mini-loader-container oracle-dn-loader">
-                  <div class="mini-loader-dot"></div>
-                  <div class="mini-loader-dot"></div>
-                  <div class="mini-loader-dot"></div>
-                </div>
-              @endif
-              Test connection
-            <div 
-              class="connectio-test-status"
-              style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
-              &nbsp;
-            </div>
-          </button>
-          <button 
-            type="button" 
-            onclick="component.createSecret()" 
-            class="btn btn-primary save-secret-btn">Save</button>
+          <div class="buttons-wrapper">
+            <button 
+              type="button" 
+              onclick="component.testConnection()" 
+              class="btn btn-light-blue save-secret-btn">
+                @if(this.checkConnection == 'in-progress')
+                  <div class="mini-loader-container oracle-dn-loader">
+                    <div class="mini-loader-dot"></div>
+                    <div class="mini-loader-dot"></div>
+                    <div class="mini-loader-dot"></div>
+                  </div>
+                @endif
+                Test connection
+              <div 
+                class="connectio-test-status"
+                style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
+                &nbsp;
+              </div>
+            </button>
+            <button 
+              type="button" 
+              onclick="component.createSecret()" 
+              class="btn btn-primary save-secret-btn">Save</button>
+          </div>
+          <div class="APITestResponse"></div>
         </div>
       </form>
     </div>
@@ -554,7 +525,7 @@
       font-size: 0.9rem;
     }
 
-    .CatalogFormModel .modal-footer {
+    .CatalogFormModel .modal-footer .buttons-wrapper {
       margin-top: 16px;
       text-align: right;
 	  display: flex;
