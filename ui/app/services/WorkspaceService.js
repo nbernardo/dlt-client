@@ -357,11 +357,30 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
     }
 
-    /** @returns { { result: { result, fields, actual_query, db_file } } } */
     static async testDbConnection(secret, existing) {
 
         const url = existing ? '/workspace/connection/exists/test' : '/workspace/connection/test';
         const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
+            headers: { 'content-type': 'Application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            AppTemplate.toast.success('DB Connection was successful');
+            return true;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    static async testAPIConnection(payload, existing) {
+
+        const namespace = StillAppSetup.config.get('anonymousLogin')
+            ? UserUtil.email : await UserService.getNamespace();
+            
+        const url = Object.keys(existing).length > 0 ? `/workspace/${namespace}/api/exists/test` : `/workspace/${namespace}/api/test`;
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...payload }), {
             headers: { 'content-type': 'Application/json' }
         });
         

@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue } from "./util/CatalogUtil.js";
+import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue, testConnection } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -31,6 +31,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ editorPlaceholder = null;
 	/** @Prop */ showKeyFileFields = false;
 	/** @Prop */ showTestConnection = false;
+	/** @Prop */ showOracleDNCheckBox = false;
 
 	// DB catalog/secrets fields
 	dbEngine;
@@ -96,8 +97,10 @@ export class CatalogForm extends ViewComponent {
 		}
 
 		this.dbEngine.onChange(dbEngine => {
-			if(dbEngine == 'oracle-database-plugin')
+			if(dbEngine == 'oracle-database-plugin'){
+				this.showOracleDNCheckBox
 				return this.showServiceNameLbl = true;
+			}
 			this.showServiceNameLbl = false;
 		});
 		
@@ -316,7 +319,7 @@ export class CatalogForm extends ViewComponent {
 			self.apiEndpointPath1 = '', self.apiEndpointPathPK1 = '';
 			self.paginationStartField1 = '', self.paginationLimitField1 = '';
 			self.paginationRecPerPage1 = '', self.apiKeyName = '';
-			self.apiKeyValue = '', self.apiTknValue = '';
+			self.apiKeyValue = '', self.apiTknValue = '', self.apiAuthType = false;
 			self.endpointCounter = 1;
 			self.endPointEditorContent = {};
 			self.isDbConnEditing = false;
@@ -395,13 +398,7 @@ export class CatalogForm extends ViewComponent {
 	};
 
 	async testConnection(){
-		const btn = document.querySelector('.connectio-test-status');
-		btn.parentElement.disabled = true;
-		this.checkConnection = 'in-progress';
-		const result = await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()}, this.isDbConnEditing);
-		btn.style.background = result == true ? 'green' : 'red';
-		this.checkConnection = '';
-		btn.parentElement.disabled = false;
+		testConnection(this, null, this.secretType, this.isDbConnEditing);
 	}
 
 	async createSecret(){

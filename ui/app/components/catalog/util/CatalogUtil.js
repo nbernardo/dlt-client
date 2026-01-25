@@ -1,4 +1,5 @@
 import { FormHelper, InParams } from "../../../../@still/helper/form.js";
+import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { CatalogForm } from "../CatalogForm.js";
 
 export class CatalogEndpointType {
@@ -398,4 +399,44 @@ export function handleShowHideWalletFields(show = null){
             elm.removeAttribute('(required)');
         }
     });
+}
+
+
+/**
+ * 
+ * @param { CatalogForm } obj 
+ */
+export async function testConnection(obj, secretName, secretType, isDbConnEditing){
+
+    if(secretType == 1){
+        const btn = document.querySelector('.connectio-test-status');
+        btn.parentElement.disabled = true;
+        obj.checkConnection = 'in-progress';
+        const result = await WorkspaceService.testDbConnection({ env: obj.getDynamicFields(), dbConfig: obj.getDBConfig()}, isDbConnEditing);
+        btn.style.background = result == true ? 'green' : 'red';
+        obj.checkConnection = '';
+        btn.parentElement.disabled = false;
+    }
+    
+    if(secretType == 2){
+        let { apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 } = obj;
+        apiEndpointPath1 = apiEndpointPath1.value, 
+        apiEndpointPathPK1 = apiEndpointPathPK1.value, 
+        apiEndpointDS1 = apiEndpointDS1.value;
+        const endpoints = { ...obj.getDynamicFields(), apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 };
+        const payload = { endpoints, baseUrl: obj.apiBaseUrl.value }
+
+        if(['api-key','bearer-token'].includes(obj.apiAuthType) === false) 
+            return await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
+
+        if(obj.apiAuthType === 'api-key'){
+            obj.apiKeyValue = secretData.apiSettings.apiKeyValue;
+            await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue, ...payload }, obj.endPointEditorContent);
+
+        }else if(obj.apiAuthType === 'bearer-token'){
+            obj.apiTknValue = secretData.apiSettings.apiTknValue;
+            await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue, ...payload }, obj.endPointEditorContent);
+        }
+    }
+
 }
