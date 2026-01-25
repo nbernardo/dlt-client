@@ -94,6 +94,8 @@ class InputAPI(TemplateNodeType):
 
     def parse_connection_strategy(self, secret):
 
+        from utils.APIClientUtil import get_api_auth_type
+
         connection_type = None
         auth_config = ''
         auth_strategy = '\n'
@@ -101,14 +103,8 @@ class InputAPI(TemplateNodeType):
         if 'apiAuthType' in secret['apiSettings']:
 
             connection_type = secret['apiSettings']['apiAuthType']
-
-            if connection_type == 'bearer-token':
-                auth_config = "\nauth=BearerTokenAuth(token=secret['apiSettings']['apiTknValue'])"
-                auth_strategy = 'from dlt.sources.helpers.rest_client.auth import BearerTokenAuth'
-            
-            if connection_type == 'api-key':
-                auth_config = f"\nauth=APIKeyAuth(name='{secret['apiSettings']['apiKeyName']}', api_key=secret['apiSettings']['apiKeyValue'], location='header')"
-                auth_strategy = 'from dlt.sources.helpers.rest_client.auth import APIKeyAuth'
+            if connection_type == 'bearer-token' or connection_type == 'api-key':
+                auth_config , auth_strategy = get_api_auth_type(connection_type, secret)
 
         return auth_config, auth_strategy
 

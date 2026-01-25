@@ -494,3 +494,22 @@ def test_sql_db_connections(exists_conn = None):
     result = SQLDatabase.test_sql_connection(dbengine, config)
     
     return result
+
+
+from utils import APIClientUtil
+
+@workspace.route('/workspace/<namespace>/api/<exists_conn>/test', methods=['POST'])
+@workspace.route('/workspace/<namespace>/api/test', methods=['POST'])
+def test_api_connections(namespace, exists_conn = None):
+
+    payload = request.get_json()
+    base_url = payload['baseUrl']
+    endpoints = payload['endpoints']
+
+    authentication_type = None
+    if 'apiKeyValue' in payload: authentication_type = 'api-key'
+    if 'apiTknValue' in payload: authentication_type = 'bearer-token'
+
+    result = APIClientUtil.test_api(namespace, base_url, authentication_type, None, endpoints)
+    
+    return result
