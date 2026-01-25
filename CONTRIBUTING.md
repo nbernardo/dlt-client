@@ -1,6 +1,6 @@
-**Contributing to DLT-C**
+**Contributing to e2e-Data**
 
-Welcome to DLT-C — an open-source project that makes it easier to build and manage Data Pipelines using a No/Low Code approach.
+Welcome to e2e-Data — an open-source project that makes it easier to build and manage Data Pipelines using a No/Low Code approach.
 
 We’re excited that you’re interested in contributing! 💡
 Whether you’re fixing a bug, improving documentation, designing visuals, or spreading the word — every contribution makes a difference.
@@ -11,7 +11,7 @@ Whether you’re fixing a bug, improving documentation, designing visuals, or sp
 
 Read the README — it includes installation instructions and a [setup video](https://youtu.be/XtUrSKXlOWo).
 
-Explore the codebase — DLT-C is built with:
+Explore the codebase — e2e-Data is built with:
 
 Python + Flask for backend
 
@@ -33,7 +33,7 @@ There are many ways to help:
 | 🧾 Documentation     | Improve README, write setup guides, create tutorials          |
 | 🎨 Design            | Improve UI/UX, contribute to the design system                |
 | 🧪 Testing           | Add or plan test coverage (we don’t have automated tests yet) |
-| 📢 Marketing         | Write blog posts, share DLT-C online, create visuals or demos |
+| 📢 Marketing         | Write blog posts, share e2e-Data online, create visuals or demos |
 
 
 ***
@@ -98,7 +98,7 @@ We’re happy to provide references, mentorship, and public credit for meaningfu
 
 ❤️ Thank You
 
-Your time and ideas are what make DLT-C possible.
+Your time and ideas are what make e2e-Data possible.
 Whether you contribute once or become a core maintainer — you’re part of this journey.
 
 Let’s make data pipelines simpler, together.
