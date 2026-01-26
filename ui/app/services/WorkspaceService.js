@@ -384,11 +384,28 @@ export class WorkspaceService extends BaseService {
             headers: { 'content-type': 'Application/json' }
         });
         
-        const result = await response.json();
+        let result = await response.json(), success = true;
         
         if (response.ok && !result.error){
-            AppTemplate.toast.success('DB Connection was successful');
-            return true;
+            AppTemplate.toast.success('API Connection was successful');
+
+            result = result.map(it => { 
+                if(it['3-Success'] === false) success = false;
+                return { ...it, data: it.data.slice(0,1) }
+            });
+
+            return {
+                success,
+                content: JSON.stringify(result,null,'\t')
+                .replaceAll('\n','<br>')
+                .replaceAll('\t'.repeat(1),'&nbsp;&nbsp;')
+                .replaceAll('\t'.repeat(2),'&nbsp;&nbsp;'.repeat(2))
+                .replaceAll('\t'.repeat(3),'&nbsp;&nbsp;'.repeat(3))
+                .replaceAll('\t'.repeat(4),'&nbsp;&nbsp;'.repeat(4))
+                .replaceAll('\t'.repeat(5),'&nbsp;&nbsp;'.repeat(5))
+                .replaceAll('\t'.repeat(6),'&nbsp;&nbsp;'.repeat(6))
+                .replaceAll('"3-Success": false,',`"<span class='api-response-failed'>3-Success</span>": <span class='api-response-failed'>false</span>,`)
+            }
         }
         else
             AppTemplate.toast.error(result.result);

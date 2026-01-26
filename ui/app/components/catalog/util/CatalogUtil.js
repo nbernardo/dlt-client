@@ -401,6 +401,18 @@ export function handleShowHideWalletFields(show = null){
     });
 }
 
+function disableTestBtn(obj){
+    const btn = document.querySelector('.connectio-test-status');
+    btn.parentElement.disabled = true;
+    obj.checkConnection = 'in-progress';
+    return btn
+}
+
+function enableTestBtn(btn, obj, result){
+    btn.style.background = result == true ? 'green' : 'red';
+    obj.checkConnection = '';
+    btn.parentElement.disabled = false;
+}
 
 /**
  * 
@@ -409,34 +421,34 @@ export function handleShowHideWalletFields(show = null){
 export async function testConnection(obj, secretName, secretType, isDbConnEditing){
 
     if(secretType == 1){
-        const btn = document.querySelector('.connectio-test-status');
-        btn.parentElement.disabled = true;
-        obj.checkConnection = 'in-progress';
+        const btn = disableTestBtn(obj);
         const result = await WorkspaceService.testDbConnection({ env: obj.getDynamicFields(), dbConfig: obj.getDBConfig()}, isDbConnEditing);
-        btn.style.background = result == true ? 'green' : 'red';
-        obj.checkConnection = '';
-        btn.parentElement.disabled = false;
+        enableTestBtn(btn, obj, result);
     }
     
     if(secretType == 2){
+        const btn = disableTestBtn(obj);
         let { apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 } = obj;
         apiEndpointPath1 = apiEndpointPath1.value, 
         apiEndpointPathPK1 = apiEndpointPathPK1.value, 
         apiEndpointDS1 = apiEndpointDS1.value;
         const endpoints = { ...obj.getDynamicFields(), apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 };
         const payload = { endpoints, baseUrl: obj.apiBaseUrl.value }
+        let response;
 
         if(['api-key','bearer-token'].includes(obj.apiAuthType) === false) 
-            return await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
+            response = await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
 
         if(obj.apiAuthType === 'api-key'){
             obj.apiKeyValue = secretData.apiSettings.apiKeyValue;
-            await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue, ...payload }, obj.endPointEditorContent);
+            response = await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue, ...payload }, obj.endPointEditorContent);
 
         }else if(obj.apiAuthType === 'bearer-token'){
             obj.apiTknValue = secretData.apiSettings.apiTknValue;
-            await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue, ...payload }, obj.endPointEditorContent);
-        }
+            response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue, ...payload }, obj.endPointEditorContent);
+        }        
+        document.querySelector('.APITestResponse').innerHTML = response.content;
+        enableTestBtn(btn, obj, response.success);
     }
 
 }
