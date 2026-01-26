@@ -94,14 +94,18 @@ def test_api(namespace, base_url, connection_type = None, connection_name = None
         full_path = path if (page == None or page == '') else f'{path}?{page.start_param}={start}&{page.end_param}={end}'
         data = api_client.get(full_path, {} if path_params == None else path_params)
 
+        if  data.status_code < 200 or data.status_code >= 300:
+            return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': [], '3-Success': False }
+
         if data_selector and data_selector != '':
-            return data.json().get(data_selector,[])
+            return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': data.json().get(data_selector,[]), '3-Success': True }
         else:
-            return data.json()
+            return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': data.json(), '3-Success': True }
 
     api_responses = []
     params_tuple = zip(resource_names, endpoints_params, primary_keys, data_selectors, paginate_params)
     for path, path_params, pk , selector, page_params in params_tuple:
+        if path == None: continue
         api_responses.append(calls_api_endpoint(path, selector, pk, page_params, path_params))
     
     return api_responses
