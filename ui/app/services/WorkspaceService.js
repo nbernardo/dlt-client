@@ -390,22 +390,29 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.success('API Connection was successful');
 
             result = result.map(it => { 
-                if(it['3-Success'] === false) success = false;
-                return { ...it, data: it.data.slice(0,1) }
+                let css_class = 'api-response-is_ok';
+                if(it['3-Success'] === false) {
+                    css_class = 'api-response-not_ok', success = false;
+                }
+                let value = { ...it, data: Array.isArray(it.data) ? it.data.slice(0,1) : it.data }
+                value = JSON.stringify(value,null,'\t')
+                    .replaceAll('\n','<br>')
+                    .replaceAll('\t'.repeat(1),'&nbsp;&nbsp;')
+                    .replaceAll('\t'.repeat(2),'&nbsp;&nbsp;'.repeat(2))
+                    .replaceAll('\t'.repeat(3),'&nbsp;&nbsp;'.repeat(3))
+                    .replaceAll('\t'.repeat(4),'&nbsp;&nbsp;'.repeat(4))
+                    .replaceAll('\t'.repeat(5),'&nbsp;&nbsp;'.repeat(5))
+                    .replaceAll('\t'.repeat(6),'&nbsp;&nbsp;'.repeat(6));
+
+                return `<span class="${css_class}">${value}</span>`;
             });
 
-            return {
-                success,
-                content: JSON.stringify(result,null,'\t')
-                .replaceAll('\n','<br>')
-                .replaceAll('\t'.repeat(1),'&nbsp;&nbsp;')
-                .replaceAll('\t'.repeat(2),'&nbsp;&nbsp;'.repeat(2))
-                .replaceAll('\t'.repeat(3),'&nbsp;&nbsp;'.repeat(3))
-                .replaceAll('\t'.repeat(4),'&nbsp;&nbsp;'.repeat(4))
-                .replaceAll('\t'.repeat(5),'&nbsp;&nbsp;'.repeat(5))
-                .replaceAll('\t'.repeat(6),'&nbsp;&nbsp;'.repeat(6))
+            let content = JSON.stringify(result)
                 .replaceAll('"3-Success": false,',`"<span class='api-response-failed'>3-Success</span>": <span class='api-response-failed'>false</span>,`)
-            }
+
+            content = content.trim().replace('[','').slice(0,-1).replaceAll('\\','');
+
+            return { success, content }
         }
         else
             AppTemplate.toast.error(result.result);

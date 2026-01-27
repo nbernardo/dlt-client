@@ -222,7 +222,7 @@
                         </div>
         
                         <div class="form-group use-pagination-field">
-                          <label>Records per page</label>
+                          <label>Records p/ page</label>
                           <input class="endpointField1" type="text" (value)="paginationRecPerPage1" placeholder="e.g. 1000">
                         </div>
                       </span>
@@ -259,7 +259,7 @@
                 <!-- API Key fields -->
                 <div class="form-group">
                   <label class="api-key-lbl">KEY Header name</label>
-                  <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Ket">
+                  <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Key">
                 </div>
                 <div class="form-group">
                   <label class="api-key-lbl">Key Hader value</label>
@@ -321,6 +321,11 @@
   </div>
 
   <style>
+
+    .api-response-is_ok { border: 1.12px solid green; display: block; padding: 5px; background: rgba(0, 128, 0, 0.17); }
+
+    .api-response-not_ok { border: 1.12px solid red; display: block; padding: 5px; background: #ff00000f; }
+
     .api-response-failed{ color: red; font-weight: bold; }
     .APITestResponse{
       height: 200px;
@@ -369,7 +374,7 @@
     .endpoint-input { width: 190px; }
     .endpoint-pk-input { width: 130px; }
    .endpoint-data-setting, .endpoint-paginate-setting{ display: flex; margin: 5px; }
-   .endpoint-paginate-setting input{ width: 150px; }
+   .endpoint-paginate-setting input{ width: 130px; }
 
   .bold-lbl { font-weight: bold; }
   .unique-api-name, .unique-api-url{ width: 100%; }

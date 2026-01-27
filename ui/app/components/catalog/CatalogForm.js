@@ -398,7 +398,7 @@ export class CatalogForm extends ViewComponent {
 	};
 
 	async testConnection(){
-		testConnection(this, null, this.secretType, this.isDbConnEditing);
+		testConnection(this, this.secretType, this.isDbConnEditing);
 	}
 
 	async createSecret(){

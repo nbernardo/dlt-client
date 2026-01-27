@@ -261,9 +261,9 @@ export function parseEndpointPath(path,offset,limit,batchSize){
     if(!['',null,undefined].includes(path)){
 	    fullEndpointPath = `→ ${path} `;
 	if(offset)
-		fullEndpointPath = `→ ${path}?${offset}=0 `
+		fullEndpointPath = `→ ${path}?${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`} `
 	if(limit)
-			fullEndpointPath = `→ ${path}?${offset}=0&${limit}=${batchSize} `;
+			fullEndpointPath = `→ ${path}?${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`}&${limit}=${batchSize} `;
 	}else
 		fullEndpointPath = '';
     
@@ -418,7 +418,7 @@ function enableTestBtn(btn, obj, result){
  * 
  * @param { CatalogForm } obj 
  */
-export async function testConnection(obj, secretName, secretType, isDbConnEditing){
+export async function testConnection(obj, secretType, isDbConnEditing){
 
     if(secretType == 1){
         const btn = disableTestBtn(obj);
@@ -427,26 +427,21 @@ export async function testConnection(obj, secretName, secretType, isDbConnEditin
     }
     
     if(secretType == 2){
-        const btn = disableTestBtn(obj);
+        let btn = disableTestBtn(obj), response = {};
         let { apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 } = obj;
         apiEndpointPath1 = apiEndpointPath1.value, 
         apiEndpointPathPK1 = apiEndpointPathPK1.value, 
         apiEndpointDS1 = apiEndpointDS1.value;
-        const endpoints = { ...obj.getDynamicFields(), apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 };
-        const payload = { endpoints, baseUrl: obj.apiBaseUrl.value }
-        let response;
+        const endpoints = { ...obj.parseAPICatalogFields(), apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 };
+        const payload = { endpoints, baseUrl: obj.apiBaseUrl.value, keyName: obj.apiKeyName.value }
 
         if(['api-key','bearer-token'].includes(obj.apiAuthType) === false) 
             response = await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
-
-        if(obj.apiAuthType === 'api-key'){
-            obj.apiKeyValue = secretData.apiSettings.apiKeyValue;
-            response = await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue, ...payload }, obj.endPointEditorContent);
-
-        }else if(obj.apiAuthType === 'bearer-token'){
-            obj.apiTknValue = secretData.apiSettings.apiTknValue;
-            response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue, ...payload }, obj.endPointEditorContent);
-        }        
+        if(obj.apiAuthType === 'api-key')
+            response = await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue.value, ...payload }, obj.endPointEditorContent);
+        else if(obj.apiAuthType === 'bearer-token')
+            response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue.value, ...payload }, obj.endPointEditorContent);
+        
         document.querySelector('.APITestResponse').innerHTML = response.content;
         enableTestBtn(btn, obj, response.success);
     }
