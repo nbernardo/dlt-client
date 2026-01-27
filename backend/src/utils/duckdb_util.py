@@ -99,6 +99,50 @@ class DuckdbUtil:
         cnx.execute(query)
 
     @staticmethod
+    def create_pipeline_logs_table():
+        """
+        Create the pipeline_logs table for persistent log storage.
+        This table stores all logs from dltHub pipeline runs and application-level Python logs.
+        """
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        
+        # Create sequence for log IDs
+        cnx.execute('CREATE SEQUENCE IF NOT EXISTS pipeline_logs_sequence;')
+        
+        # Create the main logs table
+        query = """CREATE TABLE IF NOT EXISTS pipeline_logs (
+            id INTEGER PRIMARY KEY DEFAULT nextval('pipeline_logs_sequence'),
+            timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+            pipeline_id VARCHAR(255) NOT NULL,
+            execution_id VARCHAR(255) NOT NULL,
+            log_level VARCHAR(20) NOT NULL,
+            logger_name VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL,
+            module VARCHAR(255),
+            function_name VARCHAR(255),
+            line_number INTEGER,
+            thread_id BIGINT,
+            process_id INTEGER,
+            correlation_id VARCHAR(255),
+            extra_data JSON,
+            stack_trace TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )"""
+        cnx.execute(query)
+        
+        # Create indexes for efficient querying
+        indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_pipeline_id ON pipeline_logs(pipeline_id)",
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_execution_id ON pipeline_logs(execution_id)",
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_timestamp ON pipeline_logs(timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_level ON pipeline_logs(log_level)",
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_correlation_id ON pipeline_logs(correlation_id)"
+        ]
+        
+        for index_query in indexes:
+            cnx.execute(index_query)
+
+    @staticmethod
     def workspace_table_exists(tbl = 'namespace'):
         cnx = DuckdbUtil.get_workspace_db_instance()
         cursor = cnx.cursor()
@@ -145,5 +189,19 @@ class DuckdbUtil:
     @staticmethod
     def del_connection_for(db_filename) -> DuckDBPyConnection:
         del DuckdbUtil.db_connections[db_filename]
+
+    @staticmethod
+    def initialize_logging_tables():
+        """
+        Initialize all logging-related tables.
+        This method should be called during application startup.
+        """
+        try:
+            DuckdbUtil.create_pipeline_logs_table()
+            print("Pipeline logs table initialized successfully")
+        except Exception as e:
+            print(f"Error initializing logging tables: {e}")
+            # Don't raise the exception to prevent application startup failure
+            # Logging should be optional and not break the main application
 
 

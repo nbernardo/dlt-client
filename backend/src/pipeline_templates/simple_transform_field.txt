@@ -2,48 +2,137 @@
 from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
 from typing import Iterator, Any
+import logging
 import polars as pl
 %import_from_src%
+
+# Initialize pipeline logger
+logger = logging.getLogger('pipeline.execution')
+logger.info("Starting transformation pipeline", extra={'stage': 'initialization', 'template_type': 'transform'})
+
 """
 The pipeline run in a different process/sub-process
 hence the different print statement as this is how it
 will communicate with the main process about the progress
 """
 
-# Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
-files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
-
-@dlt.transformer()
-def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
-    print('Starting tranformation(s)', flush=True)
-    for cur_file in files_list:
-        with cur_file.open() as file:
-            df = pl.scan_%read_file_type%(file)
-            # <transformation>
-            %transformation%
-            df = df.with_columns(list(transformation.values())[0])
-            %transformation2%
-            for transform in transformations2: df = transform(df)
-            # </transformation> DO NOT REMOVE THIS LINE
-            for batch in df.collect(engine="streaming").iter_slices(n_rows=10_000):
-                yield batch.rows(named=True)
-
-
-print('Starting the pipeline', flush=True)
-
 try:
+    # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
+    logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': '%bucket_url%', 'file_pattern': '%file_pattern%'})
+    files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
+
+    @dlt.transformer()
+    def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
+        print('Starting tranformation(s)', flush=True)
+        logger.info("Starting data transformations", extra={'stage': 'data_transformation'})
+        
+        total_files_processed = 0
+        total_rows_processed = 0
+        
+        for cur_file in files_list:
+            logger.debug("Processing file", extra={'stage': 'file_processing', 'file_name': str(cur_file)})
+            
+            with cur_file.open() as file:
+                df = pl.scan_%read_file_type%(file)
+                
+                # Log initial row count
+                try:
+                    initial_row_count = df.select(pl.len()).collect().item()
+                    logger.info("File loaded for transformation", extra={
+                        'stage': 'file_loaded',
+                        'file_name': str(cur_file),
+                        'initial_row_count': initial_row_count
+                    })
+                except Exception as count_error:
+                    logger.warning("Could not determine initial row count", extra={
+                        'stage': 'file_loaded',
+                        'file_name': str(cur_file),
+                        'error': str(count_error)
+                    })
+                    initial_row_count = None
+                
+                # <transformation>
+                logger.debug("Applying primary transformations", extra={'stage': 'transformation_primary'})
+                %transformation%
+                df = df.with_columns(list(transformation.values())[0])
+                
+                logger.debug("Applying secondary transformations", extra={'stage': 'transformation_secondary'})
+                %transformation2%
+                for transform in transformations2: df = transform(df)
+                # </transformation> DO NOT REMOVE THIS LINE
+                
+                # Log transformation completion and collect data
+                collected_df = df.collect(engine="streaming")
+                final_row_count = len(collected_df)
+                
+                logger.info("File transformation completed", extra={
+                    'stage': 'transformation_complete',
+                    'file_name': str(cur_file),
+                    'initial_row_count': initial_row_count,
+                    'final_row_count': final_row_count,
+                    'rows_changed': final_row_count - initial_row_count if initial_row_count else None
+                })
+                
+                total_files_processed += 1
+                total_rows_processed += final_row_count
+                
+                # Yield data in batches
+                batch_count = 0
+                for batch in collected_df.iter_slices(n_rows=10_000):
+                    batch_size = len(batch)
+                    batch_count += 1
+                    
+                    logger.debug("Yielding data batch", extra={
+                        'stage': 'data_yielding',
+                        'file_name': str(cur_file),
+                        'batch_number': batch_count,
+                        'batch_size': batch_size
+                    })
+                    
+                    yield batch.rows(named=True)
+        
+        logger.info("All transformations completed", extra={
+            'stage': 'transformation_summary',
+            'total_files_processed': total_files_processed,
+            'total_rows_processed': total_rows_processed
+        })
+
+    print('Starting the pipeline', flush=True)
+    logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
+
     # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
     transformed_source = (files | read_file_and_transform_fields()).with_name(%ppline_dest_table%)
 
     if %primary_key% != 'UNDEFINED':
         # Bellow mapping: primary_key = Bucket.primary_key
+        logger.info("Applying primary key hints", extra={'stage': 'data_transformation', 'primary_key': '%primary_key%'})
         transformed_source.apply_hints(primary_key=%primary_key%)
     
     %destination_settings%
 
     info = pipeline.run(transformed_source, write_disposition="merge")
+    
+    # Log pipeline execution results
+    if hasattr(info, 'loads_ids') and info.loads_ids:
+        logger.info("Transformation pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(info.loads_ids),
+            'dataset_name': getattr(info, 'dataset_name', 'unknown'),
+            'template_type': 'transform'
+        })
+    else:
+        logger.info("Transformation pipeline execution completed", extra={'stage': 'pipeline_completion', 'template_type': 'transform'})
+    
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
+    
 except Exception as err:
+    logger.error("Transformation pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(err).__name__,
+        'error_message': str(err),
+        'template_type': 'transform'
+    }, exc_info=True)
     print('RUNTIME_ERROR:Runtime Pipeline error')
     print(err)
+    raise

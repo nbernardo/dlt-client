@@ -1,9 +1,15 @@
 %metadata_section%import dlt
 from dlt.sources.helpers.rest_client import RESTClient
 import requests
+import logging
 from pathlib import Path
 from sys import path
 %auth_strategy%
+
+# Initialize pipeline logger
+logger = logging.getLogger('pipeline.execution')
+logger.info("Starting API pipeline", extra={'stage': 'initialization', 'template_type': 'api'})
+
 #Adding root folder to allow import from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
 path.insert(0, src_path)
@@ -13,96 +19,170 @@ from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
 from src.utils.APIClientUtil import PaginateParam
 
-# Bellow mapping: connection_name = InputAPI.connection_name
-connection_name = %connection_name%
-print('connecting to secrets vault', flush=True)
-SecretManager.ppline_connect_to_vault()
-# Bellow mapping: namespace = InputAPI.namespace
-namespace = %namespace%
-print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
-secret = SecretManager.get_secret(namespace, connection_name)
-
-resource_names = %resource_names%
-data_selectors = %data_selectors%
-primary_keys = %primary_keys%
-paginate_params = %paginate_params%
-endpoints_params = %endpoints_params%
-
-api_client = RESTClient(
-    base_url=%base_url%,%auth_config%
-)
-
-@dlt.source
-def get_api_data():
-
-    def generate_source(
-            path: str, 
-            data_selector: str = None, 
-            primary_key: str = None,
-            page_param: PaginateParam = None,
-            path_params = {}
-        ):
-
-        resource_name = path.split('/')[1]
-        primary_key = primary_key if not ['',None].__contains__(primary_key) else None
-
-        @dlt.resource(name=resource_name, primary_key=primary_key)
-        def fetch_api_data(path, data_selector, page: PaginateParam = None):
-
-            # Stating start and end record fetch is paginated
-            start, end = None, None
-
-            if page != None:
-                start = page.start_record
-                end = page.start_record + page.batch_size
-
-            try:
-                total_iterations = 0
-                # While true takes place especially because of pagination possibility
-                while True:
-                    data_fetch = False
-                    full_path = path if page == None else f'{path}?{page.start_param}={start}&{page.end_param}={end}'
-                    data = api_client.get(full_path, path_params)
-                    data_fetch = True
-                    total_iterations = total_iterations + 1
-                    if data_selector:
-                        result = data.json().get(data_selector,[])
-                    else:
-                        result = data.json()
-                    
-                    if not result: break
-
-                    yield result
-
-                    # In no pagination needs to happe it forces to end the loop
-                    if page == None: break
-                    
-                    start += page.batch_size
-                    end = start + (page.batch_size - 1)
-                    print(f'Fetched data from {full_path} endpoint', flush=True)
-                
-                print(f'Completed data fetch from {path} endpoint', flush=True)
-
-            except requests.exceptions.RequestException as err:
-                if data_fetch:
-                    if total_iterations > 0:
-                        print(f'RUNTIME_WARNING:No result found for {full_path}', flush=True)
-                    else:
-                        print(f'RUNTIME_ERROR:No result found for {full_path}', flush=True)
-                else:
-                    print('RUNTIME_ERROR:Error while fetching API data for resource: ', resource_name, flush=True)
-
-        return fetch_api_data(path, data_selector, page_param)
+try:
+    # Bellow mapping: connection_name = InputAPI.connection_name
+    connection_name = %connection_name%
+    print('connecting to secrets vault', flush=True)
+    logger.info("Connecting to secrets vault", extra={'stage': 'authentication', 'connection_name': connection_name})
+    SecretManager.ppline_connect_to_vault()
     
-    params_tuple = zip(resource_names, endpoints_params, primary_keys, data_selectors, paginate_params)
-    for path, path_params, pk , selector, page_params in params_tuple:
-        yield generate_source(path, selector, pk, page_params, path_params)
+    # Bellow mapping: namespace = InputAPI.namespace
+    namespace = %namespace%
+    print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
+    logger.info("Fetching API connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
+    secret = SecretManager.get_secret(namespace, connection_name)
+
+    resource_names = %resource_names%
+    data_selectors = %data_selectors%
+    primary_keys = %primary_keys%
+    paginate_params = %paginate_params%
+    endpoints_params = %endpoints_params%
+
+    logger.info("Initializing API client", extra={'stage': 'client_setup', 'base_url': '%base_url%', 'resource_count': len(resource_names)})
+    api_client = RESTClient(
+        base_url=%base_url%,%auth_config%
+    )
+
+    @dlt.source
+    def get_api_data():
+
+        def generate_source(
+                path: str, 
+                data_selector: str = None, 
+                primary_key: str = None,
+                page_param: PaginateParam = None,
+                path_params = {}
+            ):
+
+            resource_name = path.split('/')[1]
+            primary_key = primary_key if not ['',None].__contains__(primary_key) else None
+
+            @dlt.resource(name=resource_name, primary_key=primary_key)
+            def fetch_api_data(path, data_selector, page: PaginateParam = None):
+
+                logger.info("Starting API data fetch", extra={
+                    'stage': 'data_fetching',
+                    'resource_name': resource_name,
+                    'path': path,
+                    'has_pagination': page is not None
+                })
+
+                # Stating start and end record fetch is paginated
+                start, end = None, None
+
+                if page != None:
+                    start = page.start_record
+                    end = page.start_record + page.batch_size
+
+                try:
+                    total_iterations = 0
+                    total_records = 0
+                    # While true takes place especially because of pagination possibility
+                    while True:
+                        data_fetch = False
+                        full_path = path if page == None else f'{path}?{page.start_param}={start}&{page.end_param}={end}'
+                        
+                        logger.debug("Fetching API data", extra={
+                            'stage': 'api_request',
+                            'resource_name': resource_name,
+                            'full_path': full_path,
+                            'iteration': total_iterations + 1
+                        })
+                        
+                        data = api_client.get(full_path, path_params)
+                        data_fetch = True
+                        total_iterations = total_iterations + 1
+                        
+                        if data_selector:
+                            result = data.json().get(data_selector,[])
+                        else:
+                            result = data.json()
+                        
+                        if not result: break
+
+                        # Count records for logging
+                        if isinstance(result, list):
+                            batch_count = len(result)
+                            total_records += batch_count
+                            logger.info("API batch fetched", extra={
+                                'stage': 'data_fetching',
+                                'resource_name': resource_name,
+                                'batch_size': batch_count,
+                                'total_records': total_records,
+                                'iteration': total_iterations
+                            })
+
+                        yield result
+
+                        # In no pagination needs to happe it forces to end the loop
+                        if page == None: break
+                        
+                        start += page.batch_size
+                        end = start + (page.batch_size - 1)
+                        print(f'Fetched data from {full_path} endpoint', flush=True)
+                    
+                    logger.info("Completed API data fetch", extra={
+                        'stage': 'data_fetching_complete',
+                        'resource_name': resource_name,
+                        'path': path,
+                        'total_iterations': total_iterations,
+                        'total_records': total_records
+                    })
+                    print(f'Completed data fetch from {path} endpoint', flush=True)
+
+                except requests.exceptions.RequestException as err:
+                    logger.error("API request failed", extra={
+                        'stage': 'api_error',
+                        'resource_name': resource_name,
+                        'path': path,
+                        'error_type': type(err).__name__,
+                        'error_message': str(err),
+                        'data_fetch_attempted': data_fetch,
+                        'total_iterations': total_iterations
+                    }, exc_info=True)
+                    
+                    if data_fetch:
+                        if total_iterations > 0:
+                            print(f'RUNTIME_WARNING:No result found for {full_path}', flush=True)
+                        else:
+                            print(f'RUNTIME_ERROR:No result found for {full_path}', flush=True)
+                    else:
+                        print('RUNTIME_ERROR:Error while fetching API data for resource: ', resource_name, flush=True)
+
+            return fetch_api_data(path, data_selector, page_param)
+        
+        params_tuple = zip(resource_names, endpoints_params, primary_keys, data_selectors, paginate_params)
+        for path, path_params, pk , selector, page_params in params_tuple:
+            yield generate_source(path, selector, pk, page_params, path_params)
 
 
-dest_folder = Workspace.get_duckdb_path_on_ppline()
+    dest_folder = Workspace.get_duckdb_path_on_ppline()
 
-%destination_settings%
+    %destination_settings%
 
-load_info = pipeline.run(get_api_data())
-print(load_info, flush=True)
-print('RUN_SUCCESSFULLY', flush=True)
+    logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'resource_count': len(resource_names)})
+    load_info = pipeline.run(get_api_data())
+    
+    # Log pipeline execution results
+    if hasattr(load_info, 'loads_ids') and load_info.loads_ids:
+        logger.info("API pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(load_info.loads_ids),
+            'dataset_name': getattr(load_info, 'dataset_name', 'unknown'),
+            'template_type': 'api'
+        })
+    else:
+        logger.info("API pipeline execution completed", extra={'stage': 'pipeline_completion', 'template_type': 'api'})
+    
+    print(load_info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
+    
+except Exception as e:
+    logger.error("API pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(e).__name__,
+        'error_message': str(e),
+        'template_type': 'api'
+    }, exc_info=True)
+    print(f'RUNTIME_ERROR:API pipeline execution failed: {e}', flush=True)
+    raise
