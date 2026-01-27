@@ -507,9 +507,18 @@ def test_api_connections(namespace, exists_conn = None):
     endpoints = payload['endpoints']
 
     authentication_type = None
-    if 'apiKeyValue' in payload: authentication_type = 'api-key'
-    if 'apiTknValue' in payload: authentication_type = 'bearer-token'
+    authTknOrKey = None
+    apiKeyName = None
+    if 'apiKeyValue' in payload: 
+        authentication_type = 'api-key'
+        authTknOrKey = payload['apiKeyValue']
+        apiKeyName = payload['keyName']
+    if 'apiTknValue' in payload: 
+        authentication_type = 'bearer-token'
+        authTknOrKey = payload['apiTknValue']
 
-    result = APIClientUtil.test_api(namespace, base_url, authentication_type, None, endpoints)
+    result = APIClientUtil.test_api(
+        namespace, base_url, authentication_type, None, endpoints, authTknOrKey, apiKeyName
+    )
     
     return result
