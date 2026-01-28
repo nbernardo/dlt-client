@@ -322,17 +322,15 @@
 
   <style>
 
+    apiresp-data span:first-child { color: blue; text-decoration: underline; cursor: pointer; font-size: 14px; }
+
     .api-response-is_ok { border: 1.12px solid green; display: block; padding: 5px; background: rgba(0, 128, 0, 0.17); }
 
     .api-response-not_ok { border: 1.12px solid red; display: block; padding: 5px; background: #ff00000f; }
 
     .api-response-failed{ color: red; font-weight: bold; }
-    .APITestResponse{
-      height: 200px;
-      overflow-y: auto;
-      margin-top: 5px;
-      border-radius: 3px;
-    }
+    .APITestResponse{ overflow-y: auto; margin-top: 5px; border-radius: 3px; }
+    .APITestResponse-show{ height: 200px; }
     span[data="get-oracle-dn-btn"] { float: left; margin-top: 0;  }
     .oracle-dn-loader {
         display: flex; width: 29px; margin-top: 0; padding: 0; margin-left: 10px; float: right; margin-top: 0;

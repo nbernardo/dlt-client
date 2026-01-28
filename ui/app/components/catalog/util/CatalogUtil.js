@@ -409,7 +409,7 @@ function disableTestBtn(obj){
 }
 
 function enableTestBtn(btn, obj, result){
-    btn.style.background = result == true ? 'green' : 'red';
+    btn.style.background = result ? 'green' : 'red';
     obj.checkConnection = '';
     btn.parentElement.disabled = false;
 }
@@ -443,7 +443,30 @@ export async function testConnection(obj, secretType, isDbConnEditing){
             response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue.value, ...payload }, obj.endPointEditorContent);
         
         document.querySelector('.APITestResponse').innerHTML = response.content;
-        enableTestBtn(btn, obj, response.success);
+        document.querySelector('.APITestResponse').classList.add('APITestResponse-show');
+        enableTestBtn(btn, obj, response.errors == 0);
     }
 
+}
+
+export function parseJSON(content){
+    return content.replaceAll('\n','<br>')
+            .replaceAll('\t'.repeat(1),'&nbsp;&nbsp;')
+            .replaceAll('\t'.repeat(2),'&nbsp;&nbsp;'.repeat(2))
+            .replaceAll('\t'.repeat(3),'&nbsp;&nbsp;'.repeat(3))
+            .replaceAll('\t'.repeat(4),'&nbsp;&nbsp;'.repeat(4))
+            .replaceAll('\t'.repeat(5),'&nbsp;&nbsp;'.repeat(5))
+            .replaceAll('\t'.repeat(6),'&nbsp;&nbsp;'.repeat(6));
+}
+
+
+export function expoandApiTestData(contentId){
+    const container = document.getElementById(contentId);
+
+    if(container.style.display === 'none'){
+        container.parentElement.querySelector('span').innerHTML = 'Hide data';
+        return container.style.display = '';
+    }
+    container.parentElement.querySelector('span').innerHTML = 'Show data';
+    container.style.display = 'none';
 }

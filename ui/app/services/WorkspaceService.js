@@ -1,9 +1,11 @@
 import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
-import { StillHTTPClient } from "../../@still/helper/http.js";
+import { HTTPHeaders, StillHTTPClient } from "../../@still/helper/http.js";
+import { UUIDUtil } from "../../@still/util/UUIDUtil.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
+import { parseJSON } from "../components/catalog/util/CatalogUtil.js";
 import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DLTCodeOutput } from "../components/node-types/destination/DLTCodeOutput.js";
@@ -12,6 +14,7 @@ import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { DatabaseOutput } from "../components/node-types/output/DatabaseOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
+import { Workspace } from "../components/workspace/Workspace.js";
 import { UserService } from "./UserService.js";
 
 export class ObjectDataTypes {
@@ -39,6 +42,8 @@ export class WorkspaceService extends BaseService {
     schedulePipelinesStore = new ServiceEvent([]);
     static currentSelectedPpeline = null;
     static currentSelectedPpelineStatus = null;
+    /** @type { Workspace } */
+    component;
 
     static DISCONECT_DB = 'DISCONECT';
     static CONNECT_DB = 'CONNECT';
@@ -75,7 +80,15 @@ export class WorkspaceService extends BaseService {
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Out - DLT code', typeName: DLTCodeOutput.name, name: 'DLTOutput' },
         //fas fa-chevron-circle-right
-    ]
+    ];
+
+    /** @type { WorkspaceService } */
+    static self;
+
+    constructor(){
+        super();
+        WorkspaceService.self = this;
+    }
 
     static async getNamespace(){
         return StillAppSetup.config.get('anonymousLogin')
@@ -380,42 +393,53 @@ export class WorkspaceService extends BaseService {
             ? UserUtil.email : await UserService.getNamespace();
             
         const url = Object.keys(existing).length > 0 ? `/workspace/${namespace}/api/exists/test` : `/workspace/${namespace}/api/test`;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...payload }), {
-            headers: { 'content-type': 'Application/json' }
-        });
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...payload }), HTTPHeaders.JSON);
         
-        let result = await response.json(), success = true;
+        let result = await response.json(), errors = 0;
         
         if (response.ok && !result.error){
-            AppTemplate.toast.success('API Connection was successful');
 
-            result = result.map(it => { 
+            const totalEndpoints = result.length;
+            result = result.map(it => {
+
                 let css_class = 'api-response-is_ok';
-                if(it['3-Success'] === false) {
-                    css_class = 'api-response-not_ok', success = false;
-                }
-                let value = { ...it, data: Array.isArray(it.data) ? it.data.slice(0,1) : it.data }
-                value = JSON.stringify(value,null,'\t')
-                    .replaceAll('\n','<br>')
-                    .replaceAll('\t'.repeat(1),'&nbsp;&nbsp;')
-                    .replaceAll('\t'.repeat(2),'&nbsp;&nbsp;'.repeat(2))
-                    .replaceAll('\t'.repeat(3),'&nbsp;&nbsp;'.repeat(3))
-                    .replaceAll('\t'.repeat(4),'&nbsp;&nbsp;'.repeat(4))
-                    .replaceAll('\t'.repeat(5),'&nbsp;&nbsp;'.repeat(5))
-                    .replaceAll('\t'.repeat(6),'&nbsp;&nbsp;'.repeat(6));
-
+                if(it['3-Success'] === false) 
+                    css_class = 'api-response-not_ok', errors++;
+                
+                const contentId = 'apiresp_data'+UUIDUtil.newId();
+                let data = JSON.stringify(Array.isArray(it.data) ? it.data.slice(0,1) : it.data,null,'\t');
+                data = parseJSON(data).slice(0,-2).replace('<br>','');
+                data = WorkspaceService.self.component.parseEvents(
+                    `<apiresp-data>
+                        &nbsp;<span onclick="inner.showAPIData('${contentId}')">Show data</span>
+                        &nbsp;<span id="${contentId}" style="display:none;">${data}</span>
+                    </apiresp-data>`.replaceAll('\n','')
+                );              
+                let value = { ...it, data };
+                
+                // Because the Data in the API fresponse is converted to String hence some disturbig
+                // characters will be there to clean up from bellow parsing and replace statements
+                value = parseJSON(JSON.stringify(value,null,'\t'))
+                            .replace(' "<apiresp-data','<apiresp-data')
+                            .replace('</apiresp-data>"','</apiresp-data>');
+                
                 return `<span class="${css_class}">${value}</span>`;
-            });
+            })
+            .join("<br>");
 
             let content = JSON.stringify(result)
-                .replaceAll('"3-Success": false,',`"<span class='api-response-failed'>3-Success</span>": <span class='api-response-failed'>false</span>,`)
+            content = content.trim()
+                            .replace('[','').slice(0,-1)
+                            .replaceAll('\\','')
+                            .replace('"','');
 
-            content = content.trim().replace('[','').slice(0,-1).replaceAll('\\','');
-
-            return { success, content }
+            if(errors > 0) AppTemplate.toast.error(`Error in ${errors} out of ${totalEndpoints} endpoints!`);
+            else AppTemplate.toast.success('API Connection was successful');
+            return { errors, content, totalEndpoints };
         }
         else
             AppTemplate.toast.error(result.result);
+        return { errors: 1 };
     }
 
     /** @returns { { result: { result, fields, actual_query, db_file } } } */

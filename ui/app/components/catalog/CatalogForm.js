@@ -73,6 +73,7 @@ export class CatalogForm extends ViewComponent {
 	}
 	
 	async stAfterInit(){
+		this.$parent.secretPopupForm = this;
 		this.endPointEditorContent = {};
 		this.editorPlaceholder = null;
 		this.showServiceNameLbl = false;
@@ -309,6 +310,7 @@ export class CatalogForm extends ViewComponent {
 
 		function localResetForm(){
 			document.querySelector('.save-secret-btn').style.display = '';
+			document.querySelector('.APITestResponse').classList.remove('APITestResponse-show');
 			document.querySelector('.btn-add-secret').disabled = false;
 			document.querySelector('input[data="unique-api-name"]').disabled = false;
 			self.dataBaseSettingType = null;
