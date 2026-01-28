@@ -20,6 +20,10 @@ from utils.SQLDatabase import SQLDatabase
 from os import getenv as env
 from utils.cache_util import DuckDBCache
 
+# Import Flask logging middleware
+from utils.flask_logging_middleware import create_flask_logging_middleware
+from utils.logging_config import initialize_logging_config, get_logging_config
+
 BaseUpload.upload_folder = str(Path(__file__).parent.parent)+'/dbs/files'
 BasePipeline.folder = str(Path(__file__).parent.parent)+'/destinations'
 DuckdbUtil.workspacedb_path = str(Path(__file__).parent.parent)+'/dbs/files'
@@ -30,6 +34,19 @@ app.config['SECRET_KEY'] = 'hash#123098'
 
 CORS(app)
 socketio.init_app(app)
+
+# Initialize logging configuration
+logging_config_manager = initialize_logging_config()
+logging_config = get_logging_config()
+
+# Initialize Flask logging middleware with configuration
+flask_logging_middleware = create_flask_logging_middleware(
+    app, 
+    log_level=logging_config.log_level,
+    enable_logging=logging_config.enable_flask_logging,
+    log_request_details=logging_config.log_request_details,
+    log_response_details=logging_config.log_response_details
+)
 
 @socketio.on('connect', namespace='/pipeline')
 def on_connect():
@@ -48,6 +65,9 @@ DuckDBCache.connect()
 SecretManager.connect_to_vault()
 SecretManager.db_secrete_obj = database_secret
 SQLDatabase.secret_manager = SecretManager
+
+# Initialize logging system
+DuckdbUtil.initialize_logging_tables()
 
 port=env('APP_SRV_ADDR').split(':')[-1]
 socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
