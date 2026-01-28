@@ -53,23 +53,25 @@ def get_api_data():
             start, end = None, None
 
             if page != None:
-                start = page.start_record
-                end = page.start_record + page.batch_size
+                (start, end) = (page.start_record, page.start_record + page.batch_size)
+                fixed_page_size = False
 
+                if page.start_param.__contains__('='):
+                    fixed_page_size = True
+                    params = page.start_param.split('=')
+                    start = params[1].strip()
+                    page.start_param = params[0].strip()
             try:
                 total_iterations = 0
                 # While true takes place especially because of pagination possibility
                 while True:
                     data_fetch = False
                     full_path = path if page == None else f'{path}?{page.start_param}={start}&{page.end_param}={end}'
-                    data = api_client.get(full_path, path_params)
+                    data = api_client.get(full_path, path_params).json()
                     data_fetch = True
                     total_iterations = total_iterations + 1
-                    if data_selector:
-                        result = data.json().get(data_selector,[])
-                    else:
-                        result = data.json()
-                    
+                    result = data.get(data_selector,[]) if data_selector else data
+
                     if not result: break
 
                     yield result
@@ -77,8 +79,8 @@ def get_api_data():
                     # In no pagination needs to happe it forces to end the loop
                     if page == None: break
                     
-                    start += page.batch_size
-                    end = start + (page.batch_size - 1)
+                    start += (1 if fixed_page_size else page.batch_size)
+                    end = end if fixed_page_size else start + (page.batch_size - 1)
                     print(f'Fetched data from {full_path} endpoint', flush=True)
                 
                 print(f'Completed data fetch from {path} endpoint', flush=True)
@@ -97,7 +99,6 @@ def get_api_data():
     params_tuple = zip(resource_names, endpoints_params, primary_keys, data_selectors, paginate_params)
     for path, path_params, pk , selector, page_params in params_tuple:
         yield generate_source(path, selector, pk, page_params, path_params)
-
 
 dest_folder = Workspace.get_duckdb_path_on_ppline()
 
