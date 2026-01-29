@@ -2,6 +2,7 @@ import re
 
 valid_imports = [
     'import dlt',
+    'import logging',
     'import polars as pl',
     'import pandas as pd',
     'from dlt.sources.credentials import ConnectionStringCredentials',
