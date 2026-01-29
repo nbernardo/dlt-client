@@ -7,6 +7,14 @@ from pathlib import Path
 logger = logging.getLogger('pipeline.execution')
 logger.info("Starting DLT code pipeline", extra={'stage': 'initialization', 'template_type': 'dlt_code'})
 
+# Configure dlt internal logging
+logger = logging.getLogger('dlt')
+logger.setLevel(logging.DEBUG)
+# Add handler to output logs
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
+
 #Adding root folder to allow import from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
 path.insert(0, src_path)
@@ -15,22 +23,23 @@ path.insert(0, src_path+'/src')
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import referencedSecrets%secret_manager_import%
 
+logger.info("Loading custom DLT code", extra={'stage': 'code_loading'})
+%template_code%
+
+dest_folder = Workspace.get_duckdb_path_on_ppline()
+
+%destination_settings%
+
+print(f'Fetching data from datasource', flush=True)
+logger.info("Fetching data from custom data source", extra={'stage': 'data_fetching'})
+
 try:
-    logger.info("Loading custom DLT code", extra={'stage': 'code_loading'})
-    %template_code%
-
-    dest_folder = Workspace.get_duckdb_path_on_ppline()
-
-    %destination_settings%
-
-    print(f'Fetching data from datasource', flush=True)
-    logger.info("Fetching data from custom data source", extra={'stage': 'data_fetching'})
     data = data_source()
     
     print(f"Running the pipeline", flush=True)
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
 
-    load_info = pipeline.run(data)
+    load_info = pipeline.run(data, progress="log")
     
     # Log pipeline execution results
     if hasattr(load_info, 'loads_ids') and load_info.loads_ids:

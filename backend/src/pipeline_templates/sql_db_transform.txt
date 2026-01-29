@@ -2,8 +2,21 @@
 import polars as pl
 import pandas as pd
 from sqlalchemy import create_engine
+import logging
 from pathlib import Path
 from sys import path
+
+# Initialize pipeline logger
+logger = logging.getLogger('pipeline.execution')
+logger.info("Starting SQL database transformation pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db_transform'})
+
+# Configure dlt internal logging
+logger = logging.getLogger('dlt')
+logger.setLevel(logging.DEBUG)
+# Add handler to output logs
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
 
 #Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
@@ -20,14 +33,17 @@ namespace = %namespace%
 connection_name = %connection_name%
 
 print('connecting to secrets vault', flush=True)
+logger.info("Connecting to secrets vault", extra={'stage': 'authentication', 'connection_name': connection_name})
 SecretManager.ppline_connect_to_vault()
 
 print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
+logger.info("Fetching database connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
 secret = SecretManager.get_db_secret(namespace, connection_name)
 
 connection_string = secret['connection_url']
 
 # SQLEngine for Polars .read_database()
+logger.info("Creating database engine", extra={'stage': 'database_connection'})
 engine = create_engine(connection_string)
 
 # Bellow mapping: tables = SqlDBComponent.source_tables
@@ -43,6 +59,7 @@ schemas = %schemas%
 # controller.pipeline.template_final_parsing
 transformations = %transformation%
 %transformation2%
+
 @dlt.source
 def polars_db_source(tables: list[str], tables_pk: list[str]):
 
@@ -50,31 +67,68 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
 
         @dlt.resource(name=table_name)
         def load_table():
+            logger.info("Starting data extraction", extra={
+                'stage': 'data_extraction',
+                'table_name': table_name,
+                'primary_key': pk
+            })
 
+            total_records = 0
             for df in pl.read_database(
                 query=f"SELECT * FROM {table_name}",
                 connection=engine,
                 iter_batches=True,
                 batch_size=10_000,
             ):
+                batch_size = len(df)
+                total_records += batch_size
+                
                 print(f'fetch data chunk from {table_name}', flush=True)
+                logger.debug("Processing data batch", extra={
+                    'stage': 'data_processing',
+                    'table_name': table_name,
+                    'batch_size': batch_size,
+                    'total_records_so_far': total_records
+                })
 
                 # Apply table-specific transformations
                 if transformations.get(table_name, None) != None:
+                    logger.debug("Applying primary transformations", extra={
+                        'stage': 'transformation_primary',
+                        'table_name': table_name
+                    })
                     df = df.with_columns(transformations[table_name])
                     print(f'applied transformation for {table_name}', flush=True)
+                    
                 # Transformation with not column format change (e.g. dedup, column drop)
                 if table_name in transformations2:
+                    logger.debug("Applying secondary transformations", extra={
+                        'stage': 'transformation_secondary',
+                        'table_name': table_name,
+                        'transformation_count': len(transformations2[table_name])
+                    })
                     for transform in transformations2[table_name]: df = transform(df)
 
                 if df.schema[pk] in [pl.Float32, pl.Float64]:
+                    logger.debug("Converting primary key to string", extra={
+                        'stage': 'data_type_conversion',
+                        'table_name': table_name,
+                        'primary_key': pk
+                    })
                     df = df.with_columns([pl.col(pk).cast(pl.Utf8)])
 
                 for row in df.iter_rows(named=True): yield row
+            
+            logger.info("Data extraction completed", extra={
+                'stage': 'extraction_complete',
+                'table_name': table_name,
+                'total_records': total_records
+            })
 
         return load_table.apply_hints(primary_key=pk)
 
     print(f'fetching data from source tables', flush=True)
+    logger.info("Setting up data sources", extra={'stage': 'data_source_setup', 'table_count': len(tables)})
     return [generate_resource(table_name, pk) for table_name, pk in zip(tables, tables_pk)]
 
 dest_folder = Workspace.get_duckdb_path_on_ppline()
@@ -84,7 +138,37 @@ dest_folder = Workspace.get_duckdb_path_on_ppline()
 source = polars_db_source(tables, tables_pk)
 
 print(f'Running the pipeline', flush=True)
-load_info = pipeline.run(source)
+logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
 
-print(load_info, flush=True)
-print('RUN_SUCCESSFULLY', flush=True)
+try:
+    load_info = pipeline.run(source, progress="log")
+    
+    # Log pipeline execution results
+    if hasattr(load_info, 'loads_ids') and load_info.loads_ids:
+        logger.info("SQL database transformation pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(load_info.loads_ids),
+            'dataset_name': getattr(load_info, 'dataset_name', 'unknown'),
+            'table_count': len(tables),
+            'template_type': 'sql_db_transform'
+        })
+    else:
+        logger.info("SQL database transformation pipeline execution completed", extra={
+            'stage': 'pipeline_completion',
+            'table_count': len(tables),
+            'template_type': 'sql_db_transform'
+        })
+
+    print(load_info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
+    
+except Exception as e:
+    logger.error("SQL database transformation pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(e).__name__,
+        'error_message': str(e),
+        'table_count': len(tables),
+        'template_type': 'sql_db_transform'
+    }, exc_info=True)
+    print(f'RUNTIME_ERROR:SQL database transformation pipeline execution failed: {e}', flush=True)
+    raise

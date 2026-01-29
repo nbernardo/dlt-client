@@ -3,46 +3,55 @@ from dlt.sources.filesystem import filesystem, read_csv
 import logging
 %import_from_src%
 
+# Configure dlt internal logging
+logger = logging.getLogger('dlt')
+logger.setLevel(logging.DEBUG)
+# Add handler to output logs
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
+
 # Initialize pipeline logger
-logger = logging.getLogger('pipeline.execution')
-logger.info("Starting simple filesystem pipeline", extra={'stage': 'initialization', 'template_type': 'simple'})
+pipeline_logger = logging.getLogger('pipeline.execution')
+pipeline_logger.info("Starting simple filesystem pipeline", extra={'stage': 'initialization', 'template_type': 'simple'})
 
+# Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
+pipeline_logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': '%bucket_url%', 'file_pattern': '%file_pattern%'})
+files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
+print('Files/Bucket loaded', flush=True)
+pipeline_logger.info("Files/Bucket loaded successfully", extra={'stage': 'data_loading'})
+
+# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+pipeline_logger.info("Creating CSV reader", extra={'stage': 'data_transformation', 'destination_table': '%ppline_dest_table%'})
+reader = (files | read_csv()).with_name(%ppline_dest_table%)
+
+if %primary_key% != 'UNDEFINED':
+    # Bellow mapping: primary_key = Bucket.primary_key
+    pipeline_logger.info("Applying primary key hints", extra={'stage': 'data_transformation', 'primary_key': '%primary_key%'})
+    reader.apply_hints(primary_key=%primary_key%)
+
+%destination_settings%
+
+# Execute pipeline with logging enabled
 try:
-    # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
-    logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': '%bucket_url%', 'file_pattern': '%file_pattern%'})
-    files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
-    print('Files/Bucket loaded', flush=True)
-    logger.info("Files/Bucket loaded successfully", extra={'stage': 'data_loading'})
-
-    # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
-    logger.info("Creating CSV reader", extra={'stage': 'data_transformation', 'destination_table': '%ppline_dest_table%'})
-    reader = (files | read_csv()).with_name(%ppline_dest_table%)
-
-    if %primary_key% != 'UNDEFINED':
-        # Bellow mapping: primary_key = Bucket.primary_key
-        logger.info("Applying primary key hints", extra={'stage': 'data_transformation', 'primary_key': '%primary_key%'})
-        reader.apply_hints(primary_key=%primary_key%)
-
-    %destination_settings%
-
-    logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
-    info = pipeline.run(reader,write_disposition="merge")
+    pipeline_logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
+    info = pipeline.run(reader, write_disposition="merge", progress="log")
     
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:
-        logger.info("Pipeline execution completed successfully", extra={
+        pipeline_logger.info("Pipeline execution completed successfully", extra={
             'stage': 'pipeline_completion',
             'loads_ids': str(info.loads_ids),
             'dataset_name': getattr(info, 'dataset_name', 'unknown')
         })
     else:
-        logger.info("Pipeline execution completed", extra={'stage': 'pipeline_completion'})
+        pipeline_logger.info("Pipeline execution completed", extra={'stage': 'pipeline_completion'})
     
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
     
 except Exception as e:
-    logger.error("Pipeline execution failed", extra={
+    pipeline_logger.error("Pipeline execution failed", extra={
         'stage': 'pipeline_error',
         'error_type': type(e).__name__,
         'error_message': str(e),

@@ -10,6 +10,14 @@ from sys import path
 logger = logging.getLogger('pipeline.execution')
 logger.info("Starting SQL database pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db'})
 
+# Configure dlt internal logging
+logger = logging.getLogger('dlt')
+logger.setLevel(logging.DEBUG)
+# Add handler to output logs
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
+
 #Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
 path.insert(0, src_path)
@@ -19,110 +27,109 @@ from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
 from src.utils.SQLDatabase import normalize_table_names, converts_field_type
 
-try:
-    # Bellow mapping: namespace = SqlDBComponent.namespace
-    namespace = %namespace%
+# Bellow mapping: namespace = SqlDBComponent.namespace
+namespace = %namespace%
 
-    # Bellow mapping: connection_name = SqlDBComponent.connection_name
-    connection_name = %connection_name%
+# Bellow mapping: connection_name = SqlDBComponent.connection_name
+connection_name = %connection_name%
 
-    print('connecting to secrets vault', flush=True)
-    logger.info("Connecting to secrets vault", extra={'stage': 'authentication', 'connection_name': connection_name})
-    SecretManager.ppline_connect_to_vault()
+print('connecting to secrets vault', flush=True)
+logger.info("Connecting to secrets vault", extra={'stage': 'authentication', 'connection_name': connection_name})
+SecretManager.ppline_connect_to_vault()
 
-    print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
-    logger.info("Fetching database connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
-    secret = SecretManager.get_db_secret(namespace, connection_name)
+print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
+logger.info("Fetching database connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
+secret = SecretManager.get_db_secret(namespace, connection_name)
 
-    connection_string = secret['connection_url']
+connection_string = secret['connection_url']
 
-    # Bellow mapping: source_database = SqlDBComponent.source_database
-    database_to_connect = %source_database%
-    logger.info("Establishing database connection", extra={'stage': 'database_connection', 'database': database_to_connect})
+# Bellow mapping: source_database = SqlDBComponent.source_database
+database_to_connect = %source_database%
+logger.info("Establishing database connection", extra={'stage': 'database_connection', 'database': database_to_connect})
 
-    credentials = ConnectionStringCredentials(connection_string)
+credentials = ConnectionStringCredentials(connection_string)
 
-    def load_select_tables_from_db():
-        dest_folder = Workspace.get_duckdb_path_on_ppline()
+def load_select_tables_from_db():
+    dest_folder = Workspace.get_duckdb_path_on_ppline()
 
-        %destination_settings%
+    %destination_settings%
 
-        # Bellow mapping: tables = SqlDBComponent.source_tables
-        tables = %source_tables%
+    # Bellow mapping: tables = SqlDBComponent.source_tables
+    tables = %source_tables%
 
-        # Bellow mapping: tables_pk = SqlDBComponent.primary_keys
-        tables_pk = %primary_keys%
-        
-        logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(tables)})
-        tables = normalize_table_names(secret, tables)
-
-        # Bellow mapping: schema = SqlDBComponent.schema
-        schema = %schema%
-
-        logger.info("Setting up data source", extra={
-            'stage': 'data_source_setup',
-            'table_count': len(tables),
-            'has_schema': schema is not None,
-            'schema': schema
-        })
-
-        if schema:
-            source = []
-            for idx in range(len(tables)):
-                schema_name, table_name = tables[idx].split('.')
-                logger.debug("Processing table with schema", extra={
-                    'stage': 'table_processing',
-                    'table_name': table_name,
-                    'schema_name': schema_name,
-                    'primary_key': tables_pk[idx],
-                    'table_index': idx + 1,
-                    'total_tables': len(tables)
-                })
-                
-                db_table = sql_table(table=table_name,  credentials=credentials, schema=schema_name)
-                db_table.apply_hints(primary_key=tables_pk[idx])
-                source.append(converts_field_type(db_table, tables_pk[idx]))
-
-        else:
-            logger.info("Creating SQL database source without schema", extra={'stage': 'data_source_setup'})
-            source = sql_database(table_names=tables, credentials=credentials)
-            for idx in range(len(tables)):
-                logger.debug("Processing table without schema", extra={
-                    'stage': 'table_processing',
-                    'table_name': tables[idx],
-                    'primary_key': tables_pk[idx],
-                    'table_index': idx + 1,
-                    'total_tables': len(tables)
-                })
-                
-                table = getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
-                converts_field_type(table, tables_pk[idx])
-
-        print('Starting pipeline run', flush=True)
-        logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
-        info = pipeline.run(source, write_disposition='merge',%table_format%)
-        
-        # Log pipeline execution results
-        if hasattr(info, 'loads_ids') and info.loads_ids:
-            logger.info("SQL database pipeline execution completed successfully", extra={
-                'stage': 'pipeline_completion',
-                'loads_ids': str(info.loads_ids),
-                'dataset_name': getattr(info, 'dataset_name', 'unknown'),
-                'table_count': len(tables),
-                'template_type': 'sql_db'
-            })
-        else:
-            logger.info("SQL database pipeline execution completed", extra={
-                'stage': 'pipeline_completion',
-                'table_count': len(tables),
-                'template_type': 'sql_db'
-            })
-        
-        print(info, flush=True)
-        print('RUN_SUCCESSFULLY', flush=True)
-
-    load_select_tables_from_db()
+    # Bellow mapping: tables_pk = SqlDBComponent.primary_keys
+    tables_pk = %primary_keys%
     
+    logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(tables)})
+    tables = normalize_table_names(secret, tables)
+
+    # Bellow mapping: schema = SqlDBComponent.schema
+    schema = %schema%
+
+    logger.info("Setting up data source", extra={
+        'stage': 'data_source_setup',
+        'table_count': len(tables),
+        'has_schema': schema is not None,
+        'schema': schema
+    })
+
+    if schema:
+        source = []
+        for idx in range(len(tables)):
+            schema_name, table_name = tables[idx].split('.')
+            logger.debug("Processing table with schema", extra={
+                'stage': 'table_processing',
+                'table_name': table_name,
+                'schema_name': schema_name,
+                'primary_key': tables_pk[idx],
+                'table_index': idx + 1,
+                'total_tables': len(tables)
+            })
+            
+            db_table = sql_table(table=table_name,  credentials=credentials, schema=schema_name)
+            db_table.apply_hints(primary_key=tables_pk[idx])
+            source.append(converts_field_type(db_table, tables_pk[idx]))
+
+    else:
+        logger.info("Creating SQL database source without schema", extra={'stage': 'data_source_setup'})
+        source = sql_database(table_names=tables, credentials=credentials)
+        for idx in range(len(tables)):
+            logger.debug("Processing table without schema", extra={
+                'stage': 'table_processing',
+                'table_name': tables[idx],
+                'primary_key': tables_pk[idx],
+                'table_index': idx + 1,
+                'total_tables': len(tables)
+            })
+            
+            table = getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
+            converts_field_type(table, tables_pk[idx])
+
+    print('Starting pipeline run', flush=True)
+    logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
+    info = pipeline.run(source, write_disposition='merge', progress="log", %table_format%)
+    
+    # Log pipeline execution results
+    if hasattr(info, 'loads_ids') and info.loads_ids:
+        logger.info("SQL database pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(info.loads_ids),
+            'dataset_name': getattr(info, 'dataset_name', 'unknown'),
+            'table_count': len(tables),
+            'template_type': 'sql_db'
+        })
+    else:
+        logger.info("SQL database pipeline execution completed", extra={
+            'stage': 'pipeline_completion',
+            'table_count': len(tables),
+            'template_type': 'sql_db'
+        })
+    
+    print(info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
+
+try:
+    load_select_tables_from_db()
 except Exception as e:
     logger.error("SQL database pipeline execution failed", extra={
         'stage': 'pipeline_error',

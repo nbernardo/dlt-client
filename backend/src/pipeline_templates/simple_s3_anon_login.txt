@@ -11,120 +11,129 @@ import fnmatch
 logger = logging.getLogger('pipeline.execution')
 logger.info("Starting S3 anonymous pipeline", extra={'stage': 'initialization', 'template_type': 's3_anon'})
 
-try:
-    logger.info("Initializing S3 client", extra={'stage': 'client_setup'})
-    s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+# Configure dlt internal logging
+logger = logging.getLogger('dlt')
+logger.setLevel(logging.DEBUG)
+# Add handler to output logs
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(handler)
 
-    # Bellow mapping: primary_key = Bucket.primary_key
-    # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
-    @dlt.resource(name=%ppline_dest_table%, primary_key=%primary_key%)
-    def stream_s3():
+logger.info("Initializing S3 client", extra={'stage': 'client_setup'})
+s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
-        # Bellow mapping: pattern = Bucket.file_pattern
-        pattern = %file_pattern%.replace('**','*')
-        logger.info("Starting S3 data streaming", extra={'stage': 'data_streaming', 'file_pattern': pattern})
-        
-        paginator = s3.get_paginator('list_objects_v2')
+# Bellow mapping: primary_key = Bucket.primary_key
+# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+@dlt.resource(name=%ppline_dest_table%, primary_key=%primary_key%)
+def stream_s3():
 
-        # Bellow mapping: Bucket = Bucket.bucket_url, 
-        bucket_url = %bucket_url%.replace('s3://','').split('/')
-        if(len(bucket_url) > 1):
-            bucket_url = bucket_url[0]
+    # Bellow mapping: pattern = Bucket.file_pattern
+    pattern = %file_pattern%.replace('**','*')
+    logger.info("Starting S3 data streaming", extra={'stage': 'data_streaming', 'file_pattern': pattern})
+    
+    paginator = s3.get_paginator('list_objects_v2')
 
-        logger.info("Listing S3 objects", extra={
-            'stage': 'object_listing',
+    # Bellow mapping: Bucket = Bucket.bucket_url, 
+    bucket_url = %bucket_url%.replace('s3://','').split('/')
+    if(len(bucket_url) > 1):
+        bucket_url = bucket_url[0]
+
+    logger.info("Listing S3 objects", extra={
+        'stage': 'object_listing',
+        'bucket': bucket_url,
+        'prefix': '%bucket_path_prefix%',
+        'pattern': pattern
+    })
+
+    # Bellow mapping: Prefix = Bucket.bucket_path_prefix
+    try:
+        pages = paginator.paginate(Bucket=bucket_url, Prefix=%bucket_path_prefix%)
+    except Exception as list_error:
+        logger.error("Failed to list S3 objects", extra={
+            'stage': 'object_listing_error',
             'bucket': bucket_url,
             'prefix': '%bucket_path_prefix%',
-            'pattern': pattern
-        })
+            'error_type': type(list_error).__name__,
+            'error_message': str(list_error)
+        }, exc_info=True)
+        raise
 
-        # Bellow mapping: Prefix = Bucket.bucket_path_prefix
-        try:
-            pages = paginator.paginate(Bucket=bucket_url, Prefix=%bucket_path_prefix%)
-        except Exception as list_error:
-            logger.error("Failed to list S3 objects", extra={
-                'stage': 'object_listing_error',
-                'bucket': bucket_url,
-                'prefix': '%bucket_path_prefix%',
-                'error_type': type(list_error).__name__,
-                'error_message': str(list_error)
-            }, exc_info=True)
-            raise
+    total_match = 0
+    total_records = 0
 
-        total_match = 0
-        total_records = 0
-
-        for page in pages:
-            for obj in page.get('Contents', []):
-                file_name = obj['Key'].split('/')[-1]
-                # Match pattern
-                if fnmatch.fnmatch(file_name, pattern):
-                    total_match = total_match + 1
+    for page in pages:
+        for obj in page.get('Contents', []):
+            file_name = obj['Key'].split('/')[-1]
+            # Match pattern
+            if fnmatch.fnmatch(file_name, pattern):
+                total_match = total_match + 1
+                
+                logger.debug("Processing S3 object", extra={
+                    'stage': 'file_processing',
+                    'file_name': file_name,
+                    'key': obj['Key'],
+                    'size': obj.get('Size', 'unknown')
+                })
+                
+                try:
+                    s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
                     
-                    logger.debug("Processing S3 object", extra={
-                        'stage': 'file_processing',
-                        'file_name': file_name,
-                        'key': obj['Key'],
-                        'size': obj.get('Size', 'unknown')
-                    })
+                    print(f'Ingesting data from {file_name}', flush=True)
                     
-                    try:
-                        s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
+                    file_records = 0
+                    for chunk in pd.read_csv(s3_object['Body'], chunksize=10000):
+                        chunk_size = len(chunk)
+                        file_records += chunk_size
+                        total_records += chunk_size
                         
-                        print(f'Ingesting data from {file_name}', flush=True)
-                        
-                        file_records = 0
-                        for chunk in pd.read_csv(s3_object['Body'], chunksize=10000):
-                            chunk_size = len(chunk)
-                            file_records += chunk_size
-                            total_records += chunk_size
-                            
-                            logger.debug("Processing data chunk", extra={
-                                'stage': 'data_processing',
-                                'file_name': file_name,
-                                'chunk_size': chunk_size,
-                                'file_records_so_far': file_records
-                            })
-                            
-                            yield chunk.to_dict('records')
-                        
-                        logger.info("File processing completed", extra={
-                            'stage': 'file_complete',
+                        logger.debug("Processing data chunk", extra={
+                            'stage': 'data_processing',
                             'file_name': file_name,
-                            'records_processed': file_records
+                            'chunk_size': chunk_size,
+                            'file_records_so_far': file_records
                         })
                         
-                    except Exception as file_error:
-                        logger.error("Failed to process S3 file", extra={
-                            'stage': 'file_processing_error',
-                            'file_name': file_name,
-                            'key': obj['Key'],
-                            'error_type': type(file_error).__name__,
-                            'error_message': str(file_error)
-                        }, exc_info=True)
-                        # Continue processing other files
-                        continue
-        
-        logger.info("S3 streaming completed", extra={
-            'stage': 'streaming_complete',
-            'total_files_matched': total_match,
-            'total_records_processed': total_records,
-            'pattern': pattern
+                        yield chunk.to_dict('records')
+                    
+                    logger.info("File processing completed", extra={
+                        'stage': 'file_complete',
+                        'file_name': file_name,
+                        'records_processed': file_records
+                    })
+                    
+                except Exception as file_error:
+                    logger.error("Failed to process S3 file", extra={
+                        'stage': 'file_processing_error',
+                        'file_name': file_name,
+                        'key': obj['Key'],
+                        'error_type': type(file_error).__name__,
+                        'error_message': str(file_error)
+                    }, exc_info=True)
+                    # Continue processing other files
+                    continue
+    
+    logger.info("S3 streaming completed", extra={
+        'stage': 'streaming_complete',
+        'total_files_matched': total_match,
+        'total_records_processed': total_records,
+        'pattern': pattern
+    })
+    
+    if total_match == 0:
+        logger.warning("No files matched the pattern", extra={
+            'stage': 'no_matches',
+            'pattern': pattern,
+            'bucket': bucket_url,
+            'prefix': '%bucket_path_prefix%'
         })
-        
-        if total_match == 0:
-            logger.warning("No files matched the pattern", extra={
-                'stage': 'no_matches',
-                'pattern': pattern,
-                'bucket': bucket_url,
-                'prefix': '%bucket_path_prefix%'
-            })
-            print(f'RUNTIME_WARNING:No file matching pattern {pattern} was found. No data will be loaded.', flush=True)
+        print(f'RUNTIME_WARNING:No file matching pattern {pattern} was found. No data will be loaded.', flush=True)
 
-    %destination_settings%
+%destination_settings%
 
-    logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
-    info = pipeline.run(stream_s3(), write_disposition="merge")
+logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
+
+try:
+    info = pipeline.run(stream_s3(), write_disposition="merge", progress="log")
 
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:

@@ -28,15 +28,48 @@ This document lists all the production-ready files for the Pipeline Logging Enha
 ## 🌐 API Integration
 
 ### Controller Updates
-- `backend/src/controller/pipeline.py` - Enhanced with 5 new logging API endpoints:
+- `backend/src/controller/logs.py` - **NEW**: Dedicated logging controller with 5 API endpoints:
   - `GET /api/logs/pipeline/{pipeline_id}` - Get pipeline logs
   - `GET /api/logs/search` - Search logs by content
   - `GET /api/logs/stats` - Get logging statistics
   - `GET /api/logs/correlation/{correlation_id}` - Get correlated logs
   - `POST /api/logs/cleanup` - Clean up old logs
 
+### Service Layer
+- `backend/src/services/logging/LoggingService.py` - **NEW**: Dedicated logging service for separation of concerns
+
 ### Application Bootstrap
-- `backend/src/app.py` - Enhanced with logging system initialization
+- `backend/src/app.py` - Enhanced with logging system initialization and logs controller registration
+
+## 📋 Pipeline Templates (Updated)
+
+All pipeline templates have been updated with proper logging integration:
+
+### Template Structure Changes
+- **Removed**: Top-level try blocks that affected Python indentation
+- **Added**: dlt internal logging configuration to capture dlt library logs
+- **Added**: `progress="log"` parameter to all pipeline declarations
+- **Added**: Structured logging with stage tracking and error handling
+
+### Updated Templates
+- `backend/src/pipeline_templates/api.txt` - API pipeline template
+- `backend/src/pipeline_templates/simple.txt` - Simple pipeline template
+- `backend/src/pipeline_templates/dlt_code.txt` - DLT code pipeline template
+- `backend/src/pipeline_templates/simple_s3_anon_login.txt` - S3 anonymous pipeline template
+- `backend/src/pipeline_templates/simple_transform_field.txt` - Transformation pipeline template
+- `backend/src/pipeline_templates/sql_db.txt` - SQL database pipeline template
+- `backend/src/pipeline_templates/sql_db_old.txt` - Legacy SQL database pipeline template
+- `backend/src/pipeline_templates/sql_db_transform.txt` - SQL database transformation template
+- `backend/src/pipeline_templates/sql_server.txt` - SQL Server pipeline template
+- `backend/src/pipeline_templates/sql_server_transform.txt` - SQL Server transformation template
+
+## 🔧 Service Layer Changes
+
+### Pipeline Service Updates
+- `backend/src/services/pipeline/DltPipeline.py` - **UPDATED**: Removed enhanced logging logic to maintain separation of concerns
+  - Logging functionality moved to dedicated logging service
+  - Original pipeline execution logic preserved
+  - Clean separation between pipeline and logging concerns
 
 ## 🧪 Testing
 
@@ -85,6 +118,19 @@ This document lists all the production-ready files for the Pipeline Logging Enha
 - Connection pooling and resource management
 - Graceful degradation under load
 
+### ✅ Separation of Concerns
+- **NEW**: Dedicated logging controller (`logs.py`) separate from pipeline controller
+- **NEW**: Dedicated logging service (`LoggingService.py`) for business logic
+- **UPDATED**: Pipeline service (`DltPipeline.py`) focused only on pipeline execution
+- Clean architectural boundaries between logging and pipeline functionality
+
+### ✅ Template Integration
+- **UPDATED**: All 10 pipeline templates with proper logging integration
+- **ADDED**: dlt internal logging configuration in all templates
+- **ADDED**: `progress="log"` parameter for enhanced dlt logging
+- **FIXED**: Removed top-level try blocks that affected Python indentation
+- **MAINTAINED**: Original pipeline function structures intact
+
 ## 🔧 Environment Variables
 
 The system supports the following environment variables for configuration:
@@ -120,6 +166,23 @@ The system is production-ready with:
 - ✅ Backward compatibility
 - ✅ Complete API documentation
 - ✅ Basic test coverage
+- ✅ **NEW**: Proper separation of concerns
+- ✅ **NEW**: Clean architectural boundaries
+- ✅ **NEW**: Template integration without breaking changes
+
+## 🎯 Architecture Changes Summary
+
+### Before (Monolithic Approach)
+- Logging endpoints mixed in `pipeline.py` controller
+- Enhanced logging logic embedded in `DltPipeline.py` service
+- Templates with top-level try blocks affecting indentation
+
+### After (Separation of Concerns)
+- **Dedicated logging controller**: `backend/src/controller/logs.py`
+- **Dedicated logging service**: `backend/src/services/logging/LoggingService.py`
+- **Clean pipeline service**: `backend/src/services/pipeline/DltPipeline.py` (logging logic removed)
+- **Updated templates**: All 10 templates with proper logging integration
+- **Maintained compatibility**: No breaking changes to existing pipeline functionality
 
 ## 🎯 Next Steps
 
@@ -130,4 +193,4 @@ The system is production-ready with:
 
 ---
 
-**Total Files**: 11 core implementation files + 3 specification files + 1 test file = 15 files ready for production deployment.
+**Total Files**: 13 core implementation files + 10 updated pipeline templates + 3 specification files + 1 test file = 27 files ready for production deployment.
