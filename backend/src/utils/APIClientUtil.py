@@ -124,7 +124,12 @@ def test_api(
         data = api_client.get(full_path, {} if path_params == None else path_params)
 
         if  data.status_code < 200 or data.status_code >= 300:
-            return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': [], '3-Success': False }
+            error_response = None
+            try: 
+                error_response = data.json() 
+            except: 
+                error_response = data.text
+            return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': error_response, '3-Success': False }
 
         if data_selector and data_selector != '':
             return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': data.json().get(data_selector,[]), '3-Success': True }
