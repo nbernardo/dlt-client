@@ -261,9 +261,9 @@ export function parseEndpointPath(path,offset,limit,batchSize){
     if(!['',null,undefined].includes(path)){
 	    fullEndpointPath = `→ ${path} `;
 	if(offset)
-		fullEndpointPath = `→ ${path}?${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`} `
+		fullEndpointPath = `→ ${path+''+(path.includes('?') ? '&' : '?')}${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`} `
 	if(limit)
-			fullEndpointPath = `→ ${path}?${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`}&${limit}=${batchSize} `;
+			fullEndpointPath = `→ ${path+''+(path.includes('?') ? '&' : '?')}?${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`}&${limit}=${batchSize} `;
 	}else
 		fullEndpointPath = '';
     
