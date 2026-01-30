@@ -11,4 +11,5 @@ pipeline = dlt.pipeline(
     pipeline_name=__current.PIPELINE_NAME,
     destination=dlt.destinations.bigquery(credentials=config),
     dataset_name="<dataset_name>",
+    progress="log"
 )

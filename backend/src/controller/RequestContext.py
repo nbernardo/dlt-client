@@ -56,6 +56,7 @@ class RequestContext:
         self.diagrm_path = None
         self.pipeline_lbl = None
         self.pipeline_name = None
+        self.pipeline_execution_id = None
         self.is_cloud_url = False
         # Flaged true in case the data source is code 
         self.code_source = False
