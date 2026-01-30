@@ -70,3 +70,145 @@ class DuckDBLogStore:
             conn.executemany(query, batch_data)
         except Exception as e:
             print(f"DuckDB Batch Write Failed: {e}")
+
+
+    def fetch_perspective(self, pipeline_id=None, execution_id=None, level=None, days_back=None):
+            """
+            The 'Universal Perspective' Query. 
+            Allows you to pivot your view by simply passing different arguments.
+            """
+            conn = DuckdbUtil.get_workspace_db_instance()
+            
+            query = "SELECT * FROM pipeline_logs WHERE 1=1"
+            params = []
+
+            if pipeline_id:
+                query += " AND pipeline_id = ?"
+                params.append(pipeline_id)
+
+            if execution_id:
+                query += " AND execution_id = ?"
+                params.append(execution_id)
+
+            if level:
+                query += " AND log_level = ?"
+                params.append(level)
+
+            if days_back:
+                query += " AND timestamp >= current_date - ?"
+                params.append(days_back)
+
+            query += " ORDER BY timestamp DESC"
+            
+            return conn.execute(query, params).df()
+    
+
+    def get_stuck_pipelines(self, timeout_hours=1):
+            """
+            Perspective: State Change.
+            Finds executions that 'started' but never logged 'finished' or 'failed'.
+            """
+            query = f"""
+                SELECT 
+                    pipeline_id, 
+                    execution_id, 
+                    min(timestamp) as started_at,
+                    max(timestamp) as last_activity
+                FROM pipeline_logs
+                GROUP BY 1, 2
+                HAVING 
+                    COUNT(CASE WHEN message LIKE '%finished%' OR extra_data->>'$.status' = 'finished' THEN 1 END) = 0
+                    AND COUNT(CASE WHEN log_level = 'ERROR' THEN 1 END) = 0
+                    AND min(timestamp) < now() - INTERVAL '{timeout_hours} hours'
+                ORDER BY started_at DESC
+            """
+            return self._get_conn().execute(query).df()
+    
+
+    def get_performance_metrics(self):
+        """
+        Perspective: Resource Consumption.
+        Calculates throughput (rows per second) based on extra_data.
+        """
+        query = """
+            SELECT 
+                pipeline_id,
+                avg(CAST(extra_data->>'$.duration_sec' AS FLOAT)) as avg_duration,
+                sum(CAST(extra_data->>'$.rows' AS INTEGER)) as total_rows,
+                (sum(CAST(extra_data->>'$.rows' AS INTEGER)) / 
+                 NULLIF(sum(CAST(extra_data->>'$.duration_sec' AS FLOAT)), 0)) as rows_per_sec
+            FROM pipeline_logs
+            WHERE extra_data->>'$.rows' IS NOT NULL
+            GROUP BY 1
+            ORDER BY rows_per_sec DESC
+        """
+        return self._get_conn().execute(query).df()
+
+
+    def get_execution_timeline(self, execution_id):
+        """
+        Perspective: Flow & Sequence.
+        Shows the 'lag' between every log step in a specific run to find bottlenecks.
+        """
+        query = """
+            SELECT 
+                timestamp,
+                message,
+                module,
+                timestamp - LAG(timestamp) OVER (ORDER BY timestamp) as step_duration
+            FROM pipeline_logs
+            WHERE execution_id = ?
+            ORDER BY timestamp ASC
+        """
+        return self._get_conn().execute(query, [execution_id]).df()
+
+
+    def get_log_volume_histogram(self, interval='5 minutes', limit_hours=6):
+        """
+        Perspective: Time-Series / Histogram.
+        Identifies 'Log Storms' by binning log counts into time buckets.
+        """
+        query = f"""
+            SELECT 
+                time_bucket(INTERVAL '{interval}', timestamp) as time_window,
+                log_level,
+                count(*) as log_count
+            FROM pipeline_logs
+            WHERE timestamp > now() - INTERVAL '{limit_hours} hours'
+            GROUP BY 1, 2
+            ORDER BY 1 DESC
+        """
+        return self._get_conn().execute(query).df()
+
+
+    def get_health_pivot(self):
+        """
+        Perspective: Pivot.
+        Returns a side-by-side comparison of log levels per pipeline.
+        """
+        # PIVOT is a native DuckDB keyword that is extremely fast
+        query = """
+            PIVOT pipeline_logs 
+            ON log_level 
+            USING COUNT(*) 
+            GROUP BY pipeline_id
+        """
+        return self._get_conn().execute(query).df()
+
+
+    def get_error_hotspots(self):
+        """
+        Perspective: Blast Radius.
+        Finds which modules are responsible for the most errors.
+        """
+        query = """
+            SELECT 
+                module,
+                count(*) as error_count,
+                arg_max(message, timestamp) as latest_error_msg
+            FROM pipeline_logs
+            WHERE log_level IN ('ERROR', 'CRITICAL')
+            GROUP BY 1
+            ORDER BY error_count DESC
+        """
+        return self._get_conn().execute(query).df()
