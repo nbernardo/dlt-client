@@ -113,6 +113,7 @@ class DuckdbUtil:
         query = """CREATE TABLE IF NOT EXISTS pipeline_logs (
             id INTEGER PRIMARY KEY DEFAULT nextval('pipeline_logs_sequence'),
             timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+            namespace VARCHAR(255) NOT NULL,
             pipeline_id VARCHAR(255) NOT NULL,
             execution_id VARCHAR(255) NOT NULL,
             log_level VARCHAR(20) NOT NULL,

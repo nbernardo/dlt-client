@@ -12,7 +12,7 @@ from controller.RequestContext import socketio
 
 from controller.pipeline import pipeline, BasePipeline
 from controller.workspace import workspace, call_scheduled_job
-from controller.logs import logs
+
 from services.workspace.SecretManager import SecretManager
 from controller.file_upload import upload, BaseUpload
 from utils.duckdb_util import DuckdbUtil
@@ -20,10 +20,7 @@ from utils import database_secret
 from utils.SQLDatabase import SQLDatabase
 from os import getenv as env
 from utils.cache_util import DuckDBCache
-
-# Import Flask logging middleware
-from utils.flask_logging_middleware import create_flask_logging_middleware
-from utils.logging_config import initialize_logging_config, get_logging_config
+from utils.logging.log_processor import setup_logging
 
 BaseUpload.upload_folder = str(Path(__file__).parent.parent)+'/dbs/files'
 BasePipeline.folder = str(Path(__file__).parent.parent)+'/destinations'
@@ -35,30 +32,17 @@ app.config['SECRET_KEY'] = 'hash#123098'
 
 CORS(app)
 socketio.init_app(app)
-
-# Initialize logging configuration
-logging_config_manager = initialize_logging_config()
-logging_config = get_logging_config()
-
-# Initialize Flask logging middleware with configuration
-flask_logging_middleware = create_flask_logging_middleware(
-    app, 
-    log_level=logging_config.log_level,
-    enable_logging=logging_config.enable_flask_logging,
-    log_request_details=logging_config.log_request_details,
-    log_response_details=logging_config.log_response_details
-)
+setup_logging(app)
 
 @socketio.on('connect', namespace='/pipeline')
 def on_connect():
     emit('connected', {'sid': request.sid}, to=request.sid)
     socketio.sleep(0)
 
-    
 
 app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
-app.register_blueprint(logs)
+#app.register_blueprint(logs)
 app.register_blueprint(upload)
 
 call_scheduled_job()

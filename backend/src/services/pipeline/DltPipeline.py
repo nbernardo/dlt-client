@@ -16,6 +16,7 @@ import time
 from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS_REGEX, FORBIDDEN_DUNDER_REGEX
 import schedule
 import logging
+from utils.logging.pipeline_logger_config import handle_pipeline_log
 
 root_dir = str(Path(__file__).parent.parent.parent.parent)
 destinations_dir = f'{root_dir}/destinations/pipeline'
@@ -119,6 +120,8 @@ class DltPipeline:
         #  flag = context.transformation is not None or context.action_type == 'UPDATE'
         flag = True
 
+        logger = DltPipeline.get_pipeline_logger(context)
+
         if(flag):
             while True:
                 line = result.stdout.readline()
@@ -154,7 +157,9 @@ class DltPipeline:
                             context.emit_ppline_trace(warning_message, warn=True)
                     else:
                         if context:
-                            context.emit_ppline_trace(line)
+                            ui_log = str(line).replace('[PIPELINE_LOG]:','').replace('[DLT]:','').replace(' |+| ','')
+                            context.emit_ppline_trace(ui_log)
+                            handle_pipeline_log(line, logger)
             
         result.kill()
 
@@ -421,6 +426,8 @@ class DltPipeline:
                                         bufsize=1)
             pipeline_exception = False
 
+            logger = DltPipeline.get_pipeline_logger(context)
+
             while True:
                 time.sleep(0.1)
                 line = result.stdout.readline()
@@ -442,7 +449,9 @@ class DltPipeline:
                             if(line.__contains__('Files/Bucket loaded')):
                                 if(has_ppline_job('start',job_execution_id)):
                                     pass
-                        context.emit_ppline_job_trace(line)
+                        ui_log = str(line).replace('[PIPELINE_LOG]:','').replace('[DLT]:','').replace(' |+| ','')
+                        context.emit_ppline_job_trace(ui_log)
+                        handle_pipeline_log('Scheduled-Job-log -> '+line, logger)
 
                              
             #if result.returncode == 0 and context is not None and pipeline_exception == False:
@@ -580,6 +589,15 @@ class DltPipeline:
     def get_file_data_transformation_preview(script):
         result = run_transform_preview(None, None, None, script)
         return result
+    
+
+    @staticmethod
+    def get_pipeline_logger(context: RequestContext) -> logging.Logger:
+
+        pipeline_id = context.pipeline_name
+        execution_id = context.pipeline_execution_id
+        namespace = context.user
+        return logging.getLogger(f'pipeline.{namespace}.{pipeline_id}.{execution_id}')
 
 
 def has_ppline_job(evt, job_transaction_id):
@@ -692,3 +710,8 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
         return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
 
     return { 'error': False, 'result': inner_env['results'] if 'results' in inner_env else None }
+
+
+def create_execution_id() -> str:
+    """Generate a unique execution ID for pipeline runs."""
+    return f"exec_{uuid.uuid4().hex[:12]}"

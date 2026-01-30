@@ -65,7 +65,8 @@ class TemplateNodeType:
 
             if self.template_type == 'non_database_source':
                 # Remove SecretManager import placeholder
-                template = template.replace('%import_from_src%', '')
+                add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import('\n')
+                template = template.replace('%import_from_src%', add_path_and_import_secret_manager)
 
                 destination_string = 'dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb")'
             else:
@@ -117,14 +118,7 @@ class TemplateNodeType:
         # Edge case for when the pipeline has transformation
         ni = '\n' if has_tranformation else n
 
-        src_path_add = '#Adding root folder to allow import  from src'
-        src_path_add += f"{ni}from pathlib import Path{ni}from sys import path"
-        src_path_add += f"{ni}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')"
-        src_path_add += f"{ni}path.insert(0, src_path){ni}path.insert(0, src_path+'/src')"
-
-        import_secret_manager = f'{ni}{ni}from src.services.workspace.SecretManager import SecretManager'
-        add_path_and_import_secret_manager = f'{src_path_add}{import_secret_manager}'
-
+        add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import(ni)
         template = template.replace('%import_from_src%', add_path_and_import_secret_manager)
 
         # This replacement only happen if pipeline destination is Database otherwise
@@ -171,3 +165,12 @@ class TemplateNodeType:
 
             return template
         
+    
+    def set_source_path_for_import(ni):
+        src_path_add = '#Adding root folder to allow import  from src'
+        src_path_add += f"{ni}from pathlib import Path{ni}from sys import path"
+        src_path_add += f"{ni}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')"
+        src_path_add += f"{ni}path.insert(0, src_path){ni}path.insert(0, src_path+'/src')"
+
+        import_secret_manager = f'{ni}{ni}from src.services.workspace.SecretManager import SecretManager'
+        return f'{src_path_add}{import_secret_manager}'
