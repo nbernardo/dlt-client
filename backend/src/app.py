@@ -9,12 +9,12 @@ from flask import Flask, request
 from flask_cors import CORS
 from flask_socketio import emit
 from controller.RequestContext import socketio
-
 from controller.pipeline import pipeline, BasePipeline
 from controller.workspace import workspace, call_scheduled_job
+from controller.logs import workspace, logs
+from controller.file_upload import upload, BaseUpload
 
 from services.workspace.SecretManager import SecretManager
-from controller.file_upload import upload, BaseUpload
 from utils.duckdb_util import DuckdbUtil
 from utils import database_secret
 from utils.SQLDatabase import SQLDatabase
@@ -42,7 +42,7 @@ def on_connect():
 
 app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
-#app.register_blueprint(logs)
+app.register_blueprint(logs)
 app.register_blueprint(upload)
 
 call_scheduled_job()
