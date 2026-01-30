@@ -11,7 +11,7 @@ from flask_socketio import emit
 from controller.RequestContext import socketio
 from controller.pipeline import pipeline, BasePipeline
 from controller.workspace import workspace, call_scheduled_job
-from controller.logs import workspace, logs
+from controller.logs import logs
 from controller.file_upload import upload, BaseUpload
 
 from services.workspace.SecretManager import SecretManager

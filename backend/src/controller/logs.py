@@ -4,10 +4,10 @@ Provides proper separation of concerns from pipeline operations.
 """
 
 
-from flask import Flask, jsonify, request
+from flask import jsonify, request, Blueprint
 from utils.logging.log_storage import DuckDBLogStore
 
-logs = Flask(__name__)
+logs = Blueprint('logs', __name__)
 store = DuckDBLogStore()
 
 @logs.route('/health/pivot', methods=['GET'])
