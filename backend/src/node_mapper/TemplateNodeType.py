@@ -149,7 +149,7 @@ class TemplateNodeType:
             ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'%dest_secret_code%{n}dest = %destination_string%{n}'
             print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
-            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)'
+            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name,progress="log")'
 
         dest_settings = f'{ppline_and_output_var}{secrets_and_dest_var}{print_var}{n}{pipeline_var}'
         template = template.replace('%destination_settings%',dest_settings)
@@ -164,7 +164,7 @@ class TemplateNodeType:
             ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'# -------- Running the pipeline ----------%dest_secret_code%{n}dest = %destination_string%{n}'
             print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
-            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)'
+            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name,progress="log")'
 
             dest_settings = f'{ppline_and_output_var}{secrets_and_dest_var}{print_var}{n}{pipeline_var}'
             template = template.replace('%destination_settings%',dest_settings)

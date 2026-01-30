@@ -118,7 +118,7 @@ if %primary_key% != 'UNDEFINED':
 %destination_settings%
 
 try:
-    info = pipeline.run(transformed_source, write_disposition="merge", progress="log")
+    info = pipeline.run(transformed_source, write_disposition="merge")
     
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:

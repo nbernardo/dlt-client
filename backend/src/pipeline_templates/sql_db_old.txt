@@ -50,7 +50,7 @@ def load_select_tables_from_db():
     %dest_secret_code%
     dest = %destination_string%
     # Bellow mapping: schema = DuckDBOutput.output_dest_name
-    pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest, dataset_name=output_name, progress="log")
+    pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest, dataset_name=output_name)
 
     # Bellow mapping: schema = SqlDBComponent.source_tables
     tables = %source_tables%
@@ -70,7 +70,7 @@ def load_select_tables_from_db():
         getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
 
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
-    info = pipeline.run(source, progress="log")
+    info = pipeline.run(source)
     
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:

@@ -69,7 +69,7 @@ def load_select_tables_from_db():
         source = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, connection_string)
         
         logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
-        info = pipeline.run(source, write_disposition='merge', progress="log")
+        info = pipeline.run(source, write_disposition='merge')
         
         # Log pipeline execution results
         if hasattr(info, 'loads_ids') and info.loads_ids:

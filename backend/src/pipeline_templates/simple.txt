@@ -35,7 +35,7 @@ if %primary_key% != 'UNDEFINED':
 # Execute pipeline with logging enabled
 try:
     pipeline_logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
-    info = pipeline.run(reader, write_disposition="merge", progress="log")
+    info = pipeline.run(reader, write_disposition="merge")
     
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:

@@ -39,7 +39,7 @@ try:
     print(f"Running the pipeline", flush=True)
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
 
-    load_info = pipeline.run(data, progress="log")
+    load_info = pipeline.run(data)
     
     # Log pipeline execution results
     if hasattr(load_info, 'loads_ids') and load_info.loads_ids:
