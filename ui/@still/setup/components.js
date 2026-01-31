@@ -1610,8 +1610,9 @@ export class Components {
             } catch (error) {}
 
             worker.postMessage({ components: this['getPrefetchList'](), vendorPath: Components.vendorPath });
-            worker.onmessage = function (r) {
-                const { path, module, cls } = r.data;
+            worker.onmessage = function (r) {                
+                let { path, module, cls, type, category } = r.data;
+                if(category === 'component') path = `${path}.${type}`;
                 if (!Components.importedMap.has(path)) {
                     Components.importedMap.add(path);
                     BaseComponent.importScript(path, module, cls);

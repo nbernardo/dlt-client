@@ -11,11 +11,12 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', event => {
 
+    if(event.request.url.includes('/config/route.map.js')) return;
     const valid_sources = ['app-setup.js', 'import_worker.js'];
     const source = event.request.referrer;
     const appSetup = source.includes(valid_sources[0]),
         prefetch = source.includes(valid_sources[1]);
-
+    
     if (event.request.referrer.includes('import_worker.js')) {
 
         event.respondWith(
