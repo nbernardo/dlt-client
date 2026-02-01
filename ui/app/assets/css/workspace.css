@@ -486,7 +486,7 @@
 	margin-right: 10px !important;
 }
 
-.pipeline-menu-holder{
+.pipeline-menu-holder, .log-display-options{
 
 	margin-right: 6px;
 	border: none;
@@ -495,7 +495,7 @@
 
 	.scheduled-pipeline-icone { position: absolute; margin-left: -11px; margin-top: 5px; }
 	
-	.pipeline-menu-wrapper, .pipeline-table-menu-wrapper {
+	.pipeline-menu-wrapper, .pipeline-table-menu-wrapper, .log-display-options-submenu {
 		position: absolute;
 		z-index: 10000;
 		margin-left: -136px;
@@ -506,6 +506,12 @@
 		color: white;
 		font-size: 13px;
 		border-radius: 5px;
+	}
+
+	.log-display-options-submenu{
+		margin-top: 0px; margin-left: 0px; background: #2c3e50e3 !important; width: 200px;
+		.menu-option:hover { background-color: #2c3e50; border-radius: 5px;}
+		.menu-option { display: flex; align-items: center; }
 	}
 
 }

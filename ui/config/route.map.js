@@ -117,6 +117,10 @@ export const stillRoutesMap = {
             DLTCodeOutput: {
                 path: "app/components/node-types/destination",
                 url: "/dltc-ode-output"
+            },
+            LogQueryDisplay: {
+                path: "app/components/log/logquery",
+                url: "/log-query-display"
             }
         },
         lazyInitial: {}

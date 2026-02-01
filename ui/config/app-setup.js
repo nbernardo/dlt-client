@@ -27,6 +27,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
             component: '@treeview/StillTreeView',
             assets: ["tree-view.css"]
         });
+        this.addPrefetch({ component: 'LogQueryDisplay' })
         this.runPrefetch();
     }
 

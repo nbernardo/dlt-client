@@ -57,9 +57,21 @@
 			</div>
 
 			<span (showIf)="self.showLogsIcon">
-				<div class="action-icon" tooltip="Pipeline(s) log display" tooltip-y="10"
-					onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
+				<!-- <div class="action-icon generic-context-drop-menu" tooltip="Pipeline(s) log display" tooltip-y="10" -->
+				<div class="action-icon generic-context-drop-menu log-display-options" style="cursor: pointer; border: none; margin-top: 0px;">
 					<img src="app/assets/imgs/logs-svgrepo-com.svg" width="18" alt="">
+					<ul class="log-display-options-submenu" style="display: none;">
+						<li>
+							<div style="padding: 5px;" class="menu-option" onclick="component.showHideLogsDisplay()">
+								<img src="app/assets/imgs/binary.png" width="16" alt="">
+								&nbsp;&nbsp;Pipeline Real time logs 
+							</div>
+							<div style="padding: 5px;" class="menu-option" onclick="component.viewPipelineDiagram(event)">
+								<img src="app/assets/imgs/code.png" width="16" alt="">
+								&nbsp;Pipeline log analisys
+							</div>
+						</li>
+					</ul>
 				</div>
 			</span>
 
