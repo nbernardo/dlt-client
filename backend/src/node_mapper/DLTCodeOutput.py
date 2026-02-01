@@ -41,7 +41,7 @@ class DLTCodeOutput(TemplateNodeType):
                 self.table_format = 'table_format="native"'
 
             self.secret_manager_import = ',SecretManager'
-            if no_transformation and not(self.context.code_source):
+            if no_transformation and not(self.context.code_source) and not(self.context.bucket_source):
                 self.destination_settings = self.destination_settings.replace('\n','\n    ')
 
         self.ppline_dest_table = 'no_table_name'
