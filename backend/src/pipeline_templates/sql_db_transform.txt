@@ -5,18 +5,12 @@ from sqlalchemy import create_engine
 import logging
 from pathlib import Path
 from sys import path
+from src.utils.logging.pipeline_logger_config import PipelineLogger
 
 # Initialize pipeline logger
-logger = logging.getLogger('pipeline.execution')
-logger.info("Starting SQL database transformation pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db_transform'})
+logger = PipelineLogger()
 
-# Configure dlt internal logging
-logger = logging.getLogger('dlt')
-logger.setLevel(logging.DEBUG)
-# Add handler to output logs
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(handler)
+logger.info("Starting SQL database transformation pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db_transform'})
 
 #Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')

@@ -2,18 +2,12 @@
 import logging
 from sys import path
 from pathlib import Path
+from src.utils.logging.pipeline_logger_config import PipelineLogger
 
 # Initialize pipeline logger
-logger = logging.getLogger('pipeline.execution')
-logger.info("Starting DLT code pipeline", extra={'stage': 'initialization', 'template_type': 'dlt_code'})
+logger = PipelineLogger()
 
-# Configure dlt internal logging
-logger = logging.getLogger('dlt')
-logger.setLevel(logging.DEBUG)
-# Add handler to output logs
-handler = logging.StreamHandler()
-handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-logger.addHandler(handler)
+logger.info("Starting DLT code pipeline", extra={'stage': 'initialization', 'template_type': 'dlt_code'})
 
 #Adding root folder to allow import from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')

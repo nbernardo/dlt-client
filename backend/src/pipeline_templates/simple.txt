@@ -45,7 +45,7 @@ try:
     print('RUN_SUCCESSFULLY', flush=True)
     
 except Exception as e:
-    pipeline_logger.error("Pipeline execution failed", extra={
+    logger.error("Pipeline execution failed", extra={
         'stage': 'pipeline_error',
         'error_type': type(e).__name__,
         'error_message': str(e),

@@ -17,7 +17,13 @@ class PipelineLogger:
     def info(self, description, extra=None):
         print(f'{description} |+| {json.dumps(extra)}')
 
-    def setup_dlt_logging(slef):
+    def error(self, description, extra=None, exc_info=None):
+        print(f'ERROR: {description} |+| {json.dumps(extra)}')
+
+    def debug(self, description, extra=None):
+        print(f'DEBUG: {description} |+| {json.dumps(extra)}')
+
+    def setup_dlt_logging(self):
 
         dlt_logger = logging.getLogger('dlt')
         dlt_logger.setLevel(logging.DEBUG)
