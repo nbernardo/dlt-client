@@ -34,6 +34,7 @@ valid_imports = [
     'from dlt.sources.filesystem import filesystem, FileItemDict',
     'from src.utils.pipeline_logger_config import setup_dlt_logging, PipelineLogger',
     'from src.utils.logging.pipeline_logger_config import PipelineLogger',
+    'from os import getenv as env, environ',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

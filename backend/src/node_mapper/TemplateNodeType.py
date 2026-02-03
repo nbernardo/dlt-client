@@ -65,13 +65,14 @@ class TemplateNodeType:
 
             if self.template_type == 'non_database_source':
                 # Remove SecretManager import placeholder
-                add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import('\n')
-                template = template.replace('%import_from_src%', add_path_and_import_secret_manager)
-
+                #add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import('\n')
+                #template = template.replace('%import_from_src%', add_path_and_import_secret_manager)
                 destination_string = 'dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb")'
             else:
                 destination_string = "dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')"
-        
+                
+        add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import('\n')
+        template = template.replace('%import_from_src%', add_path_and_import_secret_manager)        
         return template.replace('%destination_string%',destination_string)
     
 

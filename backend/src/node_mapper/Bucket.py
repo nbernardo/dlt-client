@@ -34,21 +34,24 @@ class Bucket(TemplateNodeType):
             # Nothing more takes place except for the template itself
             if data is None: return None
             if len(data.keys()) == 0: return None
+            
+            self.component_id = data['componentId']
+            # bucket_url is mapped in /pipeline_templates/simple.txt
+            self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
 
             self.parse_to_literal = ['read_file_type']
 
             self.namespace = data['namespace']
             
-            if type(data['readFileType']) == list: data['readFileType'] = data['readFileType'][0]
+            if 'readFileType' in data:
+                if type(data['readFileType']) == list: data['readFileType'] = data['readFileType'][0]
             
-            self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
-            self.component_id = data['componentId']
+            if 'readFileType' in data:
+                self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
 
             user_folder = BaseUpload.upload_folder+'/'+context.user
 
             self.context.emit_start(self, '')
-            # bucket_url is mapped in /pipeline_templates/simple.txt
-            self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
 
             # file_pattern is mapped in /pipeline_templates/simple.txt
             file_path = data['filePattern'].split('.')

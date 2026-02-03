@@ -5,6 +5,8 @@ from duckdb import DuckDBPyConnection
 class DuckdbUtil:
 
     dltdbinstance = None
+    dltdbinstance_count = 0
+    logdbinstance = None
     workspacedb_path = None
 
     @staticmethod
@@ -22,10 +24,19 @@ class DuckdbUtil:
 
     @staticmethod
     def get_workspace_db_instance():
-        if DuckdbUtil.dltdbinstance == None:
+        DuckdbUtil.dltdbinstance_count += 1
+        if DuckdbUtil.dltdbinstance_count == 1:
             workspacedb = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb'
             DuckdbUtil.dltdbinstance = duckdb.connect(workspacedb)
-        return DuckdbUtil.dltdbinstance
+        return DuckdbUtil.dltdbinstance    
+
+
+    @staticmethod
+    def get_log_db_instance():
+        if DuckdbUtil.logdbinstance == None:
+            workspacedb = f'{DuckdbUtil.workspacedb_path}/dltlogs.duckdb'
+            DuckdbUtil.logdbinstance = duckdb.connect(workspacedb)
+        return DuckdbUtil.logdbinstance
 
 
     @staticmethod
@@ -104,7 +115,7 @@ class DuckdbUtil:
         Create the pipeline_logs table for persistent log storage.
         This table stores all logs from dltHub pipeline runs and application-level Python logs.
         """
-        cnx = DuckdbUtil.get_workspace_db_instance()
+        cnx = DuckdbUtil.get_log_db_instance()
         
         # Create sequence for log IDs
         cnx.execute('CREATE SEQUENCE IF NOT EXISTS pipeline_logs_sequence;')

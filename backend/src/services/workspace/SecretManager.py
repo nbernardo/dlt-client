@@ -19,10 +19,11 @@ class SecretManager(SecretManagerType):
     This is a singleton classe which the responsibility is to handle 
     secret managements, initially focusing on Hashicorp vault
     """
+    vault_host, vault_pass = env('VAULT_ADDR'), env('VAULT_TOKEN')
 
     vault_instance: Client = None
-    vault_url = env('HASHICORP_HOST')
-    vault_token = env('HASHICORP_TOKEN')
+    vault_url = vault_host if vault_host != None else env('HASHICORP_HOST')
+    vault_token = vault_pass if vault_pass != None else env('HASHICORP_TOKEN')
     vault_crt_path = False \
         if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
         else env('HASHICORP_CERTIF_PATH')
