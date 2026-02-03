@@ -20,11 +20,18 @@ class Bucket(TemplateNodeType):
             self.context.bucket_source = True
             self.bucket_path_prefix = ""
             self.template_type = 'non_database_source'
-            self.template = DltPipeline.get_s3_no_auth_template()
-
-            if(context.is_cloud_url != True):
+            
+            # Check if S3 authentication is needed
+            self.use_s3_auth = False
+            if data and 's3Auth' in data and data['s3Auth'] == True:
+                self.use_s3_auth = True
+                self.template = DltPipeline.get_s3_auth_template()
+            elif(context.is_cloud_url != True):
                 self.template = DltPipeline.get_template()\
                                     if context.transformation == None else DltPipeline.get_transform_template()
+            else:
+                # Default to anonymous S3 template
+                self.template = DltPipeline.get_s3_no_auth_template()
             
             n = '\n    ' if self.context.transformation != None else '\n'
             self.template = self.parse_destination_string(self.template, n)
@@ -37,19 +44,30 @@ class Bucket(TemplateNodeType):
             
             self.component_id = data['componentId']
             # bucket_url is mapped in /pipeline_templates/simple.txt
+            user_folder = BaseUpload.upload_folder+'/'+context.user
             self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
 
             self.parse_to_literal = ['read_file_type']
 
             self.namespace = data['namespace']
             
+            # S3 Authentication parameters (for future Secret Manager integration)
+            if self.use_s3_auth:
+                # TODO: These will be retrieved from Secret Manager later
+                # For now, require credentials to be provided in the data
+                self.aws_access_key_id = data.get('awsAccessKeyId', '')
+                self.aws_secret_access_key = data.get('awsSecretAccessKey', '')
+                self.aws_region = data.get('awsRegion', 'us-east-1')
+                
+                # Validate required credentials
+                if not self.aws_access_key_id or not self.aws_secret_access_key:
+                    raise ValueError('S3 authentication requires awsAccessKeyId and awsSecretAccessKey')
+            
             if 'readFileType' in data:
                 if type(data['readFileType']) == list: data['readFileType'] = data['readFileType'][0]
             
             if 'readFileType' in data:
                 self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
-
-            user_folder = BaseUpload.upload_folder+'/'+context.user
 
             self.context.emit_start(self, '')
 
@@ -74,6 +92,13 @@ class Bucket(TemplateNodeType):
         Run the initial steps
         """
         super().run()
+        
+        # Handle S3 authentication template replacement
+        if self.use_s3_auth:
+            self.template = self.template.replace('%aws_access_key_id%', self.aws_access_key_id)
+            self.template = self.template.replace('%aws_secret_access_key%', self.aws_secret_access_key)
+            self.template = self.template.replace('%aws_region%', self.aws_region)
+        
         print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
         return self.check_bucket_url()
 
