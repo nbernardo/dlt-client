@@ -16,12 +16,12 @@ print('Files/Bucket loaded', flush=True)
 logger.info("Files/Bucket loaded successfully", extra={'stage': 'data_loading'})
 
 # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
-logger.info("Creating CSV reader", extra={'stage': 'data_transformation', 'destination_table': '%ppline_dest_table%'})
+logger.info("Creating CSV reader", extra={'stage': 'data_transformation', 'destination_table': %ppline_dest_table%})
 reader = (files | read_csv()).with_name(%ppline_dest_table%)
 
 if %primary_key% != 'UNDEFINED':
     # Bellow mapping: primary_key = Bucket.primary_key
-    logger.info("Applying primary key hints", extra={'stage': 'data_transformation', 'primary_key': '%primary_key%'})
+    logger.info("Applying primary key hints", extra={'stage': 'data_transformation', 'primary_key': %primary_key%})
     reader.apply_hints(primary_key=%primary_key%)
 
 %destination_settings%

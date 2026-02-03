@@ -8,6 +8,10 @@ class DuckDBLogStore:
     def __init__(self):
         DuckdbUtil.initialize_logging_tables()
 
+
+    def _get_conn(): return DuckdbUtil.get_log_db_instance()
+
+
     def store_logs_batch(self, log_records: list):
         """High-performance batch insert into DuckDB."""
         if not log_records:
@@ -22,7 +26,7 @@ class DuckDBLogStore:
         }
         
         try:
-            conn = DuckdbUtil.get_workspace_db_instance()
+            conn = DuckdbUtil.get_log_db_instance()
             query = """
                 INSERT INTO pipeline_logs (
                     timestamp, namespace, pipeline_id, execution_id, log_level, logger_name,
@@ -77,7 +81,7 @@ class DuckDBLogStore:
             The 'Universal Perspective' Query. 
             Allows you to pivot your view by simply passing different arguments.
             """
-            conn = DuckdbUtil.get_workspace_db_instance()
+            conn = DuckdbUtil.get_log_db_instance()
             
             query = "SELECT * FROM pipeline_logs WHERE 1=1"
             params = []

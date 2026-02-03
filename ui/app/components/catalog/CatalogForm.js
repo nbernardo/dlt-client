@@ -410,7 +410,7 @@ export class CatalogForm extends ViewComponent {
 		if(this.secretType != 2 && this.dataBaseSettingType == null) 
 			return AppTemplate.toast.error('Please select the secret type');
 
-		if(validate){
+		if(validate || !(this.dataBaseSettingType == 2 && this.firstValue.value != '')){
 
 			if(this.dataBaseSettingType != null){
 				if(this.dataBaseSettingType == 2){

@@ -32,7 +32,8 @@ class PipelineLogger:
         dlt_logger_handler.setFormatter(logging.Formatter(f'%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         dlt_logger.addHandler(dlt_logger_handler)
 
-def handle_pipeline_log(printed_log: str, logger: logging.Logger):
+
+def handle_pipeline_log(printed_log: str, logger: logging.Logger, error = False, warning = False):
     
     # logs application level implemented logs 
     if str(printed_log).__contains__(' |+| '):
@@ -43,5 +44,7 @@ def handle_pipeline_log(printed_log: str, logger: logging.Logger):
     # logs details logs generated from DLT library 
     else:
         if printed_log.strip() != '':
-            logger.info(printed_log)
+            if error: logger.error(printed_log)
+            elif warning: logger.warning(printed_log)
+            else: logger.info(printed_log)
     

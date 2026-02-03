@@ -3,7 +3,10 @@ from datetime import datetime
 from utils.FileVersionManager import FileVersionManager
 from os import getenv as env
 
-origins = [str(origin).strip() for origin in env('ALLOW_ORIGINS').split(',')]
+if env('ALLOW_ORIGINS_DOCKER'):
+    origins = env('ALLOW_ORIGINS_DOCKER')
+else:
+    origins = [str(origin).strip() for origin in env('ALLOW_ORIGINS').split(',')]
 
 class PiplineNamespace(Namespace):
     def on_connect(self): pass

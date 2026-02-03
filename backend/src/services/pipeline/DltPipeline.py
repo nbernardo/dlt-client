@@ -148,11 +148,13 @@ class DltPipeline:
                     elif(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
                         error_message = line.replace('RUNTIME_ERROR:','')
+                        handle_pipeline_log(error_message, logger, True)
                         if context:
                             context.emit_ppline_trace(error_message, error=True)
 
                     elif(line.startswith('RUNTIME_WARNING:')):
                         warning_message = line.replace('RUNTIME_WARNING:','')
+                        handle_pipeline_log(warning_message, logger, False, True)
                         if context:
                             context.emit_ppline_trace(warning_message, warn=True)
                     else:
@@ -164,6 +166,7 @@ class DltPipeline:
         result.kill()
 
         if pipeline_exception == True:
+            handle_pipeline_log(f'PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
 
         message, status = 'Pipeline run terminated successfully', True
@@ -443,6 +446,7 @@ class DltPipeline:
                     if(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
                         error_message = line.replace('RUNTIME_ERROR:','')
+                        handle_pipeline_log(error_message, logger, True)
                         context.emit_ppline_job_trace(error_message, error=True)
                     else:
                         if(type(line) == str):
@@ -460,7 +464,8 @@ class DltPipeline:
             result.kill()
             
             if pipeline_exception == True:
-                message = 'Runtime Pipeline error, check the logs for details'
+                message = f'Runtime Pipeline ({context.pipeline_name}) with execution_id {context.pipeline_execution_id} failed, check the logs for details'
+                handle_pipeline_log(f'SCHEDULE PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
                 context.emit_ppline_job_trace(message, error=True)
             else:
                 if(line.__contains__('Pipeline run terminated successfully')):
