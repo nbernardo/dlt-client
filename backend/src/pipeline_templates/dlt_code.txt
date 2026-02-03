@@ -2,6 +2,7 @@
 import logging
 from sys import path
 from pathlib import Path
+%import_from_src%
 from src.utils.logging.pipeline_logger_config import PipelineLogger
 
 # Initialize pipeline logger

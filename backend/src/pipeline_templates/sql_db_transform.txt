@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 import logging
 from pathlib import Path
 from sys import path
+%import_from_src%
 from src.utils.logging.pipeline_logger_config import PipelineLogger
 
 # Initialize pipeline logger
