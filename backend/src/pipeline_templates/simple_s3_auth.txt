@@ -3,6 +3,9 @@ import pandas as pd
 import boto3
 import logging
 import fnmatch
+from os import getenv as env
+from pathlib import Path
+from sys import path
 %import_from_src%
 from src.utils.logging.pipeline_logger_config import PipelineLogger
 
@@ -11,16 +14,37 @@ logger = PipelineLogger()
 
 logger.info("Starting S3 authenticated pipeline", extra={'stage': 'initialization', 'template_type': 's3_auth'})
 
-# S3 Authentication Configuration
-# TODO: These will be replaced with actual credentials from Secret Manager
-AWS_ACCESS_KEY_ID = "%aws_access_key_id%"
-AWS_SECRET_ACCESS_KEY = "%aws_secret_access_key%"
-AWS_REGION = "%aws_region%"
+#Adding root folder to allow import from src
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
+path.insert(0, src_path)
+path.insert(0, src_path+'/src')
+
+from src.services.workspace.Workspace import Workspace
+from src.services.workspace.SecretManager import SecretManager
+
+# Bellow mapping: namespace = Bucket.namespace
+namespace = %namespace%
+
+# Bellow mapping: connection_name = Bucket.connection_name (S3 connection name)
+connection_name = %connection_name%
+
+print('connecting to secrets vault', flush=True)
+logger.info("Connecting to secrets vault", extra={'stage': 'authentication', 'connection_name': connection_name})
+SecretManager.ppline_connect_to_vault()
+
+print(f'fetching "{connection_name}" secrets for S3 connection', flush=True)
+logger.info("Fetching S3 connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
+secret = SecretManager.get_secret(namespace, f'main/s3/{connection_name}')
+
+# Extract S3 credentials from secret
+AWS_ACCESS_KEY_ID = secret['access_key_id']
+AWS_SECRET_ACCESS_KEY = secret['secret_access_key']
+AWS_REGION = secret.get('region', 'us-east-1')
 
 logger.info("Initializing authenticated S3 client", extra={
     'stage': 'client_setup',
     'region': AWS_REGION,
-    'access_key_id': AWS_ACCESS_KEY_ID[:8] + '...' if AWS_ACCESS_KEY_ID else 'None'
+    'connection_name': connection_name
 })
 
 # Create authenticated S3 client

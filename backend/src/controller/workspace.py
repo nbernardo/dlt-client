@@ -16,6 +16,7 @@ from utils.cache_util import DuckDBCache
 from datetime import datetime
 from utils.SQLDatabase import SQLDatabase
 from utils.S3Util import S3Util
+from utils.S3Database import S3Database
 from utils.workspace_util import handle_conversasion_turn_limit
 
 
@@ -499,6 +500,29 @@ def test_sql_db_connections(exists_conn = None):
 
 # S3 Connection Testing and Data Preview Endpoints
 
+def _validate_and_prepare_s3_config(payload):
+    """
+    Helper function to validate and prepare S3 configuration
+    Eliminates code duplication across S3 endpoints
+    """
+    config = payload.get('s3Config', {})
+    
+    test_config = {
+        'access_key_id': config.get('access_key_id', ''),
+        'secret_access_key': config.get('secret_access_key', ''),
+        'bucket_name': config.get('bucket_name', ''),
+        'region': config.get('region', 'us-east-1')
+    }
+    
+    # Validate required credentials
+    if not test_config['access_key_id'] or not test_config['secret_access_key'] or not test_config['bucket_name']:
+        return None, {
+            'error': True,
+            'result': 'Missing required S3 credentials: access_key_id, secret_access_key, and bucket_name are required'
+        }
+    
+    return test_config, None
+
 @workspace.route('/workspace/s3/connection/test', methods=['POST'])
 def test_s3_connection():
     """
@@ -507,37 +531,36 @@ def test_s3_connection():
     """
     try:
         payload = request.get_json()
-        config = payload.get('s3Config', {})
         
-        # TODO: Integrate with Secret Manager for production
-        # For now, require credentials to be provided in request
-        test_config = {
-            'access_key_id': config.get('access_key_id', ''),
-            'secret_access_key': config.get('secret_access_key', ''),
-            'bucket_name': config.get('bucket_name', ''),
-            'region': config.get('region', 'us-east-1')
-        }
-        
-        # Validate required credentials
-        if not test_config['access_key_id'] or not test_config['secret_access_key'] or not test_config['bucket_name']:
-            return {
-                'result': 'Missing required S3 credentials: access_key_id, secret_access_key, and bucket_name are required',
-                'error': True
-            }
-        
-        # Override with provided config if available
-        if config.get('access_key_id'):
-            test_config['access_key_id'] = config['access_key_id']
-        if config.get('secret_access_key'):
-            test_config['secret_access_key'] = config['secret_access_key']
-        if config.get('bucket_name'):
-            test_config['bucket_name'] = config['bucket_name']
+        # Use helper function to validate config
+        test_config, error_response = _validate_and_prepare_s3_config(payload)
+        if error_response:
+            return error_response
         
         result = S3Util.test_s3_connection(test_config)
         return result
         
     except Exception as err:
         print(f'Error while testing S3 connection: {str(err)}')
+        traceback.print_exc()
+        return {
+            'result': f'Error while testing S3 connection: {str(err)}',
+            'error': True
+        }
+
+
+@workspace.route('/workspace/s3/connection/<namespace>/<connection_name>/test', methods=['POST'])
+def test_s3_connection_with_secrets(namespace, connection_name):
+    """
+    Test S3 connection using Secret Manager credentials
+    Following SQLDatabase pattern for secret-based connections
+    """
+    try:
+        result = S3Database.test_s3_connection(namespace, connection_name)
+        return result
+        
+    except Exception as err:
+        print(f'Error while testing S3 connection with secrets: {str(err)}')
         traceback.print_exc()
         return {
             'result': f'Error while testing S3 connection: {str(err)}',
@@ -552,33 +575,13 @@ def list_s3_objects(namespace):
     """
     try:
         payload = request.get_json()
-        config = payload.get('s3Config', {})
         prefix = payload.get('prefix', '')
         max_keys = payload.get('max_keys', 100)
         
-        # TODO: Integrate with Secret Manager for production
-        # For now, require credentials to be provided in request
-        test_config = {
-            'access_key_id': config.get('access_key_id', ''),
-            'secret_access_key': config.get('secret_access_key', ''),
-            'bucket_name': config.get('bucket_name', ''),
-            'region': config.get('region', 'us-east-1')
-        }
-        
-        # Validate required credentials
-        if not test_config['access_key_id'] or not test_config['secret_access_key'] or not test_config['bucket_name']:
-            return {
-                'error': True,
-                'result': 'Missing required S3 credentials: access_key_id, secret_access_key, and bucket_name are required'
-            }
-        
-        # Override with provided config if available
-        if config.get('access_key_id'):
-            test_config['access_key_id'] = config['access_key_id']
-        if config.get('secret_access_key'):
-            test_config['secret_access_key'] = config['secret_access_key']
-        if config.get('bucket_name'):
-            test_config['bucket_name'] = config['bucket_name']
+        # Use helper function to validate config
+        test_config, error_response = _validate_and_prepare_s3_config(payload)
+        if error_response:
+            return error_response
         
         result = S3Util.list_s3_objects(test_config, prefix, max_keys)
         
@@ -596,15 +599,40 @@ def list_s3_objects(namespace):
         }
 
 
+@workspace.route('/workspace/s3/<namespace>/<connection_name>/objects', methods=['POST'])
+def list_s3_objects_with_secrets(namespace, connection_name):
+    """
+    List objects in S3 bucket using Secret Manager credentials
+    """
+    try:
+        payload = request.get_json()
+        prefix = payload.get('prefix', '')
+        max_keys = payload.get('max_keys', 100)
+        
+        result = S3Database.list_s3_objects(namespace, connection_name, prefix, max_keys)
+        
+        if result['error']:
+            return {'error': True, 'result': result['message']}
+        else:
+            return {'error': False, 'result': result['objects']}
+        
+    except Exception as err:
+        print(f'Error while listing S3 objects with secrets: {str(err)}')
+        traceback.print_exc()
+        return {
+            'error': True,
+            'result': f'Error while listing S3 objects: {str(err)}'
+        }
+
+
 @workspace.route('/workspace/s3/<namespace>/preview', methods=['POST'])
 def preview_s3_file(namespace):
     """
-    Preview data from S3 file (first N rows)
+    Preview data from S3 file (first N rows) using Polars
     Similar to database table preview but for S3 files
     """
     try:
         payload = request.get_json()
-        config = payload.get('s3Config', {})
         file_key = payload.get('file_key', '')
         rows = payload.get('rows', 10)
         
@@ -614,31 +642,12 @@ def preview_s3_file(namespace):
                 'result': 'file_key parameter is required'
             }
         
-        # TODO: Integrate with Secret Manager for production
-        # For now, require credentials to be provided in request
-        test_config = {
-            'access_key_id': config.get('access_key_id', ''),
-            'secret_access_key': config.get('secret_access_key', ''),
-            'bucket_name': config.get('bucket_name', ''),
-            'region': config.get('region', 'us-east-1')
-        }
+        # Use helper function to validate config
+        test_config, error_response = _validate_and_prepare_s3_config(payload)
+        if error_response:
+            return error_response
         
-        # Validate required credentials
-        if not test_config['access_key_id'] or not test_config['secret_access_key'] or not test_config['bucket_name']:
-            return {
-                'error': True,
-                'result': 'Missing required S3 credentials: access_key_id, secret_access_key, and bucket_name are required'
-            }
-        
-        # Override with provided config if available
-        if config.get('access_key_id'):
-            test_config['access_key_id'] = config['access_key_id']
-        if config.get('secret_access_key'):
-            test_config['secret_access_key'] = config['secret_access_key']
-        if config.get('bucket_name'):
-            test_config['bucket_name'] = config['bucket_name']
-        
-        result = S3Util.preview_s3_file(test_config, file_key, rows)
+        result = S3Util.preview_s3_file_with_polars(test_config, file_key, rows)
         
         if result['error']:
             return {'error': True, 'result': result['message']}
@@ -654,6 +663,46 @@ def preview_s3_file(namespace):
         
     except Exception as err:
         print(f'Error while previewing S3 file: {str(err)}')
+        traceback.print_exc()
+        return {
+            'error': True,
+            'result': f'Error while previewing S3 file: {str(err)}'
+        }
+
+
+@workspace.route('/workspace/s3/<namespace>/<connection_name>/preview', methods=['POST'])
+def preview_s3_file_with_secrets(namespace, connection_name):
+    """
+    Preview data from S3 file using Secret Manager credentials and Polars
+    Following DltPipeline.run_transform_preview pattern
+    """
+    try:
+        payload = request.get_json()
+        file_key = payload.get('file_key', '')
+        rows = payload.get('rows', 10)
+        
+        if not file_key:
+            return {
+                'error': True,
+                'result': 'file_key parameter is required'
+            }
+        
+        result = S3Database.preview_s3_file_with_polars(namespace, connection_name, file_key, rows)
+        
+        if result['error']:
+            return {'error': True, 'result': result['message']}
+        else:
+            return {
+                'error': False,
+                'result': {
+                    'data': result['data'],
+                    'message': result['message'],
+                    'rows_returned': len(result['data'])
+                }
+            }
+        
+    except Exception as err:
+        print(f'Error while previewing S3 file with secrets: {str(err)}')
         traceback.print_exc()
         return {
             'error': True,

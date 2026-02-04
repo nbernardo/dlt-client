@@ -51,17 +51,14 @@ class Bucket(TemplateNodeType):
 
             self.namespace = data['namespace']
             
-            # S3 Authentication parameters (for future Secret Manager integration)
+            # S3 Authentication parameters (for Secret Manager integration)
             if self.use_s3_auth:
-                # TODO: These will be retrieved from Secret Manager later
-                # For now, require credentials to be provided in the data
-                self.aws_access_key_id = data.get('awsAccessKeyId', '')
-                self.aws_secret_access_key = data.get('awsSecretAccessKey', '')
-                self.aws_region = data.get('awsRegion', 'us-east-1')
+                # Store connection name for secret retrieval (following SQLDatabase pattern)
+                self.connection_name = data.get('connectionName', '')
                 
-                # Validate required credentials
-                if not self.aws_access_key_id or not self.aws_secret_access_key:
-                    raise ValueError('S3 authentication requires awsAccessKeyId and awsSecretAccessKey')
+                # Validate required connection name
+                if not self.connection_name:
+                    raise ValueError('S3 authentication requires connectionName for secret retrieval')
             
             if 'readFileType' in data:
                 if type(data['readFileType']) == list: data['readFileType'] = data['readFileType'][0]
@@ -93,11 +90,8 @@ class Bucket(TemplateNodeType):
         """
         super().run()
         
-        # Handle S3 authentication template replacement
-        if self.use_s3_auth:
-            self.template = self.template.replace('%aws_access_key_id%', self.aws_access_key_id)
-            self.template = self.template.replace('%aws_secret_access_key%', self.aws_secret_access_key)
-            self.template = self.template.replace('%aws_region%', self.aws_region)
+        # No need to handle secrets here - template will handle secret retrieval
+        # Following SQLDatabase pattern where secrets are handled in the pipeline template
         
         print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
         return self.check_bucket_url()

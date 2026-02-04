@@ -1,5 +1,6 @@
 import boto3
 import pandas as pd
+import polars as pl
 import json
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
 from botocore.client import Config
@@ -200,6 +201,97 @@ class S3Util:
                 'data': [],
                 'error': True,
                 'message': f'Error previewing file: {str(e)}'
+            }
+
+    @staticmethod
+    def preview_s3_file_with_polars(config, file_key, rows=10):
+        """
+        Preview data from S3 file using Polars (following DltPipeline.run_transform_preview pattern)
+        
+        Args:
+            config (dict): S3 configuration
+            file_key (str): S3 object key (file path)
+            rows (int): Number of rows to preview (default: 10)
+            
+        Returns:
+            dict: {'data': list, 'error': bool, 'message': str}
+        """
+        try:
+            # Extract configuration
+            access_key_id = config.get('access_key_id')
+            secret_access_key = config.get('secret_access_key')
+            bucket_name = config.get('bucket_name')
+            region = config.get('region', 'us-east-1')
+            
+            # Create S3 client
+            s3_client = S3Util.get_s3_client(access_key_id, secret_access_key, region)
+            
+            # Get file object
+            response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+            file_content = response['Body'].read()
+            
+            # Determine file type and parse with Polars
+            file_extension = file_key.lower().split('.')[-1]
+            
+            if file_extension == 'csv':
+                # Use Polars to scan CSV
+                df = pl.read_csv(BytesIO(file_content))
+                data = df.head(rows).to_dicts()
+                
+            elif file_extension in ['json', 'jsonl', 'ndjson']:
+                # Parse JSON/JSONL with Polars
+                if file_extension == 'json':
+                    # Regular JSON - try to read as JSON first
+                    try:
+                        df = pl.read_json(BytesIO(file_content))
+                        data = df.head(rows).to_dicts()
+                    except:
+                        # Fallback to manual parsing for complex JSON
+                        content_str = file_content.decode('utf-8')
+                        json_data = json.loads(content_str)
+                        if isinstance(json_data, list):
+                            data = json_data[:rows]
+                        else:
+                            data = [json_data]
+                else:
+                    # JSONL/NDJSON
+                    df = pl.read_ndjson(BytesIO(file_content))
+                    data = df.head(rows).to_dicts()
+                    
+            elif file_extension == 'parquet':
+                # Use Polars to scan Parquet
+                df = pl.read_parquet(BytesIO(file_content))
+                data = df.head(rows).to_dicts()
+                
+            else:
+                return {
+                    'data': [],
+                    'error': True,
+                    'message': f'Unsupported file type: {file_extension}. Supported types: csv, json, jsonl, ndjson, parquet'
+                }
+            
+            return {
+                'data': data,
+                'error': False,
+                'message': f'Successfully previewed {len(data)} rows from {file_key} using Polars'
+            }
+            
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'NoSuchKey':
+                message = f'File "{file_key}" not found in bucket'
+            elif error_code == 'AccessDenied':
+                message = f'Access denied to file "{file_key}"'
+            else:
+                message = f'AWS S3 Error ({error_code}): {e.response["Error"]["Message"]}'
+            
+            return {'data': [], 'error': True, 'message': message}
+            
+        except Exception as e:
+            return {
+                'data': [],
+                'error': True,
+                'message': f'Error previewing file with Polars: {str(e)}'
             }
 
     @staticmethod
