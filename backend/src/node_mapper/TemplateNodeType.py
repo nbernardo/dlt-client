@@ -91,7 +91,7 @@ class TemplateNodeType:
             template = self.regular_template_destination_config(n, template)
 
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
-        dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
+        dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0], from_pipeline=True)['connection_url']"
         dbconnecting_log = f"{n}print('Connecting to destination Database', flush=True){n}"
 
         secret_code = f"{connaction_name_var}{dbcredentials_var}{dbconnecting_log}"
@@ -129,7 +129,7 @@ class TemplateNodeType:
         namespace_var = f"{n}namespace = %namespace%"
         connect_secret_vault = f"{n}SecretManager.ppline_connect_to_vault()"
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
-        dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
+        dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0], from_pipeline=True)['connection_url']"
         dbconnecting_log = f"{n}print('Connecting to destination Database', flush=True){n}"
 
         secret_code = f"{namespace_var}{connect_secret_vault}{connaction_name_var}{dbcredentials_var}{dbconnecting_log}"

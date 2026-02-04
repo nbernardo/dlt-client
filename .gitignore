@@ -32,3 +32,5 @@ backend/destinations/duckdb/*/*.duckdb
 backend/destinations/pipeline/*/*.py
 backend/destinations/pipeline/*/*.meta
 backend/destinations/code/*/*.json
+
+vault/vault/*

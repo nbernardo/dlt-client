@@ -7,6 +7,7 @@ services:
     container_name: backend
     volumes:
       - ./backend:/app
+      - ./backend/dbs:/app/backend/dbs
       - ./backend/destinations:/app/destinations
       #- ./backend/destinations/pipeline:/app/destinations/pipeline
     environment:

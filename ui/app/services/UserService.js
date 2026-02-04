@@ -48,8 +48,9 @@ export class UserService extends BaseService {
     async getLoggedUser(){
         const anonymousLogin = StillAppSetup.config.get('anonymousLogin');
         if(anonymousLogin){
-            return new Promise(resolve => {
-                resolve(this.userDetailes);
+            return new Promise(async resolve => {
+                const login = await this.anonymousLogin();
+                resolve(login);
             });
         }
         await auth0GetConnection();
@@ -57,11 +58,13 @@ export class UserService extends BaseService {
     }
 
     static async getNamespace(){
-        if(UserService.namespace === null){
+        if([null,undefined].includes(UserService.namespace)){
+            const auth = (await new UserService().getLoggedUser());
+            if(auth.user.name == 'Anonymous') return auth.user.email;
             UserService.namespace = (await new UserService().getLoggedUser())?.sub.replace('|','_')
             || (await new UserService().getLoggedUser())?.email
         }
-        return UserService.namespace
+        return UserService.namespace;
     }
 
 }
