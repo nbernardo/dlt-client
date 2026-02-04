@@ -311,7 +311,7 @@ export class Workspace extends ViewComponent {
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
 		let data = this.editor.export();
 		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid };
-		
+		if(data.user == undefined) data.user = 'undefined';
 		if(sqlPipelineDbEngine) data.initDbengine = sqlPipelineDbEngine;
 		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);
