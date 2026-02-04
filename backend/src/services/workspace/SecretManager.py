@@ -37,10 +37,12 @@ class SecretManager(SecretManagerType):
         return referencedSecrets(namespace, secret_names)
 
     
-    def ppline_connect_to_vault():
+    def ppline_connect_to_vault() -> hvac.Client:
 
-        vault_url = env('HASHICORP_HOST')
-        vault_token = env('HASHICORP_TOKEN')
+        vault_host, vault_pass = env('VAULT_ADDR'), env('VAULT_TOKEN')
+        vault_url = vault_host if vault_host != None else env('HASHICORP_HOST')
+        vault_token = vault_pass if vault_pass != None else env('HASHICORP_TOKEN')
+
         vault_crt_path = False \
             if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
             else env('HASHICORP_CERTIF_PATH')
@@ -51,10 +53,10 @@ class SecretManager(SecretManagerType):
             'vault_crt_path': vault_crt_path
         }
 
-        SecretManager.connect_to_vault(params)
+        return SecretManager.connect_to_vault(params)
 
 
-    def connect_to_vault(params = {}):
+    def connect_to_vault(params = {}) -> hvac.Client :
 
         if('vault_url' in params):
             SecretManager.vault_url = params['vault_url']
@@ -66,6 +68,8 @@ class SecretManager(SecretManagerType):
             token=SecretManager.vault_token,
             #verify=SecretManager.vault_crt_path
         )
+
+        return SecretManager.vault_instance
 
     
     def create_namespace(namespace, type = None):
@@ -218,7 +222,10 @@ class SecretManager(SecretManagerType):
             SecretManager.create_secret(namespace, { **new_data, 'dbConfig': {} }, path='metadata')
 
 
-    def get_db_secret(namespace, connection_name):
+    def get_db_secret(namespace, connection_name, from_pipeline = False):
+        if from_pipeline:
+            SecretManager.ppline_connect_to_vault()
+            
         path = f'main/db/{connection_name}'
         secret = SecretManager.get_secret(namespace, path=path)
 
@@ -227,7 +234,11 @@ class SecretManager(SecretManagerType):
                 secret['connection_url'] = secret['connection_url']+f'{SQLConnection.get_mssql_driver()}'
 
         return secret
-            
+    
+
+    def get_db_secret_from_ppline(namespace, connection_name):
+        return SecretManager.get_db_secret(namespace, connection_name, from_pipeline = True)
+    
 
     def get_from_references(namespace,references: list = []):
 

@@ -24,15 +24,12 @@ from src.utils.APIClientUtil import PaginateParam
 
 # Bellow mapping: connection_name = InputAPI.connection_name
 connection_name = %connection_name%
-print('connecting to secrets vault', flush=True)
-logger.info("Connecting to secrets vault", extra={'stage': 'authentication', 'connection_name': connection_name})
-SecretManager.ppline_connect_to_vault()
 
 # Bellow mapping: namespace = InputAPI.namespace
 namespace = %namespace%
 print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
 logger.info("Fetching API connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
-secret = SecretManager.get_secret(namespace, connection_name)
+secret = SecretManager.get_db_secret_from_ppline(namespace, connection_name)
 
 resource_names = %resource_names%
 data_selectors = %data_selectors%
