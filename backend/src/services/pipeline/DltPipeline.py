@@ -186,6 +186,7 @@ class DltPipeline:
 
         if context:
             context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
+            handle_pipeline_log(f'pipeline.success.conclusion', logger)
         
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout.read())
@@ -491,6 +492,7 @@ class DltPipeline:
             if(status):
                 context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
                 context.emit_ppsuccess()
+                handle_pipeline_log(f'pipeline.success.conclusion', logger)
 
             clear_job_transaction_id(job_execution_id)
 

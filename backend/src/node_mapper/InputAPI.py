@@ -19,7 +19,7 @@ class InputAPI(TemplateNodeType):
             self.context = context
             self.template_type = None
             template = DltPipeline.get_api_templete()
-            self.template = self.parse_destination_string(template)
+            self.template = self.parse_destination_string(template,'\n')
             self.component_id = component_id
             
             # When instance is created only to get the template 
