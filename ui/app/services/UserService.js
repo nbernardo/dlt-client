@@ -61,7 +61,7 @@ export class UserService extends BaseService {
             UserService.namespace = (await new UserService().getLoggedUser())?.sub.replace('|','_')
             || (await new UserService().getLoggedUser())?.email
         }
-        return UserService.namespace || 'undefined'
+        return UserService.namespace;
     }
 
 }
