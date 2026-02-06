@@ -22,3 +22,8 @@ See the [ARCHITECTURE.md](ARCHITECTURE.md) to follow the latest progress of the 
 2. [Scheduling a job for pipeline](https://youtu.be/OuzI65-iMos)
 
 3. [Pipeline versioning, Data transformation and File system sourceing](https://youtu.be/Do5xXC7_d8Y)
+
+### About the Maintainer
+
+This project is maintained by [Nakassony Bernardo](https://github.com/nbernardo), a software and data engineer with experience in cloud-native systems, distributed architectures, and Generative AI–assisted data platforms. Sponsorship supports long-term maintenance, faster AI-driven features, and a thriving open-source ecosystem.
+
