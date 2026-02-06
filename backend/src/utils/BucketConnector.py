@@ -9,10 +9,11 @@ import json
 from services.workspace.supper.SecretManagerType import SecretManagerType
 
 
-class S3Database:
+class BucketConnector:
     """
-    S3 utility class following SQLDatabase pattern for connection management
-    Handles S3 connections using Secret Manager for credential storage
+    Bucket connector utility class following SQLDatabase pattern for connection management
+    Handles S3/cloud storage connections using Secret Manager for credential storage
+    Generic naming to support multiple cloud providers (AWS S3, Azure Blob, GCS, etc.)
     """
 
     secret_manager: SecretManagerType
@@ -33,11 +34,11 @@ class S3Database:
         """
         connection_key = f'{namespace}-{connection_name}'
         
-        if connection_key in S3Database.connections:
-            return S3Database.connections[connection_key]
+        if connection_key in BucketConnector.connections:
+            return BucketConnector.connections[connection_key]
         
         if secret is None:
-            secret = S3Database.secret_manager.get_secret(namespace, f'main/s3/{connection_name}')
+            secret = BucketConnector.secret_manager.get_secret(namespace, f'main/s3/{connection_name}')
         
         # Create S3 client with credentials from secret
         s3_client = boto3.client(
@@ -47,7 +48,7 @@ class S3Database:
             region_name=secret.get('region', 'us-east-1')
         )
         
-        S3Database.connections[connection_key] = s3_client
+        BucketConnector.connections[connection_key] = s3_client
         return s3_client
 
     @staticmethod
@@ -67,7 +68,7 @@ class S3Database:
         
         try:
             # Get secret from Secret Manager
-            secret = S3Database.secret_manager.get_secret(namespace, f'main/s3/{connection_name}')
+            secret = BucketConnector.secret_manager.get_secret(namespace, f'main/s3/{connection_name}')
             
             # Extract configuration
             access_key_id = secret['access_key_id']
@@ -137,8 +138,8 @@ class S3Database:
         """
         try:
             # Get secret and S3 client
-            secret = S3Database.secret_manager.get_secret(namespace, f'main/s3/{connection_name}')
-            s3_client = S3Database.get_s3_connection(namespace, connection_name, secret)
+            secret = BucketConnector.secret_manager.get_secret(namespace, f'main/s3/{connection_name}')
+            s3_client = BucketConnector.get_s3_connection(namespace, connection_name, secret)
             bucket_name = secret['bucket_name']
             
             # List objects
@@ -191,8 +192,8 @@ class S3Database:
         """
         try:
             # Get secret and S3 client
-            secret = S3Database.secret_manager.get_secret(namespace, f'main/s3/{connection_name}')
-            s3_client = S3Database.get_s3_connection(namespace, connection_name, secret)
+            secret = BucketConnector.secret_manager.get_secret(namespace, f'main/s3/{connection_name}')
+            s3_client = BucketConnector.get_s3_connection(namespace, connection_name, secret)
             bucket_name = secret['bucket_name']
             
             # Get file object

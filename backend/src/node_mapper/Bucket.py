@@ -23,7 +23,7 @@ class Bucket(TemplateNodeType):
             
             # Check if S3 authentication is needed
             self.use_s3_auth = False
-            if data and 's3Auth' in data and data['s3Auth'] == True:
+            if data and data.get('s3Auth', False) == True:
                 self.use_s3_auth = True
                 self.template = DltPipeline.get_s3_auth_template()
             elif(context.is_cloud_url != True):

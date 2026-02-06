@@ -15,8 +15,8 @@ from flask import abort, send_file
 from utils.cache_util import DuckDBCache
 from datetime import datetime
 from utils.SQLDatabase import SQLDatabase
-from utils.S3Util import S3Util
-from utils.S3Database import S3Database
+from utils.BucketUtil import BucketUtil
+from utils.BucketConnector import BucketConnector
 from utils.workspace_util import handle_conversasion_turn_limit
 
 
@@ -537,7 +537,7 @@ def test_s3_connection():
         if error_response:
             return error_response
         
-        result = S3Util.test_s3_connection(test_config)
+        result = BucketUtil.test_s3_connection(test_config)
         return result
         
     except Exception as err:
@@ -556,7 +556,7 @@ def test_s3_connection_with_secrets(namespace, connection_name):
     Following SQLDatabase pattern for secret-based connections
     """
     try:
-        result = S3Database.test_s3_connection(namespace, connection_name)
+        result = BucketConnector.test_s3_connection(namespace, connection_name)
         return result
         
     except Exception as err:
@@ -583,7 +583,7 @@ def list_s3_objects(namespace):
         if error_response:
             return error_response
         
-        result = S3Util.list_s3_objects(test_config, prefix, max_keys)
+        result = BucketUtil.list_s3_objects(test_config, prefix, max_keys)
         
         if result['error']:
             return {'error': True, 'result': result['message']}
@@ -609,7 +609,7 @@ def list_s3_objects_with_secrets(namespace, connection_name):
         prefix = payload.get('prefix', '')
         max_keys = payload.get('max_keys', 100)
         
-        result = S3Database.list_s3_objects(namespace, connection_name, prefix, max_keys)
+        result = BucketConnector.list_s3_objects(namespace, connection_name, prefix, max_keys)
         
         if result['error']:
             return {'error': True, 'result': result['message']}
@@ -647,7 +647,7 @@ def preview_s3_file(namespace):
         if error_response:
             return error_response
         
-        result = S3Util.preview_s3_file_with_polars(test_config, file_key, rows)
+        result = BucketUtil.preview_s3_file_with_polars(test_config, file_key, rows)
         
         if result['error']:
             return {'error': True, 'result': result['message']}
@@ -687,7 +687,7 @@ def preview_s3_file_with_secrets(namespace, connection_name):
                 'result': 'file_key parameter is required'
             }
         
-        result = S3Database.preview_s3_file_with_polars(namespace, connection_name, file_key, rows)
+        result = BucketConnector.preview_s3_file_with_polars(namespace, connection_name, file_key, rows)
         
         if result['error']:
             return {'error': True, 'result': result['message']}

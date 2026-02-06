@@ -18,7 +18,7 @@ import schedule
 import logging
 from utils.logging.pipeline_logger_config import handle_pipeline_log
 
-root_dir = str(Path(__file__).parent.parent.parent)  # Gets us to backend/src/
+root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
 template_dir = f'{root_dir}/pipeline_templates'
 

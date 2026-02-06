@@ -9,9 +9,10 @@ import traceback
 from io import StringIO, BytesIO
 
 
-class S3Util:
+class BucketUtil:
     """
-    S3 utility class for connection testing, authentication, and data preview
+    Bucket utility class for connection testing, authentication, and data preview
+    Generic naming to support multiple cloud providers (AWS S3, Azure Blob, GCS, etc.)
     Similar to SQLDatabase.py pattern for SQL connections
     """
 
@@ -134,7 +135,7 @@ class S3Util:
             region = config.get('region', 'us-east-1')
             
             # Create S3 client
-            s3_client = S3Util.get_s3_client(access_key_id, secret_access_key, region)
+            s3_client = BucketUtil.get_s3_client(access_key_id, secret_access_key, region)
             
             # Get file object
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
@@ -224,7 +225,7 @@ class S3Util:
             region = config.get('region', 'us-east-1')
             
             # Create S3 client
-            s3_client = S3Util.get_s3_client(access_key_id, secret_access_key, region)
+            s3_client = BucketUtil.get_s3_client(access_key_id, secret_access_key, region)
             
             # Get file object
             response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
@@ -315,7 +316,7 @@ class S3Util:
             region = config.get('region', 'us-east-1')
             
             # Create S3 client
-            s3_client = S3Util.get_s3_client(access_key_id, secret_access_key, region)
+            s3_client = BucketUtil.get_s3_client(access_key_id, secret_access_key, region)
             
             # List objects
             kwargs = {
