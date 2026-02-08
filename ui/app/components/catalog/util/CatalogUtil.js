@@ -399,3 +399,28 @@ export function handleShowHideWalletFields(show = null){
         }
     });
 }
+
+/** @param {CatalogForm} obj  */
+export function handleOnInitOnchange(obj){
+
+	obj.dbEngine.onChange(dbEngine => {
+		if(dbEngine == 'oracle-database-plugin')
+			return obj.showServiceNameLbl = true;
+		obj.showServiceNameLbl = false;
+	});
+
+	obj.kvSecretType.onChange(val => {
+		obj.showTestConnection = false;
+		document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = 'none');
+		document.querySelectorAll('.kv-secret-type').forEach(elm => {
+			elm.style.display = elm.classList.contains(val) ? '' : 'none';
+			if(elm.classList.contains(val)) obj.showTestConnection = true;
+		});
+		if(['s3-access-and-secret-keys'].includes(val)){
+			document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = '');
+			document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').value = 'ACCESS_SECRET_KEY';
+			obj.firstKey = 'ACCESS_KEY';
+		}
+	});
+
+}

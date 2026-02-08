@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue } from "./util/CatalogUtil.js";
+import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue, handleOnInitOnchange } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -97,24 +97,7 @@ export class CatalogForm extends ViewComponent {
 			this.onAPIAuthChange();
 			this.dataBaseSettingType = null;
 		}
-
-		this.dbEngine.onChange(dbEngine => {
-			if(dbEngine == 'oracle-database-plugin')
-				return this.showServiceNameLbl = true;
-			this.showServiceNameLbl = false;
-		});
-
-		this.kvSecretType.onChange(val => {
-			this.showTestConnection = false;
-			document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = 'none');
-			document.querySelectorAll('.kv-secret-type').forEach(elm => {
-				elm.style.display = elm.classList.contains(val) ? '' : 'none';
-				if(elm.classList.contains(val)) this.showTestConnection = true;
-			});
-			if(['s3-access-and-secret-keys'].includes(val)) 
-				document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = '');
-		});
-		
+		handleOnInitOnchange(this);
 		this.onEndpointUpdate();
 	}
 
@@ -431,11 +414,15 @@ export class CatalogForm extends ViewComponent {
 			if(this.dataBaseSettingType != null){
 				if(this.dataBaseSettingType == 2){
 					const allKeys = Object.keys(this.getDynamicFields()).filter(itm => itm.startsWith('key'));
+					const secondKey = document.querySelectorAll('.s3-access-and-secret-keys')[2].querySelector('input').value;
+					const isKvSecret = this.kvSecretType.value != 'regular', secretType = this.kvSecretType.value, connectionName = this.connectionName.value;
+					const secretLbl = (isKvSecret ? 'firstKey' : this.firstKey.value), bucketUrl = (this.bucketUrl.value.split('//')[1] || '').replace('/','');
+
 					dbConfig = {
 						secretsOnly: true,
 						connectionName: this.connectionName.value,
-						secrets: [ { 
-							[this.firstKey.value]: this.firstValue.value }, 
+						secrets: [ 
+							{  [secretLbl]: this.firstValue.value, secondKey, isKvSecret, secretType, connectionName, bucketUrl }, 
 							...allKeys.map(k => ({ [this.getDynamicFields()[k]]: this.getDynamicFields()[k.replace('key','val')] }))
 						]
 					};

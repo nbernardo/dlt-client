@@ -99,6 +99,22 @@ class SecretManager(SecretManagerType):
             
     def create_secret(namespace, params: dict, path = 'main'):
         if path.startswith('main/db'):
+
+            secrets = params['dbConfig']['secrets'][0]
+            if secrets['isKvSecret']:
+                if secrets['secretType'] == 's3-access-and-secret-keys':
+                    secret_values = { 
+                        'access_key_id': secrets['firstKey'],
+                        'secret_access_key': secrets['secondKey'],
+                        'bucket_name': secrets['bucketUrl']
+                    }
+                    return SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
+                        mount_point=namespace,
+                        path=path,
+                        secret=secret_values
+                    )
+ 
+
             for item in params['dbConfig']['secrets']:
                 key_value = list(item.items())[0]
                 k = key_value[0]

@@ -69,6 +69,13 @@
               <div class="modal-body catalog-form-secret-group">
           
                 <div class="form-group">
+                  <label>Secret group name</label>
+                  <input (value)="connectionName" style="display: none;"
+                    class="secret-bucket-url-field s3-access-and-secret-keys" type="text" placeholder="e.g. My Bucket Secret">
+                </div>          
+                <div class="form-group"></div>
+
+                <div class="form-group">
                   <label>Secret type</label>
                   <select (value)="kvSecretType">
                     <option value="regular">Regular KV</option>

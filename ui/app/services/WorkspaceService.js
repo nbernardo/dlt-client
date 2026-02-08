@@ -384,7 +384,7 @@ export class WorkspaceService extends BaseService {
               firstValue = obj.firstValue.value, 
               bucketUrl = (obj.bucketUrl.value.split('//')[1] || '').replace('/','');
 
-        let data = {}, secretKey = document.querySelectorAll(`.${keyType}`)[1].querySelector('input').value;
+        let data = {}, secretKey = document.querySelectorAll(`.${keyType}`)[2].querySelector('input').value;
 
         if(keyType === 's3-access-and-secret-keys')
             data = { 's3Config' : { 'access_key_id': firstValue, 'secret_access_key': secretKey, 'bucket_name': bucketUrl } };
