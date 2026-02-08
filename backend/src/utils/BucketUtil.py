@@ -6,8 +6,7 @@ from botocore.exceptions import ClientError, NoCredentialsError, PartialCredenti
 from botocore.client import Config
 from botocore import UNSIGNED
 import traceback
-from io import StringIO, BytesIO
-
+from io import BytesIO
 
 class BucketUtil:
     """

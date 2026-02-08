@@ -273,3 +273,28 @@ class BucketConnector:
             boto3.client: Anonymous S3 client
         """
         return boto3.client('s3', config=Config(signature_version=UNSIGNED))
+    
+
+    @staticmethod
+    def validate_and_prepare_s3_config(payload):
+        """
+        Helper function to validate and prepare S3 configuration
+        Eliminates code duplication across S3 endpoints
+        """
+        config = payload.get('s3Config', {})
+        
+        test_config = {
+            'access_key_id': config.get('access_key_id', ''),
+            'secret_access_key': config.get('secret_access_key', ''),
+            'bucket_name': config.get('bucket_name', ''),
+            'region': config.get('region', 'us-east-1')
+        }
+        
+        # Validate required credentials
+        if not test_config['access_key_id'] or not test_config['secret_access_key'] or not test_config['bucket_name']:
+            return None, {
+                'error': True,
+                'result': 'Missing required S3 credentials: access_key_id, secret_access_key, and bucket_name are required'
+            }
+        
+        return test_config, None

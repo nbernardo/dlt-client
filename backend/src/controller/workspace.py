@@ -19,9 +19,9 @@ from utils.BucketUtil import BucketUtil
 from utils.BucketConnector import BucketConnector
 from utils.workspace_util import handle_conversasion_turn_limit
 
-
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
+_validate_and_prepare_s3_config = BucketConnector.validate_and_prepare_s3_config
 
 @workspace.route('/workcpace/code/run/<user>', methods=['POST'])
 def run_code(user):
@@ -498,31 +498,6 @@ def test_sql_db_connections(exists_conn = None):
     return result
 
 
-# S3 Connection Testing and Data Preview Endpoints
-
-def _validate_and_prepare_s3_config(payload):
-    """
-    Helper function to validate and prepare S3 configuration
-    Eliminates code duplication across S3 endpoints
-    """
-    config = payload.get('s3Config', {})
-    
-    test_config = {
-        'access_key_id': config.get('access_key_id', ''),
-        'secret_access_key': config.get('secret_access_key', ''),
-        'bucket_name': config.get('bucket_name', ''),
-        'region': config.get('region', 'us-east-1')
-    }
-    
-    # Validate required credentials
-    if not test_config['access_key_id'] or not test_config['secret_access_key'] or not test_config['bucket_name']:
-        return None, {
-            'error': True,
-            'result': 'Missing required S3 credentials: access_key_id, secret_access_key, and bucket_name are required'
-        }
-    
-    return test_config, None
-
 @workspace.route('/workspace/s3/connection/test', methods=['POST'])
 def test_s3_connection():
     """
@@ -568,8 +543,8 @@ def test_s3_connection_with_secrets(namespace, connection_name):
         }
 
 
-@workspace.route('/workspace/s3/<namespace>/objects', methods=['POST'])
-def list_s3_objects(namespace):
+@workspace.route('/workspace/s3/objects', methods=['POST'])
+def list_s3_objects():
     """
     List objects in S3 bucket for data preview
     """
@@ -625,8 +600,8 @@ def list_s3_objects_with_secrets(namespace, connection_name):
         }
 
 
-@workspace.route('/workspace/s3/<namespace>/preview', methods=['POST'])
-def preview_s3_file(namespace):
+@workspace.route('/workspace/s3/preview', methods=['POST'])
+def preview_s3_file():
     """
     Preview data from S3 file (first N rows) using Polars
     Similar to database table preview but for S3 files
