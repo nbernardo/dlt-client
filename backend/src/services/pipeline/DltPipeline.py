@@ -18,9 +18,9 @@ import schedule
 import logging
 from utils.logging.pipeline_logger_config import handle_pipeline_log
 
-root_dir = str(Path(__file__).parent.parent.parent.parent)
-destinations_dir = f'{root_dir}/destinations/pipeline'
-template_dir = f'{root_dir}/src/pipeline_templates'
+root_dir = str(Path(__file__).parent.parent.parent)
+destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
+template_dir = f'{root_dir}/pipeline_templates'
 
 
 class DltPipeline:
@@ -273,6 +273,19 @@ class DltPipeline:
         """
         tplt = ''
         file_name = f'{template_dir}/simple_s3_anon_login.txt'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
+        return tplt
+
+    @staticmethod
+    def get_s3_auth_template():
+        """
+        This is template handling method for authenticated S3 access
+        """
+        tplt = ''
+        file_name = f'{template_dir}/simple_s3_auth.txt'
 
         with open(f'{file_name}', 'r', encoding='utf-8') as file:
             tplt = file.read()

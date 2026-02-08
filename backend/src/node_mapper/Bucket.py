@@ -20,11 +20,18 @@ class Bucket(TemplateNodeType):
             self.context.bucket_source = True
             self.bucket_path_prefix = ""
             self.template_type = 'non_database_source'
-            self.template = DltPipeline.get_s3_no_auth_template()
-
-            if(context.is_cloud_url != True):
+            
+            # Check if S3 authentication is needed
+            self.use_s3_auth = False
+            if data and data.get('s3Auth', False) == True:
+                self.use_s3_auth = True
+                self.template = DltPipeline.get_s3_auth_template()
+            elif(context.is_cloud_url != True):
                 self.template = DltPipeline.get_template()\
                                     if context.transformation == None else DltPipeline.get_transform_template()
+            else:
+                # Default to anonymous S3 template
+                self.template = DltPipeline.get_s3_no_auth_template()
             
             n = '\n    ' if self.context.transformation != None else '\n'
             self.template = self.parse_destination_string(self.template, n)
@@ -38,11 +45,21 @@ class Bucket(TemplateNodeType):
             user_folder = BaseUpload.upload_folder+'/'+context.user            
             self.component_id = data['componentId']
             # bucket_url is mapped in /pipeline_templates/simple.txt
+            user_folder = BaseUpload.upload_folder+'/'+context.user
             self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
 
             self.parse_to_literal = ['read_file_type']
 
             self.namespace = data['namespace']
+            
+            # S3 Authentication parameters (for Secret Manager integration)
+            if self.use_s3_auth:
+                # Store connection name for secret retrieval (following SQLDatabase pattern)
+                self.connection_name = data.get('connectionName', '')
+                
+                # Validate required connection name
+                if not self.connection_name:
+                    raise ValueError('S3 authentication requires connectionName for secret retrieval')
             
             if 'readFileType' in data:
                 if type(data['readFileType']) == list: data['readFileType'] = data['readFileType'][0]
@@ -73,6 +90,10 @@ class Bucket(TemplateNodeType):
         Run the initial steps
         """
         super().run()
+        
+        # No need to handle secrets here - template will handle secret retrieval
+        # Following SQLDatabase pattern where secrets are handled in the pipeline template
+        
         print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
         return self.check_bucket_url()
 
