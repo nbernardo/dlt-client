@@ -4,6 +4,7 @@ import { StillHTTPClient } from "../../@still/helper/http.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
+import { CatalogForm } from "../components/catalog/CatalogForm.js";
 import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DLTCodeOutput } from "../components/node-types/destination/DLTCodeOutput.js";
@@ -375,7 +376,33 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
     }
 
-    /** @returns { { result: { result, fields, actual_query, db_file } } } */
+    /** @param { CatalogForm } catalogForm */
+    static async testConnectWithKVSecret(catalogForm) {
+
+        const obj = catalogForm;
+        const keyType = obj.kvSecretType.value, 
+              firstValue = obj.firstValue.value, 
+              bucketUrl = (obj.bucketUrl.value.split('//')[1] || '').replace('/','');
+
+        let data = {}, secretKey = document.querySelectorAll(`.${keyType}`)[1].querySelector('input').value;
+
+        if(keyType === 's3-access-and-secret-keys')
+            data = { 's3Config' : { 'access_key_id': firstValue, 'secret_access_key': secretKey, 'bucket_name': bucketUrl } };
+        
+        const url = '/workspace/s3/connection/test';
+        const response = await $still.HTTPClient.post(url, JSON.stringify(data), {
+            headers: { 'content-type': 'Application/json' }
+        });
+        
+        const result = await response.json();
+        if (response.ok && !result.error){
+            AppTemplate.toast.success('DB Connection was successful');
+            return true;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
     static async getOracleDN(host, port) {
 
         const url = `/db/connection/${host}/${port}`;

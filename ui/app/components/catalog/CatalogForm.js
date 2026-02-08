@@ -31,6 +31,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ editorPlaceholder = null;
 	/** @Prop */ showKeyFileFields = false;
 	/** @Prop */ showTestConnection = false;
+	/** @Prop */ kvSecretTypeFlag = 'regular';
 
 	// DB catalog/secrets fields
 	dbEngine;
@@ -47,6 +48,9 @@ export class CatalogForm extends ViewComponent {
 	// Bellow State variables are shared between API and DB secret creation
 	firstKey;
 	firstValue;
+
+	kvSecretType = 'regular';
+	bucketUrl;
 	
 	// API catalog/secrets variables
 	apiConnName;
@@ -78,7 +82,6 @@ export class CatalogForm extends ViewComponent {
 		this.showTestConnection = false;
 		this.dynamicEndpointsDelButtons = [];
 		this.modal = document.getElementById('modal');
-		//this.openModal = document.getElementById('openModal');
 		this.closeModal = document.getElementById('closeModal');
 		this.handleModalCall();
 		const secretList = await WorkspaceService.listSecrets(this.secretType);
@@ -99,6 +102,17 @@ export class CatalogForm extends ViewComponent {
 			if(dbEngine == 'oracle-database-plugin')
 				return this.showServiceNameLbl = true;
 			this.showServiceNameLbl = false;
+		});
+
+		this.kvSecretType.onChange(val => {
+			this.showTestConnection = false;
+			document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = 'none');
+			document.querySelectorAll('.kv-secret-type').forEach(elm => {
+				elm.style.display = elm.classList.contains(val) ? '' : 'none';
+				if(elm.classList.contains(val)) this.showTestConnection = true;
+			});
+			if(['s3-access-and-secret-keys'].includes(val)) 
+				document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = '');
 		});
 		
 		this.onEndpointUpdate();
@@ -398,7 +412,9 @@ export class CatalogForm extends ViewComponent {
 		const btn = document.querySelector('.connectio-test-status');
 		btn.parentElement.disabled = true;
 		this.checkConnection = 'in-progress';
-		const result = await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()}, this.isDbConnEditing);
+		const result = this.dataBaseSettingType == 2 
+			? await WorkspaceService.testConnectWithKVSecret(this)
+			: await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()}, this.isDbConnEditing);
 		btn.style.background = result == true ? 'green' : 'red';
 		this.checkConnection = '';
 		btn.parentElement.disabled = false;
@@ -467,13 +483,6 @@ export class CatalogForm extends ViewComponent {
 		if(this.dbHost.value == '' || this.dbPort.value == '' || this.dbName.value == '')
 			return AppTemplate.toast.error('Fill <b>Host</b>, <b>Port</b> and <b>Database</b> to field to fetch oracle DN',7000);
 		this,this.dbConnectionParams = generateDsnDescriptor(this.dbHost.value,this.dbPort.value,this.dbName.value);
-		//document.querySelector('.db-connection-params').disabled = true;
-
-		//this.dbConnectionParams = 'searching';
-		//const oracleDN = await WorkspaceService.getOracleDN(this.dbHost.value, this.dbPort.value);
-		//if(oracleDN != null) this.dbConnectionParams = `ssl_server_cert_dn=${oracleDN}&ssl_server_dn_match=True&protocol=tcps`;
-		//else this.dbConnectionParams = '';
-
 		document.querySelector('.db-connection-params').disabled = false;
 	}
 

@@ -69,6 +69,19 @@
               <div class="modal-body catalog-form-secret-group">
           
                 <div class="form-group">
+                  <label>Secret type</label>
+                  <select (value)="kvSecretType">
+                    <option value="regular">Regular KV</option>
+                    <option value="s3-access-and-secret-keys">S3 Access and Secret Keys</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label style="display: none;" class="secret-bucket-url-field">Bucket URL</label>
+                  <input (value)="bucketUrl" style="display: none;"
+                    class="secret-bucket-url-field" type="text" placeholder="e.g. s3://company.bucket">
+                </div>
+                
+                <div class="form-group">
                   <label>Secret Key/Name</label>
                   <input (value)="firstKey" class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
                 </div>
@@ -77,6 +90,18 @@
                   <span class="hidden-secret-value initial-secret-field">
                     <input (value)="firstValue" type="password" placeholder="Enter the secret value">
                     <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
+                  </span>
+                </div>
+                  
+                <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
+                  <label>Secret Key/Name</label>
+                  <input class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
+                </div>
+                <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
+                  <label>Secret value</label>
+                  <span class="hidden-secret-value second-secret-field">
+                    <input type="password" placeholder="Enter the secret value">
+                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('second-secret-field')">
                   </span>
                 </div>
           
@@ -350,6 +375,7 @@
   </div>
 
   <style>
+
     span[data="get-oracle-dn-btn"] { float: left; margin-top: 0;  }
     .oracle-dn-loader {
         display: flex; width: 29px; margin-top: 0; padding: 0; margin-left: 10px; float: right; margin-top: 0;
