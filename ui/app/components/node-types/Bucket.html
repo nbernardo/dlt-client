@@ -29,9 +29,16 @@
 					<option value="2">Cloud URL</option>
 				</select>
 	
-				<div (showIf)="self.showBucketUrlInput == 2">
+				<!-- <div (showIf)="self.showBucketUrlInput == 2">
 					<p>Enter Bucket url:</p>
 					<input type="text" (required)="true" (value)="bucketUrl" placeholder="Basket/Folder URL">
+				</div>	 -->
+
+				<div (showIf)="self.showBucketUrlInput == 2">
+					<p>Bucket secret name:</p>
+					<select (forEach)="secretsList" (required)="true" (value)="selectedSecret" class="selected-secret-@formWrapClass" placeholder="Secret name">
+						<option each="item" value="{item.name}">{item.name}</option>
+					</select>
 				</div>
 	
 				<p>File pattern:</p>
@@ -71,7 +78,9 @@
 				</span>
 
 				<span (showIf)="self.showBucketUrlInput == 2">
-					<input type="text" (value)="filePattern" class="file-pattern-inpt-@formWrapClass" placeholder="Ex: transactions*.csv">
+					<select (forEach)="bucketObjects" (required)="true" (value)="filePattern" class="selected-file-pattern-inpt-@formWrapClass input-file-bucket1" placeholder="Select a file">
+						<option each="item" value="{item.name}">{item.label}</option>
+					</select>
 				</span>
 
 				<p>Resource Primary key:</p>

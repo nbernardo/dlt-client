@@ -416,7 +416,7 @@ export class CatalogForm extends ViewComponent {
 					const allKeys = Object.keys(this.getDynamicFields()).filter(itm => itm.startsWith('key'));
 					const secondKey = document.querySelectorAll('.s3-access-and-secret-keys')[2].querySelector('input').value;
 					const isKvSecret = this.kvSecretType.value != 'regular', secretType = this.kvSecretType.value, connectionName = this.connectionName.value;
-					const secretLbl = (isKvSecret ? 'firstKey' : this.firstKey.value), bucketUrl = (this.bucketUrl.value.split('//')[1] || '').replace('/','');
+					const secretLbl = (isKvSecret ? 'firstKey' : this.firstKey.value), bucketUrl = this.bucketUrl.value;
 
 					dbConfig = {
 						secretsOnly: true,

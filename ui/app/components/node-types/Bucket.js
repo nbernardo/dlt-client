@@ -19,10 +19,12 @@ export class Bucket extends AbstractNode {
 	bucketUrl = '';
 	provider;
 	filePattern;
+	bucketFilePattern;
 	bucketFileSource;
 	selectedFilePattern;
 	sourcePrimaryKey;
 	nodeCount = '';
+	secretsList = '';
 
 	/** @Prop */ showBucketUrlInput = 1;
 	/** @Prop */ inConnectors = 1;
@@ -49,6 +51,8 @@ export class Bucket extends AbstractNode {
 	wSpaceController;
 
 	filesFromList = [];
+	bucketObjects = [];
+	selectedSecret;
 
 	/* The id will be passed when instantiating Bucket dinamically through the
 	 * Component.new(type, param) where for para nodeId will be passed  */
@@ -88,6 +92,8 @@ export class Bucket extends AbstractNode {
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController		
 		if ([false, undefined].includes(this.isImport) || this.aiGenerated) this.setupOnChangeListen();
+
+		this.secretsList = (await WorkspaceService.listSecrets(3)).filter(itm => itm.host != 'None');
 
 		if(this.aiGenerated){
 			const bucketUrl = this.importFields.url ? this.importFields.url : this.importFields.bucketUrl;
@@ -130,8 +136,11 @@ export class Bucket extends AbstractNode {
 		const mainContnr = document.querySelector('.'+this.cmpInternalId);
 		this.bucketFileSource.onChange(async (newValue) => {
 			this.showBucketUrlInput = Number(newValue);
+			WorkSpaceController.isS3AuthTemplate= false;
 			if(this.showBucketUrlInput == 2){
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
+				WorkSpaceController.isS3AuthTemplate = true;
+				WorkSpaceController.getNode(this.nodeId).data['connectionName'] = this.selectedSecret.value;
 			}else{
 				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('required',true);
 			}
@@ -140,10 +149,15 @@ export class Bucket extends AbstractNode {
 
 		this.bucketUrl.onChange((newValue) => this.setNodeData('bucketUrl', newValue));
 
+		this.selectedSecret.onChange(async value => {
+			if(this.bucketFileSource.value == 2)
+				this.bucketObjects = await WorkspaceService.getBucketObjects(value);
+		});
+
 		this.selectedFilePattern.onChange(async (newValue) => {
 			const selectdFile = newValue.trim();
 			if (selectdFile == '') return;
-
+			
 			this.showMoreFileOptions = 'searching';
 			await this.wspaceService.handleCsvSourceFields(selectdFile);
 
@@ -160,6 +174,7 @@ export class Bucket extends AbstractNode {
 		this.filePattern.onChange(async (newValue) => {
 			if (this.moreOptionsRef !== null) this.moreOptionsRef.popup.style.display = 'none';
 			this.setNodeData('filePattern', newValue);
+			this.setNodeData('bucketUrl', null);
 		});
 
 		this.provider.onChange((newValue) => {
