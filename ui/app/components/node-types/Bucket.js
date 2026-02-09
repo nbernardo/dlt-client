@@ -145,10 +145,12 @@ export class Bucket extends AbstractNode {
 			delete WorkSpaceController.getNode(this.nodeId).data['connectionName'];
 			if(this.showBucketUrlInput == 2){
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
+				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.setAttribute('required', true));
 				WorkSpaceController.isS3AuthTemplate = true;
 				WorkSpaceController.getNode(this.nodeId).data['connectionName'] = this.selectedSecret.value;
 			}else{
 				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('required',true);
+				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.removeAttribute('required'));
 			}
 			this.setNodeData('bucketFileSource', newValue);
 		});
