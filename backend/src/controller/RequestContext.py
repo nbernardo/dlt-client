@@ -61,6 +61,7 @@ class RequestContext:
         self.pipeline_name = None
         self.pipeline_execution_id = None
         self.is_cloud_url = False
+        self.has_cloud_bucket_auth = None
         # Flaged true in case the data source is code 
         self.code_source = False
         self.source_type = None

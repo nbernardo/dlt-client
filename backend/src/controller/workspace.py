@@ -543,18 +543,22 @@ def test_s3_connection_with_secrets(namespace, connection_name):
         }
 
 
-@workspace.route('/workspace/s3/objects', methods=['POST'])
-def list_s3_objects():
+@workspace.route('/workspace/<namespace>/s3/<secret>/objects/', methods=['POST'])
+def list_s3_objects(namespace = None, secret = None):
     """
     List objects in S3 bucket for data preview
     """
     try:
-        payload = request.get_json()
+        prefix, max_keys, payload = None, None, {}
+
+        if secret == None:
+            payload = request.get_json()
+        
         prefix = payload.get('prefix', '')
         max_keys = payload.get('max_keys', 100)
         
         # Use helper function to validate config
-        test_config, error_response = _validate_and_prepare_s3_config(payload)
+        test_config, error_response = _validate_and_prepare_s3_config(payload, namespace, secret)
         if error_response:
             return error_response
         

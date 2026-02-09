@@ -58,6 +58,7 @@ def create():
     context.sql_destinations = sql_destinations
     context.sql_dest = payload['sqlDest']
     context.is_cloud_url = True if is_cloud_bucket_req else False
+    context.has_cloud_bucket_auth = 's3Auth' if payload['s3Auth'] else ''
     context.code_source = payload['codeInput']
     context.pipeline_execution_id = create_execution_id()
 

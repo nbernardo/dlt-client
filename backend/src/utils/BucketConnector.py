@@ -7,6 +7,7 @@ import traceback
 from io import BytesIO
 import json
 from services.workspace.supper.SecretManagerType import SecretManagerType
+from services.workspace.SecretManager import SecretManager
 
 
 class BucketConnector:
@@ -276,12 +277,16 @@ class BucketConnector:
     
 
     @staticmethod
-    def validate_and_prepare_s3_config(payload):
+    def validate_and_prepare_s3_config(payload = {}, namespace = None, secret = None, from_pipeline = False):
         """
         Helper function to validate and prepare S3 configuration
         Eliminates code duplication across S3 endpoints
         """
-        config = payload.get('s3Config', {})
+        if namespace != None:
+            if from_pipeline: SecretManager.ppline_connect_to_vault()
+            config = SecretManager.get_secret(namespace,secret,edit=False,secret_group=True)
+        else:
+            config = payload.get('s3Config', {})
         
         test_config = {
             'access_key_id': config.get('access_key_id', ''),
@@ -298,3 +303,8 @@ class BucketConnector:
             }
         
         return test_config, None
+
+
+def get_bucket_credentials(namespace, secret_name):
+    secret = BucketConnector.validate_and_prepare_s3_config(None, namespace, secret_name, from_pipeline=True)
+    return secret[0]

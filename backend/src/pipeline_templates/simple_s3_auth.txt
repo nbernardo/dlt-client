@@ -20,7 +20,7 @@ path.insert(0, src_path)
 path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
-from src.services.workspace.SecretManager import SecretManager
+from src.utils.BucketConnector import get_bucket_credentials
 
 # Bellow mapping: namespace = Bucket.namespace
 namespace = %namespace%
@@ -28,13 +28,9 @@ namespace = %namespace%
 # Bellow mapping: connection_name = Bucket.connection_name (S3 connection name)
 connection_name = %connection_name%
 
-print('connecting to secrets vault', flush=True)
-logger.info("Connecting to secrets vault", extra={'stage': 'authentication', 'connection_name': connection_name})
-SecretManager.ppline_connect_to_vault()
-
 print(f'fetching "{connection_name}" secrets for S3 connection', flush=True)
 logger.info("Fetching S3 connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
-secret = SecretManager.get_secret(namespace, f'main/s3/{connection_name}')
+secret = get_bucket_credentials(namespace, connection_name)
 
 # Extract S3 credentials from secret
 AWS_ACCESS_KEY_ID = secret['access_key_id']
