@@ -59,7 +59,7 @@ export class Bucket extends AbstractNode {
 	stOnRender(data) {
 		const { 
 			nodeId, isImport, bucketUrl, filePattern, primaryKey, 
-			bucketFileSource, aiGenerated, url, file
+			bucketFileSource, aiGenerated, url, file, connectionName
 		} = data;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
@@ -69,7 +69,7 @@ export class Bucket extends AbstractNode {
 		if(primaryKey) this.sourcePrimaryKey = primaryKey;
 		if(bucketFileSource) this.bucketFileSource = bucketFileSource;
 
-		this.importFields = { bucketUrl, url, filePattern, file };
+		this.importFields = { bucketUrl, url, filePattern, file, connectionName };
 		this.aiGenerated = aiGenerated;
 	}
 
@@ -111,12 +111,16 @@ export class Bucket extends AbstractNode {
 			// terget component if connection is being created, regular targets of Backet are Transformation and 
 			// DuckDBOutput, in case isImport == true, this event is emitted when data source/files are listed
 			this.notifyReadiness();
+			this.selectedSecret = this.importFields.connectionName;
+			if(this.importFields.connectionName) 
+				this.bucketObjects = await WorkspaceService.getBucketObjects(this.importFields.connectionName);
 
 			this.selectedFilePattern = this.filePattern.value;
 			if(this.bucketFileSource.value === '2'){
 				this.bucketFileSource = 1;
 				this.setupOnChangeListen();
 				setTimeout(() => {
+					this.filePattern = this.importFields.filePattern;
 					this.bucketFileSource = 2;
 					this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 					this.showLoading = false;
@@ -129,6 +133,7 @@ export class Bucket extends AbstractNode {
 			data['readFileType'] = this.filePattern.value.split('.').slice(-1);
 			this.bucketUrl = this.bucketFileSource.value;
 			this.selectedFilePattern = this.filePattern.value;
+
 		}
 	}
 
@@ -137,6 +142,7 @@ export class Bucket extends AbstractNode {
 		this.bucketFileSource.onChange(async (newValue) => {
 			this.showBucketUrlInput = Number(newValue);
 			WorkSpaceController.isS3AuthTemplate= false;
+			delete WorkSpaceController.getNode(this.nodeId).data['connectionName'];
 			if(this.showBucketUrlInput == 2){
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
 				WorkSpaceController.isS3AuthTemplate = true;
