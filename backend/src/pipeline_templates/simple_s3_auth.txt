@@ -1,9 +1,7 @@
 %metadata_section%import dlt
-import pandas as pd
+import polars as pl
 import boto3
-import logging
 import fnmatch
-from os import getenv as env
 from pathlib import Path
 from sys import path
 %import_from_src%
@@ -117,7 +115,8 @@ def stream_s3():
                     print(f'Ingesting data from {file_name} (authenticated)', flush=True)
                     
                     file_records = 0
-                    for chunk in pd.read_csv(s3_object['Body'], chunksize=10000):
+                    for chunk in pl.scan_%read_file_type%(s3_object["Body"]).collect(streaming=True, batch_size=10_000):
+
                         chunk_size = len(chunk)
                         file_records += chunk_size
                         total_records += chunk_size

@@ -605,15 +605,15 @@ def list_s3_objects_with_secrets(namespace, connection_name):
 
 
 @workspace.route('/workspace/s3/preview', methods=['POST'])
-def preview_s3_file():
+def preview_s3_file(namespace, secret, object):
     """
     Preview data from S3 file (first N rows) using Polars
     Similar to database table preview but for S3 files
     """
     try:
-        payload = request.get_json()
-        file_key = payload.get('file_key', '')
-        rows = payload.get('rows', 10)
+        
+        file_key = object #payload.get('file_key', '')
+        rows = 10
         
         if not file_key:
             return {
@@ -622,7 +622,7 @@ def preview_s3_file():
             }
         
         # Use helper function to validate config
-        test_config, error_response = _validate_and_prepare_s3_config(payload)
+        test_config, error_response = _validate_and_prepare_s3_config({}, namespace, secret)
         if error_response:
             return error_response
         
@@ -647,6 +647,41 @@ def preview_s3_file():
             'error': True,
             'result': f'Error while previewing S3 file: {str(err)}'
         }
+
+
+@workspace.route('/workspace/<namespace>/<bucket>/<secret>/<object>/preview', methods=['POST'])
+def get_bucket_file_schema(namespace, bucket, secret, object = None):
+    """
+    Get the schema from a bucket file
+    """
+    try:
+        
+        if not object:
+            return { 'error': True, 'result': "'file' name parameter is required" }
+        
+        # Use helper function to validate config
+        test_config, error_response = _validate_and_prepare_s3_config({}, namespace, secret)
+        if error_response:
+            return error_response
+        
+        result = BucketUtil.preview_s3_file_schema(test_config, object)
+        
+        if result['error']:
+            return {'error': True, 'result': result['message']}
+        else:
+            return {
+                'error': False,
+                'result': {
+                    'data': result['data'],
+                    'message': result['message'],
+                    'rows_returned': len(result['data'])
+                }
+            }
+        
+    except Exception as err:
+        print(f'Error while previewing S3 file: {str(err)}')
+        traceback.print_exc()
+        return { 'error': True, 'result': f'Error while previewing S3 file: {str(err)}' }
 
 
 @workspace.route('/workspace/s3/<namespace>/<connection_name>/preview', methods=['POST'])

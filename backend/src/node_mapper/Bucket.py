@@ -95,8 +95,10 @@ class Bucket(TemplateNodeType):
         
         # No need to handle secrets here - template will handle secret retrieval
         # Following SQLDatabase pattern where secrets are handled in the pipeline template
-        
-        print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
+        try:
+            print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
+        except:
+            ...
         return self.check_bucket_url()
 
 
