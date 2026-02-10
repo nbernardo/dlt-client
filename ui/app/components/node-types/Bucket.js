@@ -2,6 +2,7 @@ import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { InputDropdown } from "../../util/InputDropdownUtil.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
@@ -71,6 +72,8 @@ export class Bucket extends AbstractNode {
 
 		this.importFields = { bucketUrl, url, filePattern, file, connectionName };
 		this.aiGenerated = aiGenerated;
+
+		setTimeout(() => this.showMoreFileOptions = true, 5000);
 	}
 
 	async getFilesList(){
@@ -147,7 +150,6 @@ export class Bucket extends AbstractNode {
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
 				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.setAttribute('required', true));
 				WorkSpaceController.isS3AuthTemplate = true;
-				WorkSpaceController.getNode(this.nodeId).data['connectionName'] = this.selectedSecret.value;
 			}else{
 				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('required',true);
 				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.removeAttribute('required'));
@@ -158,8 +160,11 @@ export class Bucket extends AbstractNode {
 		this.bucketUrl.onChange((newValue) => this.setNodeData('bucketUrl', newValue));
 
 		this.selectedSecret.onChange(async value => {
-			if(this.bucketFileSource.value == 2)
+			if(this.bucketFileSource.value == 2){
+				this.showMoreFileOptions = true;
 				this.bucketObjects = await WorkspaceService.getBucketObjects(value);
+				setTimeout(() => this.showMoreFileOptions = false, 100);
+			}
 		});
 
 		this.selectedFilePattern.onChange(async (newValue) => {
@@ -170,7 +175,7 @@ export class Bucket extends AbstractNode {
 			await this.wspaceService.handleCsvSourceFields(selectdFile);
 
 			const fileType = selectdFile.toLowerCase().split('.').slice(-1)[0];
-			WorkSpaceController.getNode(this.nodeId).data['readFileType'] = fileType;
+			this.setNodeData('readFileType', fileType)
 
 			if (newValue.trim() != "") this.showMoreFileOptions = true;
 			else this.showMoreFileOptions = false;
@@ -179,26 +184,33 @@ export class Bucket extends AbstractNode {
 			this.bucketUrl = 'user_folder';
 		});
 
-		this.filePattern.onChange(async (newValue) => {
-			if (this.moreOptionsRef !== null) this.moreOptionsRef.popup.style.display = 'none';
-			this.setNodeData('filePattern', newValue);
-			this.setNodeData('bucketUrl', null);
+		this.filePattern.onChange(async (v) => this.handleFilePattern(v));
+		this.bucketFilePattern.onChange(async (v) => {
+			await this.handleFilePattern(v, true); this.setNodeData('connectionName', this.selectedSecret.value);
 		});
-
-		this.provider.onChange((newValue) => {
-			const data = WorkSpaceController.getNode(this.nodeId).data;
-			data['provider'] = newValue;
-		});
-
-		this.sourcePrimaryKey.onChange(newValue => this.setNodeData('primaryKey', newValue));
+		this.provider.onChange((v) => this.setNodeData('provider', v));
+		this.sourcePrimaryKey.onChange(v => this.setNodeData('primaryKey', v));
 	}
-
-	setNodeData = (field, value) => WorkSpaceController.getNode(this.nodeId).data[field] = value;
 	
-	getMyData() {
-		const data = WorkSpaceController.getNode(this.nodeId);
-		WorkSpaceController.getNode(this.nodeId).html = '';
-		console.log(data.data);
+	/** @Prop */ previousFilePattern = '';
+	async handleFilePattern(newValue, fromCloud = false){
+		if(this.previousFilePattern.trim() === newValue.trim()) return;
+		this.previousFilePattern = newValue;
+
+		if(fromCloud) {
+			let dataSource = await WorkspaceService.getBucketObjectFields(this.selectedSecret.value, newValue);
+			dataSource = dataSource.data;
+			
+			InputDropdown.new({ 
+				inputSelector: '.sourceBucketPrimaryKey', dataSource,
+				boundComponent: this, componentFieldName: null
+			});
+		}
+
+		if (this.moreOptionsRef !== null) this.moreOptionsRef.popup.style.display = 'none';
+		this.setNodeData('filePattern', newValue);
+		this.setNodeData('bucketUrl', null);
+		this.setNodeData('readFileType', newValue.toLowerCase().split('.').slice(-1)[0]);
 	}
 
 	setMoreOptionsMenu(e, containerId) {

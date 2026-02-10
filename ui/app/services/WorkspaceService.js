@@ -597,4 +597,19 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
     }
 
+    static async getBucketObjectFields(secretName, object){
+        const namespace = await UserService.getNamespace();
+
+        const url = `/workspace/${namespace}/s3/${secretName}/${object}/preview`;
+
+        const response = await $still.HTTPClient.post(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            return result.result;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
 }
