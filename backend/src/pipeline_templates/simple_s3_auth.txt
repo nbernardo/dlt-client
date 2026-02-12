@@ -1,9 +1,7 @@
 %metadata_section%import dlt
-import pandas as pd
+import polars as pl
 import boto3
-import logging
 import fnmatch
-from os import getenv as env
 from pathlib import Path
 from sys import path
 %import_from_src%
@@ -20,7 +18,7 @@ path.insert(0, src_path)
 path.insert(0, src_path+'/src')
 
 from src.services.workspace.Workspace import Workspace
-from src.services.workspace.SecretManager import SecretManager
+from src.utils.BucketConnector import get_bucket_credentials
 
 # Bellow mapping: namespace = Bucket.namespace
 namespace = %namespace%
@@ -28,13 +26,9 @@ namespace = %namespace%
 # Bellow mapping: connection_name = Bucket.connection_name (S3 connection name)
 connection_name = %connection_name%
 
-print('connecting to secrets vault', flush=True)
-logger.info("Connecting to secrets vault", extra={'stage': 'authentication', 'connection_name': connection_name})
-SecretManager.ppline_connect_to_vault()
-
 print(f'fetching "{connection_name}" secrets for S3 connection', flush=True)
 logger.info("Fetching S3 connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
-secret = SecretManager.get_secret(namespace, f'main/s3/{connection_name}')
+secret = get_bucket_credentials(namespace, connection_name)
 
 # Extract S3 credentials from secret
 AWS_ACCESS_KEY_ID = secret['access_key_id']
@@ -121,7 +115,8 @@ def stream_s3():
                     print(f'Ingesting data from {file_name} (authenticated)', flush=True)
                     
                     file_records = 0
-                    for chunk in pd.read_csv(s3_object['Body'], chunksize=10000):
+                    for chunk in pl.scan_%read_file_type%(s3_object["Body"]).collect(streaming=True, batch_size=10_000):
+
                         chunk_size = len(chunk)
                         file_records += chunk_size
                         total_records += chunk_size

@@ -384,7 +384,7 @@ export class WorkspaceService extends BaseService {
               firstValue = obj.firstValue.value, 
               bucketUrl = (obj.bucketUrl.value.split('//')[1] || '').replace('/','');
 
-        let data = {}, secretKey = document.querySelectorAll(`.${keyType}`)[1].querySelector('input').value;
+        let data = {}, secretKey = document.querySelectorAll(`.${keyType}`)[2].querySelector('input').value;
 
         if(keyType === 's3-access-and-secret-keys')
             data = { 's3Config' : { 'access_key_id': firstValue, 'secret_access_key': secretKey, 'bucket_name': bucketUrl } };
@@ -442,16 +442,20 @@ export class WorkspaceService extends BaseService {
                     if(type == 'all') allSecrets['api'] = secretAndServerList;
                 }
                 
-                if((type == 1 || type == 'all') && Array.isArray(secretList?.db_secrets)){
+                let bucketSecrets = [];
+                if(([1,3].includes(type) || type == 'all') && Array.isArray(secretList?.db_secrets)){
                     const secretNames = [];
                     secretAndServerList = secretList.db_secrets.map(secret => {
                         if(!secretList.metadata[secret]) secretNames.push(secret);
+                        if((secretList.metadata[secret] ||'').startsWith('s3://')) bucketSecrets.push({ name: secret });
                         return { name: secret, host: secretList.metadata[secret] || 'None' };
                     });
                     cb({dbSecrets: secretAndServerList, secretNames});
                     if(type == 'all') allSecrets['db'] = secretAndServerList;
                 }
                 
+                if(type === 3) return bucketSecrets;
+
                 if(Object.keys(allSecrets).length > 0) return allSecrets;
                 return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
     
@@ -570,6 +574,39 @@ export class WorkspaceService extends BaseService {
         if (response.ok && !result.error){
             AppTemplate.toast.success(`Pipeline scheduled job ${pplineJobStatus === 'paused' ? pplineJobStatus : 'resumed'}`);
             return true;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    static async getBucketObjects(secretName){
+        const namespace = await UserService.getNamespace();
+
+        const url = `/workspace/${namespace}/s3/${secretName}/objects/`;
+
+        const response = await $still.HTTPClient.post(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            return result.result.map(obj => {
+                const filenamePieces = obj?.key?.split('.');
+                return { label: `${filenamePieces.slice(0,-1)}*.${filenamePieces.slice(-1)}`, name: obj?.key }
+            });
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    static async getBucketObjectFields(secretName, object){
+        const namespace = await UserService.getNamespace();
+
+        const url = `/workspace/${namespace}/s3/${secretName}/${object}/preview`;
+
+        const response = await $still.HTTPClient.post(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            return result.result;
         }
         else
             AppTemplate.toast.error(result.result);

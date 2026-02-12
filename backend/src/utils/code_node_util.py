@@ -36,6 +36,7 @@ valid_imports = [
     'from src.utils.logging.pipeline_logger_config import PipelineLogger',
     'from os import getenv as env, environ',
     'from dlt.sources.helpers.rest_client import RESTClient',
+    'from src.utils.BucketConnector import get_bucket_credentials',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

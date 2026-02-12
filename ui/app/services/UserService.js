@@ -60,7 +60,7 @@ export class UserService extends BaseService {
     static async getNamespace(){
         if([null,undefined].includes(UserService.namespace)){
             const auth = (await new UserService().getLoggedUser());
-            if(auth.user.name == 'Anonymous') return auth.user.email;
+            if(auth?.user?.name == 'Anonymous') return auth.user.email;
             UserService.namespace = (await new UserService().getLoggedUser())?.sub.replace('|','_')
             || (await new UserService().getLoggedUser())?.email
         }

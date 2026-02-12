@@ -69,6 +69,13 @@
               <div class="modal-body catalog-form-secret-group">
           
                 <div class="form-group">
+                  <label>Secret group name</label>
+                  <input (value)="connectionName" style="display: none;"
+                    class="secret-bucket-url-field s3-access-and-secret-keys" type="text" placeholder="e.g. My Bucket Secret">
+                </div>          
+                <div class="form-group"></div>
+
+                <div class="form-group">
                   <label>Secret type</label>
                   <select (value)="kvSecretType">
                     <option value="regular">Regular KV</option>
@@ -83,7 +90,7 @@
                 
                 <div class="form-group">
                   <label>Secret Key/Name</label>
-                  <input (value)="firstKey" class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
+                  <input (value)="firstKey" class="secret-field secret-first-key-setting" type="text" placeholder="e.g. DB_PASSWORD">
                 </div>
                 <div class="form-group">
                   <label>Secret value</label>
@@ -95,11 +102,11 @@
                   
                 <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
                   <label>Secret Key/Name</label>
-                  <input class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
+                  <input class="secret-field bucket-input" type="text" placeholder="e.g. DB_PASSWORD">
                 </div>
                 <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
                   <label>Secret value</label>
-                  <span class="hidden-secret-value second-secret-field">
+                  <span class="hidden-secret-value second-secret-field bucket-input">
                     <input type="password" placeholder="Enter the secret value">
                     <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('second-secret-field')">
                   </span>

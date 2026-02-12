@@ -3,7 +3,7 @@ from controller.RequestContext import RequestContext
 import os
 from services.pipeline.DltPipeline import DltPipeline
 from controller.file_upload import BaseUpload
-
+from utils.BucketConnector import BucketConnector
 
 class Bucket(TemplateNodeType):
     """
@@ -23,7 +23,7 @@ class Bucket(TemplateNodeType):
             
             # Check if S3 authentication is needed
             self.use_s3_auth = False
-            if data and data.get('s3Auth', False) == True:
+            if context.has_cloud_bucket_auth == 's3Auth':
                 self.use_s3_auth = True
                 self.template = DltPipeline.get_s3_auth_template()
             elif(context.is_cloud_url != True):
@@ -56,6 +56,8 @@ class Bucket(TemplateNodeType):
             if self.use_s3_auth:
                 # Store connection name for secret retrieval (following SQLDatabase pattern)
                 self.connection_name = data.get('connectionName', '')
+                secret = BucketConnector.validate_and_prepare_s3_config(None, self.namespace, self.connection_name)
+                self.bucket_url = f's3://{secret[0]['bucket_name']}/'
                 
                 # Validate required connection name
                 if not self.connection_name:
@@ -93,12 +95,17 @@ class Bucket(TemplateNodeType):
         
         # No need to handle secrets here - template will handle secret retrieval
         # Following SQLDatabase pattern where secrets are handled in the pipeline template
-        
-        print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
+        try:
+            print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
+        except:
+            ...
         return self.check_bucket_url()
 
 
     def check_bucket_url(self):
+
+        if self.use_s3_auth: return
+
         is_cloud_url = str(self.bucket_url).replace(' ','').__contains__('://')
         path_exists = os.path.exists(self.bucket_url)
         file_exists = os.path.exists(self.bucket_url+'/'+str(self.file_pattern).replace('*',''))

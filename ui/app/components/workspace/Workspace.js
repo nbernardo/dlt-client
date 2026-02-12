@@ -310,8 +310,15 @@ export class Workspace extends ViewComponent {
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
 		let data = this.editor.export();
-		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid };
+		data = { 
+			...data, 
+			user: await UserService.getNamespace(), 
+			startNode, activeGrid, pplineLbl: this.activeGrid.value, 
+			socketSid: this.socketData.sid,
+			...this.controller.pipelineCreateMetadata()
+		};
 		
+		this.controller.pipelineMetadataClear();
 		if(sqlPipelineDbEngine) data.initDbengine = sqlPipelineDbEngine;
 		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);

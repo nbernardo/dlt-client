@@ -294,6 +294,76 @@ class BucketUtil:
                 'message': f'Error previewing file with Polars: {str(e)}'
             }
 
+
+    @staticmethod
+    def preview_s3_file_schema(config, file_key):
+        """
+        Preview file schema from S3 file using Polars
+        Args:
+            config (dict): S3 configuration
+            file_key (str): S3 object key (file path)            
+        Returns:
+            dict: {'data': list, 'error': bool, 'message': str}
+        """
+        try:
+            # Extract configuration
+            access_key_id = config.get('access_key_id')
+            secret_access_key = config.get('secret_access_key')
+            bucket_name = config.get('bucket_name')
+            region = config.get('region', 'us-east-1')
+            
+            s3_client = BucketUtil.get_s3_client(access_key_id, secret_access_key, region)
+            
+            response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
+            file_content = response['Body'].read()
+            
+            file_extension = file_key.lower().split('.')[-1]
+            
+            if file_extension == 'csv':
+                df = pl.read_csv(BytesIO(file_content))
+                
+            elif file_extension in ['json', 'jsonl', 'ndjson']:
+                if file_extension == 'json':
+                    try:
+                        df = pl.read_json(BytesIO(file_content))
+                    except: ...
+                else:
+                    df = pl.read_ndjson(BytesIO(file_content))
+                    
+            elif file_extension == 'parquet':
+                df = pl.read_parquet(BytesIO(file_content))
+                
+            else:
+                return {
+                    'data': [],
+                    'error': True,
+                    'message': f'Unsupported file type: {file_extension}. Supported types: csv, json, jsonl, ndjson, parquet'
+                }
+            
+            return {
+                'data': list(df.schema),
+                'error': False,
+                'message': f'Successfully fetched schema using Polars'
+            }
+            
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == 'NoSuchKey':
+                message = f'File "{file_key}" not found in bucket'
+            elif error_code == 'AccessDenied':
+                message = f'Access denied to file "{file_key}"'
+            else:
+                message = f'AWS S3 Error ({error_code}): {e.response["Error"]["Message"]}'
+            
+            return {'data': [], 'error': True, 'message': message}
+            
+        except Exception as e:
+            return {
+                'data': [],
+                'error': True,
+                'message': f'Error previewing file with Polars: {str(e)}'
+            }
+
     @staticmethod
     def list_s3_objects(config, prefix='', max_keys=100):
         """

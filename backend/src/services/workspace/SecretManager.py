@@ -99,6 +99,24 @@ class SecretManager(SecretManagerType):
             
     def create_secret(namespace, params: dict, path = 'main'):
         if path.startswith('main/db'):
+
+            secrets = params['dbConfig']['secrets'][0]
+            if secrets['isKvSecret']:
+                if secrets['secretType'] == 's3-access-and-secret-keys':
+                    secret_values = { 
+                        'access_key_id': secrets['firstKey'], 
+                        'secret_access_key': secrets['secondKey'],
+                        'bucket_name': (secrets['bucketUrl'].split('//')[1] or '').replace('/','')
+                    }
+
+                    SecretManager.save_secrets_metadata(namespace, { secrets['connectionName'] : secrets['bucketUrl'] })
+                    return SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
+                        mount_point=namespace,
+                        path=path,
+                        secret=secret_values
+                    )
+ 
+
             for item in params['dbConfig']['secrets']:
                 key_value = list(item.items())[0]
                 k = key_value[0]
@@ -151,9 +169,10 @@ class SecretManager(SecretManagerType):
         SecretManager.save_secrets_metadata(namespace, { config['connectionName'] : config['host'] })
 
 
-    def get_secret(namespace, path, edit=False):
+    def get_secret(namespace, path, edit=False, secret_group=False):
         data = {}
-        if not edit and not str(path).startswith('main/db/'):
+        if secret_group: path = f'main/db/{path}'
+        elif not edit and not str(path).startswith('main/db/'):
             path = 'metadata' if path == 'metadata' else 'main/api/'+path
         try:
             secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
@@ -162,7 +181,8 @@ class SecretManager(SecretManagerType):
                 raise_on_deleted_version=True
             )
             data = secrets['data']['data']
-        except Exception:
+        except Exception as err:
+            print('Error on getting the secrets: ', str(err))
             ...
         return data
 
