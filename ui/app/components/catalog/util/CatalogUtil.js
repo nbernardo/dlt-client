@@ -416,11 +416,64 @@ export function handleOnInitOnchange(obj){
 			elm.style.display = elm.classList.contains(val) ? '' : 'none';
 			if(elm.classList.contains(val)) obj.showTestConnection = true;
 		});
+
+		document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').value = '';
+		document.querySelector('.secret-first-key-setting').value = '';
+        document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').disabled = false;
+        document.querySelector('.secret-first-key-setting').disabled = false;
+
 		if(['s3-access-and-secret-keys'].includes(val)){
 			document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = '');
 			document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').value = 'ACCESS_SECRET_KEY';
+			document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').disabled = true;
+			document.querySelector('.secret-first-key-setting').disabled = true;
 			obj.firstKey = 'ACCESS_KEY';
 		}
 	});
 
+}
+
+
+/**
+ * 
+ * @param { CatalogForm } obj 
+ */
+export function changeType(obj, connectionType = null, groupType = 'regular'){
+
+    if(![null,undefined].includes(connectionType)) obj.dataBaseSettingType = connectionType;
+	obj.showAddSecrete = true;
+	if(connectionType == 1){
+		if(!obj.isDbFirstCall) {
+			obj.addSecreteGroup(true);
+			obj.isDbFirstCall = true;
+		}
+		document.querySelectorAll('.catalog-form-db-fields input:not(.no-required), .catalog-form-db-fields select').forEach(inpt => inpt.setAttribute('required', true));
+		document.querySelectorAll('.catalog-form-secret-group input').forEach(inpt => {
+			inpt.removeAttribute('required');
+			inpt.removeAttribute('(required)');
+		});
+		obj.showTestConnection = true;
+	}else{
+		document.querySelectorAll('.catalog-form-db-fields input, .catalog-form-db-fields select').forEach(inpt => {
+			inpt.removeAttribute('required');
+			inpt.removeAttribute('(required)');
+		});
+
+        // Make all inputs no required to assign accordingly right after
+        for(const inpt of document.querySelectorAll('.catalog-form-secret-group input')) inpt.removeAttribute('required');
+        
+        //secret-bucket-url-field
+        if(groupType === 'regular'){
+            document.querySelectorAll('.catalog-form-secret-group input')
+            .forEach(inpt => {
+                if(!(inpt.classList.contains('secret-bucket-url-field') || inpt.classList.contains('bucket-input'))) 
+                    inpt.setAttribute('required', true)
+            });
+        }
+        
+        if(groupType === 's3-access-and-secret-keys')
+            document.querySelectorAll('.catalog-form-secret-group input').forEach(inpt => inpt.setAttribute('required', true));
+        
+		obj.showTestConnection = false;
+	}
 }

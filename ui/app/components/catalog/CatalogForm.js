@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue, handleOnInitOnchange } from "./util/CatalogUtil.js";
+import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue, handleOnInitOnchange, changeType } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -32,6 +32,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ showKeyFileFields = false;
 	/** @Prop */ showTestConnection = false;
 	/** @Prop */ kvSecretTypeFlag = 'regular';
+	/** @Prop */ connectionSecretType;
 
 	// DB catalog/secrets fields
 	dbEngine;
@@ -88,8 +89,10 @@ export class CatalogForm extends ViewComponent {
 				
 		if(this.secretType == 2)
 			this.$parent.controller.leftTab.apiSecretsList = secretList;
-		else
+		else{
 			this.$parent.controller.leftTab.dbSecretsList = secretList;
+			this.kvSecretType.onChange((v) => this.changeType(null, v));
+		}
 		
 		this.$parent.controller.leftTab.showLoading = false;
 
@@ -245,28 +248,7 @@ export class CatalogForm extends ViewComponent {
 		document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.disabled = true);
 	}
 
-	changeType(value){
-		this.showAddSecrete = true, this.dataBaseSettingType = value;
-		if(value == 1){
-			if(!this.isDbFirstCall) {
-				this.addSecreteGroup(true);
-				this.isDbFirstCall = true;
-			}
-			document.querySelectorAll('.catalog-form-db-fields input:not(.no-required), .catalog-form-db-fields select').forEach(inpt => inpt.setAttribute('required', true));
-			document.querySelectorAll('.catalog-form-secret-group input').forEach(inpt => {
-				inpt.removeAttribute('required');
-				inpt.removeAttribute('(required)');
-			});
-			this.showTestConnection = true;
-		}else{
-			document.querySelectorAll('.catalog-form-db-fields input, .catalog-form-db-fields select').forEach(inpt => {
-				inpt.removeAttribute('required');
-				inpt.removeAttribute('(required)');
-			});
-			document.querySelectorAll('.catalog-form-secret-group input').forEach(inpt => inpt.setAttribute('required', true));
-			this.showTestConnection = false;
-		}
-	}
+	changeType = (connectioType, groupType = 'regular') => changeType(this, connectioType, groupType);
 
 	resetForm(showTestConnection = false){
 		this.showTestConnection = showTestConnection;
