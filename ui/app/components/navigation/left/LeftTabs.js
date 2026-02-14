@@ -192,11 +192,14 @@ export class LeftTabs extends ViewComponent {
 
 	genInitialDBQuery = (table, dbfile) => this.$parent.genInitialDBQuery(table, dbfile)
 
-	openSecretForm = async (secretName, secretType, isBucket, host) => {		
-		if(!secretName || !secretType)
-			return this.$parent.controller.catalogForm.showDialog(true, secretType);
-		const data = await WorkspaceService.fetchSecret(secretName, secretType);
-		this.$parent.controller.catalogForm.editSecret(secretType, {...data, secretName, isBucket: isBucket == 'yes', host});
+	openSecretForm = async (secretName, secretType, isBucket, host) => {
+		
+		if(!secretName || !secretType) this.$parent.controller.catalogForm.showDialog(true, secretType);
+		else {
+			const data = await WorkspaceService.fetchSecret(secretName, secretType);
+			this.$parent.controller.catalogForm.editSecret(secretType, {...data, secretName, isBucket: isBucket == 'yes', host});
+		}
+		if(secretType === 'api') this.$parent.controller.catalogForm.showTestConnection = true;
 	}
 
 	async selectTab(tab){

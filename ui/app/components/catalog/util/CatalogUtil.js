@@ -544,4 +544,5 @@ export function changeType(obj, connectionType = null, groupType = 'regular'){
         
 		obj.showTestConnection = false;
 	}
+    if(connectionType == 2) obj.kvSecretType = 'regular';
 }

@@ -322,25 +322,27 @@
         
 
         <div class="modal-footer">
-          <div class="buttons-wrapper">
-            <button 
-              type="button" 
-              onclick="component.testConnection()" 
-              class="btn btn-light-blue save-secret-btn">
-                @if(this.checkConnection == 'in-progress')
-                  <div class="mini-loader-container oracle-dn-loader">
-                    <div class="mini-loader-dot"></div>
-                    <div class="mini-loader-dot"></div>
-                    <div class="mini-loader-dot"></div>
-                  </div>
-                @endif
-                Test connection
-              <div 
-                class="connectio-test-status"
-                style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
-                &nbsp;
-              </div>
-            </button>
+          <div class="buttons-wrapper secret-creation-buttons">
+            <div (showIf)="self.showTestConnection">
+              <button 
+                type="button" 
+                onclick="component.testConnection()" 
+                class="btn btn-light-blue save-secret-btn">
+                  @if(this.checkConnection == 'in-progress')
+                    <div class="mini-loader-container oracle-dn-loader">
+                      <div class="mini-loader-dot"></div>
+                      <div class="mini-loader-dot"></div>
+                      <div class="mini-loader-dot"></div>
+                    </div>
+                  @endif
+                  Test connection
+                <div 
+                  class="connectio-test-status"
+                  style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
+                  &nbsp;
+                </div>
+              </button>
+            </div>
             <button 
               type="button" 
               onclick="component.createSecret()" 
@@ -353,7 +355,7 @@
   </div>
 
   <style>
-
+    .secret-creation-buttons div:first-child{ width: 100%; }
     apiresp-data span:first-child { color: blue; text-decoration: underline; cursor: pointer; font-size: 14px; }
 
     .api-response-is_ok { border: 1.12px solid green; display: block; padding: 5px; background: rgba(0, 128, 0, 0.17); }

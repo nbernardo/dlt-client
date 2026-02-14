@@ -197,6 +197,7 @@ export class CatalogForm extends ViewComponent {
 		}
 
 		if(this.secretType == 2){
+			this.showTestConnection = true;
 			if(secretData.apiSettings.apiKeyName.trim() !== ''){
 				this.apiKeyName = secretData.apiSettings.apiKeyName;
 				this.apiKeyValue = secretData.apiSettings.apiKeyValue;
@@ -274,7 +275,10 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	showDialog(reset = false, type = null){		
-		if(type === 'api') this.markRequiredApiFields(true);
+		if(type === 'api') {
+			this.markRequiredApiFields(true);
+			this.showTestConnection = true;
+		}
 		if(reset) {
 			this.isDbConnEditing = false; this.isNewSecret = true, this.resetForm();
 		}
