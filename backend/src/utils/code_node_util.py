@@ -37,6 +37,7 @@ valid_imports = [
     'from os import getenv as env, environ',
     'from dlt.sources.helpers.rest_client import RESTClient',
     'from src.utils.BucketConnector import get_bucket_credentials',
+    'from dlt.sources.helpers.rest_client.auth import APIKeyAuth',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

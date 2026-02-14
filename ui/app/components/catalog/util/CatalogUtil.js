@@ -1,4 +1,5 @@
 import { FormHelper, InParams } from "../../../../@still/helper/form.js";
+import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { CatalogForm } from "../CatalogForm.js";
 
 export class CatalogEndpointType {
@@ -260,9 +261,9 @@ export function parseEndpointPath(path,offset,limit,batchSize){
     if(!['',null,undefined].includes(path)){
 	    fullEndpointPath = `→ ${path} `;
 	if(offset)
-		fullEndpointPath = `→ ${path}?${offset}=0 `
+		fullEndpointPath = `→ ${path+''+(path.includes('?') ? '&' : '?')}${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`} `
 	if(limit)
-			fullEndpointPath = `→ ${path}?${offset}=0&${limit}=${batchSize} `;
+			fullEndpointPath = `→ ${path+''+(path.includes('?') ? '&' : '?')}?${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`}&${limit}=${batchSize} `;
 	}else
 		fullEndpointPath = '';
     
@@ -400,6 +401,18 @@ export function handleShowHideWalletFields(show = null){
     });
 }
 
+function disableTestBtn(obj){
+    const btn = document.querySelector('.connectio-test-status');
+    btn.parentElement.disabled = true;
+    obj.checkConnection = 'in-progress';
+    return btn
+}
+
+function enableTestBtn(btn, obj, result){
+    btn.style.background = result ? 'green' : 'red';
+    obj.checkConnection = '';
+    btn.parentElement.disabled = false;
+}
 /** @param {CatalogForm} obj  */
 export function handleOnInitOnchange(obj){
 
@@ -438,6 +451,61 @@ export function handleOnInitOnchange(obj){
  * 
  * @param { CatalogForm } obj 
  */
+export async function testConnection(obj, secretType, isDbConnEditing){
+
+    if(secretType == 1){
+        const btn = disableTestBtn(obj);
+		const result = obj.dataBaseSettingType == 2 
+			? await WorkspaceService.testConnectWithKVSecret(obj)
+			: await WorkspaceService.testDbConnection({ env: obj.getDynamicFields(), dbConfig: obj.getDBConfig()}, obj.isDbConnEditing);
+        enableTestBtn(btn, obj, result);
+    }
+    
+    if(secretType == 2){
+        let btn = disableTestBtn(obj), response = {};
+        let { apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 } = obj;
+        apiEndpointPath1 = apiEndpointPath1.value, 
+        apiEndpointPathPK1 = apiEndpointPathPK1.value, 
+        apiEndpointDS1 = apiEndpointDS1.value;
+        const endpoints = { ...obj.parseAPICatalogFields(), apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 };
+        const payload = { endpoints, baseUrl: obj.apiBaseUrl.value, keyName: obj.apiKeyName.value }
+
+        if(['api-key','bearer-token'].includes(obj.apiAuthType) === false) 
+            response = await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
+        if(obj.apiAuthType === 'api-key')
+            response = await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue.value, ...payload }, obj.endPointEditorContent);
+        else if(obj.apiAuthType === 'bearer-token')
+            response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue.value, ...payload }, obj.endPointEditorContent);
+        
+        document.querySelector('.APITestResponse').innerHTML = response.content;
+        document.querySelector('.APITestResponse').classList.add('APITestResponse-show');
+        enableTestBtn(btn, obj, response.errors == 0);
+    }
+
+}
+
+export function parseJSON(content){
+    return content.replaceAll('\n','<br>')
+            .replaceAll('\t'.repeat(1),'&nbsp;&nbsp;')
+            .replaceAll('\t'.repeat(2),'&nbsp;&nbsp;'.repeat(2))
+            .replaceAll('\t'.repeat(3),'&nbsp;&nbsp;'.repeat(3))
+            .replaceAll('\t'.repeat(4),'&nbsp;&nbsp;'.repeat(4))
+            .replaceAll('\t'.repeat(5),'&nbsp;&nbsp;'.repeat(5))
+            .replaceAll('\t'.repeat(6),'&nbsp;&nbsp;'.repeat(6));
+}
+
+
+export function expoandApiTestData(contentId){
+    const container = document.getElementById(contentId);
+
+    if(container.style.display === 'none'){
+        container.parentElement.querySelector('span').innerHTML = 'Hide data';
+        return container.style.display = '';
+    }
+    container.parentElement.querySelector('span').innerHTML = 'Show data';
+    container.style.display = 'none';
+}
+
 export function changeType(obj, connectionType = null, groupType = 'regular'){
 
     if(![null,undefined].includes(connectionType)) obj.dataBaseSettingType = connectionType;

@@ -169,8 +169,10 @@ class SecretManager(SecretManagerType):
         SecretManager.save_secrets_metadata(namespace, { config['connectionName'] : config['host'] })
 
 
-    def get_secret(namespace, path, edit=False, secret_group=False):
+    def get_secret(namespace, path, edit=False, secret_group=False, from_pipeline = False):
         data = {}
+        if from_pipeline:
+            SecretManager.ppline_connect_to_vault()
         if secret_group: path = f'main/db/{path}'
         elif not edit and not str(path).startswith('main/db/'):
             path = 'metadata' if path == 'metadata' else 'main/api/'+path
@@ -185,6 +187,10 @@ class SecretManager(SecretManagerType):
             print('Error on getting the secrets: ', str(err))
             ...
         return data
+    
+    
+    def get_pipeline_secret(namespace, path):
+        return SecretManager.get_secret(namespace, path, False, False, True)
 
 
     def list_secrets_by_path(namespace, path):

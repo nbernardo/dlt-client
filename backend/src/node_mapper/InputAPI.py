@@ -51,7 +51,7 @@ class InputAPI(TemplateNodeType):
                                         .replace('\t','')\
                                         .replace("'",'')
             
-            url_status, url_call_error = InputAPI.check_base_url_exists(secret['apiSettings']['apiBaseUrl'])
+            url_status, url_call_error = InputAPI.check_base_url_exists(secret['apiSettings'])
             if url_status == False:
                 return self.notify_failure_to_ui('InputAPI',url_call_error)
             
@@ -94,6 +94,8 @@ class InputAPI(TemplateNodeType):
 
     def parse_connection_strategy(self, secret):
 
+        from utils.APIClientUtil import get_api_auth_type
+
         connection_type = None
         auth_config = ''
         auth_strategy = '\n'
@@ -101,22 +103,33 @@ class InputAPI(TemplateNodeType):
         if 'apiAuthType' in secret['apiSettings']:
 
             connection_type = secret['apiSettings']['apiAuthType']
-
-            if connection_type == 'bearer-token':
-                auth_config = "\nauth=BearerTokenAuth(token=secret['apiSettings']['apiTknValue'])"
-                auth_strategy = 'from dlt.sources.helpers.rest_client.auth import BearerTokenAuth'
-            
-            if connection_type == 'api-key':
-                auth_config = f"\nauth=APIKeyAuth(name='{secret['apiSettings']['apiKeyName']}', api_key=secret['apiSettings']['apiKeyValue'], location='header')"
-                auth_strategy = 'from dlt.sources.helpers.rest_client.auth import APIKeyAuth'
+            if connection_type == 'bearer-token' or connection_type == 'api-key':
+                auth_config , auth_strategy = get_api_auth_type(connection_type, secret)
 
         return auth_config, auth_strategy
 
 
-    def check_base_url_exists(url):
+    def check_base_url_exists(apiSettings):
         """ Checks if a base URL exists and is reachable. """
+        url = apiSettings['apiBaseUrl']
+        authType = apiSettings['apiAuthType'] if ('apiAuthType' in apiSettings) else ''
+        firstEndpoint = apiSettings['endPointsGroup']['apiEndpointPath'][0]
+        clean_url = f'{url}{firstEndpoint}'.replace('http://','').replace('https://','').replace('//','/')
+        url = str(url).split('://')[0] + '://' + clean_url
+
         try:
-            response = requests.head(url, timeout=5)  # Set a timeout to prevent indefinite waiting
+            test_call = False
+            if authType == 'api-key':
+                response = requests.head(url, timeout=5, headers={ 'X-API-Key': apiSettings['apiKeyValue'] })
+                test_call = True 
+
+            if authType == 'bearer-token':
+                response = requests.head(url, timeout=5, headers={ 'Authorization': f'Bearer {apiSettings['apiTknValue']}'})    
+                test_call = True
+
+            if test_call == False:
+                response = requests.head(url, timeout=5)  # Set a timeout to prevent indefinite waiting
+            
             if response.status_code == 200:
                 return True, None
             else:

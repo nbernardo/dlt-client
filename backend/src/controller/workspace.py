@@ -498,6 +498,32 @@ def test_sql_db_connections(exists_conn = None):
     return result
 
 
+from utils import APIClientUtil
+
+@workspace.route('/workspace/<namespace>/api/<exists_conn>/test', methods=['POST'])
+@workspace.route('/workspace/<namespace>/api/test', methods=['POST'])
+def test_api_connections(namespace, exists_conn = None):
+
+    payload = request.get_json()
+    base_url = payload['baseUrl']
+    endpoints = payload['endpoints']
+
+    authentication_type = None
+    authTknOrKey = None
+    apiKeyName = None
+    if 'apiKeyValue' in payload: 
+        authentication_type = 'api-key'
+        authTknOrKey = payload['apiKeyValue']
+        apiKeyName = payload['keyName']
+    if 'apiTknValue' in payload: 
+        authentication_type = 'bearer-token'
+        authTknOrKey = payload['apiTknValue']
+
+    result = APIClientUtil.test_api(
+        namespace, base_url, authentication_type, None, endpoints, authTknOrKey, apiKeyName
+    )
+    
+    return result
 @workspace.route('/workspace/s3/connection/test', methods=['POST'])
 def test_s3_connection():
     """

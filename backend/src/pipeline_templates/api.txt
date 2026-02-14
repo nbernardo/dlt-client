@@ -29,7 +29,7 @@ connection_name = %connection_name%
 namespace = %namespace%
 print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
 logger.info("Fetching API connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
-secret = SecretManager.get_db_secret_from_ppline(namespace, connection_name)
+secret = SecretManager.get_pipeline_secret(namespace, connection_name)
 
 resource_names = %resource_names%
 data_selectors = %data_selectors%
@@ -53,7 +53,7 @@ def get_api_data():
             path_params = {}
         ):
 
-        resource_name = path.split('/')[1]
+        resource_name = path.split('/')[1] if str(path).__contains__('/') else path
         primary_key = primary_key if not ['',None].__contains__(primary_key) else None
 
         @dlt.resource(name=resource_name, primary_key=primary_key)
@@ -70,9 +70,14 @@ def get_api_data():
             start, end = None, None
 
             if page != None:
-                start = page.start_record
-                end = page.start_record + page.batch_size
+                (start, end) = (page.start_record, page.start_record + page.batch_size)
+                fixed_page_size = False
 
+                if page.start_param.__contains__('='):
+                    fixed_page_size = True
+                    params = page.start_param.split('=')
+                    start = params[1].strip()
+                    page.start_param = params[0].strip()
             try:
                 total_iterations = 0
                 total_records = 0
@@ -80,7 +85,11 @@ def get_api_data():
                 while True:
                     data_fetch = False
                     full_path = path if page == None else f'{path}?{page.start_param}={start}&{page.end_param}={end}'
-                    
+                    data = api_client.get(full_path, path_params).json()
+                    data_fetch = True
+                    total_iterations = total_iterations + 1
+                    result = data.get(data_selector,[]) if data_selector else data
+
                     logger.debug("Fetching API data", extra={
                         'stage': 'api_request',
                         'resource_name': resource_name,
@@ -116,8 +125,8 @@ def get_api_data():
                     # In no pagination needs to happe it forces to end the loop
                     if page == None: break
                     
-                    start += page.batch_size
-                    end = start + (page.batch_size - 1)
+                    start += (1 if fixed_page_size else page.batch_size)
+                    end = end if fixed_page_size else start + (page.batch_size - 1)
                     print(f'Fetched data from {full_path} endpoint', flush=True)
                 
                 logger.info("Completed API data fetch", extra={
@@ -153,7 +162,6 @@ def get_api_data():
     params_tuple = zip(resource_names, endpoints_params, primary_keys, data_selectors, paginate_params)
     for path, path_params, pk , selector, page_params in params_tuple:
         yield generate_source(path, selector, pk, page_params, path_params)
-
 
 dest_folder = Workspace.get_duckdb_path_on_ppline()
 
