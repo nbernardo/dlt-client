@@ -354,6 +354,11 @@ export class WorkspaceService extends BaseService {
     /** @returns { { result: { result, fields, actual_query, db_file } } } */
     static async createSecret(secret) {
 
+        if(secret.apiSettings){
+            if(String(secret.apiSettings.apiBaseUrl).endsWith('/'))
+                secret.apiSettings.apiBaseUrl = secret.apiSettings.apiBaseUrl.slice(0,-1);
+        }
+
         const namespace = await UserService.getNamespace();
         const url = '/secret/' + namespace;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
@@ -512,9 +517,12 @@ export class WorkspaceService extends BaseService {
                 if(([1,3].includes(type) || type == 'all') && Array.isArray(secretList?.db_secrets)){
                     const secretNames = [];
                     secretAndServerList = secretList.db_secrets.map(secret => {
+                        let bucket = 'no';
                         if(!secretList.metadata[secret]) secretNames.push(secret);
-                        if((secretList.metadata[secret] ||'').startsWith('s3://')) bucketSecrets.push({ name: secret });
-                        return { name: secret, host: secretList.metadata[secret] || 'None' };
+                        if((secretList.metadata[secret] ||'').startsWith('s3://')) {
+                            bucket = 'yes', bucketSecrets.push({ name: secret, bucket });
+                        }
+                        return { name: secret, host: secretList.metadata[secret] || 'None', bucket };
                     });
                     cb({dbSecrets: secretAndServerList, secretNames});
                     if(type == 'all') allSecrets['db'] = secretAndServerList;

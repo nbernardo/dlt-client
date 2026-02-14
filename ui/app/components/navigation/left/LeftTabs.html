@@ -158,7 +158,7 @@
                         <li each="item">
                             <div class="database-name">
                                 <span>{item.name}</span>
-                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'db')">
+                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'db', '{item.bucket}', '{item.host}')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
                                         <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
                                     </svg>
@@ -234,7 +234,7 @@
                         <li each="item">
                             <div class="database-name">
                                 <span>{item.name}</span>
-                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'api')">
+                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'api', '{item.bucket}', '{item.host}')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
                                         <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
                                     </svg>
