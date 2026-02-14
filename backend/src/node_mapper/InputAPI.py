@@ -51,7 +51,7 @@ class InputAPI(TemplateNodeType):
                                         .replace('\t','')\
                                         .replace("'",'')
             
-            url_status, url_call_error = InputAPI.check_base_url_exists(secret['apiSettings']['apiBaseUrl'])
+            url_status, url_call_error = InputAPI.check_base_url_exists(secret['apiSettings'])
             if url_status == False:
                 return self.notify_failure_to_ui('InputAPI',url_call_error)
             
@@ -109,10 +109,27 @@ class InputAPI(TemplateNodeType):
         return auth_config, auth_strategy
 
 
-    def check_base_url_exists(url):
+    def check_base_url_exists(apiSettings):
         """ Checks if a base URL exists and is reachable. """
+        url = apiSettings['apiBaseUrl']
+        authType = apiSettings['apiAuthType'] if ('apiAuthType' in apiSettings) else ''
+        firstEndpoint = apiSettings['endPointsGroup']['apiEndpointPath'][0]
+        clean_url = f'{url}{firstEndpoint}'.replace('http://','').replace('https://','').replace('//','/')
+        url = str(url).split('://')[0] + '://' + clean_url
+
         try:
-            response = requests.head(url, timeout=5)  # Set a timeout to prevent indefinite waiting
+            test_call = False
+            if authType == 'api-key':
+                response = requests.head(url, timeout=5, headers={ 'X-API-Key': apiSettings['apiKeyValue'] })
+                test_call = True 
+
+            if authType == 'bearer-token':
+                response = requests.head(url, timeout=5, headers={ 'Authorization': f'Bearer {apiSettings['apiTknValue']}'})    
+                test_call = True
+
+            if test_call == False:
+                response = requests.head(url, timeout=5)  # Set a timeout to prevent indefinite waiting
+            
             if response.status_code == 200:
                 return True, None
             else:

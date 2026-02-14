@@ -137,7 +137,7 @@ class DltPipeline:
                 if (line == 'RUN_SUCCESSFULLY'):
                     if context:
                         context.emit_ppsuccess()
-                    pipeline_exception = False
+                    pipeline_exception = False if pipeline_exception == False else pipeline_exception
 
                 else:
                     if(is_transformation_step and pipeline_exception == False):
@@ -145,12 +145,14 @@ class DltPipeline:
                         if context:
                             Transformation(None, context, component_ui_id).notify_completion_to_ui()
                         
-                    elif(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
+                    elif(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
                         error_message = line.replace('RUNTIME_ERROR:','')
                         handle_pipeline_log(error_message, logger, True)
                         if context:
                             context.emit_ppline_trace(error_message, error=True)
+                        
+                        if line.startswith('ERROR:'): break
 
                     elif(line.startswith('RUNTIME_WARNING:')):
                         warning_message = line.replace('RUNTIME_WARNING:','')
@@ -454,14 +456,15 @@ class DltPipeline:
                 
                 if (line == 'RUN_SUCCESSFULLY'):
                     context.emit_ppsuccess()
-                    pipeline_exception = False   
+                    pipeline_exception = False if pipeline_exception == False else pipeline_exception   
                 
                 else:
-                    if(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
+                    if(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
-                        error_message = line.replace('RUNTIME_ERROR:','')
+                        error_message = line.replace('RUNTIME_ERROR:','').replace('ERROR:','')
                         handle_pipeline_log(error_message, logger, True)
                         context.emit_ppline_job_trace(error_message, error=True)
+                        if line.startswith('ERROR:'): break
                     else:
                         if(type(line) == str):
                             if(line.__contains__('Files/Bucket loaded')):

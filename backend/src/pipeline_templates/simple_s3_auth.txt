@@ -111,13 +111,11 @@ def stream_s3():
                 
                 try:
                     s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
-                    
-                    print(f'Ingesting data from {file_name} (authenticated)', flush=True)
-                    
-                    file_records = 0
-                    for chunk in pl.scan_%read_file_type%(s3_object["Body"]).collect(streaming=True, batch_size=10_000):
+                    lazy_df = pl.scan_csv(s3_object["Body"].read())
 
-                        chunk_size = len(chunk)
+                    file_records = 0
+                    for chunk in lazy_df.collect(streaming=True).iter_slices(n_rows=10000):
+                        chunk_size = chunk.height
                         file_records += chunk_size
                         total_records += chunk_size
                         
@@ -129,7 +127,7 @@ def stream_s3():
                             'auth_type': 'authenticated'
                         })
                         
-                        yield chunk.to_dict('records')
+                        yield chunk.to_dicts()
                     
                     logger.info("File processing completed with authentication", extra={
                         'stage': 'file_complete',
