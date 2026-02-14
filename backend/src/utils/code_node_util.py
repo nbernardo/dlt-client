@@ -2,6 +2,7 @@ import re
 
 valid_imports = [
     'import dlt',
+    'import logging',
     'import polars as pl',
     'import pandas as pd',
     'from dlt.sources.credentials import ConnectionStringCredentials',
@@ -31,11 +32,11 @@ valid_imports = [
     'from botocore.client import Config',
     'import fnmatch',
     'from dlt.sources.filesystem import filesystem, FileItemDict',
-    'import fnmatch',
-    'import fnmatch',
-    'import fnmatch',
-    'import fnmatch',
-    'import fnmatch',
+    'from src.utils.pipeline_logger_config import setup_dlt_logging, PipelineLogger',
+    'from src.utils.logging.pipeline_logger_config import PipelineLogger',
+    'from os import getenv as env, environ',
+    'from dlt.sources.helpers.rest_client import RESTClient',
+    'from src.utils.BucketConnector import get_bucket_credentials',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

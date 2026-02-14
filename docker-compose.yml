@@ -1,15 +1,27 @@
+include:
+  - path: ./vault/docker-compose.yml
+
 services:
   backend:
     build: ./backend
     container_name: backend
     volumes:
       - ./backend:/app
+      - ./backend/dbs:/app/backend/dbs
       - ./backend/destinations:/app/destinations
       #- ./backend/destinations/pipeline:/app/destinations/pipeline
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      - VAULT_TOKEN=root
+      - ALLOW_ORIGINS_DOCKER=*
     ports:
       - "8000:8000"
+    depends_on:
+      vault:
+        condition: service_healthy
     networks:
       - app-net
+      - vault_network
 
   nginx:
     image: nginx:alpine
@@ -26,4 +38,6 @@ services:
 
 networks:
   app-net:
+  vault_network:
+    external: true
   

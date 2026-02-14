@@ -65,12 +65,14 @@ class TemplateNodeType:
 
             if self.template_type == 'non_database_source':
                 # Remove SecretManager import placeholder
-                template = template.replace('%import_from_src%', '')
-
+                #add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import('\n')
+                #template = template.replace('%import_from_src%', add_path_and_import_secret_manager)
                 destination_string = 'dlt.destinations.duckdb("%Usr_folder%/%Dbfile_name%.duckdb")'
             else:
                 destination_string = "dlt.destinations.duckdb(f'{dest_folder}/%User_folder%/{ppline_name}.duckdb')"
-        
+                
+        add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import('\n')
+        template = template.replace('%import_from_src%', add_path_and_import_secret_manager)        
         return template.replace('%destination_string%',destination_string)
     
 
@@ -89,7 +91,7 @@ class TemplateNodeType:
             template = self.regular_template_destination_config(n, template)
 
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
-        dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
+        dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0], from_pipeline=True)['connection_url']"
         dbconnecting_log = f"{n}print('Connecting to destination Database', flush=True){n}"
 
         secret_code = f"{connaction_name_var}{dbcredentials_var}{dbconnecting_log}"
@@ -117,14 +119,7 @@ class TemplateNodeType:
         # Edge case for when the pipeline has transformation
         ni = '\n' if has_tranformation else n
 
-        src_path_add = '#Adding root folder to allow import  from src'
-        src_path_add += f"{ni}from pathlib import Path{ni}from sys import path"
-        src_path_add += f"{ni}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')"
-        src_path_add += f"{ni}path.insert(0, src_path){ni}path.insert(0, src_path+'/src')"
-
-        import_secret_manager = f'{ni}{ni}from src.services.workspace.SecretManager import SecretManager'
-        add_path_and_import_secret_manager = f'{src_path_add}{import_secret_manager}'
-
+        add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import(ni)
         template = template.replace('%import_from_src%', add_path_and_import_secret_manager)
 
         # This replacement only happen if pipeline destination is Database otherwise
@@ -134,7 +129,7 @@ class TemplateNodeType:
         namespace_var = f"{n}namespace = %namespace%"
         connect_secret_vault = f"{n}SecretManager.ppline_connect_to_vault()"
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
-        dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0])['connection_url']"
+        dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0], from_pipeline=True)['connection_url']"
         dbconnecting_log = f"{n}print('Connecting to destination Database', flush=True){n}"
 
         secret_code = f"{namespace_var}{connect_secret_vault}{connaction_name_var}{dbcredentials_var}{dbconnecting_log}"
@@ -149,7 +144,7 @@ class TemplateNodeType:
             ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'%dest_secret_code%{n}dest = %destination_string%{n}'
             print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
-            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)'
+            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name,progress="log")'
 
         dest_settings = f'{ppline_and_output_var}{secrets_and_dest_var}{print_var}{n}{pipeline_var}'
         template = template.replace('%destination_settings%',dest_settings)
@@ -164,10 +159,19 @@ class TemplateNodeType:
             ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'# -------- Running the pipeline ----------%dest_secret_code%{n}dest = %destination_string%{n}'
             print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
-            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name)'
+            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name,progress="log")'
 
             dest_settings = f'{ppline_and_output_var}{secrets_and_dest_var}{print_var}{n}{pipeline_var}'
             template = template.replace('%destination_settings%',dest_settings)
 
             return template
         
+    
+    def set_source_path_for_import(ni):
+        src_path_add = '#Adding root folder to allow import  from src'
+        src_path_add += f"{ni}from pathlib import Path{ni}from sys import path"
+        src_path_add += f"{ni}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')"
+        src_path_add += f"{ni}path.insert(0, src_path){ni}path.insert(0, src_path+'/src')"
+
+        import_secret_manager = f'{ni}{ni}from src.services.workspace.SecretManager import SecretManager'
+        return f'{src_path_add}{import_secret_manager}'

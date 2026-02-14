@@ -63,8 +63,11 @@ class DLTCode(TemplateNodeType):
         import re
         pattern = r"__secrets\.(\w+)"
         referenced_secrets = re.findall(pattern, self.template_code)
-        secrets_list: list = SecretManager.list_secrets_by_path(namespace, path)
-        return [
-            secret for secret in referenced_secrets\
-                  if secrets_list.__contains__(secret)
-        ]
+        if len(referenced_secrets) > 0:
+            secrets_list: list = SecretManager.list_secrets_by_path(namespace, path)
+            return [
+                secret for secret in referenced_secrets\
+                    if secrets_list.__contains__(secret)
+            ]
+
+        return []

@@ -29,9 +29,16 @@
 					<option value="2">Cloud URL</option>
 				</select>
 	
-				<div (showIf)="self.showBucketUrlInput == 2">
+				<!-- <div (showIf)="self.showBucketUrlInput == 2">
 					<p>Enter Bucket url:</p>
 					<input type="text" (required)="true" (value)="bucketUrl" placeholder="Basket/Folder URL">
+				</div>	 -->
+
+				<div (showIf)="self.showBucketUrlInput == 2">
+					<p>Bucket secret name:</p>
+					<select (forEach)="secretsList" (value)="selectedSecret" class="selected-secret-@formWrapClass input-file-bucket1" placeholder="Secret name">
+						<option each="item" value="{item.name}">{item.name}</option>
+					</select>
 				</div>
 	
 				<p>File pattern:</p>
@@ -71,11 +78,20 @@
 				</span>
 
 				<span (showIf)="self.showBucketUrlInput == 2">
-					<input type="text" (value)="filePattern" class="file-pattern-inpt-@formWrapClass" placeholder="Ex: transactions*.csv">
+					<div style="display: flex;">
+						<select (forEach)="bucketObjects" (value)="bucketFilePattern" class="selected-file-pattern-inpt-@formWrapClass input-file-bucket1" placeholder="Select a file">
+							<option each="item" value="{item.name}">{item.label}</option>
+						</select>
+						<div class="resizable-spinner-wrap" (showIf)="self.showMoreFileOptions">
+							<div class="container">
+								<div class="spinner" id="spinner"></div>
+							</div>
+						</div>
+					</div>
 				</span>
 
 				<p>Resource Primary key:</p>
-				<input type="text" (value)="sourcePrimaryKey" placeholder="Ex: transactions_id">
+				<input type="text" (value)="sourcePrimaryKey" class="sourceBucketPrimaryKey" placeholder="Ex: transactions_id">
 	
 			</form>
 		</span>

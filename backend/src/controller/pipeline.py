@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.pipeline.DltPipeline import DltPipeline
+from services.pipeline.DltPipeline import DltPipeline, create_execution_id
 from node_mapper.NodeFactory import NodeFactory
 from .RequestContext import RequestContext
 from node_mapper.TemplateNodeType import TemplateNodeType
@@ -58,7 +58,9 @@ def create():
     context.sql_destinations = sql_destinations
     context.sql_dest = payload['sqlDest']
     context.is_cloud_url = True if is_cloud_bucket_req else False
+    context.has_cloud_bucket_auth = 's3Auth' if payload['s3Auth'] else ''
     context.code_source = payload['codeInput']
+    context.pipeline_execution_id = create_execution_id()
 
     if(context.action_type == 'UPDATE'):
         result =  create_new_version_ppline(fst_connection, 
@@ -615,3 +617,4 @@ def update_pipeline_pause(namespace, pipeline, status):
         return { 'error': False, 'result': { 'result': 'Pipeline job paused' } }
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }
+

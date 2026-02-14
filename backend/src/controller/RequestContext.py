@@ -3,7 +3,10 @@ from datetime import datetime
 from utils.FileVersionManager import FileVersionManager
 from os import getenv as env
 
-origins = [str(origin).strip() for origin in env('ALLOW_ORIGINS').split(',')]
+if env('ALLOW_ORIGINS_DOCKER'):
+    origins = env('ALLOW_ORIGINS_DOCKER')
+else:
+    origins = [str(origin).strip() for origin in env('ALLOW_ORIGINS').split(',')]
 
 class PiplineNamespace(Namespace):
     def on_connect(self): pass
@@ -56,7 +59,9 @@ class RequestContext:
         self.diagrm_path = None
         self.pipeline_lbl = None
         self.pipeline_name = None
+        self.pipeline_execution_id = None
         self.is_cloud_url = False
+        self.has_cloud_bucket_auth = None
         # Flaged true in case the data source is code 
         self.code_source = False
         self.source_type = None

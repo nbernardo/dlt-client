@@ -15,11 +15,13 @@ from flask import abort, send_file
 from utils.cache_util import DuckDBCache
 from datetime import datetime
 from utils.SQLDatabase import SQLDatabase
+from utils.BucketUtil import BucketUtil
+from utils.BucketConnector import BucketConnector
 from utils.workspace_util import handle_conversasion_turn_limit
-
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
+_validate_and_prepare_s3_config = BucketConnector.validate_and_prepare_s3_config
 
 @workspace.route('/workcpace/code/run/<user>', methods=['POST'])
 def run_code(user):
@@ -522,3 +524,227 @@ def test_api_connections(namespace, exists_conn = None):
     )
     
     return result
+@workspace.route('/workspace/s3/connection/test', methods=['POST'])
+def test_s3_connection():
+    """
+    Test S3 connection with provided credentials
+    Similar to test_sql_db_connections but for S3
+    """
+    try:
+        payload = request.get_json()
+        
+        # Use helper function to validate config
+        test_config, error_response = _validate_and_prepare_s3_config(payload)
+        if error_response:
+            return error_response
+        
+        result = BucketUtil.test_s3_connection(test_config)
+        return result
+        
+    except Exception as err:
+        print(f'Error while testing S3 connection: {str(err)}')
+        traceback.print_exc()
+        return {
+            'result': f'Error while testing S3 connection: {str(err)}',
+            'error': True
+        }
+
+
+@workspace.route('/workspace/s3/connection/<namespace>/<connection_name>/test', methods=['POST'])
+def test_s3_connection_with_secrets(namespace, connection_name):
+    """
+    Test S3 connection using Secret Manager credentials
+    Following SQLDatabase pattern for secret-based connections
+    """
+    try:
+        result = BucketConnector.test_s3_connection(namespace, connection_name)
+        return result
+        
+    except Exception as err:
+        print(f'Error while testing S3 connection with secrets: {str(err)}')
+        traceback.print_exc()
+        return {
+            'result': f'Error while testing S3 connection: {str(err)}',
+            'error': True
+        }
+
+
+@workspace.route('/workspace/<namespace>/s3/<secret>/objects/', methods=['POST'])
+def list_s3_objects(namespace = None, secret = None):
+    """
+    List objects in S3 bucket for data preview
+    """
+    try:
+        prefix, max_keys, payload = None, None, {}
+
+        if secret == None:
+            payload = request.get_json()
+        
+        prefix = payload.get('prefix', '')
+        max_keys = payload.get('max_keys', 100)
+        
+        # Use helper function to validate config
+        test_config, error_response = _validate_and_prepare_s3_config(payload, namespace, secret)
+        if error_response:
+            return error_response
+        
+        result = BucketUtil.list_s3_objects(test_config, prefix, max_keys)
+        
+        if result['error']:
+            return {'error': True, 'result': result['message']}
+        else:
+            return {'error': False, 'result': result['objects']}
+        
+    except Exception as err:
+        print(f'Error while listing S3 objects: {str(err)}')
+        traceback.print_exc()
+        return {
+            'error': True,
+            'result': f'Error while listing S3 objects: {str(err)}'
+        }
+
+
+@workspace.route('/workspace/s3/<namespace>/<connection_name>/objects', methods=['POST'])
+def list_s3_objects_with_secrets(namespace, connection_name):
+    """
+    List objects in S3 bucket using Secret Manager credentials
+    """
+    try:
+        payload = request.get_json()
+        prefix = payload.get('prefix', '')
+        max_keys = payload.get('max_keys', 100)
+        
+        result = BucketConnector.list_s3_objects(namespace, connection_name, prefix, max_keys)
+        
+        if result['error']:
+            return {'error': True, 'result': result['message']}
+        else:
+            return {'error': False, 'result': result['objects']}
+        
+    except Exception as err:
+        print(f'Error while listing S3 objects with secrets: {str(err)}')
+        traceback.print_exc()
+        return {
+            'error': True,
+            'result': f'Error while listing S3 objects: {str(err)}'
+        }
+
+
+@workspace.route('/workspace/s3/preview', methods=['POST'])
+def preview_s3_file(namespace, secret, object):
+    """
+    Preview data from S3 file (first N rows) using Polars
+    Similar to database table preview but for S3 files
+    """
+    try:
+        
+        file_key = object #payload.get('file_key', '')
+        rows = 10
+        
+        if not file_key:
+            return {
+                'error': True,
+                'result': 'file_key parameter is required'
+            }
+        
+        # Use helper function to validate config
+        test_config, error_response = _validate_and_prepare_s3_config({}, namespace, secret)
+        if error_response:
+            return error_response
+        
+        result = BucketUtil.preview_s3_file_with_polars(test_config, file_key, rows)
+        
+        if result['error']:
+            return {'error': True, 'result': result['message']}
+        else:
+            return {
+                'error': False,
+                'result': {
+                    'data': result['data'],
+                    'message': result['message'],
+                    'rows_returned': len(result['data'])
+                }
+            }
+        
+    except Exception as err:
+        print(f'Error while previewing S3 file: {str(err)}')
+        traceback.print_exc()
+        return {
+            'error': True,
+            'result': f'Error while previewing S3 file: {str(err)}'
+        }
+
+
+@workspace.route('/workspace/<namespace>/<bucket>/<secret>/<object>/preview', methods=['POST'])
+def get_bucket_file_schema(namespace, bucket, secret, object = None):
+    """
+    Get the schema from a bucket file
+    """
+    try:
+        
+        if not object:
+            return { 'error': True, 'result': "'file' name parameter is required" }
+        
+        # Use helper function to validate config
+        test_config, error_response = _validate_and_prepare_s3_config({}, namespace, secret)
+        if error_response:
+            return error_response
+        
+        result = BucketUtil.preview_s3_file_schema(test_config, object)
+        
+        if result['error']:
+            return {'error': True, 'result': result['message']}
+        else:
+            return {
+                'error': False,
+                'result': {
+                    'data': result['data'],
+                    'message': result['message'],
+                    'rows_returned': len(result['data'])
+                }
+            }
+        
+    except Exception as err:
+        print(f'Error while previewing S3 file: {str(err)}')
+        traceback.print_exc()
+        return { 'error': True, 'result': f'Error while previewing S3 file: {str(err)}' }
+
+
+@workspace.route('/workspace/s3/<namespace>/<connection_name>/preview', methods=['POST'])
+def preview_s3_file_with_secrets(namespace, connection_name):
+    """
+    Preview data from S3 file using Secret Manager credentials and Polars
+    Following DltPipeline.run_transform_preview pattern
+    """
+    try:
+        payload = request.get_json()
+        file_key = payload.get('file_key', '')
+        rows = payload.get('rows', 10)
+        
+        if not file_key:
+            return {
+                'error': True,
+                'result': 'file_key parameter is required'
+            }
+        
+        result = BucketConnector.preview_s3_file_with_polars(namespace, connection_name, file_key, rows)
+        
+        if result['error']:
+            return {'error': True, 'result': result['message']}
+        else:
+            return {
+                'error': False,
+                'result': {
+                    'data': result['data'],
+                    'message': result['message'],
+                    'rows_returned': len(result['data'])
+                }
+            }
+        
+    except Exception as err:
+        print(f'Error while previewing S3 file with secrets: {str(err)}')
+        traceback.print_exc()
+        return {
+            'error': True,
+            'result': f'Error while previewing S3 file: {str(err)}'
+        }

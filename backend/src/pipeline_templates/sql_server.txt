@@ -1,8 +1,15 @@
 %metadata_section%import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
+import logging
 from pathlib import Path
 from sys import path
+%import_from_src%
+from src.utils.logging.pipeline_logger_config import PipelineLogger
 
+# Initialize pipeline logger
+logger = PipelineLogger()
+
+logger.info("Starting SQL Server pipeline", extra={'stage': 'initialization', 'template_type': 'sql_server'})
 
 #Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
@@ -19,16 +26,15 @@ namespace = %namespace%
 # Bellow mapping: connection_name = SqlDBComponent.connection_name
 connection_name = %connection_name%
 
-print('connecting to secrets vault')
-SecretManager.ppline_connect_to_vault()
-
 print(f'fetching "{connection_name}" secrets for DB connection')
-secret = SecretManager.get_db_secret(namespace, connection_name)
+logger.info("Fetching SQL Server connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
+secret = SecretManager.get_db_secret_from_ppline(namespace, connection_name)
 
 connection_string = secret['connection_url']
 
 # Bellow mapping: source_database = SqlDBComponent.source_database
 database_to_connect = %source_database%
+logger.info("Establishing SQL Server connection", extra={'stage': 'database_connection', 'database': database_to_connect})
 
 credentials = ConnectionStringCredentials(connection_string)
 
@@ -44,9 +50,55 @@ def load_select_tables_from_db():
     # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
 
-    source = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, connection_string)
-    info = pipeline.run(source, write_disposition='merge')
-    print(info,flush=True)
-    print('RUN_SUCCESSFULLY', flush=True)
+    logger.info("Setting up SQL Server data source", extra={
+        'stage': 'data_source_setup',
+        'table_count': len(tables),
+        'tables': tables
+    })
 
-load_select_tables_from_db()
+    try:
+        source = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, connection_string)
+        
+        logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
+        info = pipeline.run(source, write_disposition='merge')
+        
+        # Log pipeline execution results
+        if hasattr(info, 'loads_ids') and info.loads_ids:
+            logger.info("SQL Server pipeline execution completed successfully", extra={
+                'stage': 'pipeline_completion',
+                'loads_ids': str(info.loads_ids),
+                'dataset_name': getattr(info, 'dataset_name', 'unknown'),
+                'table_count': len(tables),
+                'template_type': 'sql_server'
+            })
+        else:
+            logger.info("SQL Server pipeline execution completed", extra={
+                'stage': 'pipeline_completion',
+                'table_count': len(tables),
+                'template_type': 'sql_server'
+            })
+        
+        print(info,flush=True)
+        print('RUN_SUCCESSFULLY', flush=True)
+        
+    except Exception as source_error:
+        logger.error("SQL Server data source creation failed", extra={
+            'stage': 'data_source_error',
+            'error_type': type(source_error).__name__,
+            'error_message': str(source_error),
+            'table_count': len(tables),
+            'tables': tables
+        }, exc_info=True)
+        raise
+
+try:
+    load_select_tables_from_db()
+except Exception as e:
+    logger.error("SQL Server pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(e).__name__,
+        'error_message': str(e),
+        'template_type': 'sql_server'
+    }, exc_info=True)
+    print(f'RUNTIME_ERROR:SQL Server pipeline execution failed: {e}', flush=True)
+    raise

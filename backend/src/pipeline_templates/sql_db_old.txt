@@ -1,9 +1,17 @@
 %metadata_section%import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
 from dlt.sources.sql_database import sql_database, sql_table
+import logging
 from os import getenv as env
 from pathlib import Path
 from sys import path
+%import_from_src%
+from src.utils.logging.pipeline_logger_config import PipelineLogger
+
+# Initialize pipeline logger
+logger = PipelineLogger()
+
+logger.info("Starting SQL database (old) pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db_old'})
 
 #Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
@@ -30,12 +38,14 @@ dialects = {
 credentials = ConnectionStringCredentials(dialects[%source_dbengine%])
 
 def load_select_tables_from_db():
+    logger.info("Setting up database connection", extra={'stage': 'database_connection'})
+    
     dest_folder = Workspace.get_duckdb_path_on_ppline()
     ppline_name, output_name = %pipeline_name%, %output_dest_name%
     %dest_secret_code%
     dest = %destination_string%
     # Bellow mapping: schema = DuckDBOutput.output_dest_name
-    pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest,dataset_name=output_name)
+    pipeline = dlt.pipeline(pipeline_name=ppline_name, destination=dest, dataset_name=output_name)
 
     # Bellow mapping: schema = SqlDBComponent.source_tables
     tables = %source_tables%
@@ -43,14 +53,42 @@ def load_select_tables_from_db():
     # Bellow mapping: schema = SqlDBComponent.primary_keys
     tables_pk = %primary_keys%
 
+    logger.info("Creating SQL database source", extra={'stage': 'data_source_setup', 'table_count': len(tables)})
     source = sql_database(table_names=tables, credentials=credentials)
 
     for idx in range(len(tables)):
-        getattr(source, tables[idx])\
-            .apply_hints(primary_key=tables_pk[idx])
+        logger.debug("Applying primary key hints", extra={
+            'stage': 'table_processing',
+            'table_name': tables[idx],
+            'primary_key': tables_pk[idx]
+        })
+        getattr(source, tables[idx]).apply_hints(primary_key=tables_pk[idx])
 
+    logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
     info = pipeline.run(source)
+    
+    # Log pipeline execution results
+    if hasattr(info, 'loads_ids') and info.loads_ids:
+        logger.info("SQL database (old) pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(info.loads_ids),
+            'dataset_name': getattr(info, 'dataset_name', 'unknown'),
+            'template_type': 'sql_db_old'
+        })
+    else:
+        logger.info("SQL database (old) pipeline execution completed", extra={'stage': 'pipeline_completion', 'template_type': 'sql_db_old'})
+    
     print(info)
     print('RUN_SUCCESSFULLY', flush=True)
 
-load_select_tables_from_db()
+try:
+    load_select_tables_from_db()
+except Exception as e:
+    logger.error("SQL database (old) pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(e).__name__,
+        'error_message': str(e),
+        'template_type': 'sql_db_old'
+    }, exc_info=True)
+    print(f'RUNTIME_ERROR:SQL database (old) pipeline execution failed: {e}', flush=True)
+    raise

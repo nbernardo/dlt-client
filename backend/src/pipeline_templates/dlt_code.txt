@@ -1,6 +1,14 @@
 %metadata_section%from json import loads
+import logging
 from sys import path
 from pathlib import Path
+%import_from_src%
+from src.utils.logging.pipeline_logger_config import PipelineLogger
+
+# Initialize pipeline logger
+logger = PipelineLogger()
+
+logger.info("Starting DLT code pipeline", extra={'stage': 'initialization', 'template_type': 'dlt_code'})
 
 #Adding root folder to allow import from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
@@ -10,6 +18,7 @@ path.insert(0, src_path+'/src')
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import referencedSecrets%secret_manager_import%
 
+logger.info("Loading custom DLT code", extra={'stage': 'code_loading'})
 %template_code%
 
 dest_folder = Workspace.get_duckdb_path_on_ppline()
@@ -17,12 +26,36 @@ dest_folder = Workspace.get_duckdb_path_on_ppline()
 %destination_settings%
 
 print(f'Fetching data from datasource', flush=True)
-data = data_source()
-print(f"Running the pipeline", flush=True)
+logger.info("Fetching data from custom data source", extra={'stage': 'data_fetching'})
 
 try:
+    data = data_source()
+    
+    print(f"Running the pipeline", flush=True)
+    logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
+
     load_info = pipeline.run(data)
+    
+    # Log pipeline execution results
+    if hasattr(load_info, 'loads_ids') and load_info.loads_ids:
+        logger.info("DLT code pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(load_info.loads_ids),
+            'dataset_name': getattr(load_info, 'dataset_name', 'unknown'),
+            'template_type': 'dlt_code'
+        })
+    else:
+        logger.info("DLT code pipeline execution completed", extra={'stage': 'pipeline_completion', 'template_type': 'dlt_code'})
+    
     print(load_info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
+    
 except Exception as err:
+    logger.error("DLT code pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(err).__name__,
+        'error_message': str(err),
+        'template_type': 'dlt_code'
+    }, exc_info=True)
     print(f'RUNTIME_ERROR:Runtime Pipeline error: {err}')
+    raise
