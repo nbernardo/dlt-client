@@ -1,0 +1,38 @@
+import dlt
+from pyairtable import Api
+
+@dlt.source
+def airtable_source(api_key, base_id, table_names):
+    """
+    Extract data from Airtable tables.
+    
+    Args:
+        api_key: Airtable Personal Access Token
+        base_id: Airtable base ID (e.g., 'appXXXXXXXXXXXXXX')
+        table_names: List of table names to extract (e.g., ['Customers', 'Products'])
+    """
+    
+    api = Api(api_key)
+    base = api.base(base_id)
+    
+    # Handle both single table and multiple tables
+    tables_to_process = table_names if isinstance(table_names, list) else [table_names]
+    
+    for table_name in tables_to_process:
+        @dlt.resource(name=table_name, write_disposition="replace")
+        def fetch_table(tn=table_name):
+            print(f"Fetching data from Airtable table: {tn}")
+            
+            table = base.table(tn)
+            all_records = table.all()
+            
+            # Extract fields from Airtable record format
+            batch_size = 100
+            for i in range(0, len(all_records), batch_size):
+                batch = all_records[i:i+batch_size]
+                records = [record['fields'] for record in batch]
+                yield records
+            
+            print(f"Completed fetching {len(all_records)} records from {tn}")
+        
+        yield fetch_table()

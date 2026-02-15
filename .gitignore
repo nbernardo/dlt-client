@@ -3,7 +3,7 @@ backend/src/__pycache__
 backend/src/*.duckdb
 backend/src/dd.py
 backend/src/cc.py
-backend/src/.env.bkp
+backend/src//.env.bkp
 backend/venv
 backend/src/scratch
 backend/src/services/__pycache__
@@ -34,3 +34,13 @@ backend/destinations/pipeline/*/*.meta
 backend/destinations/code/*/*.json
 
 vault/vault/*
+
+# Hypothesis cache (property-based testing)
+.hypothesis/
+
+# Pytest cache
+.pytest_cache/
+
+# Test databases and temporary files
+backend/tests/*.duckdb
+backend/tests/*.db

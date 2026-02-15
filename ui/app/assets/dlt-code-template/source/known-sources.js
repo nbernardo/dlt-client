@@ -1,5 +1,6 @@
 export const sourcesTemplatesMap = {
 	'dlt-code': 'Code template',
+	airtable_tmpl: 'Airtable',
 	kafka_tmpl: 'Kafka',
 	kafka_tmpl_sasl: 'Kafka + SASL',
 	mongo_tmpl: 'MongoDB',

@@ -1,0 +1,178 @@
+%metadata_section%import dlt
+from pyairtable import Api
+import logging
+from pathlib import Path
+from sys import path
+%import_from_src%
+from src.utils.logging.pipeline_logger_config import PipelineLogger
+
+# Initialize pipeline logger
+logger = PipelineLogger()
+
+logger.info("Starting Airtable pipeline", extra={'stage': 'initialization', 'template_type': 'airtable'})
+
+#Adding root folder to allow import from src
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
+path.insert(0, src_path)
+path.insert(0, src_path+'/src')
+
+from src.services.workspace.Workspace import Workspace
+from src.services.workspace.SecretManager import SecretManager
+
+# Bellow mapping: connection_name = AirtableNodeMapper.connection_name
+connection_name = %connection_name%
+
+# Bellow mapping: namespace = AirtableNodeMapper.namespace
+namespace = %namespace%
+
+print(f'fetching "{connection_name}" secrets for Airtable connection', flush=True)
+logger.info("Fetching Airtable connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
+secret = SecretManager.get_db_secret_from_ppline(namespace, connection_name)
+
+# Extract API key from secret
+api_key = secret['api_key']
+
+# Bellow mapping: base_id = AirtableNodeMapper.base_id
+base_id = %base_id%
+
+# Bellow mapping: table_names = AirtableNodeMapper.table_names
+table_names = %table_names%
+
+logger.info("Initializing Airtable client", extra={
+    'stage': 'client_setup', 
+    'base_id': base_id,
+    'table_count': len(table_names) if isinstance(table_names, list) else 1
+})
+
+# Initialize Airtable API client
+api = Api(api_key)
+base = api.base(base_id)
+
+print('Airtable client initialized', flush=True)
+
+@dlt.source
+def get_airtable_data():
+    """
+    DLT source function that yields resources for each Airtable table.
+    """
+    
+    def generate_resource(table_name: str):
+        """
+        Generate a DLT resource for a specific Airtable table.
+        """
+        
+        @dlt.resource(name=table_name)
+        def fetch_table_data():
+            """
+            Fetch all records from an Airtable table with pagination handling.
+            """
+            logger.info("Starting Airtable data fetch", extra={
+                'stage': 'data_fetching',
+                'table_name': table_name,
+                'base_id': base_id
+            })
+            
+            try:
+                table = base.table(table_name)
+                total_records = 0
+                batch_count = 0
+                
+                # Fetch all records with pagination handled by pyairtable
+                print(f'Fetching data from table: {table_name}', flush=True)
+                all_records = table.all()
+                
+                # Process in batches for logging and yielding
+                batch_size = 100
+                for i in range(0, len(all_records), batch_size):
+                    batch = all_records[i:i+batch_size]
+                    batch_count += 1
+                    total_records += len(batch)
+                    
+                    logger.debug("Airtable batch fetched", extra={
+                        'stage': 'data_fetching',
+                        'table_name': table_name,
+                        'batch_size': len(batch),
+                        'total_records': total_records,
+                        'batch_number': batch_count
+                    })
+                    
+                    # Extract fields from Airtable record format
+                    # Airtable returns records as: {"id": "...", "fields": {...}, "createdTime": "..."}
+                    # We only need the fields dictionary
+                    records = [record['fields'] for record in batch]
+                    yield records
+                
+                logger.info("Completed Airtable data fetch", extra={
+                    'stage': 'data_fetching_complete',
+                    'table_name': table_name,
+                    'total_records': total_records,
+                    'total_batches': batch_count
+                })
+                
+                print(f'Completed data fetch from {table_name} table - {total_records} records', flush=True)
+                
+            except Exception as err:
+                logger.error("Airtable data fetch failed", extra={
+                    'stage': 'airtable_error',
+                    'table_name': table_name,
+                    'base_id': base_id,
+                    'error_type': type(err).__name__,
+                    'error_message': str(err)
+                }, exc_info=True)
+                
+                print(f'RUNTIME_ERROR:Failed to fetch data from table {table_name}: {err}', flush=True)
+                raise
+        
+        return fetch_table_data()
+    
+    # Handle both single table and multiple tables
+    tables_to_process = table_names if isinstance(table_names, list) else [table_names]
+    
+    for table_name in tables_to_process:
+        yield generate_resource(table_name)
+
+
+dest_folder = Workspace.get_duckdb_path_on_ppline()
+
+%destination_settings%
+
+# Execute pipeline with logging enabled
+try:
+    tables_to_process = table_names if isinstance(table_names, list) else [table_names]
+    
+    logger.info("Starting pipeline execution", extra={
+        'stage': 'pipeline_execution', 
+        'table_count': len(tables_to_process)
+    })
+    
+    print(f"Running the pipeline for {len(tables_to_process)} table(s)", flush=True)
+    
+    load_info = pipeline.run(get_airtable_data())
+    
+    # Log pipeline execution results
+    if hasattr(load_info, 'loads_ids') and load_info.loads_ids:
+        logger.info("Airtable pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(load_info.loads_ids),
+            'dataset_name': getattr(load_info, 'dataset_name', 'unknown'),
+            'template_type': 'airtable'
+        })
+    else:
+        logger.info("Airtable pipeline execution completed", extra={
+            'stage': 'pipeline_completion', 
+            'template_type': 'airtable'
+        })
+    
+    print(load_info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
+    
+except Exception as e:
+    logger.error("Airtable pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(e).__name__,
+        'error_message': str(e),
+        'template_type': 'airtable'
+    }, exc_info=True)
+    
+    print(f'RUNTIME_ERROR:Airtable pipeline execution failed: {e}', flush=True)
+    raise

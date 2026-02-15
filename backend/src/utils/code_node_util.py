@@ -37,6 +37,10 @@ valid_imports = [
     'from os import getenv as env, environ',
     'from dlt.sources.helpers.rest_client import RESTClient',
     'from src.utils.BucketConnector import get_bucket_credentials',
+    'from pyairtable import Api',
+    'from google.cloud import bigquery',
+    'from google.oauth2 import service_account',
+    'from databricks import sql',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
