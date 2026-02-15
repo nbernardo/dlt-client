@@ -4,7 +4,7 @@ import duckdb
 import json
 from controller.RequestContext import RequestContext
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
 from utils.duckdb_util import DuckdbUtil
@@ -15,10 +15,12 @@ from datetime import datetime
 import time
 from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS_REGEX, FORBIDDEN_DUNDER_REGEX
 import schedule
+import logging
+from utils.logging.pipeline_logger_config import handle_pipeline_log
 
-root_dir = str(Path(__file__).parent).replace('/src/services/pipeline', '')
-destinations_dir = f'{root_dir}/destinations/pipeline'
-template_dir = f'{root_dir}/src/pipeline_templates'
+root_dir = str(Path(__file__).parent.parent.parent)
+destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
+template_dir = f'{root_dir}/pipeline_templates'
 
 
 class DltPipeline:
@@ -27,6 +29,7 @@ class DltPipeline:
     """
     def __init__(self):
         self.curr_file = None
+        self.logger = logging.getLogger(__name__)
 
 
     def create(self, data):
@@ -73,15 +76,15 @@ class DltPipeline:
         except RuntimeError as err:
             return { 'error': True, 'status': False, 'message': str(err) }
         
-        is_sql_destination = len(context.sql_destinations) > 0
-        is_code_to_code_ppline = context.code_source and context.is_code_destination
+        is_sql_destination = len(context.sql_destinations) > 0 if context else False
+        is_code_to_code_ppline = (context.code_source and context.is_code_destination) if context else False
         does_have_metadata = is_sql_destination == True or is_code_to_code_ppline == True
 
         if not(does_have_metadata):
-            does_have_metadata = True if (context.bucket_source and context.is_code_destination) else False
+            does_have_metadata = True if (context and context.bucket_source and context.is_code_destination) else False
 
         filename_suffixe = ''
-        if context.is_duck_destination != True:
+        if context and context.is_duck_destination != True:
             filename_suffixe = '|withmetadata|' if does_have_metadata or context.is_code_destination else ''
             if(filename_suffixe == ''):
                 filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
@@ -90,14 +93,15 @@ class DltPipeline:
         file_open_flag = 'x+'
         
         self.curr_file = ppline_file
-        if context.action_type == 'UPDATE':
+        
+        if context and context.action_type == 'UPDATE':
             ppline_file = DltPipeline.create_new_pipline_version(file_name, file_path, data)
         else:
             # Create python file with pipeline code
             with open(ppline_file, file_open_flag, encoding='utf-8') as file:                    
                 file.write(data)
 
-        if context.pipeline_action == 'onlysave':
+        if context and context.pipeline_action == 'onlysave':
             context.emit_ppsuccess()
             return { 'status': True, 'message': 'Pipeline created successfully' }
 
@@ -116,6 +120,8 @@ class DltPipeline:
         #  flag = context.transformation is not None or context.action_type == 'UPDATE'
         flag = True
 
+        logger = DltPipeline.get_pipeline_logger(context)
+
         if(flag):
             while True:
                 line = result.stdout.readline()
@@ -124,49 +130,65 @@ class DltPipeline:
                 if not line:
                     break
                 line = line.strip()
+                
                 is_transformation_step = (line.endswith('Transformation')\
                                            and line.startswith('dynamic-_cmp'))
                 
                 if (line == 'RUN_SUCCESSFULLY'):
-                    context.emit_ppsuccess()
-                    pipeline_exception = False
+                    if context:
+                        context.emit_ppsuccess()
+                    pipeline_exception = False if pipeline_exception == False else pipeline_exception
 
                 else:
                     if(is_transformation_step and pipeline_exception == False):
-
                         component_ui_id = line
-                        Transformation(None, context, component_ui_id).notify_completion_to_ui()
+                        if context:
+                            Transformation(None, context, component_ui_id).notify_completion_to_ui()
                         
-                    elif(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
-
+                    elif(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
-                        message = line.startswith('RUNTIME_ERROR:')
-                        context.emit_ppline_trace(line.replace('RUNTIME_ERROR:',''), error=True)
+                        error_message = line.replace('RUNTIME_ERROR:','')
+                        handle_pipeline_log(error_message, logger, True)
+                        if context:
+                            context.emit_ppline_trace(error_message, error=True)
+                        
+                        if line.startswith('ERROR:'): break
 
-                    elif(line.startswith('RUNTIME_WARNING:') or pipeline_exception == True):
-                        context.emit_ppline_trace(line.replace('RUNTIME_WARNING:',''), warn=True)
+                    elif(line.startswith('RUNTIME_WARNING:')):
+                        warning_message = line.replace('RUNTIME_WARNING:','')
+                        handle_pipeline_log(warning_message, logger, False, True)
+                        if context:
+                            context.emit_ppline_trace(warning_message, warn=True)
                     else:
-                        context.emit_ppline_trace(line)
+                        if context:
+                            ui_log = str(line).replace('[PIPELINE_LOG]:','').replace('[DLT]:','').replace(' |+| ','')
+                            context.emit_ppline_trace(ui_log)
+                            handle_pipeline_log(line, logger)
             
         result.kill()
 
         if pipeline_exception == True:
+            handle_pipeline_log(f'PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
 
         message, status = 'Pipeline run terminated successfully', True
         
         error_messages, warning_status = None, False
-        if result.returncode != 0 and not(context.action_type == 'UPDATE' and result.returncode == 2):
+        if result.returncode != 0 and not(context and context.action_type == 'UPDATE' and result.returncode == 2):
             error_messages = result.stderr.read().split('\n')
             if(str(error_messages).__contains__('[WARNING]')):
-                context.emit_ppline_trace(error_messages, warn=True)
-                context.emit_ppsuccess()
+                if context:
+                    context.emit_ppline_trace(error_messages, warn=True)
+                    context.emit_ppsuccess()
                 warning_status = True
             else:
                 message, status = '\n'.join(error_messages[1:]), False
-                context.emit_ppline_trace(message, error=True)
+                if context:
+                    context.emit_ppline_trace(message, error=True)
 
-        context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
+        if context:
+            context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
+            handle_pipeline_log(f'pipeline.success.conclusion', logger)
         
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout.read())
@@ -181,7 +203,9 @@ class DltPipeline:
 
 
     def save_diagram(self, diagrm_path, file_name, content, pipeline_lbl, is_update = None, write_log = True):
-        
+        """
+        Save pipeline diagram.
+        """
         # Create the pipeline Diagram code
         pipeline_code = { 'content': content, 'pipeline_lbl': pipeline_lbl }
         if is_update == True:
@@ -193,10 +217,7 @@ class DltPipeline:
             diagrm_file, file_open_flag = f'{diagrm_path}/{file_name}.json', 'x+'
             with open(diagrm_file, file_open_flag) as file:
                 file.write(json.dumps(pipeline_code))
-
-
-
-
+    
     def update(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
         """
         This is the pipeline update and pipeline code
@@ -207,18 +228,17 @@ class DltPipeline:
         file_manager = FileVersionManager(file_path)
         file_manager.save_version(file_name)
  
- 
         # Run pipeline generater above by passing the python file
         result = subprocess.run(['python', ppline_file],check=True,
                                 capture_output=True,text=True)
 
-        if result.returncode == 0 and context is not None:
-            context.emit_ppsuccess()
+        if result.returncode == 0:
+            if context is not None:
+                context.emit_ppsuccess()
 
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout)
         print("Standard Error:", result.stderr)
-
 
         return {
             'status': True,
@@ -255,6 +275,19 @@ class DltPipeline:
         """
         tplt = ''
         file_name = f'{template_dir}/simple_s3_anon_login.txt'
+
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+
+        return tplt
+
+    @staticmethod
+    def get_s3_auth_template():
+        """
+        This is template handling method for authenticated S3 access
+        """
+        tplt = ''
+        file_name = f'{template_dir}/simple_s3_auth.txt'
 
         with open(f'{file_name}', 'r', encoding='utf-8') as file:
             tplt = file.read()
@@ -401,7 +434,6 @@ class DltPipeline:
         job_execution_id = uuid.uuid4()
 
         try:
-            
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{file_path}.duckdb')
             print('####### WILL RUN JOB FOR '+file_path)
 
@@ -413,27 +445,34 @@ class DltPipeline:
                                         bufsize=1)
             pipeline_exception = False
 
+            logger = DltPipeline.get_pipeline_logger(context)
+
             while True:
                 time.sleep(0.1)
                 line = result.stdout.readline()
                 if not line: 
                     break
                 line = line.strip()
+                
                 if (line == 'RUN_SUCCESSFULLY'):
                     context.emit_ppsuccess()
-                    pipeline_exception = False   
+                    pipeline_exception = False if pipeline_exception == False else pipeline_exception   
                 
                 else:
-                    if(line.startswith('RUNTIME_ERROR:') or pipeline_exception == True):
+                    if(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
-                        message = line.startswith('RUNTIME_ERROR:')
-                        context.emit_ppline_job_trace(line.replace('RUNTIME_ERROR:',''), error=True)
+                        error_message = line.replace('RUNTIME_ERROR:','').replace('ERROR:','')
+                        handle_pipeline_log(error_message, logger, True)
+                        context.emit_ppline_job_trace(error_message, error=True)
+                        if line.startswith('ERROR:'): break
                     else:
                         if(type(line) == str):
                             if(line.__contains__('Files/Bucket loaded')):
                                 if(has_ppline_job('start',job_execution_id)):
                                     pass
-                        context.emit_ppline_job_trace(line)
+                        ui_log = str(line).replace('[PIPELINE_LOG]:','').replace('[DLT]:','').replace(' |+| ','')
+                        context.emit_ppline_job_trace(ui_log)
+                        handle_pipeline_log('Scheduled-Job-log -> '+line, logger)
 
                              
             #if result.returncode == 0 and context is not None and pipeline_exception == False:
@@ -442,7 +481,8 @@ class DltPipeline:
             result.kill()
             
             if pipeline_exception == True:
-                message = 'Runtime Pipeline error, check the logs for details'
+                message = f'Runtime Pipeline ({context.pipeline_name}) with execution_id {context.pipeline_execution_id} failed, check the logs for details'
+                handle_pipeline_log(f'SCHEDULE PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
                 context.emit_ppline_job_trace(message, error=True)
             else:
                 if(line.__contains__('Pipeline run terminated successfully')):
@@ -468,6 +508,7 @@ class DltPipeline:
             if(status):
                 context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
                 context.emit_ppsuccess()
+                handle_pipeline_log(f'pipeline.success.conclusion', logger)
 
             clear_job_transaction_id(job_execution_id)
 
@@ -482,6 +523,7 @@ class DltPipeline:
             # DB Lock release in the pplication level
             DuckDBCache.remove(f'{db_root_path}/{file_path}.duckdb')
             message = f'Error while running job for {file_path.split('/')[1]} pipeline'
+            
             context.emit_ppline_job_trace(message,error=True)
             context.emit_ppline_job_trace(err.with_traceback,error=True)
 
@@ -570,6 +612,15 @@ class DltPipeline:
     def get_file_data_transformation_preview(script):
         result = run_transform_preview(None, None, None, script)
         return result
+    
+
+    @staticmethod
+    def get_pipeline_logger(context: RequestContext) -> logging.Logger:
+
+        pipeline_id = context.pipeline_name
+        execution_id = context.pipeline_execution_id
+        namespace = context.user
+        return logging.getLogger(f'pipeline.{namespace}.{pipeline_id}.{execution_id}')
 
 
 def has_ppline_job(evt, job_transaction_id):
@@ -682,3 +733,8 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
         return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
 
     return { 'error': False, 'result': inner_env['results'] if 'results' in inner_env else None }
+
+
+def create_execution_id() -> str:
+    """Generate a unique execution ID for pipeline runs."""
+    return f"exec_{uuid.uuid4().hex[:12]}"

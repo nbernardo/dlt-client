@@ -261,9 +261,9 @@ export function parseEndpointPath(path,offset,limit,batchSize){
     if(!['',null,undefined].includes(path)){
 	    fullEndpointPath = `→ ${path} `;
 	if(offset)
-		fullEndpointPath = `→ ${path}?${offset}=0 `
+		fullEndpointPath = `→ ${path+''+(path.includes('?') ? '&' : '?')}${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`} `
 	if(limit)
-			fullEndpointPath = `→ ${path}?${offset}=0&${limit}=${batchSize} `;
+			fullEndpointPath = `→ ${path+''+(path.includes('?') ? '&' : '?')}?${offset.search(/\=[0-9]{0,}/) > -1 ? offset : `${offset}=0`}&${limit}=${batchSize} `;
 	}else
 		fullEndpointPath = '';
     
@@ -401,42 +401,148 @@ export function handleShowHideWalletFields(show = null){
     });
 }
 
+function disableTestBtn(obj){
+    const btn = document.querySelector('.connectio-test-status');
+    btn.parentElement.disabled = true;
+    obj.checkConnection = 'in-progress';
+    return btn
+}
+
+function enableTestBtn(btn, obj, result){
+    btn.style.background = result ? 'green' : 'red';
+    obj.checkConnection = '';
+    btn.parentElement.disabled = false;
+}
+/** @param {CatalogForm} obj  */
+export function handleOnInitOnchange(obj){
+
+	obj.dbEngine.onChange(dbEngine => {
+		if(dbEngine == 'oracle-database-plugin')
+			return obj.showServiceNameLbl = true;
+		obj.showServiceNameLbl = false;
+	});
+
+	obj.kvSecretType.onChange(val => {
+		obj.showTestConnection = false;
+		document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = 'none');
+		document.querySelectorAll('.kv-secret-type').forEach(elm => {
+			elm.style.display = elm.classList.contains(val) ? '' : 'none';
+			if(elm.classList.contains(val)) obj.showTestConnection = true;
+		});
+
+		document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').value = '';
+		document.querySelector('.secret-first-key-setting').value = '';
+        document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').disabled = false;
+        document.querySelector('.secret-first-key-setting').disabled = false;
+
+		if(['s3-access-and-secret-keys'].includes(val)){
+			document.querySelectorAll('.secret-bucket-url-field').forEach(elm => elm.style.display = '');
+			document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').value = 'ACCESS_SECRET_KEY';
+			document.querySelectorAll('.s3-access-and-secret-keys')[1].querySelector('input').disabled = true;
+			document.querySelector('.secret-first-key-setting').disabled = true;
+			obj.firstKey = 'ACCESS_KEY';
+		}
+	});
+
+}
+
 
 /**
  * 
  * @param { CatalogForm } obj 
  */
-export async function testConnection(obj, secretName, secretType, isDbConnEditing){
+export async function testConnection(obj, secretType, isDbConnEditing){
 
     if(secretType == 1){
-        const btn = document.querySelector('.connectio-test-status');
-        btn.parentElement.disabled = true;
-        obj.checkConnection = 'in-progress';
-        const result = await WorkspaceService.testDbConnection({ env: obj.getDynamicFields(), dbConfig: obj.getDBConfig()}, isDbConnEditing);
-        btn.style.background = result == true ? 'green' : 'red';
-        obj.checkConnection = '';
-        btn.parentElement.disabled = false;
+        const btn = disableTestBtn(obj);
+		const result = obj.dataBaseSettingType == 2 
+			? await WorkspaceService.testConnectWithKVSecret(obj)
+			: await WorkspaceService.testDbConnection({ env: obj.getDynamicFields(), dbConfig: obj.getDBConfig()}, obj.isDbConnEditing);
+        enableTestBtn(btn, obj, result);
     }
     
     if(secretType == 2){
+        let btn = disableTestBtn(obj), response = {};
         let { apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 } = obj;
         apiEndpointPath1 = apiEndpointPath1.value, 
         apiEndpointPathPK1 = apiEndpointPathPK1.value, 
         apiEndpointDS1 = apiEndpointDS1.value;
-        const endpoints = { ...obj.getDynamicFields(), apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 };
-        const payload = { endpoints, baseUrl: obj.apiBaseUrl.value }
+        const endpoints = { ...obj.parseAPICatalogFields(), apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 };
+        const payload = { endpoints, baseUrl: obj.apiBaseUrl.value, keyName: obj.apiKeyName.value }
 
         if(['api-key','bearer-token'].includes(obj.apiAuthType) === false) 
-            return await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
-
-        if(obj.apiAuthType === 'api-key'){
-            obj.apiKeyValue = secretData.apiSettings.apiKeyValue;
-            await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue, ...payload }, obj.endPointEditorContent);
-
-        }else if(obj.apiAuthType === 'bearer-token'){
-            obj.apiTknValue = secretData.apiSettings.apiTknValue;
-            await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue, ...payload }, obj.endPointEditorContent);
-        }
+            response = await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
+        if(obj.apiAuthType === 'api-key')
+            response = await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue.value, ...payload }, obj.endPointEditorContent);
+        else if(obj.apiAuthType === 'bearer-token')
+            response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue.value, ...payload }, obj.endPointEditorContent);
+        
+        document.querySelector('.APITestResponse').innerHTML = response.content;
+        document.querySelector('.APITestResponse').classList.add('APITestResponse-show');
+        enableTestBtn(btn, obj, response.errors == 0);
     }
 
+}
+
+export function parseJSON(content){
+    return content.replaceAll('\n','<br>')
+            .replaceAll('\t'.repeat(1),'&nbsp;&nbsp;')
+            .replaceAll('\t'.repeat(2),'&nbsp;&nbsp;'.repeat(2))
+            .replaceAll('\t'.repeat(3),'&nbsp;&nbsp;'.repeat(3))
+            .replaceAll('\t'.repeat(4),'&nbsp;&nbsp;'.repeat(4))
+            .replaceAll('\t'.repeat(5),'&nbsp;&nbsp;'.repeat(5))
+            .replaceAll('\t'.repeat(6),'&nbsp;&nbsp;'.repeat(6));
+}
+
+
+export function expoandApiTestData(contentId){
+    const container = document.getElementById(contentId);
+
+    if(container.style.display === 'none'){
+        container.parentElement.querySelector('span').innerHTML = 'Hide data';
+        return container.style.display = '';
+    }
+    container.parentElement.querySelector('span').innerHTML = 'Show data';
+    container.style.display = 'none';
+}
+
+export function changeType(obj, connectionType = null, groupType = 'regular'){
+
+    if(![null,undefined].includes(connectionType)) obj.dataBaseSettingType = connectionType;
+	obj.showAddSecrete = true;
+	if(connectionType == 1){
+		if(!obj.isDbFirstCall) {
+			obj.addSecreteGroup(true);
+			obj.isDbFirstCall = true;
+		}
+		document.querySelectorAll('.catalog-form-db-fields input:not(.no-required), .catalog-form-db-fields select').forEach(inpt => inpt.setAttribute('required', true));
+		document.querySelectorAll('.catalog-form-secret-group input').forEach(inpt => {
+			inpt.removeAttribute('required');
+			inpt.removeAttribute('(required)');
+		});
+		obj.showTestConnection = true;
+	}else{
+		document.querySelectorAll('.catalog-form-db-fields input, .catalog-form-db-fields select').forEach(inpt => {
+			inpt.removeAttribute('required');
+			inpt.removeAttribute('(required)');
+		});
+
+        // Make all inputs no required to assign accordingly right after
+        for(const inpt of document.querySelectorAll('.catalog-form-secret-group input')) inpt.removeAttribute('required');
+        
+        //secret-bucket-url-field
+        if(groupType === 'regular'){
+            document.querySelectorAll('.catalog-form-secret-group input')
+            .forEach(inpt => {
+                if(!(inpt.classList.contains('secret-bucket-url-field') || inpt.classList.contains('bucket-input'))) 
+                    inpt.setAttribute('required', true)
+            });
+        }
+        
+        if(groupType === 's3-access-and-secret-keys')
+            document.querySelectorAll('.catalog-form-secret-group input').forEach(inpt => inpt.setAttribute('required', true));
+        
+		obj.showTestConnection = false;
+	}
+    if(connectionType == 2) obj.kvSecretType = 'regular';
 }

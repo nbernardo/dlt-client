@@ -1,10 +1,19 @@
 %metadata_section%import dlt
 import pandas as pd
 import boto3
+import logging
 from botocore import UNSIGNED
 from botocore.client import Config
 import fnmatch
 %import_from_src%
+from src.utils.logging.pipeline_logger_config import PipelineLogger
+
+# Initialize pipeline logger
+logger = PipelineLogger()
+
+logger.info("Starting S3 anonymous pipeline", extra={'stage': 'initialization', 'template_type': 's3_anon'})
+
+logger.info("Initializing S3 client", extra={'stage': 'client_setup'})
 s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
 
 # Bellow mapping: primary_key = Bucket.primary_key
@@ -14,6 +23,7 @@ def stream_s3():
 
     # Bellow mapping: pattern = Bucket.file_pattern
     pattern = %file_pattern%.replace('**','*')
+    logger.info("Starting S3 data streaming", extra={'stage': 'data_streaming', 'file_pattern': pattern})
     
     paginator = s3.get_paginator('list_objects_v2')
 
@@ -22,10 +32,28 @@ def stream_s3():
     if(len(bucket_url) > 1):
         bucket_url = bucket_url[0]
 
+    logger.info("Listing S3 objects", extra={
+        'stage': 'object_listing',
+        'bucket': bucket_url,
+        'prefix': '%bucket_path_prefix%',
+        'pattern': pattern
+    })
+
     # Bellow mapping: Prefix = Bucket.bucket_path_prefix
-    pages = paginator.paginate(Bucket=bucket_url, Prefix=%bucket_path_prefix%)
+    try:
+        pages = paginator.paginate(Bucket=bucket_url, Prefix=%bucket_path_prefix%)
+    except Exception as list_error:
+        logger.error("Failed to list S3 objects", extra={
+            'stage': 'object_listing_error',
+            'bucket': bucket_url,
+            'prefix': '%bucket_path_prefix%',
+            'error_type': type(list_error).__name__,
+            'error_message': str(list_error)
+        }, exc_info=True)
+        raise
 
     total_match = 0
+    total_records = 0
 
     for page in pages:
         for obj in page.get('Contents', []):
@@ -33,18 +61,94 @@ def stream_s3():
             # Match pattern
             if fnmatch.fnmatch(file_name, pattern):
                 total_match = total_match + 1
-                s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
                 
-                print(f'Ingesting data from {file_name}', flush=True)
-                for chunk in pd.read_csv(s3_object['Body'], chunksize=10000):
-                    yield chunk.to_dict('records')
+                logger.debug("Processing S3 object", extra={
+                    'stage': 'file_processing',
+                    'file_name': file_name,
+                    'key': obj['Key'],
+                    'size': obj.get('Size', 'unknown')
+                })
+                
+                try:
+                    s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
+                    
+                    print(f'Ingesting data from {file_name}', flush=True)
+                    
+                    file_records = 0
+                    for chunk in pd.read_csv(s3_object['Body'], chunksize=10000):
+                        chunk_size = len(chunk)
+                        file_records += chunk_size
+                        total_records += chunk_size
+                        
+                        logger.debug("Processing data chunk", extra={
+                            'stage': 'data_processing',
+                            'file_name': file_name,
+                            'chunk_size': chunk_size,
+                            'file_records_so_far': file_records
+                        })
+                        
+                        yield chunk.to_dict('records')
+                    
+                    logger.info("File processing completed", extra={
+                        'stage': 'file_complete',
+                        'file_name': file_name,
+                        'records_processed': file_records
+                    })
+                    
+                except Exception as file_error:
+                    logger.error("Failed to process S3 file", extra={
+                        'stage': 'file_processing_error',
+                        'file_name': file_name,
+                        'key': obj['Key'],
+                        'error_type': type(file_error).__name__,
+                        'error_message': str(file_error)
+                    }, exc_info=True)
+                    # Continue processing other files
+                    continue
+    
+    logger.info("S3 streaming completed", extra={
+        'stage': 'streaming_complete',
+        'total_files_matched': total_match,
+        'total_records_processed': total_records,
+        'pattern': pattern
+    })
     
     if total_match == 0:
+        logger.warning("No files matched the pattern", extra={
+            'stage': 'no_matches',
+            'pattern': pattern,
+            'bucket': bucket_url,
+            'prefix': '%bucket_path_prefix%'
+        })
         print(f'RUNTIME_WARNING:No file matching pattern {pattern} was found. No data will be loaded.', flush=True)
 
 %destination_settings%
 
-info = pipeline.run(stream_s3(), write_disposition="merge")
+logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
 
-print(info, flush=True)
-print('RUN_SUCCESSFULLY', flush=True)
+try:
+    info = pipeline.run(stream_s3(), write_disposition="merge")
+
+    # Log pipeline execution results
+    if hasattr(info, 'loads_ids') and info.loads_ids:
+        logger.info("S3 anonymous pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(info.loads_ids),
+            'dataset_name': getattr(info, 'dataset_name', 'unknown'),
+            'template_type': 's3_anon'
+        })
+    else:
+        logger.info("S3 anonymous pipeline execution completed", extra={'stage': 'pipeline_completion', 'template_type': 's3_anon'})
+
+    print(info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
+    
+except Exception as e:
+    logger.error("S3 anonymous pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(e).__name__,
+        'error_message': str(e),
+        'template_type': 's3_anon'
+    }, exc_info=True)
+    print(f'RUNTIME_ERROR:S3 anonymous pipeline execution failed: {e}', flush=True)
+    raise

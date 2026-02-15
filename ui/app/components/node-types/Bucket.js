@@ -2,6 +2,7 @@ import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { InputDropdown } from "../../util/InputDropdownUtil.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
@@ -19,10 +20,12 @@ export class Bucket extends AbstractNode {
 	bucketUrl = '';
 	provider;
 	filePattern;
+	bucketFilePattern;
 	bucketFileSource;
 	selectedFilePattern;
 	sourcePrimaryKey;
 	nodeCount = '';
+	secretsList = '';
 
 	/** @Prop */ showBucketUrlInput = 1;
 	/** @Prop */ inConnectors = 1;
@@ -49,13 +52,15 @@ export class Bucket extends AbstractNode {
 	wSpaceController;
 
 	filesFromList = [];
+	bucketObjects = [];
+	selectedSecret;
 
 	/* The id will be passed when instantiating Bucket dinamically through the
 	 * Component.new(type, param) where for para nodeId will be passed  */
 	stOnRender(data) {
 		const { 
 			nodeId, isImport, bucketUrl, filePattern, primaryKey, 
-			bucketFileSource, aiGenerated, url, file
+			bucketFileSource, aiGenerated, url, file, connectionName
 		} = data;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
@@ -65,8 +70,10 @@ export class Bucket extends AbstractNode {
 		if(primaryKey) this.sourcePrimaryKey = primaryKey;
 		if(bucketFileSource) this.bucketFileSource = bucketFileSource;
 
-		this.importFields = { bucketUrl, url, filePattern, file };
+		this.importFields = { bucketUrl, url, filePattern, file, connectionName };
 		this.aiGenerated = aiGenerated;
+
+		setTimeout(() => this.showMoreFileOptions = true, 5000);
 	}
 
 	async getFilesList(){
@@ -89,6 +96,8 @@ export class Bucket extends AbstractNode {
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController		
 		if ([false, undefined].includes(this.isImport) || this.aiGenerated) this.setupOnChangeListen();
 
+		this.secretsList = (await WorkspaceService.listSecrets(3)).filter(itm => itm.host != 'None');
+
 		if(this.aiGenerated){
 			const bucketUrl = this.importFields.url ? this.importFields.url : this.importFields.bucketUrl;
 			const flPattern = this.importFields.file ? this.importFields.file : this.importFields.filePattern;
@@ -105,12 +114,16 @@ export class Bucket extends AbstractNode {
 			// terget component if connection is being created, regular targets of Backet are Transformation and 
 			// DuckDBOutput, in case isImport == true, this event is emitted when data source/files are listed
 			this.notifyReadiness();
+			this.selectedSecret = this.importFields.connectionName;
+			if(this.importFields.connectionName) 
+				this.bucketObjects = await WorkspaceService.getBucketObjects(this.importFields.connectionName);
 
 			this.selectedFilePattern = this.filePattern.value;
 			if(this.bucketFileSource.value === '2'){
 				this.bucketFileSource = 1;
 				this.setupOnChangeListen();
 				setTimeout(() => {
+					this.filePattern = this.importFields.filePattern;
 					this.bucketFileSource = 2;
 					this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 					this.showLoading = false;
@@ -123,6 +136,7 @@ export class Bucket extends AbstractNode {
 			data['readFileType'] = this.filePattern.value.split('.').slice(-1);
 			this.bucketUrl = this.bucketFileSource.value;
 			this.selectedFilePattern = this.filePattern.value;
+
 		}
 	}
 
@@ -130,25 +144,38 @@ export class Bucket extends AbstractNode {
 		const mainContnr = document.querySelector('.'+this.cmpInternalId);
 		this.bucketFileSource.onChange(async (newValue) => {
 			this.showBucketUrlInput = Number(newValue);
+			WorkSpaceController.isS3AuthTemplate= false;
+			delete WorkSpaceController.getNode(this.nodeId).data['connectionName'];
 			if(this.showBucketUrlInput == 2){
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
+				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.setAttribute('required', true));
+				WorkSpaceController.isS3AuthTemplate = true;
 			}else{
 				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('required',true);
+				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.removeAttribute('required'));
 			}
 			this.setNodeData('bucketFileSource', newValue);
 		});
 
 		this.bucketUrl.onChange((newValue) => this.setNodeData('bucketUrl', newValue));
 
+		this.selectedSecret.onChange(async value => {
+			if(this.bucketFileSource.value == 2){
+				this.showMoreFileOptions = true;
+				this.bucketObjects = await WorkspaceService.getBucketObjects(value);
+				setTimeout(() => this.showMoreFileOptions = false, 100);
+			}
+		});
+
 		this.selectedFilePattern.onChange(async (newValue) => {
 			const selectdFile = newValue.trim();
 			if (selectdFile == '') return;
-
+			
 			this.showMoreFileOptions = 'searching';
 			await this.wspaceService.handleCsvSourceFields(selectdFile);
 
 			const fileType = selectdFile.toLowerCase().split('.').slice(-1)[0];
-			WorkSpaceController.getNode(this.nodeId).data['readFileType'] = fileType;
+			this.setNodeData('readFileType', fileType)
 
 			if (newValue.trim() != "") this.showMoreFileOptions = true;
 			else this.showMoreFileOptions = false;
@@ -157,25 +184,33 @@ export class Bucket extends AbstractNode {
 			this.bucketUrl = 'user_folder';
 		});
 
-		this.filePattern.onChange(async (newValue) => {
-			if (this.moreOptionsRef !== null) this.moreOptionsRef.popup.style.display = 'none';
-			this.setNodeData('filePattern', newValue);
+		this.filePattern.onChange(async (v) => this.handleFilePattern(v));
+		this.bucketFilePattern.onChange(async (v) => {
+			await this.handleFilePattern(v, true); this.setNodeData('connectionName', this.selectedSecret.value);
 		});
-
-		this.provider.onChange((newValue) => {
-			const data = WorkSpaceController.getNode(this.nodeId).data;
-			data['provider'] = newValue;
-		});
-
-		this.sourcePrimaryKey.onChange(newValue => this.setNodeData('primaryKey', newValue));
+		this.provider.onChange((v) => this.setNodeData('provider', v));
+		this.sourcePrimaryKey.onChange(v => this.setNodeData('primaryKey', v));
 	}
-
-	setNodeData = (field, value) => WorkSpaceController.getNode(this.nodeId).data[field] = value;
 	
-	getMyData() {
-		const data = WorkSpaceController.getNode(this.nodeId);
-		WorkSpaceController.getNode(this.nodeId).html = '';
-		console.log(data.data);
+	/** @Prop */ previousFilePattern = '';
+	async handleFilePattern(newValue, fromCloud = false){
+		if(this.previousFilePattern.trim() === newValue.trim()) return;
+		this.previousFilePattern = newValue;
+
+		if(fromCloud) {
+			let dataSource = await WorkspaceService.getBucketObjectFields(this.selectedSecret.value, newValue);
+			dataSource = dataSource.data;
+			
+			InputDropdown.new({ 
+				inputSelector: '.sourceBucketPrimaryKey', dataSource,
+				boundComponent: this, componentFieldName: null
+			});
+		}
+
+		if (this.moreOptionsRef !== null) this.moreOptionsRef.popup.style.display = 'none';
+		this.setNodeData('filePattern', newValue);
+		this.setNodeData('bucketUrl', null);
+		this.setNodeData('readFileType', newValue.toLowerCase().split('.').slice(-1)[0]);
 	}
 
 	setMoreOptionsMenu(e, containerId) {

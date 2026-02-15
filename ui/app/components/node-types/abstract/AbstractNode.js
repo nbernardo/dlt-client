@@ -1,4 +1,5 @@
 import { BaseComponent } from "../../../../@still/component/super/BaseComponent.js";
+import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 
 /** @implements { NodeTypeInterface } */
@@ -58,5 +59,9 @@ export class AbstractNode extends BaseComponent {
       .querySelector(`.${this.cmpInternalId}`)
       .querySelector('.reload-loc-node-btn').classList.remove('reload-loc-node-btn-animace-rotation');
   }
+
+  setNodeData = (field, value) => 
+    WorkSpaceController.getNode(this.nodeId).data[field] = value;
+  
 
 }

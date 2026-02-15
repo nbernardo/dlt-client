@@ -112,7 +112,7 @@ export class DatabaseOutput extends AbstractNode {
 	}
 
 	async getDBSecrets(){
-		this.secretList = (await WorkspaceService.listSecrets(1)).filter(itm => itm.host != 'None');
+		this.secretList = (await WorkspaceService.listSecrets(1)).filter(itm => itm.host != 'None' && itm.bucket == 'no');
 	}
 
 	async reloadMe(){

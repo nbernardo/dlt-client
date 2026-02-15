@@ -62,6 +62,7 @@ export class WorkSpaceController extends BaseController {
     wSpaceComponent;
     isImportProgress = false;
     isSubmittingPipeline = false;
+    static isS3AuthTemplate = false;
 
     importingPipelineSourceDetails = null;
 
@@ -98,6 +99,16 @@ export class WorkSpaceController extends BaseController {
     constructor(){
         super();
         (async () => await this.loadMonacoEditorDependencies())();
+    }
+
+    pipelineCreateMetadata(){
+        return { 
+            s3Auth: WorkSpaceController.isS3AuthTemplate
+        }
+    }
+
+    pipelineMetadataClear(){
+        WorkSpaceController.isS3AuthTemplate = undefined;
     }
 
     resetEdges() {

@@ -1,0 +1,198 @@
+%metadata_section%import dlt
+import polars as pl
+import boto3
+import fnmatch
+from pathlib import Path
+from sys import path
+%import_from_src%
+from src.utils.logging.pipeline_logger_config import PipelineLogger
+
+# Initialize pipeline logger
+logger = PipelineLogger()
+
+logger.info("Starting S3 authenticated pipeline", extra={'stage': 'initialization', 'template_type': 's3_auth'})
+
+#Adding root folder to allow import from src
+src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
+path.insert(0, src_path)
+path.insert(0, src_path+'/src')
+
+from src.services.workspace.Workspace import Workspace
+from src.utils.BucketConnector import get_bucket_credentials
+
+# Bellow mapping: namespace = Bucket.namespace
+namespace = %namespace%
+
+# Bellow mapping: connection_name = Bucket.connection_name (S3 connection name)
+connection_name = %connection_name%
+
+print(f'fetching "{connection_name}" secrets for S3 connection', flush=True)
+logger.info("Fetching S3 connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
+secret = get_bucket_credentials(namespace, connection_name)
+
+# Extract S3 credentials from secret
+AWS_ACCESS_KEY_ID = secret['access_key_id']
+AWS_SECRET_ACCESS_KEY = secret['secret_access_key']
+AWS_REGION = secret.get('region', 'us-east-1')
+
+logger.info("Initializing authenticated S3 client", extra={
+    'stage': 'client_setup',
+    'region': AWS_REGION,
+    'connection_name': connection_name
+})
+
+# Create authenticated S3 client
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    region_name=AWS_REGION
+)
+
+# Bellow mapping: primary_key = Bucket.primary_key
+# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+@dlt.resource(name=%ppline_dest_table%, primary_key=%primary_key%)
+def stream_s3():
+
+    # Bellow mapping: pattern = Bucket.file_pattern
+    pattern = %file_pattern%.replace('**','*')
+    logger.info("Starting S3 authenticated data streaming", extra={
+        'stage': 'data_streaming', 
+        'file_pattern': pattern,
+        'template_type': 's3_auth'
+    })
+    
+    paginator = s3.get_paginator('list_objects_v2')
+
+    # Bellow mapping: Bucket = Bucket.bucket_url, 
+    bucket_url = %bucket_url%.replace('s3://','').split('/')
+    if(len(bucket_url) > 1):
+        bucket_url = bucket_url[0]
+
+    logger.info("Listing S3 objects with authentication", extra={
+        'stage': 'object_listing',
+        'bucket': bucket_url,
+        'prefix': '%bucket_path_prefix%',
+        'pattern': pattern,
+        'auth_type': 'authenticated'
+    })
+
+    # Bellow mapping: Prefix = Bucket.bucket_path_prefix
+    try:
+        pages = paginator.paginate(Bucket=bucket_url, Prefix=%bucket_path_prefix%)
+    except Exception as list_error:
+        logger.error("Failed to list S3 objects with authentication", extra={
+            'stage': 'object_listing_error',
+            'bucket': bucket_url,
+            'prefix': '%bucket_path_prefix%',
+            'error_type': type(list_error).__name__,
+            'error_message': str(list_error),
+            'auth_type': 'authenticated'
+        }, exc_info=True)
+        raise
+
+    total_match = 0
+    total_records = 0
+
+    for page in pages:
+        for obj in page.get('Contents', []):
+            file_name = obj['Key'].split('/')[-1]
+            # Match pattern
+            if fnmatch.fnmatch(file_name, pattern):
+                total_match = total_match + 1
+                
+                logger.debug("Processing S3 object with authentication", extra={
+                    'stage': 'file_processing',
+                    'file_name': file_name,
+                    'key': obj['Key'],
+                    'size': obj.get('Size', 'unknown'),
+                    'auth_type': 'authenticated'
+                })
+                
+                try:
+                    s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
+                    lazy_df = pl.scan_csv(s3_object["Body"].read())
+
+                    file_records = 0
+                    for chunk in lazy_df.collect(streaming=True).iter_slices(n_rows=10000):
+                        chunk_size = chunk.height
+                        file_records += chunk_size
+                        total_records += chunk_size
+                        
+                        logger.debug("Processing data chunk with authentication", extra={
+                            'stage': 'data_processing',
+                            'file_name': file_name,
+                            'chunk_size': chunk_size,
+                            'file_records_so_far': file_records,
+                            'auth_type': 'authenticated'
+                        })
+                        
+                        yield chunk.to_dicts()
+                    
+                    logger.info("File processing completed with authentication", extra={
+                        'stage': 'file_complete',
+                        'file_name': file_name,
+                        'records_processed': file_records,
+                        'auth_type': 'authenticated'
+                    })
+                    
+                except Exception as file_error:
+                    logger.error("Failed to process S3 file with authentication", extra={
+                        'stage': 'file_processing_error',
+                        'file_name': file_name,
+                        'key': obj['Key'],
+                        'error_type': type(file_error).__name__,
+                        'error_message': str(file_error),
+                        'auth_type': 'authenticated'
+                    }, exc_info=True)
+                    # Continue processing other files
+                    continue
+    
+    logger.info("S3 authenticated streaming completed", extra={
+        'stage': 'streaming_complete',
+        'total_files_matched': total_match,
+        'total_records_processed': total_records,
+        'pattern': pattern,
+        'template_type': 's3_auth'
+    })
+    
+    if total_match == 0:
+        logger.warning("No files matched the pattern in authenticated S3", extra={
+            'stage': 'no_matches',
+            'pattern': pattern,
+            'bucket': bucket_url,
+            'prefix': '%bucket_path_prefix%',
+            'auth_type': 'authenticated'
+        })
+        print(f'RUNTIME_WARNING:No file matching pattern {pattern} was found. No data will be loaded.', flush=True)
+
+%destination_settings%
+
+logger.info("Starting authenticated pipeline execution", extra={'stage': 'pipeline_execution', 'template_type': 's3_auth'})
+
+try:
+    info = pipeline.run(stream_s3(), write_disposition="merge")
+
+    # Log pipeline execution results
+    if hasattr(info, 'loads_ids') and info.loads_ids:
+        logger.info("S3 authenticated pipeline execution completed successfully", extra={
+            'stage': 'pipeline_completion',
+            'loads_ids': str(info.loads_ids),
+            'dataset_name': getattr(info, 'dataset_name', 'unknown'),
+            'template_type': 's3_auth'
+        })
+    else:
+        logger.info("S3 authenticated pipeline execution completed", extra={'stage': 'pipeline_completion', 'template_type': 's3_auth'})
+
+    print(info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
+    
+except Exception as e:
+    logger.error("S3 authenticated pipeline execution failed", extra={
+        'stage': 'pipeline_error',
+        'error_type': type(e).__name__,
+        'error_message': str(e),
+        'template_type': 's3_auth'
+    }, exc_info=True)
+    print(f'RUNTIME_ERROR:S3 authenticated pipeline execution failed: {e}', flush=True)
+    raise

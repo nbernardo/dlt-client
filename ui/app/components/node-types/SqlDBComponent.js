@@ -212,7 +212,7 @@ export class SqlDBComponent extends AbstractNode {
 	/** Brings the existing Databases secret */
 	async getDBSecrets(){
 		const dbSecretType = 1;	
-		this.secretList = (await WorkspaceService.listSecrets(dbSecretType)).filter(itm => itm.host != 'None');
+		this.secretList = (await WorkspaceService.listSecrets(dbSecretType)).filter(itm => itm.host != 'None' && itm.bucket == 'no');
 	}
 
 	async reloadMe(){

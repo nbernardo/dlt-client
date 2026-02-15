@@ -19,10 +19,11 @@ class SecretManager(SecretManagerType):
     This is a singleton classe which the responsibility is to handle 
     secret managements, initially focusing on Hashicorp vault
     """
+    vault_host, vault_pass = env('VAULT_ADDR'), env('VAULT_TOKEN')
 
     vault_instance: Client = None
-    vault_url = env('HASHICORP_HOST')
-    vault_token = env('HASHICORP_TOKEN')
+    vault_url = vault_host if vault_host != None else env('HASHICORP_HOST')
+    vault_token = vault_pass if vault_pass != None else env('HASHICORP_TOKEN')
     vault_crt_path = False \
         if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
         else env('HASHICORP_CERTIF_PATH')
@@ -36,10 +37,12 @@ class SecretManager(SecretManagerType):
         return referencedSecrets(namespace, secret_names)
 
     
-    def ppline_connect_to_vault():
+    def ppline_connect_to_vault() -> hvac.Client:
 
-        vault_url = env('HASHICORP_HOST')
-        vault_token = env('HASHICORP_TOKEN')
+        vault_host, vault_pass = env('VAULT_ADDR'), env('VAULT_TOKEN')
+        vault_url = vault_host if vault_host != None else env('HASHICORP_HOST')
+        vault_token = vault_pass if vault_pass != None else env('HASHICORP_TOKEN')
+
         vault_crt_path = False \
             if str(env('HASHICORP_CERTIF_PATH','false')).lower() == 'false'\
             else env('HASHICORP_CERTIF_PATH')
@@ -50,10 +53,10 @@ class SecretManager(SecretManagerType):
             'vault_crt_path': vault_crt_path
         }
 
-        SecretManager.connect_to_vault(params)
+        return SecretManager.connect_to_vault(params)
 
 
-    def connect_to_vault(params = {}):
+    def connect_to_vault(params = {}) -> hvac.Client :
 
         if('vault_url' in params):
             SecretManager.vault_url = params['vault_url']
@@ -65,6 +68,8 @@ class SecretManager(SecretManagerType):
             token=SecretManager.vault_token,
             #verify=SecretManager.vault_crt_path
         )
+
+        return SecretManager.vault_instance
 
     
     def create_namespace(namespace, type = None):
@@ -94,6 +99,24 @@ class SecretManager(SecretManagerType):
             
     def create_secret(namespace, params: dict, path = 'main'):
         if path.startswith('main/db'):
+
+            secrets = params['dbConfig']['secrets'][0]
+            if secrets['isKvSecret']:
+                if secrets['secretType'] == 's3-access-and-secret-keys':
+                    secret_values = { 
+                        'access_key_id': secrets['firstKey'], 
+                        'secret_access_key': secrets['secondKey'],
+                        'bucket_name': (secrets['bucketUrl'].split('//')[1] or '').replace('/','')
+                    }
+
+                    SecretManager.save_secrets_metadata(namespace, { secrets['connectionName'] : secrets['bucketUrl'] })
+                    return SecretManager.vault_instance.secrets.kv.v2.create_or_update_secret(
+                        mount_point=namespace,
+                        path=path,
+                        secret=secret_values
+                    )
+ 
+
             for item in params['dbConfig']['secrets']:
                 key_value = list(item.items())[0]
                 k = key_value[0]
@@ -146,9 +169,12 @@ class SecretManager(SecretManagerType):
         SecretManager.save_secrets_metadata(namespace, { config['connectionName'] : config['host'] })
 
 
-    def get_secret(namespace, path, edit=False):
+    def get_secret(namespace, path, edit=False, secret_group=False, from_pipeline = False):
         data = {}
-        if not edit and not str(path).startswith('main/db/'):
+        if from_pipeline:
+            SecretManager.ppline_connect_to_vault()
+        if secret_group: path = f'main/db/{path}'
+        elif not edit and not str(path).startswith('main/db/'):
             path = 'metadata' if path == 'metadata' else 'main/api/'+path
         try:
             secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
@@ -157,9 +183,14 @@ class SecretManager(SecretManagerType):
                 raise_on_deleted_version=True
             )
             data = secrets['data']['data']
-        except Exception:
+        except Exception as err:
+            print('Error on getting the secrets: ', str(err))
             ...
         return data
+    
+    
+    def get_pipeline_secret(namespace, path):
+        return SecretManager.get_secret(namespace, path, False, False, True)
 
 
     def list_secrets_by_path(namespace, path):
@@ -217,7 +248,10 @@ class SecretManager(SecretManagerType):
             SecretManager.create_secret(namespace, { **new_data, 'dbConfig': {} }, path='metadata')
 
 
-    def get_db_secret(namespace, connection_name):
+    def get_db_secret(namespace, connection_name, from_pipeline = False):
+        if from_pipeline:
+            SecretManager.ppline_connect_to_vault()
+            
         path = f'main/db/{connection_name}'
         secret = SecretManager.get_secret(namespace, path=path)
 
@@ -226,7 +260,11 @@ class SecretManager(SecretManagerType):
                 secret['connection_url'] = secret['connection_url']+f'{SQLConnection.get_mssql_driver()}'
 
         return secret
-            
+    
+
+    def get_db_secret_from_ppline(namespace, connection_name):
+        return SecretManager.get_db_secret(namespace, connection_name, from_pipeline = True)
+    
 
     def get_from_references(namespace,references: list = []):
 

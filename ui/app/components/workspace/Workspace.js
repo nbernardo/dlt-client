@@ -23,6 +23,8 @@ import { DLTCode } from "../node-types/dlt/DLTCode.js";
 import { DLTCodeOutput } from "../node-types/destination/DLTCodeOutput.js";
 import { DatabaseOutput } from "../node-types/output/DatabaseOutput.js";
 import { sleepForSec } from "../../../@still/component/manager/timer.js";
+import { CatalogForm } from "../catalog/CatalogForm.js";
+import { expoandApiTestData } from "../catalog/util/CatalogUtil.js";
 
 export class Workspace extends ViewComponent {
 
@@ -139,6 +141,8 @@ export class Workspace extends ViewComponent {
 	
 	/** @Prop */ dynamicViewPlaceholder;
 
+	/** @Prop @type { CatalogForm } */ secretPopupForm;
+
 	schedulePeriodicity;
 	scheduleTimeType = 'min';
 	scheduleTime;
@@ -174,13 +178,8 @@ export class Workspace extends ViewComponent {
 
 	async stAfterInit() {
 		this.drawFlowContainer = document.getElementById('drawflow');
-		this.pplService.on('load', () => {
-			console.log(`Service loaded with updated: `, this.pplService);
-			/* this.service.createPipeline().then(res => {
-				console.log(`Pipeline created successfully: `, res);
-			})*/
-		});
-		
+		this.pplService.on('load', () => console.log(`Service loaded with updated: `, this.pplService));
+		this.service.on('load', () => this.service.component = this);
 		this.buildWorkspaceView();
 
 		setTimeout(() => this.showLoading = false, 100);
@@ -310,8 +309,15 @@ export class Workspace extends ViewComponent {
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
 		let data = this.editor.export();
-		data = { ...data, user: await UserService.getNamespace(), startNode, activeGrid, pplineLbl: this.activeGrid.value, socketSid: this.socketData.sid };
+		data = { 
+			...data, 
+			user: await UserService.getNamespace(), 
+			startNode, activeGrid, pplineLbl: this.activeGrid.value, 
+			socketSid: this.socketData.sid,
+			...this.controller.pipelineCreateMetadata()
+		};
 		
+		this.controller.pipelineMetadataClear();
 		if(sqlPipelineDbEngine) data.initDbengine = sqlPipelineDbEngine;
 		if(isOldSQLNode) data.isOldSQLNode = isOldSQLNode;
 		console.log(data);
@@ -650,4 +656,6 @@ export class Workspace extends ViewComponent {
 		this.controller.aiAgentExpandView = {};
 		
 	}
+
+	showAPIData = (contentId) => expoandApiTestData(contentId);
 }

@@ -38,14 +38,46 @@
               <div class="modal-body catalog-form-secret-group">
           
                 <div class="form-group">
+                  <label>Secret group name</label>
+                  <input (value)="connectionName" style="display: none;"
+                    class="secret-bucket-url-field s3-access-and-secret-keys" type="text" placeholder="e.g. My Bucket Secret">
+                </div>          
+                <div class="form-group"></div>
+
+                <div class="form-group">
+                  <label>Secret type</label>
+                  <select (value)="kvSecretType">
+                    <option value="regular">Regular KV</option>
+                    <option value="s3-access-and-secret-keys">S3 Access and Secret Keys</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label style="display: none;" class="secret-bucket-url-field">Bucket URL</label>
+                  <input (value)="bucketUrl" style="display: none;"
+                    class="secret-bucket-url-field" type="text" placeholder="e.g. s3://company.bucket">
+                </div>
+                
+                <div class="form-group">
                   <label>Secret Key/Name</label>
-                  <input (value)="firstKey" class="secret-field" type="text" placeholder="e.g. DB_PASSWORD">
+                  <input (value)="firstKey" class="secret-field secret-first-key-setting" type="text" placeholder="e.g. DB_PASSWORD">
                 </div>
                 <div class="form-group">
                   <label>Secret value</label>
                   <span class="hidden-secret-value initial-secret-field">
                     <input (value)="firstValue" type="password" placeholder="Enter the secret value">
                     <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
+                  </span>
+                </div>
+                  
+                <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
+                  <label>Secret Key/Name</label>
+                  <input class="secret-field bucket-input" type="text" placeholder="e.g. DB_PASSWORD">
+                </div>
+                <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
+                  <label>Secret value</label>
+                  <span class="hidden-secret-value second-secret-field bucket-input">
+                    <input type="password" placeholder="Enter the secret value">
+                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('second-secret-field')">
                   </span>
                 </div>
           
@@ -222,7 +254,7 @@
                         </div>
         
                         <div class="form-group use-pagination-field">
-                          <label>Records per page</label>
+                          <label>Records p/ page</label>
                           <input class="endpointField1" type="text" (value)="paginationRecPerPage1" placeholder="e.g. 1000">
                         </div>
                       </span>
@@ -259,7 +291,7 @@
                 <!-- API Key fields -->
                 <div class="form-group">
                   <label class="api-key-lbl">KEY Header name</label>
-                  <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Ket">
+                  <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Key">
                 </div>
                 <div class="form-group">
                   <label class="api-key-lbl">Key Hader value</label>
@@ -290,25 +322,27 @@
         
 
         <div class="modal-footer">
-          <div class="buttons-wrapper">
-            <button 
-              type="button" 
-              onclick="component.testConnection()" 
-              class="btn btn-light-blue save-secret-btn">
-                @if(this.checkConnection == 'in-progress')
-                  <div class="mini-loader-container oracle-dn-loader">
-                    <div class="mini-loader-dot"></div>
-                    <div class="mini-loader-dot"></div>
-                    <div class="mini-loader-dot"></div>
-                  </div>
-                @endif
-                Test connection
-              <div 
-                class="connectio-test-status"
-                style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
-                &nbsp;
-              </div>
-            </button>
+          <div class="buttons-wrapper secret-creation-buttons">
+            <div (showIf)="self.showTestConnection">
+              <button 
+                type="button" 
+                onclick="component.testConnection()" 
+                class="btn btn-light-blue save-secret-btn">
+                  @if(this.checkConnection == 'in-progress')
+                    <div class="mini-loader-container oracle-dn-loader">
+                      <div class="mini-loader-dot"></div>
+                      <div class="mini-loader-dot"></div>
+                      <div class="mini-loader-dot"></div>
+                    </div>
+                  @endif
+                  Test connection
+                <div 
+                  class="connectio-test-status"
+                  style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
+                  &nbsp;
+                </div>
+              </button>
+            </div>
             <button 
               type="button" 
               onclick="component.createSecret()" 
@@ -321,6 +355,16 @@
   </div>
 
   <style>
+    .secret-creation-buttons div:first-child{ width: 100%; }
+    apiresp-data span:first-child { color: blue; text-decoration: underline; cursor: pointer; font-size: 14px; }
+
+    .api-response-is_ok { border: 1.12px solid green; display: block; padding: 5px; background: rgba(0, 128, 0, 0.17); }
+
+    .api-response-not_ok { border: 1.12px solid red; display: block; padding: 5px; background: #ff00000f; }
+
+    .api-response-failed{ color: red; font-weight: bold; }
+    .APITestResponse{ overflow-y: auto; margin-top: 5px; border-radius: 3px; }
+    .APITestResponse-show{ height: 200px; }
     span[data="get-oracle-dn-btn"] { float: left; margin-top: 0;  }
     .oracle-dn-loader {
         display: flex; width: 29px; margin-top: 0; padding: 0; margin-left: 10px; float: right; margin-top: 0;
@@ -362,7 +406,7 @@
     .endpoint-input { width: 190px; }
     .endpoint-pk-input { width: 130px; }
    .endpoint-data-setting, .endpoint-paginate-setting{ display: flex; margin: 5px; }
-   .endpoint-paginate-setting input{ width: 150px; }
+   .endpoint-paginate-setting input{ width: 130px; }
 
   .bold-lbl { font-weight: bold; }
   .unique-api-name, .unique-api-url{ width: 100%; }

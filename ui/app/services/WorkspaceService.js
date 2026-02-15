@@ -1,9 +1,11 @@
 import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
-import { StillHTTPClient } from "../../@still/helper/http.js";
+import { HTTPHeaders, StillHTTPClient } from "../../@still/helper/http.js";
+import { UUIDUtil } from "../../@still/util/UUIDUtil.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { UserUtil } from "../components/auth/UserUtil.js";
+import { parseJSON } from "../components/catalog/util/CatalogUtil.js";
 import { InputAPI } from "../components/node-types/api/InputAPI.js";
 import { Bucket } from "../components/node-types/Bucket.js";
 import { DLTCodeOutput } from "../components/node-types/destination/DLTCodeOutput.js";
@@ -12,6 +14,7 @@ import { DuckDBOutput } from "../components/node-types/DuckDBOutput.js";
 import { DatabaseOutput } from "../components/node-types/output/DatabaseOutput.js";
 import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
+import { Workspace } from "../components/workspace/Workspace.js";
 import { UserService } from "./UserService.js";
 
 export class ObjectDataTypes {
@@ -39,6 +42,8 @@ export class WorkspaceService extends BaseService {
     schedulePipelinesStore = new ServiceEvent([]);
     static currentSelectedPpeline = null;
     static currentSelectedPpelineStatus = null;
+    /** @type { Workspace } */
+    component;
 
     static DISCONECT_DB = 'DISCONECT';
     static CONNECT_DB = 'CONNECT';
@@ -75,7 +80,15 @@ export class WorkspaceService extends BaseService {
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Out - DLT code', typeName: DLTCodeOutput.name, name: 'DLTOutput' },
         //fas fa-chevron-circle-right
-    ]
+    ];
+
+    /** @type { WorkspaceService } */
+    static self;
+
+    constructor(){
+        super();
+        WorkspaceService.self = this;
+    }
 
     static async getNamespace(){
         return StillAppSetup.config.get('anonymousLogin')
@@ -341,6 +354,11 @@ export class WorkspaceService extends BaseService {
     /** @returns { { result: { result, fields, actual_query, db_file } } } */
     static async createSecret(secret) {
 
+        if(secret.apiSettings){
+            if(String(secret.apiSettings.apiBaseUrl).endsWith('/'))
+                secret.apiSettings.apiBaseUrl = secret.apiSettings.apiBaseUrl.slice(0,-1);
+        }
+
         const namespace = await UserService.getNamespace();
         const url = '/secret/' + namespace;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
@@ -380,12 +398,74 @@ export class WorkspaceService extends BaseService {
             ? UserUtil.email : await UserService.getNamespace();
             
         const url = Object.keys(existing).length > 0 ? `/workspace/${namespace}/api/exists/test` : `/workspace/${namespace}/api/test`;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...payload }), {
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...payload }), HTTPHeaders.JSON);
+        
+        let result = await response.json(), errors = 0;
+        
+        if (response.ok && !result.error){
+
+            const totalEndpoints = result.length;
+            result = result.map(it => {
+
+                let css_class = 'api-response-is_ok';
+                if(it['3-Success'] === false) 
+                    css_class = 'api-response-not_ok', errors++;
+                
+                const contentId = 'apiresp_data'+UUIDUtil.newId();
+                let data = JSON.stringify(Array.isArray(it.data) ? it.data.slice(0,1) : it.data,null,'\t');
+                data = parseJSON(data).slice(0,-2).replace('<br>','');
+                data = WorkspaceService.self.component.parseEvents(
+                    `<apiresp-data>
+                        &nbsp;<span onclick="inner.showAPIData('${contentId}')">Show data</span>
+                        &nbsp;<span id="${contentId}" style="display:none;">${data}</span>
+                    </apiresp-data>`.replaceAll('\n','')
+                );              
+                let value = { ...it, data };
+                
+                // Because the Data in the API fresponse is converted to String hence some disturbig
+                // characters will be there to clean up from bellow parsing and replace statements
+                value = parseJSON(JSON.stringify(value,null,'\t'))
+                            .replace(' "<apiresp-data','<apiresp-data')
+                            .replace('</apiresp-data>"','</apiresp-data>');
+                
+                return `<span class="${css_class}">${value}</span>`;
+            })
+            .join("<br>");
+
+            let content = JSON.stringify(result)
+            content = content.trim()
+                            .replace('[','').slice(0,-1)
+                            .replaceAll('\\','')
+                            .replace('"','');
+
+            if(errors > 0) AppTemplate.toast.error(`Error in ${errors} out of ${totalEndpoints} endpoints!`);
+            else AppTemplate.toast.success('API Connection was successful');
+            return { errors, content, totalEndpoints };
+        }
+        else
+            AppTemplate.toast.error(result.result);
+        return { errors: 1 };
+    }
+
+    /** @param { CatalogForm } catalogForm */
+    static async testConnectWithKVSecret(catalogForm) {
+
+        const obj = catalogForm;
+        const keyType = obj.kvSecretType.value, 
+              firstValue = obj.firstValue.value, 
+              bucketUrl = (obj.bucketUrl.value.split('//')[1] || '').replace('/','');
+
+        let data = {}, secretKey = document.querySelectorAll(`.${keyType}`)[2].querySelector('input').value;
+
+        if(keyType === 's3-access-and-secret-keys')
+            data = { 's3Config' : { 'access_key_id': firstValue, 'secret_access_key': secretKey, 'bucket_name': bucketUrl } };
+        
+        const url = '/workspace/s3/connection/test';
+        const response = await $still.HTTPClient.post(url, JSON.stringify(data), {
             headers: { 'content-type': 'Application/json' }
         });
         
         const result = await response.json();
-        
         if (response.ok && !result.error){
             AppTemplate.toast.success('DB Connection was successful');
             return true;
@@ -394,7 +474,6 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.error(result.result);
     }
 
-    /** @returns { { result: { result, fields, actual_query, db_file } } } */
     static async getOracleDN(host, port) {
 
         const url = `/db/connection/${host}/${port}`;
@@ -434,16 +513,23 @@ export class WorkspaceService extends BaseService {
                     if(type == 'all') allSecrets['api'] = secretAndServerList;
                 }
                 
-                if((type == 1 || type == 'all') && Array.isArray(secretList?.db_secrets)){
+                let bucketSecrets = [];
+                if(([1,3].includes(type) || type == 'all') && Array.isArray(secretList?.db_secrets)){
                     const secretNames = [];
                     secretAndServerList = secretList.db_secrets.map(secret => {
+                        let bucket = 'no';
                         if(!secretList.metadata[secret]) secretNames.push(secret);
-                        return { name: secret, host: secretList.metadata[secret] || 'None' };
+                        if((secretList.metadata[secret] ||'').startsWith('s3://')) {
+                            bucket = 'yes', bucketSecrets.push({ name: secret, bucket });
+                        }
+                        return { name: secret, host: secretList.metadata[secret] || 'None', bucket };
                     });
                     cb({dbSecrets: secretAndServerList, secretNames});
                     if(type == 'all') allSecrets['db'] = secretAndServerList;
                 }
                 
+                if(type === 3) return bucketSecrets;
+
                 if(Object.keys(allSecrets).length > 0) return allSecrets;
                 return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
     
@@ -562,6 +648,39 @@ export class WorkspaceService extends BaseService {
         if (response.ok && !result.error){
             AppTemplate.toast.success(`Pipeline scheduled job ${pplineJobStatus === 'paused' ? pplineJobStatus : 'resumed'}`);
             return true;
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    static async getBucketObjects(secretName){
+        const namespace = await UserService.getNamespace();
+
+        const url = `/workspace/${namespace}/s3/${secretName}/objects/`;
+
+        const response = await $still.HTTPClient.post(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            return result.result.map(obj => {
+                const filenamePieces = obj?.key?.split('.');
+                return { label: `${filenamePieces.slice(0,-1)}*.${filenamePieces.slice(-1)}`, name: obj?.key }
+            });
+        }
+        else
+            AppTemplate.toast.error(result.result);
+    }
+
+    static async getBucketObjectFields(secretName, object){
+        const namespace = await UserService.getNamespace();
+
+        const url = `/workspace/${namespace}/s3/${secretName}/${object}/preview`;
+
+        const response = await $still.HTTPClient.post(url);
+        const result = await response.json();
+        
+        if (response.ok && !result.error){
+            return result.result;
         }
         else
             AppTemplate.toast.error(result.result);

@@ -6,6 +6,11 @@ class HttpRequestOptions {
     method;
 }
 
+export const HTTPHeaders = {
+    JSON: {
+        headers: { 'content-type': 'Application/json' }
+    }
+}
 
 export class StillHTTPClient {
 
