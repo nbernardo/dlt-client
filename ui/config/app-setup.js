@@ -4,6 +4,7 @@ import { AppTemplate } from "./app-template.js";
 import { Workspace } from "../app/components/workspace/Workspace.js";
 import { Login } from "../app/components/auth/Login.js";
 import { UserService } from "../app/services/UserService.js";
+import { Assets } from "../@still/util/componentUtil.js";
 
 export class StillAppSetup extends StillAppMixin(Components) {
 
@@ -20,6 +21,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
             this.localEnv();
         
         this.prefetchComponent();
+        this.prefetchStyleSheet();
     }
 
     prefetchComponent(){
@@ -29,6 +31,12 @@ export class StillAppSetup extends StillAppMixin(Components) {
         });
         this.addPrefetch({ component: 'LogQueryDisplay' })
         this.runPrefetch();
+    }
+
+    prefetchStyleSheet(){
+        setTimeout(async () => {
+            await Assets.import({ path: '/app/assets/css/movable-popup.css' })
+        });
     }
 
     localEnv(){

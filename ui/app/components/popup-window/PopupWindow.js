@@ -4,7 +4,7 @@ import { PopupUtil } from "./PopupUtil.js";
 
 export class PopupWindow extends ViewComponent {
 
-	isPublic = true;
+	isPublic = false;
 
 	/** @Prop */ uniqueId = UUIDUtil.newId();
 

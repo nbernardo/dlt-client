@@ -25,6 +25,7 @@ import { DatabaseOutput } from "../node-types/output/DatabaseOutput.js";
 import { sleepForSec } from "../../../@still/component/manager/timer.js";
 import { CatalogForm } from "../catalog/CatalogForm.js";
 import { expoandApiTestData } from "../catalog/util/CatalogUtil.js";
+import { LogQueryDisplay } from "../log/logquery/LogQueryDisplay.js";
 
 export class Workspace extends ViewComponent {
 
@@ -103,6 +104,9 @@ export class Workspace extends ViewComponent {
 
 	/** @Proxy @type { PopupWindow } */
 	popupWindowProxy;
+
+	/** @Proxy @type { LogQueryDisplay } */
+	logQueryDisplayProxy;
 
 	/** @Proxy @type { NoteBook } */
 	noteBookProxy;

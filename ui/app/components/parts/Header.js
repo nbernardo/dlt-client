@@ -107,4 +107,8 @@ export class Header extends ViewComponent {
 		this.userService.logOut();
 	}
 
+	showLogsAnalysisDisplay(){
+		this.$parent.logQueryDisplayProxy.openPopup();
+	}
+
 }
