@@ -58,7 +58,11 @@ def create():
     context.sql_destinations = sql_destinations
     context.sql_dest = payload['sqlDest']
     context.is_cloud_url = True if is_cloud_bucket_req else False
-    context.has_cloud_bucket_auth = 's3Auth' if payload.get('s3Auth', False) else ''
+    context.has_cloud_bucket_auth = ''
+
+    if 's3Auth' in payload:
+        context.has_cloud_bucket_auth = 's3Auth' if payload['s3Auth'] else ''
+        
     context.code_source = payload['codeInput']
     context.pipeline_execution_id = create_execution_id()
 
@@ -113,18 +117,6 @@ def create_new_ppline(fst_connection,
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
         template = template.replace(data[0], str(value))
-
-    # Replace namespace after data_place items are replaced
-    namespace_value = f"'{payload['user']}'"
-    print(f"DEBUG: Final namespace replacement with {namespace_value}")
-    template = template.replace('%namespace%', namespace_value)
-    
-    # DEBUG: Write template to file to inspect
-    import tempfile
-    debug_file = tempfile.gettempdir() + '/DEBUG_template.py'
-    with open(debug_file, 'w', encoding='utf-8') as f:
-        f.write(template)
-    print(f"DEBUG: Template written to {debug_file}")
 
     template = parse_secrets(template, context)
 
@@ -349,9 +341,7 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('%Dbfile_name%', pipeline_name)
     template = template.replace('__current.PIPELINE_NAME', f"'{pipeline_name}'")
     template = template.replace('%User_folder%', payload['user'])
-    namespace_value = f"'{payload['user']}'"
-    print(f"DEBUG: Replacing %namespace% with {namespace_value}")
-    template = template.replace('%namespace%', namespace_value)
+    template = template.replace('%namespace%', f"'{payload['user']}'")
     # %table_format% replace might be preceeded by the DLTCodeOutput node type which
     # means that if this was stated at the node level, this one won't take any effect 
     template = template.replace('%table_format%', '')
