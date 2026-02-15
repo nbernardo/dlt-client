@@ -41,6 +41,7 @@ valid_imports = [
     'from google.cloud import bigquery',
     'from google.oauth2 import service_account',
     'from databricks import sql',
+    'from dlt.sources.helpers.rest_client.auth import APIKeyAuth',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

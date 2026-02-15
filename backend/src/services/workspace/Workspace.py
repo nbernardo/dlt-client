@@ -189,7 +189,7 @@ class Workspace:
                         'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
                     }
                     continue
-
+                files_path = files_path[0:-1] if str(files_path).endswith('/') else files_path
                 tables_list = Workspace.get_tables(f'{files_path}/{_file}',None, user)
 
                 if 'error' in tables_list: 

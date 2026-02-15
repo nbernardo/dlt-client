@@ -5,7 +5,7 @@ import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
-import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue, handleOnInitOnchange, changeType } from "./util/CatalogUtil.js";
+import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue, testConnection, handleOnInitOnchange, changeType } from "./util/CatalogUtil.js";
 
 export class CatalogForm extends ViewComponent {
 
@@ -31,6 +31,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ editorPlaceholder = null;
 	/** @Prop */ showKeyFileFields = false;
 	/** @Prop */ showTestConnection = false;
+	/** @Prop */ showOracleDNCheckBox = false;
 	/** @Prop */ kvSecretTypeFlag = 'regular';
 	/** @Prop */ connectionSecretType;
 
@@ -77,6 +78,7 @@ export class CatalogForm extends ViewComponent {
 	}
 	
 	async stAfterInit(){
+		this.$parent.secretPopupForm = this;
 		this.endPointEditorContent = {};
 		this.editorPlaceholder = null;
 		this.showServiceNameLbl = false;
@@ -87,7 +89,7 @@ export class CatalogForm extends ViewComponent {
 		this.handleModalCall();
 		const secretList = await WorkspaceService.listSecrets(this.secretType);
 				
-		if(this.secretType == 2)
+		if(this.secretType == 2)	
 			this.$parent.controller.leftTab.apiSecretsList = secretList;
 		else{
 			this.$parent.controller.leftTab.dbSecretsList = secretList;
@@ -160,10 +162,18 @@ export class CatalogForm extends ViewComponent {
 			let selectedOption = 0;
 			this.showTestConnection = true;
 			this.showDialog();
+
+			if(secretData.isBucket){				
+				this.kvSecretType = 's3-access-and-secret-keys';
+				this.bucketUrl = secretData.host;
+				this.firstValue = secretData['access_key_id'];
+				document.querySelector('.second-secret-field input').value = secretData['secret_access_key'];
+			}
+
 			if(!('connection_url' in secretData)){
 				selectedOption = 1;
 				this.firstKey = secretData.secretName;
-				this.firstValue = secretData[secretData.secretName];
+				if(!secretData.isBucket) this.firstValue = secretData[secretData.secretName];
 				document.querySelector('.save-secret-btn').style.display = 'none';
 				document.querySelector('.btn-add-secret').disabled = true;
 			}
@@ -176,7 +186,7 @@ export class CatalogForm extends ViewComponent {
 				this.dbName = secretData.database;
 				this.dbUser = secretData.username;
 				this.dbEngine = secretData?.dbengine+'-database-plugin';
-				this.firstValue = secretData.password;
+				if(!secretData.isBucket) this.firstValue = secretData.password;
 				this.dbConnectionParams = secretData.dbConnectionParams;
 
 				document.querySelector('.first-secret-field').value = secretData.password;
@@ -187,6 +197,7 @@ export class CatalogForm extends ViewComponent {
 		}
 
 		if(this.secretType == 2){
+			this.showTestConnection = true;
 			if(secretData.apiSettings.apiKeyName.trim() !== ''){
 				this.apiKeyName = secretData.apiSettings.apiKeyName;
 				this.apiKeyValue = secretData.apiSettings.apiKeyValue;
@@ -264,7 +275,10 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	showDialog(reset = false, type = null){		
-		if(type === 'api') this.markRequiredApiFields(true);
+		if(type === 'api') {
+			this.markRequiredApiFields(true);
+			this.showTestConnection = true;
+		}
 		if(reset) {
 			this.isDbConnEditing = false; this.isNewSecret = true, this.resetForm();
 		}
@@ -285,6 +299,7 @@ export class CatalogForm extends ViewComponent {
 
 		function localResetForm(){
 			document.querySelector('.save-secret-btn').style.display = '';
+			document.querySelector('.APITestResponse').classList.remove('APITestResponse-show');
 			document.querySelector('.btn-add-secret').disabled = false;
 			document.querySelector('input[data="unique-api-name"]').disabled = false;
 			self.dataBaseSettingType = null;
@@ -295,7 +310,7 @@ export class CatalogForm extends ViewComponent {
 			self.apiEndpointPath1 = '', self.apiEndpointPathPK1 = '';
 			self.paginationStartField1 = '', self.paginationLimitField1 = '';
 			self.paginationRecPerPage1 = '', self.apiKeyName = '';
-			self.apiKeyValue = '', self.apiTknValue = '';
+			self.apiKeyValue = '', self.apiTknValue = '', self.apiAuthType = false;
 			self.endpointCounter = 1;
 			self.endPointEditorContent = {};
 			self.isDbConnEditing = false;
@@ -374,15 +389,7 @@ export class CatalogForm extends ViewComponent {
 	};
 
 	async testConnection(){
-		const btn = document.querySelector('.connectio-test-status');
-		btn.parentElement.disabled = true;
-		this.checkConnection = 'in-progress';
-		const result = this.dataBaseSettingType == 2 
-			? await WorkspaceService.testConnectWithKVSecret(this)
-			: await WorkspaceService.testDbConnection({ env: this.getDynamicFields(), dbConfig: this.getDBConfig()}, this.isDbConnEditing);
-		btn.style.background = result == true ? 'green' : 'red';
-		this.checkConnection = '';
-		btn.parentElement.disabled = false;
+		testConnection(this, this.secretType, this.isDbConnEditing);
 	}
 
 	async createSecret(){
@@ -508,7 +515,7 @@ export class CatalogForm extends ViewComponent {
 			paginationStartField: [this.paginationStartField1.value],
 			paginationLimitField: [this.paginationLimitField1.value],
 			paginationRecPerPage: [this.paginationRecPerPage1.value],
-			apiEndpointPath: [this.apiEndpointPath1.value],
+			apiEndpointPath: [String(this.apiEndpointPath1.value).startsWith('/') ? this.apiEndpointPath1.value : `/${this.apiEndpointPath1.value}`],
 			apiEndpointPathPK : [this.apiEndpointPathPK1.value],
 			apiEndpointDS : [this.apiEndpointDS1.value],
 			apiEndpointParams : [this.endPointEditorContent[1] || {}],
@@ -528,7 +535,11 @@ export class CatalogForm extends ViewComponent {
 			if(apiPath === undefined) break;
 			
 			for(const field of validFieldNames){
-				const fieldValue = dynamicFields[`${field}${x}`] || '';
+				let fieldValue = dynamicFields[`${field}${x}`] || '';
+
+				if(field === 'apiEndpointPath' && !String(dynamicFields[`${field}${x}`] || '').startsWith('/'))
+					fieldValue = '/'+String(dynamicFields[`${field}${x}`] || '');
+
 				endPointsGroup[field].push(fieldValue);
 			}
 			endPointsGroup['apiEndpointParams'].push(this.endPointEditorContent[x] || {});
