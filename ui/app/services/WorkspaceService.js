@@ -99,7 +99,7 @@ export class WorkspaceService extends BaseService {
 
         //if(this.parsedTableListStore.value.length == 0){
 
-            const result = await this.getDuckDbs(socketId);
+            const result = await this.getPipelines(socketId);
             const data = Object.entries(result);
             const tables = [];
     
@@ -132,7 +132,9 @@ export class WorkspaceService extends BaseService {
 
     }
 
-    async getDuckDbs(socketId) {
+    static getPipelineList = async (socketId) => await WorkspaceService.self.getPipelines(socketId)
+
+    async getPipelines(socketId){
         const user = await UserService.getNamespace();
         //if (this.tableListStore.value == null) {
             const url = '/workcpace/duckdb/list/' + user + '/' + socketId;
@@ -144,7 +146,6 @@ export class WorkspaceService extends BaseService {
             this.tableListStore = tables;
         //}
         return this.tableListStore.value;
-        
     }
 
     async downloadfile(fileName, downloadType) {
@@ -684,6 +685,28 @@ export class WorkspaceService extends BaseService {
         }
         else
             AppTemplate.toast.error(result.result);
+    }
+
+    static async getLogsExecutionsId(){
+        const namespace = await UserService.getNamespace();
+        const url = `/logs/execution-ids/${namespace}`;
+        const response = await $still.HTTPClient.get(url);
+        const result = await response.json();        
+
+        if (response.ok && !result.error) return result;
+    }
+
+    /** @returns { Array } */
+    static async getLogs(){
+        const namespace = await UserService.getNamespace();
+        const url = `/logs/${namespace}`;
+        const response = await $still.HTTPClient.get(url);
+        const result = await response.json();        
+        try {
+            if (response.ok && !result.error) return result.length > 0 ? result : [];
+        } catch (error) {
+            return []
+        }
     }
 
 }

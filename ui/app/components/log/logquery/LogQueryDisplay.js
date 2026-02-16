@@ -1,6 +1,8 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
+import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { PopupUtil } from "../../popup-window/PopupUtil.js";
+import { Workspace } from "../../workspace/Workspace.js";
 
 export class LogQueryDisplay extends ViewComponent {
 
@@ -28,16 +30,32 @@ export class LogQueryDisplay extends ViewComponent {
 
 	/** @Prop */ util = new PopupUtil();
 
-	stAfterInit(){
+	/** @type { Workspace } */
+	$parent;
+	
+	pipelineList = [];
+	executionIdsList = [];
+	logs = [];
+
+	async stAfterInit(){
 		this.popup = document.getElementById(this.uniqueId);
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
 		this.util = new PopupUtil();
-		console.log(`STARTED HERE THE COMPONENT`);
-		
 	}
 
 	openPopup() {
+		setTimeout(async () => {
+			this.logs = (await WorkspaceService.getLogs()).map(itm => ({
+				timestamp: itm[0], id: itm[1], log_level: itm[2], module: itm[3], execution_id: itm[4],
+				line_number: itm[5], message: itm[6], namespace: itm[7], extra_data: itm[8]
+			}));
+			
+			let pipelines = await WorkspaceService.getPipelineList(this.$parent.socketData.sid);
+			pipelines = Object.keys(pipelines);
+			this.pipelineList = [{name: 'All Pipelines'}, ...(pipelines.length && pipelines.map(name => ({name})))];
+			this.executionIdsList = await WorkspaceService.getLogsExecutionsId();
+		});
 		this.popup.classList.remove('hidden');
 		this.showWindowPopup = true;
 	}
@@ -146,4 +164,37 @@ export class LogQueryDisplay extends ViewComponent {
 		};
 	}
 
+	toggleDrop(id) {
+		// Close other drops first
+		document.querySelectorAll('.logdisplay-log-dropdown').forEach(d => {
+			if(d.id !== id) d.classList.remove('active');
+		});
+		document.getElementById(id).classList.toggle('active');
+	}	
+
+	
+	pick(inputId, val, label, dropId) {
+		document.getElementById(inputId).value = val;
+		// Find the label in the trigger
+		const trigger = document.getElementById(dropId).previousElementSibling;
+		trigger.querySelector('span').innerText = label;
+		document.getElementById(dropId).classList.remove('active');
+	}
+
+	filterList(input) {	
+		const filter = input.value.toLowerCase();
+		const items = input.nextElementSibling.getElementsByTagName('li');
+		Array.from(items).forEach(item => {
+			item.style.display = item.innerText.toLowerCase().includes(filter) ? '' : 'none';
+		});
+	}
+}
+
+
+
+// Global click to close
+window.onclick = function(event) {
+    if (!event.target.closest('.log-custom-select')) {
+        document.querySelectorAll('.logdisplay-log-dropdown').forEach(d => d.classList.remove('active'));
+    }
 }

@@ -1,4 +1,6 @@
-<style></style>
+<style>
+
+</style>
 <div class="window-popup-mov-window" (showIf)="self.showWindowPopup">
 	<!-- <button onclick="component.openPopup()">Open Popup-mov-window</button> -->
 	<div id="container-@uniqueId" class="popup-windows-cmp-container">
@@ -25,7 +27,95 @@
 			</div>
 
 			<div class="popup-mov-window-content">
-				<div class="code-editor-container"></div>
+				<div class="code-editor-container">
+<div class="log-system-container">
+    <div class="log-filter-section">
+        <form method="GET" action="/logs" class="log-grid-filters">
+            
+            <div class="log-group">
+                <label>Pipeline</label>
+                <div class="log-custom-select">
+                    <div class="log-select-trigger" onclick="component.toggleDrop('pipe-drop')">
+                        <span id="pipe-label">All Pipelines</span>
+                    </div>
+                    <div class="logdisplay-log-dropdown log-dropdown" id="pipe-drop">
+                        <input type="text" placeholder="Filter..." onkeyup="component.filterList(this)">
+                        <ul (forEach)="pipelineList">
+                            <li each="item" onclick="component.pick('pipe-id', '{item.name}', '{item.name}', 'pipe-drop')">{item.name}</li>
+                        </ul>
+                    </div>
+                </div>
+                <input type="hidden" name="pipeline_id" id="pipe-id" value="{{ filters.pipeline_id or '' }}">
+            </div>
+
+            <div class="log-group">
+                <label>Execution ID</label>
+                <div class="log-custom-select">
+                    <div class="log-select-trigger" onclick="component.toggleDrop('exec-drop')">
+                        <span id="exec-label">All Runs</span>
+                    </div>
+                    <div class="logdisplay-log-dropdown log-dropdown" id="exec-drop">
+                        <input type="text" placeholder="Search..." onkeyup="component.filterList(this)">
+                        <ul (forEach)="executionIdsList">
+                            <li each="item" onclick="component.pick('pipe-id', '{item.name}', '{item.name}', 'pipe-drop')">{item.name}</li>
+                        </ul>
+                    </div>
+                </div>
+                <input type="hidden" name="execution_id" id="exec-id" value="{{ filters.execution_id or '' }}">
+            </div>
+
+            <div class="log-group">
+                <label>Log Level</label>
+                <select name="log_level" class="log-native-input">
+                    <option value="">All Levels</option>
+                    <option value="INFO">INFO</option>
+                    <option value="ERROR">ERROR</option>
+                </select>
+            </div>
+
+            <div class="log-actions">
+                <button type="submit" class="log-btn-search">Apply</button>
+                <a href="/logs" class="log-btn-clear">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="log-table-area" style="overflow-y: scroll; height: 58vh;">
+        <table class="log-main-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Timestamp / ID</th>
+                    <th style="width: 10%;">Level</th>
+                    <th style="width: 20%;">Execution Id</th>
+                    <th style="width: 35%;">Message & Namespace</th>
+                    <th style="width: 20%;">Extra Data</th>
+                </tr>
+            </thead>
+            <tbody (forEach)="logs">
+                <tr each="item" class="log-row log-type-{{ log.log_level }}">
+                    <td>
+                        <div class="txt-bold">{item.timestamp}</div>
+                        <div class="txt-mute">#{item.id}</div>
+                    </td>
+                    <td><span class="log-tag">{item.log_level}</span></td>
+                    <td>
+                        <div class="txt-mute">{item.execution_id}</div>
+                    </td>
+                    <td>
+                        <div class="txt-msg">{item.message}</div>
+                        <!-- <div class="txt-mute">NS: {item.namespace}</div> -->
+                    </td>
+                    <td>
+                        <div class="log-pill-wrap">
+                            <span class="log-pill">{item.extra_data}</span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+				</div>
 				<div class="table-container"></div>
 			</div>
 		</div>
