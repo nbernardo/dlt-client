@@ -6,6 +6,7 @@ Provides proper separation of concerns from pipeline operations.
 
 from flask import jsonify, request, Blueprint
 from utils.logging.log_storage import DuckDBLogStore
+from services.logging.LoggingService import LoggingService
 
 logs = Blueprint('logs', __name__)
 store = DuckDBLogStore()
@@ -56,3 +57,14 @@ def get_volume():
     
     df = store.get_log_volume_histogram(interval=interval, limit_hours=hours)
     return jsonify(df.to_dict(orient="records"))
+
+
+@logs.route('/logs/execution-ids/<namespace>')
+async def get_execution_ids(namespace):
+    execution_ids = await LoggingService.get_execution_ids(namespace)
+    return execution_ids
+
+
+@logs.route('/logs/<namespace>')
+async def get_logs_by_namespace(namespace):
+    return await LoggingService.get_logs_by_namespace(namespace)

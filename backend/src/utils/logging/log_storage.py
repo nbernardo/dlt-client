@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from utils.duckdb_util import DuckdbUtil
+import asyncio
 
 class DuckDBLogStore:
     """Simplified DuckDB store focusing on batch performance with auto-parsing."""
@@ -216,3 +217,52 @@ class DuckDBLogStore:
             ORDER BY error_count DESC
         """
         return self._get_conn().execute(query).df()
+
+
+    async def get_execution_ids(namespace):
+
+        con = DuckdbUtil.get_log_db_instance()
+        cursor = con.cursor()
+        query = f"""
+            SELECT to_json(list(json_object('name', execution_id))) 
+            FROM (
+                SELECT DISTINCT execution_id 
+                FROM pipeline_logs 
+                WHERE namespace = ? 
+                AND timestamp >= now() - INTERVAL '30 days'
+            )
+        """
+        
+        result = await asyncio.to_thread(
+            lambda: cursor.execute(query, [namespace]).fetchone()
+        )
+
+        return result[0] if result and result[0] else "[]"
+
+
+    async def get_logs_by_namespace(namespace):
+
+        con = DuckdbUtil.get_log_db_instance()
+        cursor = con.cursor()
+        query = f"""
+            SELECT 
+                timestamp,
+                id,
+                log_level,
+                module,
+                execution_id,
+                line_number,
+                message,
+                namespace,
+                extra_data 
+            FROM pipeline_logs
+            WHERE namespace = ? AND pipeline_id not in ('system', 'flask_server')
+            AND timestamp >= now() - INTERVAL '30 days'
+            ORDER BY timestamp DESC
+        """
+        
+        result = await asyncio.to_thread(
+            lambda: cursor.execute(query, [namespace]).fetchall()
+        )
+
+        return result if result and result[0] else "[]"
