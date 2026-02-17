@@ -240,7 +240,29 @@ class DuckDBLogStore:
         return result[0] if result and result[0] else "[]"
 
 
-    async def get_logs_by_namespace(namespace):
+    async def get_logs_by_namespace(namespace, filters = {}):
+
+        where = ''
+        params = [namespace]
+
+        if 'pipeline_id' in filters:
+            if filters['pipeline_id'] != 'All Pipelines':
+                where += " AND pipeline_id = ?"
+                params.append(filters['pipeline_id'])
+
+        if 'execution_id' in filters:
+            if filters['execution_id'] != 'All Runs':
+                where += " AND execution_id = ?"
+                params.append(filters['execution_id'])
+
+        if 'level' in filters:
+            if filters['level'] != 'All Levels':
+                where += " AND log_level = ?"
+                params.append(filters['level'])
+
+        if 'days_back' in filters:
+            where += " AND timestamp >= current_date - ?"
+            params.append(filters['days_back'])
 
         con = DuckdbUtil.get_log_db_instance()
         cursor = con.cursor()
@@ -256,13 +278,15 @@ class DuckDBLogStore:
                 namespace,
                 extra_data 
             FROM pipeline_logs
-            WHERE namespace = ? AND pipeline_id not in ('system', 'flask_server')
+            WHERE 
+                namespace = ? AND pipeline_id not in ('system', 'flask_server')
+                {where if where != '' else ''}
             AND timestamp >= now() - INTERVAL '30 days'
             ORDER BY timestamp DESC
         """
         
         result = await asyncio.to_thread(
-            lambda: cursor.execute(query, [namespace]).fetchall()
+            lambda: cursor.execute(query, params).fetchall()
         )
 
         return result if result and result[0] else "[]"

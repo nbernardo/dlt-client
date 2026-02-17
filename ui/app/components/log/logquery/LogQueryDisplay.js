@@ -30,6 +30,10 @@ export class LogQueryDisplay extends ViewComponent {
 
 	/** @Prop */ util = new PopupUtil();
 
+	/** @Prop */ logLevelFilters;
+
+	/** @Prop @type { STForm } */ formRef = null;
+
 	/** @type { Workspace } */
 	$parent;
 	
@@ -38,15 +42,20 @@ export class LogQueryDisplay extends ViewComponent {
 	logs = [];
 
 	async stAfterInit(){
+
+		this.logLevelFilters = {};
 		this.popup = document.getElementById(this.uniqueId);
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
 		this.util = new PopupUtil();
+
 	}
+
+	setLogLevelFilter = (level) => this.logLevelFilters['level'] = level;
 
 	openPopup() {
 		setTimeout(async () => {
-			this.logs = (await WorkspaceService.getLogs()).map(itm => ({
+			this.logs = (await WorkspaceService.getLogs({})).map(itm => ({
 				timestamp: itm[0], id: itm[1], log_level: itm[2], module: itm[3], execution_id: itm[4],
 				line_number: itm[5], message: itm[6], namespace: itm[7], extra_data: itm[8]
 			}));
@@ -54,7 +63,7 @@ export class LogQueryDisplay extends ViewComponent {
 			let pipelines = await WorkspaceService.getPipelineList(this.$parent.socketData.sid);
 			pipelines = Object.keys(pipelines);
 			this.pipelineList = [{name: 'All Pipelines'}, ...(pipelines.length && pipelines.map(name => ({name})))];
-			this.executionIdsList = await WorkspaceService.getLogsExecutionsId();
+			this.executionIdsList = [{name: 'All Runs'}, ...(await WorkspaceService.getLogsExecutionsId())];
 		});
 		this.popup.classList.remove('hidden');
 		this.showWindowPopup = true;
@@ -174,8 +183,8 @@ export class LogQueryDisplay extends ViewComponent {
 
 	
 	pick(inputId, val, label, dropId) {
-		document.getElementById(inputId).value = val;
-		// Find the label in the trigger
+		document.getElementById(`logsView_${inputId}`).value = val;
+		this.logLevelFilters[inputId] = val;
 		const trigger = document.getElementById(dropId).previousElementSibling;
 		trigger.querySelector('span').innerText = label;
 		document.getElementById(dropId).classList.remove('active');
@@ -187,6 +196,13 @@ export class LogQueryDisplay extends ViewComponent {
 		Array.from(items).forEach(item => {
 			item.style.display = item.innerText.toLowerCase().includes(filter) ? '' : 'none';
 		});
+	}
+
+	async filterLogs(){
+		this.logs = (await WorkspaceService.getLogs(this.logLevelFilters)).map(itm => ({
+			timestamp: itm[0], id: itm[1], log_level: itm[2], module: itm[3], execution_id: itm[4],
+			line_number: itm[5], message: itm[6], namespace: itm[7], extra_data: itm[8]
+		}));
 	}
 }
 

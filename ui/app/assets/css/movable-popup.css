@@ -201,7 +201,7 @@
 }
 
 /* Grid Layout for Filters */
-.log-grid-filters {
+.log-system-container form {
     display: grid !important;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
@@ -305,8 +305,8 @@
 
 /* UI Elements */
 .log-tag { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; background: #eee; }
-.log-type-ERROR .log-tag { background: #fee2e2; color: #b91c1c; }
-.log-type-INFO .log-tag { background: #dcfce7; color: #15803d; }
+.log-type-ERROR { background: #fee2e2; color: #b91c1c; }
+.log-type-INFO { background: #dcfce7; color: #15803d; }
 
 .txt-bold { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
 .txt-mute { font-size: 11px; color: #999; font-family: monospace; }
@@ -324,4 +324,4 @@
 .log-btn-search {
     background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;
 }
-.log-native-input { height: 41px; width: 100%; border: 1px solid #ccc; border-radius: 4px; }
+.log-group select { height: 41px; width: 100%; border: 1px solid #ccc; border-radius: 4px; }

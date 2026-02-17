@@ -30,7 +30,7 @@
 				<div class="code-editor-container">
 <div class="log-system-container">
     <div class="log-filter-section">
-        <form method="GET" action="/logs" class="log-grid-filters">
+        <form (formRef)="formRef">
             
             <div class="log-group">
                 <label>Pipeline</label>
@@ -41,11 +41,11 @@
                     <div class="logdisplay-log-dropdown log-dropdown" id="pipe-drop">
                         <input type="text" placeholder="Filter..." onkeyup="component.filterList(this)">
                         <ul (forEach)="pipelineList">
-                            <li each="item" onclick="component.pick('pipe-id', '{item.name}', '{item.name}', 'pipe-drop')">{item.name}</li>
+                            <li each="item" onclick="component.pick('pipeline_id', '{item.name}', '{item.name}', 'pipe-drop')">{item.name}</li>
                         </ul>
                     </div>
                 </div>
-                <input type="hidden" name="pipeline_id" id="pipe-id" value="{{ filters.pipeline_id or '' }}">
+                <input type="hidden" id="logsView_pipeline_id">
             </div>
 
             <div class="log-group">
@@ -57,24 +57,24 @@
                     <div class="logdisplay-log-dropdown log-dropdown" id="exec-drop">
                         <input type="text" placeholder="Search..." onkeyup="component.filterList(this)">
                         <ul (forEach)="executionIdsList">
-                            <li each="item" onclick="component.pick('pipe-id', '{item.name}', '{item.name}', 'pipe-drop')">{item.name}</li>
+                            <li each="item" onclick="component.pick('execution_id', '{item.name}', '{item.name}', 'exec-drop')">{item.name}</li>
                         </ul>
                     </div>
                 </div>
-                <input type="hidden" name="execution_id" id="exec-id" value="{{ filters.execution_id or '' }}">
+                <input type="hidden" id="logsView_execution_id">
             </div>
 
             <div class="log-group">
                 <label>Log Level</label>
-                <select name="log_level" class="log-native-input">
-                    <option value="">All Levels</option>
+                <select onchange="component.setLogLevelFilter(this.value)">
+                    <option value="All Levels">All Levels</option>
                     <option value="INFO">INFO</option>
                     <option value="ERROR">ERROR</option>
                 </select>
             </div>
 
             <div class="log-actions">
-                <button type="submit" class="log-btn-search">Apply</button>
+                <button onclick="component.filterLogs()" class="log-btn-search">Apply</button>
                 <a href="/logs" class="log-btn-clear">Reset</a>
             </div>
         </form>
@@ -97,7 +97,7 @@
                         <div class="txt-bold">{item.timestamp}</div>
                         <div class="txt-mute">#{item.id}</div>
                     </td>
-                    <td><span class="log-tag">{item.log_level}</span></td>
+                    <td><span class="log-tag log-type-{item.log_level}">{item.log_level}</span></td>
                     <td>
                         <div class="txt-mute">{item.execution_id}</div>
                     </td>

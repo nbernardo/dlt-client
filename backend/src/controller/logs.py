@@ -65,6 +65,7 @@ async def get_execution_ids(namespace):
     return execution_ids
 
 
-@logs.route('/logs/<namespace>')
+@logs.route('/logs/<namespace>', methods=['POST'])
 async def get_logs_by_namespace(namespace):
-    return await LoggingService.get_logs_by_namespace(namespace)
+    filters = request.get_json()['filters']
+    return await LoggingService.get_logs_by_namespace(namespace, filters)

@@ -15,5 +15,5 @@ class LoggingService:
         return await DuckDBLogStore.get_execution_ids(namespace)
     
     @staticmethod
-    async def get_logs_by_namespace(namespace):
-        return await DuckDBLogStore.get_logs_by_namespace(namespace)
+    async def get_logs_by_namespace(namespace, filters = {}):
+        return await DuckDBLogStore.get_logs_by_namespace(namespace, filters)

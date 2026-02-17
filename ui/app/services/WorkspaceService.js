@@ -697,11 +697,13 @@ export class WorkspaceService extends BaseService {
     }
 
     /** @returns { Array } */
-    static async getLogs(){
+    static async getLogs(filters){
         const namespace = await UserService.getNamespace();
         const url = `/logs/${namespace}`;
-        const response = await $still.HTTPClient.get(url);
-        const result = await response.json();        
+        const response = await $still.HTTPClient.post(url,JSON.stringify({ filters }), {
+                headers: { 'content-type': 'Application/json' }
+        });
+        const result = await response.json();
         try {
             if (response.ok && !result.error) return result.length > 0 ? result : [];
         } catch (error) {
