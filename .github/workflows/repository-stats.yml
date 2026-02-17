@@ -9,14 +9,11 @@ jobs:
   run-stats:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 
-
       - name: run-stats
         uses: jgehrcke/github-repo-stats@v1.4.2
         with:
           repository: ${{ github.repository }}
           ghtoken: ${{ secrets.REPOSTATS_TOKEN }}
           databranch: github-repo-stats
+          # FORCE THE PATH TO ROOT:
+          ghpagesprefix: '.'
