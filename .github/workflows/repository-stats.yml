@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: run-stats
-        uses: jgehrcke/github-repo-stats@v1
+        uses: jgehrcke/github-repo-stats@main
         with:
           # Your secret token
           repository: ${{ github.repository }}
