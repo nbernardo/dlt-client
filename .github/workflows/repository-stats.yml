@@ -9,14 +9,9 @@ jobs:
   run-stats:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v4
-
-      - name: create data directory
-        run: mkdir -p ghrs-data 
-
       - name: run-stats
         uses: jgehrcke/github-repo-stats@main
         with:
           repository: ${{ github.repository }}
           ghtoken: ${{ secrets.REPOSTATS_TOKEN }}
+          databranch: github-repo-stats
