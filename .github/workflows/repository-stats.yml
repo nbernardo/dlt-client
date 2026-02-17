@@ -1,0 +1,18 @@
+name: GitHub Repo Stats
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows you to run it manually to test
+
+jobs:
+  run-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: run-stats
+        uses: jgehrcke/github-repo-stats@v1
+        with:
+          # Your secret token
+          repository: ${{ github.repository }}
+          ghtoken: ${{ secrets.REPOSTATS_TOKEN }}
