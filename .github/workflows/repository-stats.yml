@@ -2,17 +2,21 @@ name: GitHub Repo Stats
 
 on:
   schedule:
-    # Runs at 00:00 UTC every day
     - cron: '0 0 * * *'
-  workflow_dispatch: # Allows you to run it manually to test
+  workflow_dispatch: 
 
 jobs:
   run-stats:
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: create data directory
+        run: mkdir -p ghrs-data 
+
       - name: run-stats
         uses: jgehrcke/github-repo-stats@main
         with:
-          # Your secret token
           repository: ${{ github.repository }}
           ghtoken: ${{ secrets.REPOSTATS_TOKEN }}
