@@ -1,14 +1,7 @@
-%metadata_section%from json import loads
-import logging
+%metadata_section%
+import dlt
 from sys import path
 from pathlib import Path
-import platform
-
-#Adding root folder to allow import from src
-sep = '/' if platform.system() != 'Windows' else '\\'
-src_path = str(Path(__file__).parent).replace(f'{sep}destinations{sep}pipeline{sep}%User_folder%','')
-path.insert(0, src_path)
-path.insert(0, src_path+f'{sep}src')
 
 %import_from_src%
 from src.utils.logging.pipeline_logger_config import PipelineLogger

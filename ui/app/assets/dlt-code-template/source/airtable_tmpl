@@ -2,18 +2,13 @@ import dlt
 from pyairtable import Api
 
 @dlt.source
-def airtable_source(api_key, base_id, table_names):
-    """
-    Extract data from Airtable tables.
+def data_source():
+    """ Extract data from Airtable tables. """
     
-    Args:
-        api_key: Airtable Personal Access Token
-        base_id: Airtable base ID (e.g., 'appXXXXXXXXXXXXXX')
-        table_names: List of table names to extract (e.g., ['Customers', 'Products'])
-    """
-    
-    api = Api(api_key)
-    base = api.base(base_id)
+    # List of the table on Airtable
+    table_names = ['<table1>','<table2>']
+    api = Api('<api_key>')
+    base = api.base('<base_id>')
     
     # Handle both single table and multiple tables
     tables_to_process = table_names if isinstance(table_names, list) else [table_names]
