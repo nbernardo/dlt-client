@@ -15,5 +15,4 @@ jobs:
           repository: ${{ github.repository }}
           ghtoken: ${{ secrets.REPOSTATS_TOKEN }}
           databranch: github-repo-stats
-          # FORCE THE PATH TO ROOT:
           ghpagesprefix: '.'
