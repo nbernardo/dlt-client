@@ -268,25 +268,164 @@ class DuckDBLogStore:
         cursor = con.cursor()
         query = f"""
             SELECT 
-                timestamp,
-                id,
-                log_level,
-                module,
-                execution_id,
-                line_number,
-                message,
-                namespace,
-                extra_data 
-            FROM pipeline_logs
-            WHERE 
-                namespace = ? AND pipeline_id not in ('system', 'flask_server')
-                {where if where != '' else ''}
-            AND timestamp >= now() - INTERVAL '30 days'
-            ORDER BY timestamp DESC
+                to_json(list(row_arr))
+            FROM (
+                SELECT [
+                    timestamp::VARCHAR,
+                    id::VARCHAR,
+                    log_level,
+                    module,
+                    execution_id,
+                    line_number::VARCHAR,
+                    message,
+                    namespace,
+                    extra_data::VARCHAR, 
+                    (bool_or(extra_data->>'$.stage' = 'pipeline_completion') OVER (PARTITION BY execution_id))::VARCHAR
+                ] as row_arr
+                FROM pipeline_logs
+                WHERE 
+                    namespace = ? AND pipeline_id not in ('system', 'flask_server')
+                    {where if where != '' else ''}
+                    AND timestamp >= now() - INTERVAL '30 days'
+                ORDER BY timestamp
+            )
         """
         
         result = await asyncio.to_thread(
-            lambda: cursor.execute(query, params).fetchall()
+            lambda: cursor.execute(query, params).fetchone()
+        )
+        
+        return json.loads(result[0]) if result and result[0] else []
+
+
+    async def get_logs_summary(namespace, filters = {}):
+
+        where = ''
+        params = [namespace]
+
+        if 'pipeline_id' in filters:
+            if filters['pipeline_id'] != 'All Pipelines':
+                where += " AND pipeline_id = ?"
+                params.append(filters['pipeline_id'])
+
+        if 'execution_id' in filters:
+            if filters['execution_id'] != 'All Runs':
+                where += " AND execution_id = ?"
+                params.append(filters['execution_id'])
+
+        if 'level' in filters:
+            if filters['level'] != 'All Levels':
+                where += " AND log_level = ?"
+                params.append(filters['level'])
+
+        if 'days_back' in filters:
+            where += " AND timestamp >= current_date - ?"
+            params.append(filters['days_back'])
+
+        con = DuckdbUtil.get_log_db_instance()
+        cursor = con.cursor()
+        query = f""" 
+            SELECT to_json(list(row_arr))
+            FROM (
+                SELECT [
+                    execution_id,
+                    -- Use any_value because these are identical within one execution_id
+                    any_value(pipeline_id),
+                    any_value(namespace),
+                    min(timestamp)::VARCHAR,
+                    max(timestamp)::VARCHAR,
+                    (max(timestamp) - min(timestamp))::VARCHAR,
+                    count(*)::VARCHAR,
+                    arg_max(CAST(extra_data->>'$.stage' AS VARCHAR), timestamp),
+                    count_if(log_level = 'ERROR')::VARCHAR,
+                    bool_or(extra_data->>'$.stage' = 'pipeline_completion')::VARCHAR
+                ] as row_arr
+                FROM pipeline_logs
+                WHERE 
+                    namespace = ?
+                    AND pipeline_id NOT IN ('system', 'flask_server')
+                    AND timestamp >= now() - INTERVAL '30 days'
+                    {where if where != '' else ''}
+                GROUP BY execution_id
+                ORDER BY min(timestamp) DESC
+            )
+        """
+        
+        result = await asyncio.to_thread(
+            lambda: cursor.execute(query, params).fetchone()
         )
 
-        return result if result and result[0] else "[]"
+        return json.loads(result[0]) if result and result[0] else []
+
+
+    async def get_run_status_summary(namespace: str):
+        def _fetch():
+
+            con = DuckdbUtil.get_log_db_instance()
+            query = """
+                WITH base_stats AS (
+                    SELECT 
+                        -- Normalize IDs: remove extra underscores or spaces if needed
+                        trim(pipeline_id) as clean_id,
+                        execution_id,
+                        CASE 
+                            WHEN count_if(UPPER(log_level) = 'ERROR') > 0 THEN 'Failed'
+                            WHEN count_if(UPPER(log_level) = 'WARNING') > 0 THEN 'Warning'
+                            ELSE 'Success'
+                        END as final_status,
+                        max(timestamp) as last_run_time
+                    FROM pipeline_logs
+                    WHERE 
+                        -- The funnel starts here
+                        namespace = ?
+                        AND pipeline_id NOT IN ('system', 'flask_server')
+                        AND pipeline_id IS NOT NULL
+                        AND timestamp >= now() - INTERVAL '7 days'
+                    GROUP BY execution_id, clean_id
+                ),
+                global_totals AS (
+                    SELECT 
+                        'SUMMARY' as report_type,
+                        'ALL' as pipeline_id,
+                        count(*)::INT as total_runs,
+                        count(*) filter (where final_status = 'Success')::INT as success_count,
+                        count(*) filter (where final_status = 'Failed')::INT as failed_count,
+                        count(*) filter (where final_status = 'Warning')::INT as warning_count,
+                        'N/A' as status_indicator
+                    FROM base_stats
+                ),
+                pipeline_list AS (
+                    SELECT 
+                        'LIST' as report_type,
+                        clean_id as pipeline_id,
+                        count(*)::INT as total_runs,
+                        count(*) filter (where final_status = 'Success')::INT as success_count,
+                        count(*) filter (where final_status = 'Failed')::INT as failed_count,
+                        count(*) filter (where final_status = 'Warning')::INT as warning_count,
+                        CASE 
+                            WHEN count_if(final_status = 'Failed') > 0 THEN 'Failed'
+                            WHEN count_if(final_status = 'Warning') > 0 THEN 'Warning'
+                            ELSE 'Success'
+                        END as status_indicator 
+                    FROM base_stats
+                    GROUP BY clean_id
+                )
+                SELECT to_json(list(d)) FROM (
+                    SELECT * FROM global_totals
+                    UNION ALL
+                    SELECT * FROM (SELECT * FROM pipeline_list ORDER BY failed_count DESC, total_runs DESC)
+                ) d;
+            """
+            
+            cursor = con.cursor()
+            result = cursor.execute(query, [namespace]).fetchone()
+            return json.loads(result[0]) if result and result[0] else []
+
+        # Offload blocking DB call to a separate thread
+        data = await asyncio.to_thread(_fetch)
+        
+        # Structure the data for the UI
+        return {
+            "summary": next((item for item in data if item['report_type'] == 'SUMMARY'), {}),
+            "pipelines": [item for item in data if item['report_type'] == 'LIST']
+        }

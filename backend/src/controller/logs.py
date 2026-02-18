@@ -4,7 +4,7 @@ Provides proper separation of concerns from pipeline operations.
 """
 
 
-from flask import jsonify, request, Blueprint
+from flask import jsonify, request, Blueprint, Response
 from utils.logging.log_storage import DuckDBLogStore
 from services.logging.LoggingService import LoggingService
 
@@ -67,5 +67,14 @@ async def get_execution_ids(namespace):
 
 @logs.route('/logs/<namespace>', methods=['POST'])
 async def get_logs_by_namespace(namespace):
+    
     filters = request.get_json()['filters']
-    return await LoggingService.get_logs_by_namespace(namespace, filters)
+    all_logs = await LoggingService.get_logs_by_namespace(namespace, filters)
+    logs_summary = await LoggingService.get_logs_summary(namespace, filters)
+    stats = await LoggingService.get_run_status_summary(namespace)
+
+    return jsonify({ 
+        'all_logs': all_logs, 
+        'logs_summary': logs_summary,
+        'stats': stats 
+    })
