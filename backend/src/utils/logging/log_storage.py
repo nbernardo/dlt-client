@@ -421,10 +421,8 @@ class DuckDBLogStore:
             result = cursor.execute(query, [namespace]).fetchone()
             return json.loads(result[0]) if result and result[0] else []
 
-        # Offload blocking DB call to a separate thread
         data = await asyncio.to_thread(_fetch)
         
-        # Structure the data for the UI
         return {
             "summary": next((item for item in data if item['report_type'] == 'SUMMARY'), {}),
             "pipelines": [item for item in data if item['report_type'] == 'LIST']
