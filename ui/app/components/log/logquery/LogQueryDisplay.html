@@ -4,7 +4,7 @@
 <div class="window-popup-mov-window" (showIf)="self.showWindowPopup">
 	<!-- <button onclick="component.openPopup()">Open Popup-mov-window</button> -->
 	<div id="container-@uniqueId" class="popup-windows-cmp-container">
-		<div id="@uniqueId" class="popup-mov-window">
+		<div id="@uniqueId" class="popup-mov-window" style="width: 98%; height: 95%; top: 50%;">
 			<span>
 				
 			</span>
@@ -28,99 +28,173 @@
 
 			<div class="popup-mov-window-content">
 				<div class="code-editor-container">
-<div class="log-system-container">
-    <div class="log-filter-section">
-        <form (formRef)="formRef">
-            
-            <div class="log-group">
-                <label>Pipeline</label>
-                <div class="log-custom-select">
-                    <div class="log-select-trigger" onclick="component.toggleDrop('pipe-drop')">
-                        <span id="pipe-label">All Pipelines</span>
-                    </div>
-                    <div class="logdisplay-log-dropdown log-dropdown" id="pipe-drop">
-                        <input type="text" placeholder="Filter..." onkeyup="component.filterList(this)">
-                        <ul (forEach)="pipelineList">
-                            <li each="item" onclick="component.pick('pipeline_id', '{item.name}', '{item.name}', 'pipe-drop')">{item.name}</li>
-                        </ul>
-                    </div>
-                </div>
-                <input type="hidden" id="logsView_pipeline_id">
-            </div>
+					<div class="log-system-container">
+						<div class="log-filter-section">
+							<form (formRef)="formRef">
+								
+								<div class="log-group">
+									<label>Pipeline</label>
+									<div class="log-custom-select">
+										<div class="log-select-trigger" onclick="component.toggleDrop('pipe-drop')">
+											<span id="pipe-label">All Pipelines</span>
+										</div>
+										<div class="logdisplay-log-dropdown log-dropdown" id="pipe-drop">
+											<input type="text" placeholder="Filter..." onkeyup="component.filterList(this)">
+											<ul (forEach)="pipelineList">
+												<li each="item" onclick="component.pick('pipeline_id', '{item.name}', '{item.name}', 'pipe-drop')">{item.name}</li>
+											</ul>
+										</div>
+									</div>
+									<input type="hidden" id="logsView_pipeline_id">
+								</div>
 
-            <div class="log-group">
-                <label>Execution ID</label>
-                <div class="log-custom-select">
-                    <div class="log-select-trigger" onclick="component.toggleDrop('exec-drop')">
-                        <span id="exec-label">All Runs</span>
-                    </div>
-                    <div class="logdisplay-log-dropdown log-dropdown" id="exec-drop">
-                        <input type="text" placeholder="Search..." onkeyup="component.filterList(this)">
-                        <ul (forEach)="executionIdsList">
-                            <li each="item" onclick="component.pick('execution_id', '{item.name}', '{item.name}', 'exec-drop')">{item.name}</li>
-                        </ul>
-                    </div>
-                </div>
-                <input type="hidden" id="logsView_execution_id">
-            </div>
+								<div class="log-group">
+									<label>Execution ID</label>
+									<div class="log-custom-select">
+										<div class="log-select-trigger" onclick="component.toggleDrop('exec-drop')">
+											<span id="exec-label">All Runs</span>
+										</div>
+										<div class="logdisplay-log-dropdown log-dropdown" id="exec-drop">
+											<input type="text" placeholder="Search..." onkeyup="component.filterList(this)">
+											<ul (forEach)="executionIdsList">
+												<li each="item" onclick="component.pick('execution_id', '{item.name}', '{item.name}', 'exec-drop')">{item.name}</li>
+											</ul>
+										</div>
+									</div>
+									<input type="hidden" id="logsView_execution_id">
+								</div>
 
-            <div class="log-group">
-                <label>Log Level</label>
-                <select onchange="component.setLogLevelFilter(this.value)">
-                    <option value="All Levels">All Levels</option>
-                    <option value="INFO">INFO</option>
-                    <option value="ERROR">ERROR</option>
-                </select>
-            </div>
+								<div class="log-group">
+									<label>Log Level</label>
+									<select onchange="component.setLogLevelFilter(this.value)">
+										<option value="All Levels">All Levels</option>
+										<option value="INFO">INFO</option>
+										<option value="ERROR">ERROR</option>
+									</select>
+								</div>
 
-            <div class="log-actions">
-                <button onclick="component.filterLogs()" class="log-btn-search">Apply</button>
-                <a href="/logs" class="log-btn-clear">Reset</a>
-            </div>
-        </form>
-    </div>
+								<div class="log-actions">
+									<button onclick="component.filterLogs()" class="log-btn-search">Apply</button>
+									<a href="/logs" class="log-btn-clear">Reset</a>
+								</div>
+							</form>
+						</div>
 
-    <div class="log-table-area" style="overflow-y: scroll; height: 58vh;">
-        <table class="log-main-table">
-            <thead>
-                <tr>
-                    <th style="width: 15%;">Timestamp / ID</th>
-                    <th style="width: 10%;">Level</th>
-                    <th style="width: 20%;">Execution Id</th>
-                    <th style="width: 35%;">Message & Namespace</th>
-                    <th style="width: 20%;">Extra Data</th>
-                </tr>
-            </thead>
-            <tbody (forEach)="logs">
-                <tr each="item" class="log-row log-type-{{ log.log_level }}">
-                    <td>
-                        <div class="txt-bold">{item.timestamp}</div>
-                        <div class="txt-mute">#{item.id}</div>
-                    </td>
-                    <td><span class="log-tag log-type-{item.log_level}">{item.log_level}</span></td>
-                    <td>
-                        <div class="txt-mute">{item.execution_id}</div>
-                    </td>
-                    <td>
-                        <div class="txt-msg">{item.message}</div>
-                        <!-- <div class="txt-mute">NS: {item.namespace}</div> -->
-                    </td>
-                    <td>
-                        <div class="log-pill-wrap">
-                            <span class="log-pill">{item.extra_data}</span>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+						<section style="display: flex; flex-direction: row;">
+							<div class="logs-display-metrics-wrapper" style="height: 58vh; width: 83%;">
+								<div class="log-table-area" style="overflow-y: scroll; height: 28vh; border: 1px solid #80808087; border-radius: 5px;">
+									<table class="log-main-table">
+										<thead>
+											<tr>
+												<th style="width: 14%;">Timestamp / ID</th>
+												<th style="width: 13%;">Related pipeline Completion Status</th>
+												<th style="width: 10%;">Level</th>
+												<th style="width: 13%;">Execution Id</th>
+												<th style="width: 40%;">Message & Namespace</th>
+												<th style="width: 25%;">Extra Data</th>
+											</tr>
+										</thead>
+										<tbody (forEach)="logs">
+											<tr each="item" class="log-row log-type-{{ log.log_level }}">
+												<td>
+													<div class="txt-bold">{item.timestamp}</div>
+													<div class="txt-mute">#{item.id}</div>
+												</td>
+												<td>
+													<div class="txt-bold has-pipeline-complete has-pipeline-complete-{item.is_complete}"></div>
+												</td>
+												<td><span class="log-tag log-type-{item.log_level}">{item.log_level}</span></td>
+												<td>
+													<div class="txt-mute">{item.execution_id}</div>
+												</td>
+												<td>
+													<div class="txt-msg">{item.message}</div>
+													<!-- <div class="txt-mute">NS: {item.namespace}</div> -->
+												</td>
+												<td>
+													<div class="log-pill-wrap">
+														<span class="log-pill">{item.extra_data}</span>
+													</div>
+												</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+	
+								<div style="display: flex; flex-direction: row; justify-content: space-between;">
+									<div style="height: 28vh;overflow-y: scroll; margin-top: 14px; width: 35%; border: 1px solid #80808087; border-radius: 5px;">
+										<table class="log-main-table">
+											<thead>
+												<tr><th colspan="3" style="text-align: center;">Pipeline Run Sumary</th></tr>
+												<tr>
+													<th style="width: 12%;">Status / Duration</th>
+													<th style="width: 78%;">Pipeline</th>
+													<th style="width: 10%;">Error count</th>
+												</tr>
+											</thead>
+											<tbody (forEach)="logsSumary">
+												<tr each="item" class="log-row">
+													<td style="display: flex;">
+														<div class="txt-bold has-pipeline-complete has-pipeline-complete-{item.is_complete}"></div>&nbsp;
+														<div style="font-size: 12px;">{item.timestamp}</div>
+													</td>
+													<td><span class="pipeline-drill-to-logs-action" onclick="component.drillDownToPipelineLogs('{item.exec_id}')">{item.pipeline_id}</span></td>
+													<td>
+														<div class="txt-mute">{item.error_count}</div>
+													</td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+							<div style="padding-left: 10px; width: 17%;">
+								<div class="table-container" style="width: 100%; height: 66.5vh;">
+									<div id="thisIsTheRunStatusSummaryHeader">
+										<span class="main-title">Run Status Summary</span>
+										<div class="sub-header" style="width: 109%; display: flex; justify-content: space-around; margin-left: -3px;">
+											<span>Last 7 Days</span>
+											<span class="separator">·</span>
+											<span class="dynamicTotalRuns"></span>
+										</div>
+									</div>
+									<canvas 
+										id="thisIsTheDonutGraph" class="chart-container">
+									</canvas>
+									<div id="thisIsTheDonutGraphChartLegend"></div>
+
+									<div id="thisIsThePipelineListContainer">
+										<div class="list-header" style="color: #64748b; padding: 5px; font-size: 12px;">PIPELINES</div>
+										<div class="scroll-area pipelineListTarget">
+										</div>
+									</div>
+
+								</div>
+							</div>
+						</section>
+						
+
+					</div>
 				</div>
-				<div class="table-container"></div>
 			</div>
 		</div>
 	</div>
 </div>
 
+<style>
+	.chart-container {
+		position: relative;
+		width: 100%;   /* e.g. 1200px on a big monitor */
+    	height: 20vh; /* fixed height */
+		/* This sets the "Background" of the chart area */
+		background-color: #12181b !important; 
+		padding: 20px;
+	}
+
+	canvas#thisIsTheDonutGraph {
+		background-color: #12181b !important;
+		background-color: transparent; /* Let the container handle the color */
+	}
+</style>
 
 </html>

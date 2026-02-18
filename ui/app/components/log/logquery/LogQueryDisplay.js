@@ -3,6 +3,7 @@ import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { PopupUtil } from "../../popup-window/PopupUtil.js";
 import { Workspace } from "../../workspace/Workspace.js";
+import { loadDonutChart } from "./util/LogQueryDisplayUtil.js";
 
 export class LogQueryDisplay extends ViewComponent {
 
@@ -40,6 +41,7 @@ export class LogQueryDisplay extends ViewComponent {
 	pipelineList = [];
 	executionIdsList = [];
 	logs = [];
+	logsSumary = [];
 
 	async stAfterInit(){
 
@@ -55,15 +57,17 @@ export class LogQueryDisplay extends ViewComponent {
 
 	openPopup() {
 		setTimeout(async () => {
-			this.logs = (await WorkspaceService.getLogs({})).map(itm => ({
-				timestamp: itm[0], id: itm[1], log_level: itm[2], module: itm[3], execution_id: itm[4],
-				line_number: itm[5], message: itm[6], namespace: itm[7], extra_data: itm[8]
-			}));
 			
+			const logs = (await WorkspaceService.getLogs({}));			
+			this.logs = logs.all_logs.map(this.parseLogRow);
+			this.logsSumary = logs.logs_summary.map(this.parseLogSummary);
+			loadDonutChart(logs.stats);
+
 			let pipelines = await WorkspaceService.getPipelineList(this.$parent.socketData.sid);
 			pipelines = Object.keys(pipelines);
 			this.pipelineList = [{name: 'All Pipelines'}, ...(pipelines.length && pipelines.map(name => ({name})))];
 			this.executionIdsList = [{name: 'All Runs'}, ...(await WorkspaceService.getLogsExecutionsId())];
+
 		});
 		this.popup.classList.remove('hidden');
 		this.showWindowPopup = true;
@@ -74,6 +78,17 @@ export class LogQueryDisplay extends ViewComponent {
 		this.popup.classList.remove('minimized', 'maximized');
 		this.isMinimized = false;
 		this.showWindowPopup = false;
+	}
+
+	parseLogRow(itm){
+		return {
+			timestamp: itm[0].replace(/(\.\d{3})\d+/, '$1'), id: itm[1], log_level: itm[2], module: itm[3], execution_id: itm[4],
+			line_number: itm[5], message: itm[6], namespace: itm[7], extra_data: itm[8], is_complete: itm[9]
+		}
+	}
+
+	parseLogSummary(itm){
+		return { timestamp: itm[5].replace(/(\.\d{3})\d+/, '$1')/*`${itm[3]} - ${itm[4]}`*/, pipeline_id: itm[1], error_count: itm[8], is_complete: itm[9], exec_id: itm[0] }
 	}
 
 	toggleMinimize() {
@@ -198,12 +213,14 @@ export class LogQueryDisplay extends ViewComponent {
 		});
 	}
 
-	async filterLogs(){
-		this.logs = (await WorkspaceService.getLogs(this.logLevelFilters)).map(itm => ({
-			timestamp: itm[0], id: itm[1], log_level: itm[2], module: itm[3], execution_id: itm[4],
-			line_number: itm[5], message: itm[6], namespace: itm[7], extra_data: itm[8]
-		}));
+	filterLogs = async () =>
+		this.logs = (await WorkspaceService.getLogs(this.logLevelFilters))['all_logs'].map(this.parseLogRow);
+	
+
+	async drillDownToPipelineLogs(execution_id){
+		this.logs = (await WorkspaceService.getLogs({ execution_id }))['all_logs'].map(this.parseLogRow);
 	}
+
 }
 
 

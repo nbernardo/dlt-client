@@ -705,9 +705,16 @@ export class WorkspaceService extends BaseService {
         });
         const result = await response.json();
         try {
-            if (response.ok && !result.error) return result.length > 0 ? result : [];
+            if (response.ok && !result.error) {
+                
+                return {
+                    'all_logs': result['all_logs'].length > 0 ? result['all_logs'] : [],
+                    'logs_summary': result['logs_summary'].length > 0 ? result['logs_summary'] : [],
+                    'stats': result['stats'],
+                }
+            }
         } catch (error) {
-            return []
+            return { all_logs: [], logs_summary: [] }
         }
     }
 
