@@ -60,8 +60,10 @@ class DLTCodeOutput(TemplateNodeType):
                 self.destination_settings = f"namespace = '{data['namespace']}'{n}secret_names = {referenced_secrets}{n}__secrets = SecretManager.referencedSecrets(namespace, secret_names){n}{self.destination_settings}"
                 
                 if use_secrets:
+                    import platform
+                    sep = '/' if platform.system() != 'Windows' else '\\'
                     import_path_libs = f'from sys import path{n}from pathlib import Path'
-                    add_import_path = f"{import_path_libs}{n}src_path = str(Path(__file__).parent).replace('/destinations/pipeline/{context.user}',''){n}"
+                    add_import_path = f"{import_path_libs}{n}src_path = str(Path(__file__).parent).replace('{sep}destinations{sep}pipeline{sep}{context.user}',''){n}"
                     add_import_path = f"{add_import_path}path.insert(0, src_path){n}"
                     add_import_path = f"{add_import_path}path.insert(0, src_path+'/src'){n}"
                     add_import_path = f"{add_import_path}path.insert(0, src_path+'/src'){n}{n}"

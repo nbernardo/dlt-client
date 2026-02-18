@@ -41,6 +41,9 @@ class DLTCode(TemplateNodeType):
 
         if 'namespace' in data:
             referenced_secrets = self.parse__secrets(data['namespace'])
+            
+            if not(context.is_code_destination and len(referenced_secrets) > 0):
+                self.template_code = f"""\nnamespace = '{data['namespace']}'\n{self.template_code}\n\n"""
 
             if context.is_code_destination:
                 self.context.additional_secrets = []

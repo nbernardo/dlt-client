@@ -252,14 +252,27 @@ class Workspace:
             ppline_name = None
 
             is_withmetadata = False
-            if _file.endswith('|withmetadata|.py'):
-                ppline_name =_file.replace('|withmetadata|.py', '')
+            # Support new format (double underscore)
+            if _file.endswith('__withmetadata__.py'):
+                ppline_name =_file.replace('__withmetadata__.py', '')
+                is_withmetadata = True
+                if _file not in result:
+                    result[ppline_name] = {}
+            # Support old format (single underscore) for backward compatibility
+            elif _file.endswith('_withmetadata_.py'):
+                ppline_name =_file.replace('_withmetadata_.py', '')
                 is_withmetadata = True
                 if _file not in result:
                     result[ppline_name] = {}
 
-            if _file.endswith('|toschedule|.py') and is_withmetadata == False:
-                ppline_name =_file.replace('|toschedule|.py', '')
+            # Support new format (double underscore)
+            if _file.endswith('__toschedule__.py') and is_withmetadata == False:
+                ppline_name =_file.replace('__toschedule__.py', '')
+                if _file not in result:
+                    result[ppline_name] = {}
+            # Support old format (single underscore) for backward compatibility
+            elif _file.endswith('_toschedule_.py') and is_withmetadata == False:
+                ppline_name =_file.replace('_toschedule_.py', '')
                 if _file not in result:
                     result[ppline_name] = {}
 
@@ -615,8 +628,9 @@ class Workspace:
 
     @staticmethod
     def get_duckdb_path_on_ppline():
-        root_dir = str(Path(__file__).parent).replace('src/services/workspace','destinations')
-        return f'{root_dir}/duckdb'
+        # Get absolute path to backend directory
+        root_dir = str(Path(__file__).parent.parent.parent.parent)
+        return f'{root_dir}/destinations/duckdb'
 
 
     @staticmethod
