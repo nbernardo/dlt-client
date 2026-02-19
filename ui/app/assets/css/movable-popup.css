@@ -564,6 +564,14 @@
 .status-pill.failing { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 
 
+
+.leaderboard-column-headers {
+    position: sticky;
+    top: 25px;
+    z-index: 10;
+    /* background-color: #1a1d24; */
+}
+
 .leaderboard-header-bar {
     display: flex;
     align-items: center;
@@ -573,6 +581,9 @@
     font-family: 'JetBrains Mono', 'Courier New', monospace;
     width: 100%;
     box-sizing: border-box;
+	position: sticky;
+    top: 0;
+	z-index: 20;
 }
 
 .lb-title, .lb-highlight { font-size: 11px; letter-spacing: 4px; white-space: nowrap; }

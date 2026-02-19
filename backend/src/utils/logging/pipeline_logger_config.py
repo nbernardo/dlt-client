@@ -39,6 +39,8 @@ def handle_pipeline_log(printed_log: str, logger: logging.Logger, error = False,
     if str(printed_log).__contains__(' |+| '):
         description,\
         extra = printed_log.replace('[PIPELINE_LOG]:','').split(' |+| ')
+        if error:
+            logger.error(description.replace('ERROR:',''), extra=json.loads(extra))
         if description.strip() != '':
             logger.info(description, extra=json.loads(extra))
     # logs details logs generated from DLT library 

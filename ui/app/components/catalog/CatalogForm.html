@@ -329,7 +329,7 @@
                 onclick="component.testConnection()" 
                 class="btn btn-light-blue save-secret-btn">
                   @if(this.checkConnection == 'in-progress')
-                    <div class="mini-loader-container oracle-dn-loader">
+                    <div class="mini-loader-container oracle-dn-loader" style="width: 32px;">
                       <div class="mini-loader-dot"></div>
                       <div class="mini-loader-dot"></div>
                       <div class="mini-loader-dot"></div>
@@ -368,7 +368,7 @@
     span[data="get-oracle-dn-btn"] { float: left; margin-top: 0;  }
     .oracle-dn-loader {
         display: flex; width: 29px; margin-top: 0; padding: 0; margin-left: 10px; float: right; margin-top: 0;
-        .mini-loader-dot { background-color: white; width: 12px; height: 9px; }
+        .mini-loader-dot { background-color: white; width: 12px !important; height: 9px; }
     }
 
     .add-api-param-btn { color: blue; text-decoration: underline; cursor: pointer; }

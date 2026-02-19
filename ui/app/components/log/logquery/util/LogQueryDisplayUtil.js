@@ -180,6 +180,9 @@ function updateDashboardTable(data) {
             const safeId = sanitizeId(pipe.pipeline_id); // ← same sanitize here
             const canvas = document.getElementById(`canvas-${safeId}`);
 
+			const existingChart = Chart.getChart(`canvas-${safeId}`);
+			if (existingChart) existingChart.destroy();
+
             if (canvas) {
                 drawSparkline(canvas, pipe);
             } else {
