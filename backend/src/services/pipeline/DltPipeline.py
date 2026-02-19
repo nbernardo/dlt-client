@@ -127,8 +127,8 @@ class DltPipeline:
                 line = result.stdout.readline()
                 time.sleep(0.1)
 
-                if not line:
-                    break
+                if line == '': continue
+                if not line: break
                 line = line.strip()
                 
                 is_transformation_step = (line.endswith('Transformation')\
@@ -455,8 +455,9 @@ class DltPipeline:
             while True:
                 time.sleep(0.1)
                 line = result.stdout.readline()
-                if not line: 
-                    break
+
+                if line == '': continue
+                if not line: break
                 line = line.strip()
                 
                 if (line == 'RUN_SUCCESSFULLY'):
