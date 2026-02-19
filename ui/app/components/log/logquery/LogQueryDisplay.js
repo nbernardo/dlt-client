@@ -63,9 +63,9 @@ export class LogQueryDisplay extends ViewComponent {
 			this.logsSumary = logs.logs_summary.map(this.parseLogSummary);
 			loadDonutChart(logs.stats);
 
-			let pipelines = await WorkspaceService.getPipelineList(this.$parent.socketData.sid);
-			pipelines = Object.keys(pipelines);
-			this.pipelineList = [{name: 'All Pipelines'}, ...(pipelines.length && pipelines.map(name => ({name})))];
+			let pipelines = new Set(logs.logs_summary.map(itm => (itm[1])));
+
+			this.pipelineList = [{name: 'All Pipelines'}, ...(logs.logs_summary.length && [...pipelines].map(name => ({ name })))];
 			this.executionIdsList = [{name: 'All Runs'}, ...(await WorkspaceService.getLogsExecutionsId())];
 
 		});
@@ -196,12 +196,11 @@ export class LogQueryDisplay extends ViewComponent {
 		document.getElementById(id).classList.toggle('active');
 	}	
 
-	
-	pick(inputId, val, label, dropId) {
+	pick(inputId, val, label = null, dropId = null) {
 		document.getElementById(`logsView_${inputId}`).value = val;
 		this.logLevelFilters[inputId] = val;
 		const trigger = document.getElementById(dropId).previousElementSibling;
-		trigger.querySelector('span').innerText = label;
+		trigger.querySelector('span').innerText = label || val;
 		document.getElementById(dropId).classList.remove('active');
 	}
 
@@ -217,8 +216,18 @@ export class LogQueryDisplay extends ViewComponent {
 		this.logs = (await WorkspaceService.getLogs(this.logLevelFilters))['all_logs'].map(this.parseLogRow);
 	
 
+	async clearLogsFilter(executionId, pipelineId) {
+		this.pick(executionId,'All Runs',null,'exec-drop'), this.pick(pipelineId,'All Pipelines',null,'pipe-drop');
+		document.querySelector('.log-level-filter-display').value = 'All Levels';
+		this.logLevelFilters = {};
+		this.logs = (await WorkspaceService.getLogs({}))['all_logs'].map(this.parseLogRow);
+	}
+	
+
 	async drillDownToPipelineLogs(execution_id){
 		this.logs = (await WorkspaceService.getLogs({ execution_id }))['all_logs'].map(this.parseLogRow);
+		document.querySelector('.log-table-area').classList.add('log-table-area-animated');
+		setTimeout(() => document.querySelector('.log-table-area').classList.remove('log-table-area-animated'), 6000);
 	}
 
 }

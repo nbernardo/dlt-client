@@ -69,6 +69,7 @@ export function loadDonutChart(data){
 	updateDashboardHeader(data);
 	updateLegend(data.summary);
 	renderPipelineList(data);
+	updateDashboardTable(data);
 	
 } 
 
@@ -135,3 +136,106 @@ function updateDashboardHeader(data) {
         totalRunsElement.innerText = `${data.summary.total_runs} Total Runs`;
     }
 }
+
+
+function sanitizeId(pipelineId) {
+    return pipelineId.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function updateDashboardTable(data) {
+    const tableBody = document.getElementById('leaderboardBody');
+    if (!tableBody) return;
+
+	
+	
+    const rowsHtml = data.pipelines.map(pipe => {
+		const isFailing = pipe.failed_count > 0;
+        const statusClass = isFailing ? 'failing' : 'ok';
+        const statusText = isFailing ? '● FAILING' : '● OK';
+        const safeId = sanitizeId(pipe.pipeline_id);
+		const formattedRecords = pipe.total_records > 999 
+			? (pipe.total_records / 1000).toFixed(1) + 'k' 
+			: pipe.total_records;
+
+        return `
+            <tr class="pipeline-row">
+                <td class="col-name" title="${pipe.pipeline_id}">${pipe.pipeline_id}</td>
+                <td class="col-runs">${pipe.total_runs}</td>
+                <td class="col-success">${pipe.success_count}</td>
+                <td class="col-failed">${pipe.failed_count}</td>
+                <td class="align-center">${pipe.avg_duration || '0'}s</td>
+                <td class="align-center">${formattedRecords}</td>
+                <td class="align-center"><span class="status-pill ${statusClass}">${statusText}</span></td>
+                <td class="col-trend">
+                    <canvas id="canvas-${safeId}" width="120" height="30"></canvas>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    tableBody.innerHTML = rowsHtml;
+
+    requestAnimationFrame(() => {
+        data.pipelines.forEach(pipe => {
+            const safeId = sanitizeId(pipe.pipeline_id); // ← same sanitize here
+            const canvas = document.getElementById(`canvas-${safeId}`);
+
+            if (canvas) {
+                drawSparkline(canvas, pipe);
+            } else {
+                console.error(`Canvas not found: canvas-${safeId}`);
+            }
+        });
+    });
+}
+
+function drawSparkline(canvas, pipe) {
+    const isFailing = pipe.failed_count > 0;
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+
+    canvas.style.display = 'block';
+    canvas.style.visibility = 'visible';
+    canvas.style.opacity = '1';
+    canvas.width = 120;
+    canvas.height = 30;
+
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [1, 2, 3, 4, 5, 6, 7],
+            datasets: [{
+                data: pipe.trend_data,
+                borderColor: isFailing ? '#ef4444' : '#22c55e',
+                backgroundColor: isFailing ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                fill: true,
+                borderWidth: 1.5,
+                pointRadius: 0,
+				pointHoverRadius: 4,
+				pointHitRadius: 20,
+                tension: 0.4
+            }]
+        },
+		options: {
+			responsive: false,
+			maintainAspectRatio: false,
+			interaction: {
+				mode: 'index',
+				intersect: false
+			},
+			plugins: { 
+				legend: { display: false },
+				tooltip: {
+					enabled: true,
+					callbacks: {
+						title: () => '',
+						label: (ctx) => `${ctx.parsed.y} runs`
+					}
+				}
+			},
+			scales: { x: { display: false }, y: { display: false } },
+		}
+    });
+}
+

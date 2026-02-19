@@ -18,7 +18,7 @@
 			<div class="resize-handle se"></div>
 
 			<div class="popup-mov-window-header-@uniqueId popup-mov-window-header">
-				<div class="popup-mov-window-title">Log analysis Window</div>
+				<div class="popup-mov-window-title">Log analysis</div>
 				<div class="popup-mov-window-controls">
 					<button class="minimize" style="visibility: hidden;" onclick="component.toggleMinimize()">−</button>
 					<button class="maximize" style="visibility: hidden;" onclick="component.toggleMaximize()">□</button>
@@ -66,7 +66,7 @@
 
 								<div class="log-group">
 									<label>Log Level</label>
-									<select onchange="component.setLogLevelFilter(this.value)">
+									<select class="log-level-filter-display" onchange="component.setLogLevelFilter(this.value)">
 										<option value="All Levels">All Levels</option>
 										<option value="INFO">INFO</option>
 										<option value="ERROR">ERROR</option>
@@ -75,14 +75,16 @@
 
 								<div class="log-actions">
 									<button onclick="component.filterLogs()" class="log-btn-search">Apply</button>
-									<a href="/logs" class="log-btn-clear">Reset</a>
+									<button onclick="component.clearLogsFilter('execution_id','pipeline_id')" style="padding: 7px; padding-right: 9px;" class="log-btn-search log-btn-clear">
+										<img src="app/assets/imgs/clean.png" style="width: 18px; float: left;" >Reset
+									</button>
 								</div>
 							</form>
 						</div>
 
 						<section style="display: flex; flex-direction: row;">
 							<div class="logs-display-metrics-wrapper" style="height: 58vh; width: 83%;">
-								<div class="log-table-area" style="overflow-y: scroll; height: 28vh; border: 1px solid #80808087; border-radius: 5px;">
+								<div class="log-table-area">
 									<table class="log-main-table">
 										<thead>
 											<tr>
@@ -95,7 +97,7 @@
 											</tr>
 										</thead>
 										<tbody (forEach)="logs">
-											<tr each="item" class="log-row log-type-{{ log.log_level }}">
+											<tr each="item" class="log-row log-type-{log.log_level}">
 												<td>
 													<div class="txt-bold">{item.timestamp}</div>
 													<div class="txt-mute">#{item.id}</div>
@@ -122,21 +124,23 @@
 								</div>
 	
 								<div style="display: flex; flex-direction: row; justify-content: space-between;">
-									<div style="height: 28vh;overflow-y: scroll; margin-top: 14px; width: 35%; border: 1px solid #80808087; border-radius: 5px;">
+									<div style="height: 37vh;overflow-y: scroll; margin-top: 14px; width: 30%; border: 1px solid #80808087; border-radius: 5px;">
 										<table class="log-main-table">
 											<thead>
 												<tr><th colspan="3" style="text-align: center;">Pipeline Run Sumary</th></tr>
 												<tr>
-													<th style="width: 12%;">Status / Duration</th>
+													<th style="width: 14%;">Status / Duration</th>
 													<th style="width: 78%;">Pipeline</th>
-													<th style="width: 10%;">Error count</th>
+													<th style="width: 8%;">Error count</th>
 												</tr>
 											</thead>
 											<tbody (forEach)="logsSumary">
 												<tr each="item" class="log-row">
-													<td style="display: flex;">
-														<div class="txt-bold has-pipeline-complete has-pipeline-complete-{item.is_complete}"></div>&nbsp;
-														<div style="font-size: 12px;">{item.timestamp}</div>
+													<td>
+														<div style="display: flex;">
+															<div class="txt-bold has-pipeline-complete has-pipeline-complete-{item.is_complete}" style="width: 16px; height: 16px;"></div>&nbsp;
+															<div style="font-size: 12px;">{item.timestamp}</div>
+														</div>
 													</td>
 													<td><span class="pipeline-drill-to-logs-action" onclick="component.drillDownToPipelineLogs('{item.exec_id}')">{item.pipeline_id}</span></td>
 													<td>
@@ -146,6 +150,33 @@
 											</tbody>
 										</table>
 									</div>
+
+									<div style="width: 69%; margin-left: 6px; margin-top: 12px;">
+										<div id="thisIsTheMainLeaderboardContainer" style="border-radius: 6px; height: 37vh;">
+											<div class="leaderboard-header-bar">
+												<span class="lb-title">PIPELINE LEADERBOARD</span>
+												<span class="lb-separator">•</span>
+												<span class="lb-highlight">LAST 7 DAYS</span>
+											</div>
+											<table id="mainPipelineTable" style="border-radius: 6px;">
+												<thead>
+													<tr>
+														<th width="25%">Pipeline</th>
+														<th width="7%">Runs</th>
+														<th width="10%">Success</th>
+														<th width="8%">Failed</th>
+														<th width="10%" class="align-center">Avg Duration</th>
+														<th width="10%" class="align-center">Records Loaded</th>
+														<th width="12%" class="align-center">Status</th>
+														<th class="align-center">Trend</th>
+													</tr>
+												</thead>
+												<tbody id="leaderboardBody">
+												</tbody>
+											</table>
+										</div>
+									</div>
+
 								</div>
 							</div>
 							<div style="padding-left: 10px; width: 17%;">
