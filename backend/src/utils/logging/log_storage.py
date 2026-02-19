@@ -248,7 +248,7 @@ class DuckDBLogStore:
         if 'pipeline_id' in filters:
             if filters['pipeline_id'] != 'All Pipelines':
                 where += " AND pipeline_id = ?"
-                params.append(filters['pipeline_id'].replace('.duckdb',''))
+                params.append(filters['pipeline_id'])
 
         if 'execution_id' in filters:
             if filters['execution_id'] != 'All Runs':
