@@ -33,7 +33,7 @@ addEventListener('message', (event) => {
 
         fetch(`${prePath}/${cmpPath}.js`)
             .then(() => {
-
+                self.postMessage({ path: `${prePath}/${cmpPath}`, type: 'js', category: 'component' });
                 if (cmp.assets?.length) {
 
                     cmp.assets.forEach(asset => {

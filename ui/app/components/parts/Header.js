@@ -56,8 +56,7 @@ export class Header extends ViewComponent {
 				UserUtil.email = user.email;
 				Object.freeze(UserUtil);
 			}
-			this.loggedUser = user.name;
-			this.userEmail = user.email;
+			this.loggedUser = user.name, this.userEmail = user.email;
 
 		});
 
@@ -69,7 +68,6 @@ export class Header extends ViewComponent {
 		});
 
 		this.workspaceController.on('load', () => this.workspaceController.activeHeader = this);
-
 		this.handleScheduledPplineHideShow();
 	}
 
@@ -99,13 +97,18 @@ export class Header extends ViewComponent {
 		AppTemplate.showLoading();
 		Router.goto(routeName);
 	}
-
-    handleScheduledPplineHideShow = () =>  handleHideShowSubmenu('.generic-context-drop-menu', '.submenu');
+	
+    handleScheduledPplineHideShow = () =>  
+		document.querySelectorAll('.generic-context-drop-menu').forEach(elm => handleHideShowSubmenu(elm, '.submenu'));
 
 	showHideLogsDisplay = () => this.$parent.logProxy.showHideLogsDisplay();
 
 	logout(){
 		this.userService.logOut();
+	}
+
+	showLogsAnalysisDisplay(){
+		this.$parent.logQueryDisplayProxy.openPopup();
 	}
 
 }
