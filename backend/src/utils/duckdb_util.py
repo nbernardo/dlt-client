@@ -144,11 +144,12 @@ class DuckdbUtil:
         
         # Create indexes for efficient querying
         indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_namespace ON pipeline_logs(namespace)",
             "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_pipeline_id ON pipeline_logs(pipeline_id)",
             "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_execution_id ON pipeline_logs(execution_id)",
             "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_timestamp ON pipeline_logs(timestamp)",
-            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_level ON pipeline_logs(log_level)",
-            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_correlation_id ON pipeline_logs(correlation_id)"
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_correlation_id ON pipeline_logs(correlation_id)",
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_logs_namespace_timestamp ON pipeline_logs (namespace, timestamp DESC);"
         ]
         
         for index_query in indexes:
