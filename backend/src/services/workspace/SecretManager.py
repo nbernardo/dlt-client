@@ -276,6 +276,9 @@ class SecretManager(SecretManagerType):
             
             return secret
 
+        # Filter out empty strings from references
+        references = [ref for ref in references if ref and ref.strip()]
+        
         secrets = {
             secret: clean_private_key(SecretManager.get_db_secret(namespace,secret)[secret]) 
             for secret in references

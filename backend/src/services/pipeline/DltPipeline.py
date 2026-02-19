@@ -85,9 +85,9 @@ class DltPipeline:
 
         filename_suffixe = ''
         if context and context.is_duck_destination != True:
-            filename_suffixe = '|withmetadata|' if does_have_metadata or context.is_code_destination else ''
+            filename_suffixe = '__withmetadata__' if does_have_metadata or context.is_code_destination else ''
             if(filename_suffixe == ''):
-                filename_suffixe = '|toschedule|' if context.pipeline_action == 'onlysave' else ''
+                filename_suffixe = '__toschedule__' if context.pipeline_action == 'onlysave' else ''
 
         ppline_file = f'{file_path}/{file_name}{filename_suffixe}.py'
         file_open_flag = 'x+'
@@ -364,7 +364,6 @@ class DltPipeline:
 
         return tplt
 
-
     def save_instance(self, ppline_name, content):
         """
             This will save in the DB 
@@ -419,9 +418,15 @@ class DltPipeline:
         ppline_file = f'{destinations_dir}/{file_path}.py'
 
         if not(os.path.exists(ppline_file)):
-            ppline_file = f'{destinations_dir}/{file_path}|toschedule|.py'
+            # Try new format (double underscore)
+            ppline_file = f'{destinations_dir}/{file_path}__toschedule__.py'
             if not(os.path.exists(ppline_file)):
-                ppline_file = f'{destinations_dir}/{file_path}|withmetadata|.py'
+                ppline_file = f'{destinations_dir}/{file_path}__withmetadata__.py'
+            # Try old format (single underscore) for backward compatibility
+            if not(os.path.exists(ppline_file)):
+                ppline_file = f'{destinations_dir}/{file_path}_toschedule_.py'
+            if not(os.path.exists(ppline_file)):
+                ppline_file = f'{destinations_dir}/{file_path}_withmetadata_.py'
 
         db_root_path = destinations_dir.replace('pipeline','duckdb')
         # DB Lock in the pplication level
