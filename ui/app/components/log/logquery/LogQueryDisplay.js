@@ -78,6 +78,7 @@ export class LogQueryDisplay extends ViewComponent {
 		this.popup.classList.remove('minimized', 'maximized');
 		this.isMinimized = false;
 		this.showWindowPopup = false;
+		Chart.getChart("thisIsTheDonutGraph").destroy();
 	}
 
 	parseLogRow(itm){
