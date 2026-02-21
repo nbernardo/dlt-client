@@ -4,7 +4,7 @@
 	</td>
 
 		<td>
-		<span class="combobox">
+		<span class="combobox transform-container-row">
 			<select (required)="true" (value)="aggregationType" placeholder="Aggreg Type" (validator)="text">
 				<option value="">Aggreg Type</option>
 				<option value="" name="greyed">- NUMERIC -</option>
@@ -25,7 +25,7 @@
 	</td>
 
 	<td>
-		<span class="combobox">
+		<span class="combobox transform-container-row">
 			<select (required)="true" (forEach)="fieldsList" (value)="selectedField"
 				placeholder="Field name" (validator)="text">
 				<option each="item" value="{item.name}">{item.name}</option>
@@ -35,7 +35,7 @@
 
 
 
-	<td class="aggregation-alias-field">
+	<td class="aggregation-alias-field transform-container-row">
 		<input type="text" (value)="aggregationAlias" placeholder="Field Alias" (required)="alphanumeric">
 	</td>
 </form>
