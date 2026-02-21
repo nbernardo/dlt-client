@@ -74,7 +74,7 @@ export class TransformRow extends ViewComponent {
 		this.selectedSource.onChange(table => this.updateTransformValue({ table }));
 
 		this.selectedType.onChange(value => {
-			if((value?.trim() === 'FILTER' || value?.trim() === 'AGGREG') && this.selectedField.value !== '- No Field -')
+			if((value?.trim() === 'FILTER') && this.selectedField.value !== '- No Field -')
 				this.selectedField = '- No Field -';
 
 			this.transformType = value?.trim();
@@ -94,6 +94,11 @@ export class TransformRow extends ViewComponent {
 	updateTransformValue(value) {
 		const curVal = this.$parent.transformPieces.get(this.rowId);
 		this.$parent.transformPieces.set(this.rowId, { ...curVal, ...value });
+		if('field' in value) {
+			[...this.aggregations].forEach(([_, aggegRow]) => {
+				aggegRow.updateAggregField(value.field)
+			})
+		}
 	}
 
 	removeMe() {

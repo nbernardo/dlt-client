@@ -239,8 +239,11 @@ export class Transformation extends AbstractNode {
 
 		if(transformations == '') 
 			return setTimeout(() => this.gettingTransformation = false, 500);
-		if(Object.keys(transformations) == 0)
+		if(Object.keys(transformations) == 0){
+			result = '<div style="width: 100%; text-align: center; color: green;">No relevant transformation to run</div>';
+			TransformExecution.transformPreviewShow(this.cmpInternalId, result);
 			return setTimeout(() => this.gettingTransformation = false, 500);
+		}
 
 		const tablesSet = Object.entries(transformations)
 		const newFieldRE = /alias\(\'([A-Z]{1,}[A-Z1-9]{0,})(_New){0,}\'\)/ig
@@ -250,114 +253,64 @@ export class Transformation extends AbstractNode {
 		const transformRowMapping = {};
 		
 		if(tablesSet.length > 0) finalScript = 'results, lfquery = [], None\n';
-		let count = 1;
+		let count = 1, cols, prevAg, transformCount;
 
 		for(const [tableName, transformations] of tablesSet){
 
-			script = 'try:\n\t';
-			let cols = '*';
-			if(dbEngine === 'mssql'){
-				script += `table = '${tableName}'\n\t`;
-				script += `schema_name, table_name = table.split('.')\n\t`;
-				script += `columns = inspector.get_columns(table_name, schema=schema_name)\n\t`;
-				script += `parsed_columns = column_type_conversion(columns, engine.connect(), table_name, schema_name)\n\t`;
-				cols = '{parsed_columns}';
-			}
+			script = 'try:\n\t', cols = '*';
+			[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine);
 			
-			const withColumnStmt = `lf = lfquery.with_columns(${transformations[0]})\n\t`;
-			if(this.fileSource != null){
-				let readType = 'scan_csv';
-				if(tableName.endsWith('.parquet')) readType = 'scan_parquet';
-				if(tableName.endsWith('.jsonl')) readType = 'scan_ndjson'
-
-				script += `lfquery = pl.${readType}(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
-			}else{
-				script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
-			}
-			script += withColumnStmt;
 			transformRowMapping["lfquery.with_columns("+transformations[0]+")"] = count;
 			let totalTransform = transformations.length;
-			let transformCount = 0;
+			transformCount = 0, prevAg = null;
 
 			for(let transformation of transformations){
+
+				if('aggreg' in transformation){
+					[script, prevAg] = Transformation.parseAggregation(script, transformation, prevAg);
+					transformCount++;
+					if(transformCount == totalTransform){
+						// closed the aggregator scope, which is opened within the parseAggregation
+						script += '\n\t)\n\n\t';
+						[script, count] = Transformation.parseTransformResult(script, count, tableName, false);
+						finalScript += script
+					}
+					continue;
+				}
+				
+				script += `lf = lfquery.with_columns(${transformations[0]})\n\t`;
 				if(transformation.trim() == '') continue;
 				const { type, isNewField } = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`];
-				const isDedupTransform = type === 'DEDUP';
-				const isDropTransform = type === 'DROP';
-				const isFilterTransform = type === 'FILTER';
+				const isDedupTransform = type === 'DEDUP', isDropTransform = type === 'DROP', isFilterTransform = type === 'FILTER';
 
-				if(isNewField) transformation = transformation.replace(".alias('",".alias('+")
+				if(isNewField) transformation = transformation.replace(".alias('",".alias('+");
 
-				if(isDedupTransform || isDropTransform || isFilterTransform) {
-					
-					script = script.replace(transformation,'pl.all()');
+				else if(isDedupTransform || isDropTransform || isFilterTransform) {
+					const transformType = { isDedupTransform, isDropTransform, isFilterTransform };
 
-					if(isDedupTransform)
-						script += transformation.replace('df.unique(subset=','lf = lf.unique(subset=')+'\n\t';
+					[ script, count, transformCount, finalScript ] = Transformation.parseScript({
+						script, tableName, transformType, count, transformCount, 
+						finalScript, transformation, transformations, totalTransform
+					});
 
-					if(isDropTransform)
-						script += transformation.replace('df.drop([','lf = lf.drop([')+'\n\t';
-					
-					if(isFilterTransform)
-						script += transformation.replace('df.filter(','lf = lf.filter(')+'\n\t';
-
-					script += `result = lf.${isDropTransform ? 'limit(2)' : 'limit(20)'}.collect()\n\t`;
-					script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
-					script += `except Exception as err:\n\t`;
-					script += `print(f'Error #${count}#: {str(err)}')\n\t`;
-					script += `raise Exception(f'Error #${count++}#: {str(err)}')\n\n`;					
-
-					finalScript += script;
-					if(totalTransform > 1){
-						script = `\n\ntry:\n\t`;
-						script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
-						script = script
-								.replace(transformation+',','')
-								.replace(transformation,'')
-					}
 					totalTransform--;
 					continue;
 				}
 
-				const isCalculateTransform = type === 'CALCULATE';
-				const isSplitTransform = type === 'SPLIT';
-				const otherValidTransform = isCalculateTransform || isSplitTransform;
+				const isCalcTransform = type === 'CALCULATE',  isSplitTransform = type === 'SPLIT';
+				const otherValidTransform = isCalcTransform || isSplitTransform;
 
 				if(!transformation.startsWith('pl.when(') && !otherValidTransform) {
 					count++;
 					continue;
 				}
 
-				let filterInstruction = '';
-				if(!otherValidTransform){
-					filterInstruction = transformation.split('pl.when(')[1];
-					filterInstruction = filterInstruction.split(').then')[0];
-				}else{
-					if(isSplitTransform)
-						filterInstruction = `${transformation.split('.str')[0]}.is_not_null()`;
-					else if(isCalculateTransform)
-						filterInstruction = `pl.col${transformation.split('alias')[1]}.is_not_null()`;
-				}
+				[ script, count, transformCount, finalScript ] = Transformation.parseFilter(
+					{ script, count, tableName, otherValidTransform, isSplitTransform, isNewField, finalScript,
+						newFieldRE, isCalcTransform, transformation, transformations, transformCount, totalTransform
+					}
+				);
 
-				script += `result = (lf.filter(${filterInstruction}).limit(5).collect())\n\t`;
-				script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
-				script += `except Exception as err:\n\t`;
-				script += `print(f'Error #${count}#: {str(err)}')\n\t`;
-				script += `raise Exception(f'Error #${count++}#: {str(err)}')`;
-				//In case there is any deduplicate transformation in place
-				script = script.replace(/\,{0,1}(\n|\t|\n\t){0,}df\.unique\(subset\=\[[A-Z0-9\']{0,}\]\)\,{0,1}(\n|\t|\n\t){0,}/ig, '');
-				
-				if(!isNewField)
-					script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
-				
-				finalScript += script;
-
-				script = '';
-				if(totalTransform > 1) {
-					//Reinstate things for next transformation
-					script = '\n\ntry:\n\t';
-					script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
-				}
 				totalTransform--;
 			}
 			finalScript += '\n\n';
@@ -382,18 +335,7 @@ export class Transformation extends AbstractNode {
 		this.gettingTransformation = false;
 		if(previewResult.code === '\n') return;
 		if('error' in previewResult || previewResult.code){
-			let transfomRowIndex;
-			if(previewResult.msg.search(/Error\s{1}\#(\d)\#/) >= 0) 
-				transfomRowIndex = Number(previewResult.msg.split('#')[1]) - 1;
-			else{
-				let codeRow = previewResult.code.replace('\tlf = ','');
-				codeRow = codeRow.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}_New`,`${$1}`));
-				if(codeRow.endsWith('\n')) codeRow = codeRow.slice(0, codeRow.length - 1);
-				transfomRowIndex = Number(transformRowMapping[codeRow]) - 1;
-			}
-
-			/** @type { TransformRow } */
-			const affectedRow = [...this.fieldRows][transfomRowIndex][1];
+			const affectedRow = Transformation.parseTransformException(previewResult, transformRowMapping, this.fieldRows);
 			return affectedRow.displayTransformationError(previewResult.msg);
 		}
 
@@ -420,5 +362,128 @@ export class Transformation extends AbstractNode {
 			else curRow.removeMe();
 		});
 		this.gettingTransformation = false;
+	}
+
+	static setPolarsDataFrameSource(script, tableName, cols, dbEngine){
+		if(dbEngine === 'mssql'){
+			script += `table = '${tableName}'\n\t`;
+			script += `schema_name, table_name = table.split('.')\n\t`;
+			script += `columns = inspector.get_columns(table_name, schema=schema_name)\n\t`;
+			script += `parsed_columns = column_type_conversion(columns, engine.connect(), table_name, schema_name)\n\t`;
+			cols = '{parsed_columns}';
+		}
+			
+		if(this.fileSource != null){
+			let readType = 'scan_csv';
+			if(tableName.endsWith('.parquet')) readType = 'scan_parquet';
+			if(tableName.endsWith('.jsonl')) readType = 'scan_ndjson'
+
+			script += `lfquery = pl.${readType}(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
+		}else{
+			script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
+		}
+		return [ script, cols ]
+	}
+
+	static parseAggregation(script, transformation, prevAggreg){
+		// Bellow if statement starts the aggregator scope, which is closed outside this function
+		if(transformation.field !== prevAggreg)
+			script += `lf = lfquery.group_by('${transformation.field}').agg(`;
+		
+		script += `\n\t\t\t${transformation.aggreg},`;
+		return [script, transformation.field];
+	}
+
+	static parseScript({
+		script, tableName, transformType, count, transformCount, finalScript,
+		transformation, transformations, totalTransform
+	}){
+
+		script = script.replace(transformation,'pl.all()');
+
+		if(transformType.isDedupTransform)
+			script += transformation.replace('df.unique(subset=','lf = lf.unique(subset=')+'\n\t';
+
+		if(transformType.isDropTransform)
+			script += transformation.replace('df.drop([','lf = lf.drop([')+'\n\t';
+					
+		if(transformType.isFilterTransform)
+			script += transformation.replace('df.filter(','lf = lf.filter(')+'\n\t';
+
+		[script, count] = Transformation.parseTransformResult(script, count, tableName, transformType.isDropTransform);
+
+		finalScript += script;
+		if(totalTransform > 1){
+			script = `\n\ntry:\n\t`;
+			script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+			script = script
+					.replace(transformation+',','')
+					.replace(transformation,'')
+		}
+
+		return [ script, count, transformCount, finalScript ]
+
+	}
+
+	static parseTransformResult(script, count, tableName, isDropTransform){
+		script += `result = lf.${isDropTransform ? 'limit(2)' : 'limit(20)'}.collect()\n\t`;
+		script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
+		script += `except Exception as err:\n\t`;
+		script += `print(f'Error #${count}#: {str(err)}')\n\t`;
+		script += `raise Exception(f'Error #${count++}#: {str(err)}')\n\n`;
+		return [script, count];
+	}
+
+	static parseFilter(
+		{ script, count, tableName, otherValidTransform, isSplitTransform, isNewField, finalScript,
+			newFieldRE, isCalcTransform, transformation, transformations, transformCount, totalTransform
+		 }
+	){
+		let filterInstruction = '';
+		if(!otherValidTransform){
+			filterInstruction = transformation.split('pl.when(')[1];
+			filterInstruction = filterInstruction.split(').then')[0];
+		}else{
+			if(isSplitTransform)
+				filterInstruction = `${transformation.split('.str')[0]}.is_not_null()`;
+			else if(isCalcTransform)
+				filterInstruction = `pl.col${transformation.split('alias')[1]}.is_not_null()`;
+		}
+
+		script += `result = (lf.filter(${filterInstruction}).limit(5).collect())\n\t`;
+		script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
+		script += `except Exception as err:\n\t`;
+		script += `print(f'Error #${count}#: {str(err)}')\n\t`;
+		script += `raise Exception(f'Error #${count++}#: {str(err)}')`;
+		//In case there is any deduplicate transformation in place
+		script = script.replace(/\,{0,1}(\n|\t|\n\t){0,}df\.unique\(subset\=\[[A-Z0-9\']{0,}\]\)\,{0,1}(\n|\t|\n\t){0,}/ig, '');
+				
+		if(!isNewField)
+			script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
+				
+		finalScript += script;
+
+		script = '';
+		if(totalTransform > 1) {
+			//Reinstate things for next transformation
+			script = '\n\ntry:\n\t';
+			script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+		}
+		return [ script, count, transformCount, finalScript ]
+	}
+
+	/** @returns { TransformRow } */
+	static parseTransformException(previewResult, transformRowMapping, fieldRows){
+		let transfomRowIndex;
+		if(previewResult.msg.search(/Error\s{1}\#(\d)\#/) >= 0) 
+			transfomRowIndex = Number(previewResult.msg.split('#')[1]) - 1;
+		else{
+			let codeRow = previewResult.code.replace('\tlf = ','');
+			codeRow = codeRow.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}_New`,`${$1}`));
+			if(codeRow.endsWith('\n')) codeRow = codeRow.slice(0, codeRow.length - 1);
+			transfomRowIndex = Number(transformRowMapping[codeRow]) - 1;
+		}
+
+		return [...fieldRows][transfomRowIndex][1];
 	}
 }

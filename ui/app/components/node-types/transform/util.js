@@ -66,9 +66,8 @@ export async function addAggregation(obj){
     const { component, template: aggregInstance } = await Components.new(Aggreg, { fieldList: obj.fieldList.value });
     const htmlNode = document.createElement('tr');
     htmlNode.id = `aggreg_row_${component.cmpInternalId}`; 
-    htmlNode.innerHTML = aggregInstance;
+    htmlNode.innerHTML = aggregInstance, component.$parent = obj;;
     document.getElementById(`aggreg_group_${obj.rowId}`).appendChild(htmlNode);
-    component.$parent = this;
     obj.aggregations.set(component.cmpInternalId, component);
     if(obj.aggregations.size > 0) document.getElementById(`aggreg_group_${obj.rowId}`).parentElement.style.display = '';
 }
