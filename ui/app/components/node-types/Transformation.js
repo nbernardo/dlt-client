@@ -265,20 +265,30 @@ export class Transformation extends AbstractNode {
 			transformCount = 0, prevAg = null;
 
 			for(let transformation of transformations){
-
-				if('aggreg' in transformation){
-					[script, prevAg] = Transformation.parseAggregation(script, transformation, prevAg);
-					transformCount++;
-					if(transformCount == totalTransform){
-						// closed the aggregator scope, which is opened within the parseAggregation
-						script += '\n\t)\n\n\t';
-						[script, count] = Transformation.parseTransformResult(script, count, tableName, false);
-						finalScript += script
+				const isObject = (Object.prototype.toString.call(transformation) === '[object Object]');
+				
+				if(isObject){
+					if('aggreg' in transformation){
+						[script, prevAg] = Transformation.parseAggregation(script, transformation, prevAg);
+						transformCount++;
+						if(transformCount == totalTransform)
+							[script, count, finalScript] = Transformation.endTransfPreviewScope(script, count, tableName, finalScript);
+						continue;
 					}
-					continue;
+				}
+
+				if(transformCount < totalTransform && prevAg !== null){
+					[script, count, finalScript] = Transformation.endTransfPreviewScope(script, count, tableName, finalScript);
+					// Resets the script for the next transformation
+					script = 'try:\n\t', cols = '*';
+					[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine);
+					script += `lf = lfquery.with_columns(${transformations[transformCount]})\n\t`;
+					
+					transformCount++
+				}else{
+					script += `lf = lfquery.with_columns(${transformations[0]})\n\t`;
 				}
 				
-				script += `lf = lfquery.with_columns(${transformations[0]})\n\t`;
 				if(transformation.trim() == '') continue;
 				const { type, isNewField } = DatabaseTransformation.transformTypeMap[`${tableName}-${transformation}`];
 				const isDedupTransform = type === 'DEDUP', isDropTransform = type === 'DROP', isFilterTransform = type === 'FILTER';
@@ -362,6 +372,15 @@ export class Transformation extends AbstractNode {
 			else curRow.removeMe();
 		});
 		this.gettingTransformation = false;
+	}
+
+	static endTransfPreviewScope(script, count, tableName, finalScript){
+		// closed the aggregator scope, which is opened within the parseAggregation
+		script += '\n\t)\n\n\t';
+		[script, count] = Transformation.parseTransformResult(script, count, tableName, false);
+		finalScript += script;
+
+		return [script, count, finalScript]
 	}
 
 	static setPolarsDataFrameSource(script, tableName, cols, dbEngine){
