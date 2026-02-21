@@ -243,6 +243,14 @@ export class DatabaseTransformation {
         DatabaseTransformation.transformTypeMap[`${code.table}-${finalCode}`] = { type, isNewField };
     }
 
+    static parseCasing(transform, field) {
+        
+		return 'UPPER' === transform
+			? `pl.col('${field}').str.to_uppercase().alias('${field}')`
+			: 'LOWER' === transform ? `pl.col('${field}').str.to_lowercase().alias('${field}')`
+				: `# pl.col('${field}') Unchenged case`;
+	}
+
     static parseAggregation({ aggregField, aggregation, fieldAlias, field }) {
 		return { aggreg: `pl.col('${aggregField}').${aggregation}().alias('${fieldAlias}')`, field };
 	}
