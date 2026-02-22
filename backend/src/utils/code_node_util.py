@@ -42,6 +42,7 @@ valid_imports = [
     'from google.oauth2 import service_account',
     'from databricks import sql',
     'from dlt.sources.helpers.rest_client.auth import APIKeyAuth',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

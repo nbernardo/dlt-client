@@ -138,6 +138,7 @@ class DltPipeline:
                     if context:
                         context.emit_ppsuccess()
                     pipeline_exception = False if pipeline_exception == False else pipeline_exception
+                    break
 
                 else:
                     if(is_transformation_step and pipeline_exception == False):
@@ -462,7 +463,8 @@ class DltPipeline:
                 
                 if (line == 'RUN_SUCCESSFULLY'):
                     context.emit_ppsuccess()
-                    pipeline_exception = False if pipeline_exception == False else pipeline_exception   
+                    pipeline_exception = False if pipeline_exception == False else pipeline_exception
+                    break  
                 
                 else:
                     if(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):

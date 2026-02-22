@@ -126,7 +126,8 @@ def create_new_ppline(fst_connection,
         print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
         return { 'error': True, 'result': context.exceptions }
 
-    pipeline_instance, success = DltPipeline(), True
+    pipeline_instance = DltPipeline() 
+    success = True
 
     ppline_path = context.ppline_path
     diagrm_path = context.diagrm_path
