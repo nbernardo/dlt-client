@@ -71,7 +71,7 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
             ):
                 batch_size = len(df)
                 total_records += batch_size
-                df = parse_aggregation(df, transformations[table_name])
+                df = parse_aggregation(df, transformations.get(table_name, []))
                 
                 print(f'fetch data chunk from {table_name}', flush=True)
                 logger.debug("Processing data batch", extra={
