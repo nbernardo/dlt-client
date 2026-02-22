@@ -41,16 +41,17 @@ export class TransformRow extends ViewComponent {
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField }) {
+	stOnRender(data) {
+		const { dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField, aggregations } = data;		
 		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
-		this.configData = { ...importFields, dataSources };		
+		this.configData = { ...importFields, dataSources, aggregations };		
 		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;
 	}
 
 	async stAfterInit() {
-		
-		this.$parent.transformPieces.set(this.rowId, { isNewField : this.isNewField });
+
+		this.$parent.transformPieces.set(this.rowId, { isNewField : this.isNewField, rowId: this.rowId });
 		this.tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails?.tables;
 		
 		this.dataSourceList = this.configData.dataSources;
@@ -83,9 +84,12 @@ export class TransformRow extends ViewComponent {
 
 		if (this.configData !== null) await this.handleConfigData();
 
+		const aggregSettings = Object.values(this.configData.aggregations);
+		for(const aggreg of aggregSettings) this.addAggregation(aggreg);
+
 	}
 
-	addAggregation = async () => addAggregation(this);
+	addAggregation = async (configs = {}) => addAggregation(this, configs);
 	aggregationRemNotify = () => aggregationRemNotify(this);
 	showHideAggregations = () => showHideAggregations(this);
 	handleConfigData = async () => handleConfigData(this); 

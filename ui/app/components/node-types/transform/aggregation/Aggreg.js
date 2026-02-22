@@ -10,6 +10,8 @@ export class Aggreg extends ViewComponent {
 	selectedField;
 	aggregationAlias;
 
+	/** @Prop */ configData;
+
 	/** @Prop @type { STForm } */ formRef;
 
 	/** @type { TransformRow } */ $parent;
@@ -56,13 +58,21 @@ export class Aggreg extends ViewComponent {
 		this.aggregationType.onChange(aggregation => this.updateTransformation({ aggregation }));
 		this.aggregationAlias.onChange(fieldAlias => this.updateTransformation({ fieldAlias }));
 
+		if(this.configData){
+			if(this.configData.aggregField){
+				this.selectedField = this.configData.aggregField;
+				this.aggregationType = this.configData.aggregation;
+				this.aggregationAlias = this.configData.fieldAlias;
+			}
+		}
 	}
 
-	stOnRender = ({ fieldList }) => this.fieldsList = fieldList;
+	stOnRender = ({ fieldList, ...configs }) => {
+		this.fieldsList = fieldList, this.configData = configs?.configs;
+	}
 
-	updateAggregField = (aggregField) => {
+	updateAggregField = (aggregField) => 
 		this.updateTransformation({ aggregField });
-	}
 
 	removeMe(){
 		document.getElementById(`aggreg_row_${this.cmpInternalId}`).remove();
@@ -70,6 +80,7 @@ export class Aggreg extends ViewComponent {
 		this.$parent.aggregations.delete(this.cmpInternalId);
 		//Add the agregation transformation to the Transform component
 		this.$parent.$parent.transformPieces.delete(this.cmpInternalId);
+		this.$parent.$parent.unregisterAggregation(this.$parent.rowId, this.cmpInternalId);
 		this.$parent.aggregationRemNotify();
 		this.unload();
 	}
@@ -77,6 +88,7 @@ export class Aggreg extends ViewComponent {
 	updateTransformation(value){
 		const curVal = this.$parent.$parent.transformPieces.get(this.cmpInternalId) || {};
 		this.$parent.$parent.transformPieces.set(this.cmpInternalId, { ...curVal, ...value });
+		this.$parent.$parent.registerAggregation(this.$parent.rowId, this.cmpInternalId, { ...curVal, ...value });
 	}
 
 }

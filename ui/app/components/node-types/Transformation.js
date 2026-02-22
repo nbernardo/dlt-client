@@ -13,6 +13,7 @@ import { SqlDBComponent } from "./SqlDBComponent.js";
 import { TRANFORM_ROW_PREFIX, TransformRow } from "./transform/TransformRow.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { DatabaseTransformation, TransformExecution } from "./util/tranformation.js";
+import { parseAggregation, parseFilter, parseScript, parseTransformException, parseTransformResult } from "./util/transformationParser.js";
 
 /** @implements { NodeTypeInterface } */
 export class Transformation extends AbstractNode {
@@ -55,28 +56,38 @@ export class Transformation extends AbstractNode {
 
 	/** @Prop */ nodeId;
 	/** @Prop */ isImport;
+	/** @Prop */ aggregations = {};
 
 	/** @type { Workspace } */ $parent;
 
 	stOnRender(data) {
 		const { 
-			nodeId, isImport, aiGenerated, row, rows, 
+			aggregations, nodeId, isImport, aiGenerated, row, rows, 
 			numberOfRows, numberOfTransformations, rowCount, rowsCount 
 		} = data;
+		
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		if (isImport === true) this.showLoading = true;
 		this.aiGenerated = aiGenerated
 		
-		this.importFields = { row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount };
+		this.importFields = { 
+			aggregations, row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount 
+		};
 	}
 
 	async stAfterInit() {
 
 		if (this.isImport && this.rows !== null) {			
 			this.databaseList = this.databaseList.value.map(itm => ({ ...itm, name: itm.name.replace('*','') }));
-			for (const rowConfig of this.rows)
-				await this.addNewField(rowConfig, true);
+			for (const rowConfig of this.rows){
+				if(rowConfig.aggregField) continue;
+				let aggregations = {}
+				if(this.importFields.aggregations)
+					aggregations = this.importFields.aggregations[rowConfig.rowId];
+
+				await this.addNewField(rowConfig, true, false, aggregations);
+			}
 			await sleepForSec(500);
 			this.showLoading = false;
 			return
@@ -149,7 +160,7 @@ export class Transformation extends AbstractNode {
 		return { sourceNode: this.sourceNode, nodeCount: this.nodeCount.value };
 	}
 	
-	async addNewField(data = null, inTheLoop = false, isNewField = false) {
+	async addNewField(data = null, inTheLoop = false, isNewField = false, aggregations = {}) {
 
 		const obj = this;
 
@@ -167,7 +178,10 @@ export class Transformation extends AbstractNode {
 
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
-			const initialData = { dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap, isImport: obj.isImport, isNewField };
+			const initialData = { 
+				dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap, 
+				isImport: obj.isImport, isNewField, aggregations 
+			};
 			
 			// Create a new instance of TransformRow component
 			const { component, template } = await Components.new(TransformRow, initialData, parentId);
@@ -408,105 +422,26 @@ export class Transformation extends AbstractNode {
 		return [ script, cols ]
 	}
 
-	static parseAggregation(script, transformation, prevAggreg){
-		// Bellow if statement starts the aggregator scope, which is closed outside this function
-		if(transformation.field !== prevAggreg)
-			script += `lf = lfquery.group_by('${transformation.field}').agg(`;
-		
-		script += `\n\t\t\t${transformation.aggreg},`;
-		return [script, transformation.field];
-	}
+	static parseAggregation = (script, transformation, prevAggreg) => parseAggregation(script, transformation, prevAggreg);
+	static parseScript = (params) => parseScript(params);
 
-	static parseScript({
-		script, tableName, transformType, count, transformCount, finalScript,
-		transformation, transformations, totalTransform
-	}){
-
-		script = script.replace(transformation,'pl.all()');
-
-		if(transformType.isDedupTransform)
-			script += transformation.replace('df.unique(subset=','lf = lf.unique(subset=')+'\n\t';
-
-		if(transformType.isDropTransform)
-			script += transformation.replace('df.drop([','lf = lf.drop([')+'\n\t';
-					
-		if(transformType.isFilterTransform)
-			script += transformation.replace('df.filter(','lf = lf.filter(')+'\n\t';
-
-		[script, count] = Transformation.parseTransformResult(script, count, tableName, transformType.isDropTransform);
-
-		finalScript += script;
-		if(totalTransform > 1){
-			script = `\n\ntry:\n\t`;
-			script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
-			script = script
-					.replace(transformation+',','')
-					.replace(transformation,'')
-		}
-
-		return [ script, count, transformCount, finalScript ]
-
-	}
-
-	static parseTransformResult(script, count, tableName, isDropTransform){
-		script += `result = lf.${isDropTransform ? 'limit(2)' : 'limit(20)'}.collect()\n\t`;
-		script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
-		script += `except Exception as err:\n\t`;
-		script += `print(f'Error #${count}#: {str(err)}')\n\t`;
-		script += `raise Exception(f'Error #${count++}#: {str(err)}')\n\n`;
-		return [script, count];
-	}
-
-	static parseFilter(
-		{ script, count, tableName, otherValidTransform, isSplitTransform, isNewField, finalScript,
-			newFieldRE, isCalcTransform, transformation, transformations, transformCount, totalTransform
-		 }
-	){
-		let filterInstruction = '';
-		if(!otherValidTransform){
-			filterInstruction = transformation.split('pl.when(')[1];
-			filterInstruction = filterInstruction.split(').then')[0];
-		}else{
-			if(isSplitTransform)
-				filterInstruction = `${transformation.split('.str')[0]}.is_not_null()`;
-			else if(isCalcTransform)
-				filterInstruction = `pl.col${transformation.split('alias')[1]}.is_not_null()`;
-		}
-
-		script += `result = (lf.filter(${filterInstruction}).limit(5).collect())\n\t`;
-		script += `results.append({ 'columns': result.columns, 'data': result.rows(), 'table': '${tableName}' })\n`;
-		script += `except Exception as err:\n\t`;
-		script += `print(f'Error #${count}#: {str(err)}')\n\t`;
-		script += `raise Exception(f'Error #${count++}#: {str(err)}')`;
-		//In case there is any deduplicate transformation in place
-		script = script.replace(/\,{0,1}(\n|\t|\n\t){0,}df\.unique\(subset\=\[[A-Z0-9\']{0,}\]\)\,{0,1}(\n|\t|\n\t){0,}/ig, '');
-				
-		if(!isNewField)
-			script = script.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}`,`${$1}_New`));
-				
-		finalScript += script;
-
-		script = '';
-		if(totalTransform > 1) {
-			//Reinstate things for next transformation
-			script = '\n\ntry:\n\t';
-			script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
-		}
-		return [ script, count, transformCount, finalScript ]
-	}
+	static parseTransformResult = (script, count, tableName, isDropTransform) => parseTransformResult(script, count, tableName, isDropTransform);
+	static parseFilter = (params) => parseFilter(params);
 
 	/** @returns { TransformRow } */
-	static parseTransformException(previewResult, transformRowMapping, fieldRows){
-		let transfomRowIndex;
-		if(previewResult.msg.search(/Error\s{1}\#(\d)\#/) >= 0) 
-			transfomRowIndex = Number(previewResult.msg.split('#')[1]) - 1;
-		else{
-			let codeRow = previewResult.code.replace('\tlf = ','');
-			codeRow = codeRow.replace(newFieldRE, (mt, $1) =>  mt.replace(`${$1}_New`,`${$1}`));
-			if(codeRow.endsWith('\n')) codeRow = codeRow.slice(0, codeRow.length - 1);
-			transfomRowIndex = Number(transformRowMapping[codeRow]) - 1;
-		}
+	static parseTransformException = (previewResult, transformRowMapping, fieldRows) => parseTransformException(previewResult, transformRowMapping, fieldRows);
 
-		return [...fieldRows][transfomRowIndex][1];
+	registerAggregation(rowId, aggRowId, aggregation){
+
+		if(!(rowId in this.aggregations)) this.aggregations[rowId] = {};
+		this.aggregations[rowId][aggRowId] = aggregation;
+		WorkSpaceController.getNode(this.nodeId).data['aggregations'] = this.aggregations;
+
 	}
+
+	unregisterAggregation = (rowId, aggRowId) => {
+		delete this.aggregations[rowId][aggRowId];
+		WorkSpaceController.getNode(this.nodeId).data['aggregations'] = this.aggregations;
+	}
+
 }

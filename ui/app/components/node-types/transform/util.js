@@ -9,11 +9,11 @@ export async function onDataSourceSelect(obj, newValue){
     if(![null,undefined].includes(obj.tableSource) && obj.configData !== null){
     
         let table = null, schema = null;
-        table = tableSource[newValue];
+        table = obj.tableSource[newValue];
     
         if(String(newValue).indexOf('.') > 0){
             [schema, table] = newValue.split('.');
-            table = tableSource[schema][table];
+            table = obj.tableSource[schema][table];
         }
     
         fieldList = table.map(itm => ({ name: itm.column }));
@@ -61,12 +61,12 @@ export async function handleConfigData(obj) {
 }
 
 
-export async function addAggregation(obj){
+export async function addAggregation(obj, configs = {}){
 
-    const { component, template: aggregInstance } = await Components.new(Aggreg, { fieldList: obj.fieldList.value });
+    const { component, template: aggregInstance } = await Components.new(Aggreg, { fieldList: obj.fieldList.value, configs });
     const htmlNode = document.createElement('tr');
     htmlNode.id = `aggreg_row_${component.cmpInternalId}`; 
-    htmlNode.innerHTML = aggregInstance, component.$parent = obj;;
+    htmlNode.innerHTML = aggregInstance, component.$parent = obj;
     document.getElementById(`aggreg_group_${obj.rowId}`).appendChild(htmlNode);
     obj.aggregations.set(component.cmpInternalId, component);
     if(obj.aggregations.size > 0) document.getElementById(`aggreg_group_${obj.rowId}`).parentElement.style.display = '';
