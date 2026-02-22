@@ -204,6 +204,10 @@ export class Transformation extends AbstractNode {
 				const totalTransform = transforms.length;
 				for(let x = 0; x < totalTransform; x++){
 					const transform = transforms[x] || '';
+					const isObject = Object.prototype.toString.call(transform) === '[object Object]';
+					if(isObject)
+						if('aggreg' in transform) continue;
+					
 					const isTransformation2 = 
 						transform.includes('df.unique(subset=[') || transform.includes('df.drop([') || transform.includes('df.filter(')
 					if(isTransformation2)
