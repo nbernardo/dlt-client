@@ -87,7 +87,7 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
                         'stage': 'transformation_primary',
                         'table_name': table_name
                     })
-                    # Remove any trasformation of type aggregatins
+                    # Remove any trasformation of type aggregations
                     columns = [item for item in transformations[table_name] if type(item) != dict]
                     df = df.with_columns(columns)
                     print(f'applied transformation for {table_name}', flush=True)

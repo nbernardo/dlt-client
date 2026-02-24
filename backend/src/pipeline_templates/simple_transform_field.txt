@@ -1,11 +1,10 @@
 %metadata_section%import dlt
 from dlt.sources.filesystem import filesystem, FileItemDict
 from dlt.sources import TDataItems
-from typing import Iterator, Any
-import logging
+from typing import Iterator
 import polars as pl
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -55,8 +54,15 @@ def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterat
             # <transformation>
             logger.debug("Applying primary transformations", extra={'stage': 'transformation_primary'})
             %transformation%
-            df = df.with_columns(list(transformation.values())[0])
-            
+
+            transformation = list(transformation.values())
+            if(len(transformation) > 0):
+                df = parse_aggregation(df, transformation[0])
+                columns = [item for item in transformation[0] if type(item) != dict]
+                df = df.with_columns(pl.all() if len(columns) == 0 else columns)
+            else:
+                df = df.with_columns(pl.all())
+
             logger.debug("Applying secondary transformations", extra={'stage': 'transformation_secondary'})
             %transformation2%
             for transform in transformations2: df = transform(df)

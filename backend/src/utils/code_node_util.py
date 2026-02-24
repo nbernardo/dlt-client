@@ -25,6 +25,7 @@ valid_imports = [
     'from dlt.sources.filesystem import filesystem, read_csv',
     'from dlt.sources import TDataItems',
     'from typing import Iterator, Any',
+    'from typing import Iterator',
     'import requests',
     'from src.utils.APIClientUtil import PaginateParam',
     'import boto3',
