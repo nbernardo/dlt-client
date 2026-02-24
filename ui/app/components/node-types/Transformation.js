@@ -11,6 +11,7 @@ import { Bucket } from "./Bucket.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "./SqlDBComponent.js";
 import { TRANFORM_ROW_PREFIX, TransformRow } from "./transform/TransformRow.js";
+import { IsObject } from "./transform/util.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { DatabaseTransformation, TransformExecution } from "./util/tranformation.js";
 import { parseAggregation, parseFilter, parseScript, parseTransformException, parseTransformResult } from "./util/transformationParser.js";
@@ -204,11 +205,7 @@ export class Transformation extends AbstractNode {
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['dataSourceType'] = null;
 
-		// if(this.dataSourceType != 'SQL' && this.sourceNode.getName() !== SqlDBComponent.name){
-		// 	const util = DatabaseSourceTransform; //NonDatabaseSourceTransform
-		// 	finalCode = util.sourceTransformation(this.transformPieces, rowsConfig);
-		// }
-		// else{
+
 		const util = DatabaseTransformation;
 		util.sourceTransformation(this.transformPieces, rowsConfig);
 		finalCode = DatabaseTransformation.transformations;
@@ -218,7 +215,7 @@ export class Transformation extends AbstractNode {
 				const totalTransform = transforms.length;
 				for(let x = 0; x < totalTransform; x++){
 					const transform = transforms[x] || '';
-					const isObject = Object.prototype.toString.call(transform) === '[object Object]';
+					const isObject = IsObject(transform);
 					if(isObject)
 						if('aggreg' in transform) continue;
 					
@@ -229,8 +226,8 @@ export class Transformation extends AbstractNode {
 				}
 			}
 		}
-		data['dataSourceType'] = 'SQL';
-		//}
+		data['dataSourceType'] = this.dataSourceType; //'SQL';
+
 		// Other code handles transformation such as deduplication, column drop, etc.
 		const otherCode = DatabaseTransformation.otherTransformations;
 		//console.log(`Transformation in: `, DatabaseTransformation.transformations);
@@ -271,40 +268,51 @@ export class Transformation extends AbstractNode {
 		const transformRowMapping = {};
 		
 		if(tablesSet.length > 0) finalScript = 'results, lfquery = [], None\n';
-		let count = 1, cols, prevAg, transformCount;
+		let count = 1, cols, prevAg, transformCount, transfIndex = -1, isFile, isFileWithAggreg;
 
 		for(const [tableName, transformations] of tablesSet){
 
 			script = 'try:\n\t', cols = '*';
-			[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine);
+			[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine, this.fileSource);
 			
 			transformRowMapping["lfquery.with_columns("+transformations[0]+")"] = count;
 			let totalTransform = transformations.length;
-			transformCount = 0, prevAg = null;
+			transformCount = 0, prevAg = null, isFile = tableName.endsWith('.csv') || tableName.endsWith('.jsonl') || tableName.endsWith('.parquet');
+			isFileWithAggreg = transformations.find(obj => obj?.aggreg) && (isFile);
 
 			for(let transformation of transformations){
-				const isObject = (Object.prototype.toString.call(transformation) === '[object Object]');
-				
+				const isObject = IsObject(transformation);
+				const totalOfTransf = (isFile ? transformations.length : totalTransform);
+				transfIndex++;
+
 				if(isObject){
 					if('aggreg' in transformation){
 						[script, prevAg] = Transformation.parseAggregation(script, transformation, prevAg);
 						transformCount++;
-						if(transformCount == totalTransform)
-							[script, count, finalScript] = Transformation.endTransfPreviewScope(script, count, tableName, finalScript);
+						const nextTransf = transformations[transfIndex + 1];
+						const isPrevSameAggregGroup = (IsObject(nextTransf) && (nextTransf || {}).field == prevAg);
+
+						if(transformCount == totalOfTransf || !isPrevSameAggregGroup){
+							[script, count, finalScript, prevAg] = Transformation.endTransfPreviewScope(script, count, tableName, finalScript);
+							if(isFile) script = 'try:\n\t';
+						}
 						continue;
 					}
 				}
 
 				if(transformCount < totalTransform && prevAg !== null){
-					[script, count, finalScript] = Transformation.endTransfPreviewScope(script, count, tableName, finalScript);
+					[script, count, finalScript, prevAg] = Transformation.endTransfPreviewScope(script, count, tableName, finalScript);
 					// Resets the script for the next transformation
 					script = 'try:\n\t', cols = '*';
-					[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine);
+					[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine, this.fileSource);
 					script += `lf = lfquery.with_columns(${transformations[transformCount]})\n\t`;
 					
 					transformCount++
 				}else{
-					script += `lf = lfquery.with_columns(${transformations[0]})\n\t`;
+					if(isFile){
+						if(!IsObject(transformations[count]))
+							script += `lf = lfquery.with_columns(${transformations[count]})\n\t`;
+					}
 				}
 				
 				if(transformation.trim() == '') continue;
@@ -317,7 +325,7 @@ export class Transformation extends AbstractNode {
 					const transformType = { isDedupTransform, isDropTransform, isFilterTransform };
 
 					[ script, count, transformCount, finalScript ] = Transformation.parseScript({
-						script, tableName, transformType, count, transformCount, 
+						script, tableName, transformType, count, transformCount, isFile,
 						finalScript, transformation, transformations, totalTransform
 					});
 
@@ -334,13 +342,16 @@ export class Transformation extends AbstractNode {
 				}
 
 				[ script, count, transformCount, finalScript ] = Transformation.parseFilter(
-					{ script, count, tableName, otherValidTransform, isSplitTransform, isNewField, finalScript,
+					{ script, count, tableName, otherValidTransform, isSplitTransform, isNewField, finalScript, isFile,
 						newFieldRE, isCalcTransform, transformation, transformations, transformCount, totalTransform
 					}
 				);
 
 				totalTransform--;
 			}
+			if(prevAg !== null && isFile)
+				[script, count, finalScript, prevAg] = Transformation.endTransfPreviewScope(script, count, tableName, finalScript);
+
 			finalScript += '\n\n';
 		}
 		DatabaseTransformation.transformTypeMap = {};
@@ -397,11 +408,11 @@ export class Transformation extends AbstractNode {
 		script += '\n\t)\n\n\t';
 		[script, count] = Transformation.parseTransformResult(script, count, tableName, false);
 		finalScript += script;
-
-		return [script, count, finalScript]
+		const prevAg = null;
+		return [script, count, finalScript, prevAg]
 	}
 
-	static setPolarsDataFrameSource(script, tableName, cols, dbEngine){
+	static setPolarsDataFrameSource(script, tableName, cols, dbEngine, fileSource){
 		if(dbEngine === 'mssql'){
 			script += `table = '${tableName}'\n\t`;
 			script += `schema_name, table_name = table.split('.')\n\t`;
@@ -410,7 +421,7 @@ export class Transformation extends AbstractNode {
 			cols = '{parsed_columns}';
 		}
 			
-		if(this.fileSource != null){
+		if(fileSource != null){
 			let readType = 'scan_csv';
 			if(tableName.endsWith('.parquet')) readType = 'scan_parquet';
 			if(tableName.endsWith('.jsonl')) readType = 'scan_ndjson'

@@ -1,17 +1,20 @@
 import { TransformRow } from "../transform/TransformRow.js";
+import { IsObject } from "../transform/util.js";
+import { Transformation } from "../Transformation.js";
 
 export function parseAggregation(script, transformation, prevAggreg){
-	// Bellow if statement starts the aggregator scope, which is closed outside this function
+    
+    // Bellow if statement starts the aggregator scope, which is closed outside this function
 	if(transformation.field !== prevAggreg)
 		script += `lf = lfquery.group_by('${transformation.field}').agg(`;
-	
+
 	script += `\n\t\t\t${transformation.aggreg},`;
 	return [script, transformation.field];
 }
 
 export function parseScript({
 	script, tableName, transformType, count, transformCount, finalScript,
-	transformation, transformations, totalTransform
+	transformation, transformations, totalTransform, isFile
 }){
 
 	script = script.replace(transformation,'pl.all()');
@@ -28,13 +31,18 @@ export function parseScript({
 	[script, count] = Transformation.parseTransformResult(script, count, tableName, transformType.isDropTransform);
 
 	finalScript += script;
-	if(totalTransform > 1){
+	if(totalTransform > 1 && !IsObject(transformations[transformCount + 1]) && transformations[transformCount + 1] != undefined){
 		script = `\n\ntry:\n\t`;
-		script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+        
+        if(!IsObject(transformations[count])) //Check current transformation if it's not aggregation
+		    script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+
 		script = script
 				.replace(transformation+',','')
 				.replace(transformation,'')
-	}
+	}else{
+		script = '\n\ntry:\n\t';
+    }
 
 	return [ script, count, transformCount, finalScript ]
 
@@ -50,7 +58,7 @@ export function parseTransformResult(script, count, tableName, isDropTransform){
 }
 
 export function parseFilter(
-	{ script, count, tableName, otherValidTransform, isSplitTransform, isNewField, finalScript,
+	{ script, count, tableName, otherValidTransform, isSplitTransform, isNewField, finalScript, isFile,
 		newFieldRE, isCalcTransform, transformation, transformations, transformCount, totalTransform
 	 }
 ){
@@ -79,11 +87,14 @@ export function parseFilter(
 	finalScript += script;
 
 	script = '';
-	if(totalTransform > 1) {
+	if(totalTransform > 1 && !IsObject(transformations[transformCount + 1]) && !isFile) {
 		//Reinstate things for next transformation
 		script = '\n\ntry:\n\t';
-		script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
-	}
+        if(!IsObject(transformations[count])) //Check current transformation if it's not aggregation
+		    script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+	}else{
+		script = '\n\ntry:\n\t', transformCount++;
+    }
 	return [ script, count, transformCount, finalScript ]
 }
 

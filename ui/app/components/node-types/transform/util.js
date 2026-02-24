@@ -83,3 +83,5 @@ export const showHideAggregations = (obj) => {
 export function onChangeSelectedSource(obj){
     obj.selectedSource.onChange(async (val) => onDataSourceSelect(this, val));
 }
+
+export const IsObject = (elm) => Object.prototype.toString.call(elm) === '[object Object]'
