@@ -122,7 +122,11 @@ export class Transformation extends AbstractNode {
 		// This is the bucket component itself
 		this.sourceNode = sourceNode;
 
-		this.dataSourceType = null, this.sqlConnectionName = null, this.fileSource = null;
+		// Reset the dataSourceType to reassigne bellow accordingly 
+		// (edge case for when connecting the start node after the source was already connected to transformation)
+		if([Bucket.name, SqlDBComponent.name].includes(type)) this.dataSourceType = null;
+
+		this.sqlConnectionName = null, this.fileSource = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
 			
 			this.databaseList = tables;
@@ -274,10 +278,10 @@ export class Transformation extends AbstractNode {
 
 			script = 'try:\n\t', cols = '*';
 			[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine, this.fileSource);
+			transformCount = 0, prevAg = null, isFile = tableName.endsWith('.csv') || tableName.endsWith('.jsonl') || tableName.endsWith('.parquet');
 			
 			transformRowMapping["lfquery.with_columns("+transformations[0]+")"] = count;
 			let totalTransform = transformations.length;
-			transformCount = 0, prevAg = null, isFile = tableName.endsWith('.csv') || tableName.endsWith('.jsonl') || tableName.endsWith('.parquet');
 			isFileWithAggreg = transformations.find(obj => obj?.aggreg) && (isFile);
 
 			for(let transformation of transformations){
@@ -292,7 +296,10 @@ export class Transformation extends AbstractNode {
 						const nextTransf = transformations[transfIndex + 1];
 						const isPrevSameAggregGroup = (IsObject(nextTransf) && (nextTransf || {}).field == prevAg);
 
-						if(transformCount == totalOfTransf || !isPrevSameAggregGroup){
+						let shouldCloseTransform = transformCount == totalOfTransf;
+						if(isFile) shouldCloseTransform = shouldCloseTransform || !isPrevSameAggregGroup;
+
+						if(shouldCloseTransform){
 							[script, count, finalScript, prevAg] = Transformation.endTransfPreviewScope(script, count, tableName, finalScript);
 							if(isFile) script = 'try:\n\t';
 						}
@@ -310,8 +317,10 @@ export class Transformation extends AbstractNode {
 					transformCount++
 				}else{
 					if(isFile){
-						if(!IsObject(transformations[count]))
-							script += `lf = lfquery.with_columns(${transformations[count]})\n\t`;
+						if(!IsObject(transformations[transformCount]))
+							script += `lf = lfquery.with_columns(${transformations[transformCount]})\n\t`;
+					}else{
+						script += `lf = lfquery.with_columns(${transformations[transformCount]})\n\t`;
 					}
 				}
 				
@@ -363,7 +372,11 @@ export class Transformation extends AbstractNode {
 		}
 		
 		finalScript = finalScript.replaceAll(".alias('+",".alias('").replace("pl.col('+","pl.col('");
-		finalScript = finalScript.replaceAll('"(pl.','(pl.');
+		finalScript = finalScript
+						.replaceAll('df.filter','pl.filter')
+						.replaceAll('df.drop', 'pl.drop')
+						.replaceAll('df.unique', 'pl.unique')
+						.replaceAll('"(pl.','(pl.');
 
 		const sourceType = this.dataSourceType;
 		const previewResult = await WorkspaceService.getTransformationPreview(

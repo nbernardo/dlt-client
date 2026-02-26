@@ -18,6 +18,11 @@ export function parseScript({
 }){
 
 	script = script.replace(transformation,'pl.all()');
+    // In case the previous transformation was aggregation then the lf will
+    // only consider the fields in the groupby, hence we're reseting it here
+    if(IsObject(transformations[count - 1]))
+        script += `lf = lfquery.with_columns(pl.all())\n\t`;
+    
 
 	if(transformType.isDedupTransform)
 		script += transformation.replace('df.unique(subset=','lf = lf.unique(subset=')+'\n\t';
@@ -34,8 +39,13 @@ export function parseScript({
 	if(totalTransform > 1 && !IsObject(transformations[transformCount + 1]) && transformations[transformCount + 1] != undefined){
 		script = `\n\ntry:\n\t`;
         
-        if(!IsObject(transformations[count])) //Check current transformation if it's not aggregation
-		    script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+        if(!IsObject(transformations[count])){ //Check current transformation if it's not aggregation
+            if(isFile){
+                transformCount++;
+		        script += `lf = lfquery.with_columns(${transformations[count]})\n\t`;
+            }else
+		        script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
+        }
 
 		script = script
 				.replace(transformation+',','')
@@ -90,7 +100,10 @@ export function parseFilter(
 	if(totalTransform > 1 && !IsObject(transformations[transformCount + 1]) && !isFile) {
 		//Reinstate things for next transformation
 		script = '\n\ntry:\n\t';
-        if(!IsObject(transformations[count])) //Check current transformation if it's not aggregation
+        
+		const isNextFilterTransform = transformations[transformCount + 1]?.indexOf('df.filter') > -1;
+
+		if(!IsObject(transformations[count]) && !isNextFilterTransform) //Check current transformation if it's not aggregation
 		    script += `lf = lfquery.with_columns(${transformations[++transformCount]})\n\t`;
 	}else{
 		script = '\n\ntry:\n\t', transformCount++;
