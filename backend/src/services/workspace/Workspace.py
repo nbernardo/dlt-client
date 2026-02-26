@@ -172,7 +172,9 @@ class Workspace:
 
             if _file.endswith('.duckdb') or _file.endswith('.db'):
                 ppline_name = str(_file).replace('.duckdb','')
-                if (ppline_name in ppelines): continue
+                if (ppline_name in ppelines): 
+                    if(len(ppelines[ppline_name].values()) > 0): continue
+                    
                 if _file not in result:
                     if ppline_name in ppelines:
                         del ppelines[ppline_name]
@@ -258,21 +260,10 @@ class Workspace:
                 is_withmetadata = True
                 if _file not in result:
                     result[ppline_name] = {}
-            # Support old format (single underscore) for backward compatibility
-            elif _file.endswith('_withmetadata_.py'):
-                ppline_name =_file.replace('_withmetadata_.py', '')
-                is_withmetadata = True
-                if _file not in result:
-                    result[ppline_name] = {}
 
             # Support new format (double underscore)
             if _file.endswith('__toschedule__.py') and is_withmetadata == False:
                 ppline_name =_file.replace('__toschedule__.py', '')
-                if _file not in result:
-                    result[ppline_name] = {}
-            # Support old format (single underscore) for backward compatibility
-            elif _file.endswith('_toschedule_.py') and is_withmetadata == False:
-                ppline_name =_file.replace('_toschedule_.py', '')
                 if _file not in result:
                     result[ppline_name] = {}
 

@@ -52,7 +52,7 @@ class TemplateNodeType:
                 template = self.parse_pipeline_template(template, template_type)
         else:
             if(n == None):
-                n = '\n' if self.context.transformation else '\n    ' # New line character
+                n = '\n' if self.context.transformation != None else '\n    ' # New line character
             template = self.regular_template_destination_config(n, template)
             # Remove placeholder for in-file pipeline metadata (e.g. destination tables when SQL DB)
             if template_type == 'sql_database' and self.context.is_code_destination:
@@ -141,7 +141,11 @@ class TemplateNodeType:
         if self.context.is_code_destination:
             return template
         else:
-            ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
+            
+            if self.context.transformation_type == 'BUCKET':
+                n = '\n'
+
+            ppline_and_output_var = f'{n}ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'%dest_secret_code%{n}dest = %destination_string%{n}'
             print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
             pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name,progress="log")'

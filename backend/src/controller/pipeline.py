@@ -126,7 +126,8 @@ def create_new_ppline(fst_connection,
         print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
         return { 'error': True, 'result': context.exceptions }
 
-    pipeline_instance, success = DltPipeline(), True
+    pipeline_instance = DltPipeline() 
+    success = True
 
     ppline_path = context.ppline_path
     diagrm_path = context.diagrm_path
@@ -241,7 +242,7 @@ def parse_transformation_task(node_params, context: RequestContext):
             source_type = node_data['dataSourceType']
             transformation_str, transformation_str2 = None, None
 
-            if source_type == 'SQL':
+            if ['SQL','BUCKET'].__contains__(source_type):
                 context.transformation_ui_node_id = node_data['componentId']
                 context.transformation_type = source_type
                 all_tables = list(node_data['code'].keys()) + list(node_data['code2'].keys())
@@ -361,7 +362,9 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
             t = '    '
             transformation2 = context.transformation2
             transformation2 = handle_transform_indent(transformation2)
-            transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = list(transformations2.values())[0]'
+            transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = list(transformations2.values())'
+            transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = transformations2[0] if len(transformations2) > 0 else []'
+            
             
         template = template.replace(placeholder, f'transformations2 = {transformation2}')
     else:

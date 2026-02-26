@@ -170,7 +170,7 @@ dest_folder = Workspace.get_duckdb_path_on_ppline()
 # Execute pipeline with logging enabled
 try:
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'resource_count': len(resource_names)})
-    load_info = pipeline.run(get_api_data())
+    load_info = pipeline.run(get_api_data(), write_disposition='merge')
     
     # Log pipeline execution results
     if hasattr(load_info, 'loads_ids') and load_info.loads_ids:

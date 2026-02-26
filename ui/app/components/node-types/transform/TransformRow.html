@@ -21,6 +21,7 @@
 		<td>
 			<select (required)="true" style="width: 90px; display: flex;" (value)="selectedType">
 				<option value="">Select the type</option>
+				<option value="AGGREG">Aggregation</option>
 				<option value="CALCULATE">Calculate</option>
 				<option value="CASING">Change case</option>
 				<option value="CODE">Code</option>
@@ -32,6 +33,11 @@
 			</select>
 		</td>
 		<td rowspan="2">
+			<span (showIf)="self.transformType == 'AGGREG'">
+				<button class="add-btn-primary btn-padding-height7" onclick="component.addAggregation()">+ Aggreg</button>
+				<button class="e2e-btn-secondary btn-padding-height7" onclick="component.showHideAggregations()">Show/Hide Aggreg</button>
+			</span>
+
 			<span (showIf)="self.transformType == 'CONVERT'">
 				<select (required)="true" style="width: 190px;" (value)="transformation">
 					<option value="">Select new type</option>
@@ -80,12 +86,21 @@
 		</td>
 	</tr>
 	<tr><td colspan="3" id="row_error_@rowId" class="error-message-placeholder"></td></tr>
+	<tr>
+		<td colspan="6" style="padding-left: 40px;">
+			<div style="background: rgb(206 206 206 / 41%); border-radius: 6px; display: none;">
+				<table id="aggreg_group_@rowId" style="padding: 4px;">
+					<tr><td colspan="5" style="padding-left: 20px; padding-bottom: 4px;">Aggregations</td></tr>
+				</table>
+			</div>
+		</td>
+	</tr>
 </form>
 <style>
 	.transform-container-row td { padding-left: 1px !important; vertical-align: top; }
 	.transform-container-row td:first-child { padding-left: 0px !important; }
 
-	.transform-container-row select, .transform-container-row input, .transform-container-row textarea{ font-size: 12px; }
+	.transform-container-row select, .transform-container-row input, .transform-container-row textarea{ font-size: 10px; }
 	.transform-container-row input, .transform-container-row textarea{ padding-left: 3px; padding-top: 2px; }
 	.transform-container-row textarea{ width: 200px; height: 53px; line-height: 1.3; color: #5f3ce0; }
 

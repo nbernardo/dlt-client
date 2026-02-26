@@ -1,12 +1,10 @@
 %metadata_section%import dlt
 import polars as pl
-import pandas as pd
 from sqlalchemy import create_engine
-import logging
 from pathlib import Path
 from sys import path
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -73,6 +71,7 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
             ):
                 batch_size = len(df)
                 total_records += batch_size
+                df = parse_aggregation(df, transformations.get(table_name, []))
                 
                 print(f'fetch data chunk from {table_name}', flush=True)
                 logger.debug("Processing data batch", extra={
@@ -88,7 +87,9 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
                         'stage': 'transformation_primary',
                         'table_name': table_name
                     })
-                    df = df.with_columns(transformations[table_name])
+                    # Remove any trasformation of type aggregations
+                    columns = [item for item in transformations[table_name] if type(item) != dict]
+                    df = df.with_columns(columns)
                     print(f'applied transformation for {table_name}', flush=True)
                     
                 # Transformation with not column format change (e.g. dedup, column drop)
@@ -132,7 +133,7 @@ print(f'Running the pipeline', flush=True)
 logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
 
 try:
-    load_info = pipeline.run(source)
+    load_info = pipeline.run(source, write_disposition='merge')
     
     # Log pipeline execution results
     if hasattr(load_info, 'loads_ids') and load_info.loads_ids:

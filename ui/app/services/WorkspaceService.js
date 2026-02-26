@@ -674,7 +674,7 @@ export class WorkspaceService extends BaseService {
 
     static async getBucketObjectFields(secretName, object){
         const namespace = await UserService.getNamespace();
-
+        if(String(secretName).length == 0) return;
         const url = `/workspace/${namespace}/s3/${secretName}/${object}/preview`;
 
         const response = await $still.HTTPClient.post(url);

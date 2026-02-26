@@ -5,6 +5,8 @@ import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "../SqlDBComponent.js";
 import { Transformation } from "../Transformation.js";
 import { TransformExecution } from "../util/tranformation.js";
+import { Aggreg } from "./aggregation/Aggreg.js";
+import { addAggregation, aggregationRemNotify, handleConfigData, onDataSourceSelect, showHideAggregations } from "./util.js";
 
 export const TRANFORM_ROW_PREFIX = 'transformRow';
 
@@ -33,78 +35,47 @@ export class TransformRow extends ViewComponent {
 	transformation = '';
 	separatorChar;
 	fieldList = []; //Setting initial value
+	/** @Prop @type { Map<String, Aggreg> } */ aggregations = new Map();
+	/** @Prop */ tableSource;
 
 	/** @type { Transformation } */
 	$parent;
 
-	stOnRender({ dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField }) {
+	stOnRender(data) {
+		const { dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField, aggregations } = data;		
 		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
-		this.configData = { ...importFields, dataSources };		
+		this.configData = { ...importFields, dataSources, aggregations };		
 		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;
 	}
 
 	async stAfterInit() {
-		
-		this.$parent.transformPieces.set(this.rowId, { isNewField : this.isNewField });
-		const tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails?.tables;
+
+		this.$parent.transformPieces.set(this.rowId, { isNewField : this.isNewField, rowId: this.rowId });
+		this.tableSource = this.$parent.$parent.controller.importingPipelineSourceDetails?.tables;
 		
 		this.dataSourceList = this.configData.dataSources;
 		this.isSourceSQL = this.$parent.dataSourceType === 'SQL' || this.$parent?.sourceNode?.getName() === SqlDBComponent.name;
 		if(this.isImport && this.isSourceSQL) await sleepForSec(20);
 
 		if(this.isImport === true && String(this.configData.table).indexOf('.') > 0 && this.isSourceSQL){ 
-			let schemas = Object.keys(tableSource), tablePaths = [];
+			let schemas = Object.keys(this.tableSource), tablePaths = [];
 			for(const schema of schemas){
-				const tables = Object.keys(tableSource[schema]);
+				const tables = Object.keys(this.tableSource[schema]);
 				for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
 			}
 			this.dataSourceList = tablePaths;
 			await sleepForSec(500);
 		}
 
-		this.selectedSource.onChange(async (newValue) => {
-
-			let fieldList = null, dataSource;
-			if(![null,undefined].includes(tableSource) && this.configData !== null){
-
-				let table = null, schema = null;
-				table = tableSource[newValue];
-
-				if(String(newValue).indexOf('.') > 0){
-					[schema, table] = newValue.split('.');
-					table = tableSource[schema][table];
-				}
-
-				fieldList = table.map(itm => ({ name: itm.column }));
-			}else{
-				if(!newValue) return;
-				if(this.$parent?.sourceNode?.getName() === SqlDBComponent.name) this.isSourceSQL = true;
-				if(!this.isSourceSQL){
-					dataSource = newValue.length > 0 && newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
-					await this.wspaceService.handleCsvSourceFields(dataSource)
-					fieldList = await this.wspaceService.getCsvDataSourceFields(dataSource);
-				}else{
-					if(this.databaseFields[newValue])
-						fieldList = this.databaseFields[newValue].map(itm => ({ name: itm.column }));
-					else
-						fieldList = '';
-				}
-			}
-
-			fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
-			
-			this.fieldList = [{name: '- No Field -'}, ...fieldList];
-			this.updateTransformValue({ dataSource });
-		});
-
+		this.onChangeSelectedSource();
 		this.selectedField.onChange(field => this.updateTransformValue({ field }));
 		this.transformation.onChange(value => this.updateTransformValue({ transform: value?.trim() }));
 		this.separatorChar.onChange(value => this.updateTransformValue({ sep: value.trim() }));
 		this.selectedSource.onChange(table => this.updateTransformValue({ table }));
 
 		this.selectedType.onChange(value => {
-			if(value?.trim() === 'FILTER' && this.selectedField.value !== '- No Field -')
+			if((value?.trim() === 'FILTER') && this.selectedField.value !== '- No Field -')
 				this.selectedField = '- No Field -';
 
 			this.transformType = value?.trim();
@@ -113,47 +84,39 @@ export class TransformRow extends ViewComponent {
 
 		if (this.configData !== null) await this.handleConfigData();
 
+		const aggregSettings = Object.values(this.configData.aggregations);
+		for(const aggreg of aggregSettings) this.addAggregation(aggreg);
+
 	}
 
-	async handleConfigData() {
-		const { table: dataSource, dataSources, field, type, transform } = this.configData;
-		if(dataSource || dataSources){
-			if(dataSources?.length == 1)
-				if(dataSources[0].name === '') return
-			
-			dataSource !== undefined ? this.selectedSource = dataSource.replace('*','') : '';// || dataSources;
-			await sleepForSec(100);
-		}
-		field !== undefined ? this.selectedField = field : '';
-		type !== undefined ? this.selectedType = type : '';
-
-		if (type === 'CODE') document.getElementById(`${this.rowId}-codeTransform`).value = transform;
-		if (type === 'FILTER') document.getElementById(`${this.rowId}-filterTransform`).value = transform;
-		if (type === 'CALCULATE') document.getElementById(`${this.rowId}-calcTransform`).value = transform;
-		this.transformation = (transform || '');
-	}
+	addAggregation = async (configs = {}) => addAggregation(this, configs);
+	aggregationRemNotify = () => aggregationRemNotify(this);
+	showHideAggregations = () => showHideAggregations(this);
+	handleConfigData = async () => handleConfigData(this); 
+	onChangeSelectedSource = () => this.selectedSource.onChange(async (val) => onDataSourceSelect(this, val));
 
 	updateTransformValue(value) {
 		const curVal = this.$parent.transformPieces.get(this.rowId);
 		this.$parent.transformPieces.set(this.rowId, { ...curVal, ...value });
+		if('field' in value) {
+			[...this.aggregations].forEach(([_, aggegRow]) => {
+				aggegRow.updateAggregField(value.field)
+			})
+		}
 	}
 
 	removeMe() {
 		const obj = this;
 		function handleDeletion() {
-			obj.unload();
-			obj.$parent.removeField(obj.rowId);
-		}		
+			obj.unload(), obj.$parent.removeField(obj.rowId);
+		}
 		if ((this.configData !== null && this.$parent.confirmModification === false && this.isImport) && this.$parent.$parent.isAnyDiagramActive) 
 			return this.$parent.confirmActionDialog(handleDeletion);
 		handleDeletion(this);
-	}
-
-	async getSQLTableFields(){
-		const data = await WorkspaceService.getDBTableDetails(this.selectedDbEngine.value, this.selectedSecret.value ,table);
-		const pkRelatedField = self.relatedFields[0];
-		pkRelatedField.setDataSource(data.fields);
+		document.getElementById(`aggreg_group_${this.rowId}`).innerHTML = '';
+		[...obj.aggregations].forEach(([_, aggreg]) => aggreg.unload());
 	}
 
 	displayTransformationError = (error) => TransformExecution.validationErrDisplay(this.rowId, error);
+
 }

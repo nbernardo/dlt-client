@@ -25,6 +25,7 @@ valid_imports = [
     'from dlt.sources.filesystem import filesystem, read_csv',
     'from dlt.sources import TDataItems',
     'from typing import Iterator, Any',
+    'from typing import Iterator',
     'import requests',
     'from src.utils.APIClientUtil import PaginateParam',
     'import boto3',
@@ -42,6 +43,8 @@ valid_imports = [
     'from google.oauth2 import service_account',
     'from databricks import sql',
     'from dlt.sources.helpers.rest_client.auth import APIKeyAuth',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation',
+    'import sqlalchemy.exc',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
