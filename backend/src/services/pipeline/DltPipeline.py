@@ -4,7 +4,7 @@ import duckdb
 import json
 from controller.RequestContext import RequestContext
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 from node_mapper.Transformation import Transformation
 from utils.FileVersionManager import FileVersionManager
 from utils.duckdb_util import DuckdbUtil
@@ -17,11 +17,18 @@ from utils.code_node_util import valid_imports, FORBIDDEN_CALLS, FORBIDDEN_CALLS
 import schedule
 import logging
 from utils.logging.pipeline_logger_config import handle_pipeline_log
+import re
+
 
 root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
 template_dir = f'{root_dir}/pipeline_templates'
 
+
+def is_SAWarning(message):
+    """ validate if there was SQLAlchemy warning (e.g. no rewriting existing table) """
+    regex = r"SAWarning: Table ['\"](.+?)['\"] already"
+    return re.search(regex, message, re.IGNORECASE)
 
 class DltPipeline:
     """
@@ -145,6 +152,12 @@ class DltPipeline:
                         component_ui_id = line
                         if context:
                             Transformation(None, context, component_ui_id).notify_completion_to_ui()
+
+                    elif(line.startswith('RUNTIME_WARNING:') or is_SAWarning(line)):
+                        warning_message = line.replace('RUNTIME_WARNING:','')
+                        handle_pipeline_log(warning_message, logger, False, True)
+                        if context:
+                            context.emit_ppline_trace(warning_message, warn=True)
                         
                     elif(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
@@ -155,11 +168,6 @@ class DltPipeline:
                         
                         if line.startswith('ERROR:'): break
 
-                    elif(line.startswith('RUNTIME_WARNING:')):
-                        warning_message = line.replace('RUNTIME_WARNING:','')
-                        handle_pipeline_log(warning_message, logger, False, True)
-                        if context:
-                            context.emit_ppline_trace(warning_message, warn=True)
                     else:
                         if context:
                             ui_log = str(line).replace('[PIPELINE_LOG]:','').replace('[DLT]:','').replace(' |+| ','')
@@ -466,6 +474,12 @@ class DltPipeline:
                     pipeline_exception = False if pipeline_exception == False else pipeline_exception
                     break  
                 
+                elif(line.startswith('RUNTIME_WARNING:') or is_SAWarning(line)):
+                    warning_message = line.replace('RUNTIME_WARNING:','')
+                    handle_pipeline_log(warning_message, logger, False, True)
+                    if context:
+                        context.emit_ppline_trace(warning_message, warn=True)
+
                 else:
                     if(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
@@ -501,7 +515,7 @@ class DltPipeline:
             error_messages, status = None, True
             if result.returncode != 0:
                 err = str(result.stderr.read())
-                print('THE ERROR IS ABOUT: ', err)
+                
                 if(err.__contains__('Could not set lock on file')):
                     pass
 

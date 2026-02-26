@@ -4,7 +4,6 @@ from sqlalchemy.exc import NoInspectionAvailable
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import traceback
 import platform
-import polars as pl
 from utils.SQLServerUtil import column_type_conversion
 
 class SQLDatabase:
