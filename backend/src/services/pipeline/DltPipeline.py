@@ -480,7 +480,7 @@ class DltPipeline:
                     if context:
                         context.emit_ppline_trace(warning_message, warn=True)
 
-                else:
+                else: 
                     if(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):
                         pipeline_exception = True
                         error_message = line.replace('RUNTIME_ERROR:','').replace('ERROR:','')
