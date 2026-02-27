@@ -74,7 +74,9 @@ export class Header extends ViewComponent {
 	async getScheduleList(){
 		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
 		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.data;			
-		this.scheduledPipelines = scheduledPipelinesInitList || [];			
+		this.scheduledPipelines = (scheduledPipelinesInitList || []).map(itm => 
+			({ pipelineLbl: JSON.parse(itm.schedule_settings).ppline_label, ...itm, lastRun: itm.last_run == null ? 'None' : itm.last_run })
+		);			
 		this.scheduledPipelinesCount = scheduledPipelinesInitList.length || 0;
 	}
 
@@ -84,7 +86,9 @@ export class Header extends ViewComponent {
 
 		this.workspaceService.aiAgentNamespaceDetails = namespaceInitData.ai_agent_namespace_details;
 		this.workspaceService.schedulePipelinesStore = Object.values(namespaceInitData.schedules.data);			
-		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value;			
+		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value.map(itm =>
+			({ pipelineLbl: JSON.parse(itm.schedule_settings).ppline_label, ...itm, lastRun: itm.last_run == null ? 'None' : itm.last_run })
+		);
 		this.scheduledPipelinesCount = this.workspaceService.schedulePipelinesStore.value.length;
 		this.workspaceService.totalPipelines = namespaceInitData.total_pipelines;
 

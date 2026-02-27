@@ -54,6 +54,8 @@ export class SqlEditor extends ViewComponent {
 		
 		if(this.$parent.service.fieldsByTableMap[databasename.trim()])
 			this.selectedTableFields = this.$parent.service.fieldsByTableMap[databasename.trim()];
+		if (Array.isArray(this.selectedTableFields))
+			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...this.selectedTableFields];
 
 		const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
 		this.database = `${this.dbpath}/${parseDbFilename}`;
@@ -76,8 +78,12 @@ export class SqlEditor extends ViewComponent {
 
 	setupEditorQuery(databaseName){
 		this.selectedTable = databaseName.split('.duckdb.')[1];
-		this.selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
-		const fieldsString = this.selectedTableFields.value.map(({ name }) => name).join(',');
+		const selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
+		const fieldsString = selectedTableFields.map(({ name }) => name).join(',');
+		
+		if (Array.isArray(selectedTableFields))
+			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...selectedTableFields];
+
 		const query = `SELECT ${fieldsString} FROM ${this.selectedTable} LIMIT 100`
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 
