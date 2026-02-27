@@ -164,6 +164,7 @@ export class Bucket extends AbstractNode {
 				this.showMoreFileOptions = true;
 				this.bucketObjects = await WorkspaceService.getBucketObjects(value);
 				setTimeout(() => this.showMoreFileOptions = false, 100);
+				this.setNodeData('selectedSecret', value);
 			}
 		});
 

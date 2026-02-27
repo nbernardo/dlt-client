@@ -1,0 +1,10 @@
+services:
+
+  e2e-Data-ui:
+    image: nginx:alpine
+    container_name: nginx
+    volumes:
+      - ./:/usr/share/nginx/html
+      - ../nginx/default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "8080:8080"
