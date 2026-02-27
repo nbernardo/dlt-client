@@ -32,27 +32,23 @@
 				</span>
 				<ul class="submenu">
 					<li style="background: #f8f8f8 !important; cursor:auto;">
-						<img 
-							onclick="component.getScheduleList()"
-							src="app/assets/imgs/refresh-svgrepo-com.svg" 
-							style="cursor: pointer;" width="16">
+						<img onclick="component.getScheduleList()" src="app/assets/imgs/refresh-svgrepo-com.svg" style="cursor: pointer;"
+							width="16">
 						&nbsp;Scheduled pipelines
 					</li>
-					@if(this.scheduledPipelines.length === 0)
-						<li>No Job scheduled</li>
-					@endif
-
-					@for(ppline in this.scheduledPipelines)
-					<li id="{ppline.id}">
-						<div class="list-item-header">
-							{JSON.parse(ppline.schedule_settings).ppline_label}
-							<div class="list-item-details">
-								<output><b>Setting:</b> {ppline.periodicity} {ppline.time} {ppline.type}</output>
-								<output><b>Last Run:</b> {ppline.last_run == null ? 'None' : ppline.last_run}</output>
-							</div>
-						</div>
+					<li style="padding: 0;">
+						<ul (forEach)="scheduledPipelines">
+							<li each="item">
+								<div class="list-item-header">
+									{item.pipelineLbl}
+									<div class="list-item-details">
+										<output><b>Setting:</b> {item.periodicity} {item.time} {item.type}</output>
+										<output><b>Last Run:</b> {item.lastRun}</output>
+									</div>
+								</div>
+							</li>
+						</ul>
 					</li>
-					@endfor
 				</ul>
 			</div>
 
