@@ -116,6 +116,9 @@ def create_new_ppline(fst_connection,
 
     for data in data_place.items():
         value = data[1] if check_type(data[1]) else str(data[1])
+        # Escape backslashes for Windows paths in Python string literals
+        if isinstance(value, str) and '\\' in value:
+            value = value.replace('\\', '\\\\')
         template = template.replace(data[0], str(value))
 
     template = parse_secrets(template, context)
@@ -337,6 +340,10 @@ def handle_transform_indent(transformation: str):
 
 
 def template_final_parsing(template, pipeline_name, payload, duckdb_path, context: RequestContext = None):
+    # Escape backslashes in Windows paths for Python string literals
+    if isinstance(duckdb_path, str) and '\\' in duckdb_path:
+        duckdb_path = duckdb_path.replace('\\', '\\\\')
+    
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
     template = template.replace('%Dbfile_name%', pipeline_name)
     template = template.replace('__current.PIPELINE_NAME', f"'{pipeline_name}'")

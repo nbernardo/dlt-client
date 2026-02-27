@@ -220,6 +220,8 @@ class Workspace:
                                 'db_size': db_size,
                                 'col_count': col_count,
                                 'fields': [{ 'name': col_name, 'type': col_type }],
+                                'dest': 'duckdb',
+                                'connection_name': None,
                                 'is_scheduled': curr_schedule != None,
                                 'is_scheduled_paused': curr_schedule['is_paused'] if curr_schedule != None else '',
                                 'short_settings': f'{curr_schedule['periodicity']} {curr_schedule['time']} {curr_schedule['type']}' if curr_schedule != None else '',
@@ -279,11 +281,45 @@ class Workspace:
             if ppline_name != None:
                 
                 tables_list = Workspace.get_tables_in_metadata(f'{files_path}/{_file}')
+                connection_info = Workspace.get_connection_from_pipeline(f'{files_path}/{_file}')
 
                 if 'error' in tables_list: 
                     continue
                 
                 tables = tables_list['tables']
+                connection_name = connection_info.get('connection_name')
+                dest_type = connection_info.get('dest_type', 'sql')
+                
+                # For SQL destinations, query the database to get actual schema/table names and columns
+                sql_metadata = {}
+                if dest_type == 'sql' and connection_name:
+                    from utils.PolarsQueryUtil import PolarsQueryUtil
+                    # Get namespace from files_path (e.g., .../anonymous-dlt@none.dlt/)
+                    namespace = files_path.split('/')[-2] if files_path.endswith('/') else files_path.split('/')[-1]
+                    
+                    # Clean table names (remove quotes and whitespace)
+                    clean_tables = [t.strip().replace("'",'').replace('"','') for t in tables if t.strip()]
+                    
+                    if clean_tables:
+                        metadata_result = PolarsQueryUtil.get_sql_database_metadata(namespace, connection_name, clean_tables)
+                        if not metadata_result.get('error'):
+                            # Create a mapping of table_name -> {schema, columns}
+                            # Map both original name and converted name (dots to underscores)
+                            for item in metadata_result.get('tables', []):
+                                actual_table = item['table']
+                                schema = item['schema']
+                                columns = item.get('columns', [])
+                                
+                                # Map the actual table name from database
+                                sql_metadata[actual_table] = {'schema': schema, 'columns': columns}
+                                
+                                # Also map the original name with dots (e.g., doctors_data.csv -> doctors_data_csv)
+                                if '_' in actual_table:
+                                    # Try to reverse: doctors_data_csv -> doctors_data.csv
+                                    parts = actual_table.rsplit('_', 1)
+                                    if len(parts) == 2:
+                                        original_with_dot = f'{parts[0]}.{parts[1]}'
+                                        sql_metadata[original_with_dot] = {'schema': schema, 'columns': columns}
 
                 for table in tables:
 
@@ -293,17 +329,26 @@ class Workspace:
                         continue
 
                     k = f'{ppline_name}-{table_name}'
+                    
+                    # Get schema/database name and columns for SQL destinations
+                    dbname = ''
+                    fields = []
+                    if dest_type == 'sql' and table_name in sql_metadata:
+                        metadata = sql_metadata[table_name]
+                        dbname = metadata['schema']
+                        fields = metadata.get('columns', [])
 
                     if(k != prev_key):
                         curr_schedule = pipeline_schedules['data'].get(ppline_name)
                         result[ppline_name][table_name] = { 
-                            'ppline': '',
-                            'dbname': '',
+                            'ppline': ppline_name,
+                            'dbname': dbname,
                             'table': table_name, 
                             'db_size': '',
-                            'col_count': '',
-                            'fields': [],
-                            'dest': 'sql',
+                            'col_count': len(fields) if fields else '',
+                            'fields': fields,
+                            'dest': dest_type,
+                            'connection_name': connection_name,
                             'is_scheduled': pipeline_schedules['data'].get(ppline_name, None) != None,
                             'is_scheduled_paused': curr_schedule.get('is_paused') if curr_schedule != None else '',
                             'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
@@ -415,6 +460,54 @@ class Workspace:
         except Exception as err:
             return { 'error': True, 'error_list': str(err) }
 
+    @staticmethod
+    def get_connection_from_pipeline(file = None):
+        """
+        Extract connection name from pipeline file
+        Returns connection_name and dest_type
+        """
+        try:
+            connection_name = None
+            dest_type = 'duckdb'  # default
+            
+            print(f'DEBUG: Extracting connection from file: {file}')
+            
+            with open(file, mode='r', encoding='utf-8') as content:
+                lines = content.readlines()
+                
+                for line in lines:
+                    # Look for: dbconnection_name = ['mysql_test']
+                    if 'dbconnection_name' in line and '=' in line:
+                        # Extract connection name from line like: dbconnection_name = ['mysql_test']
+                        conn_part = line.split('=')[1].strip()
+                        connection_name = conn_part.replace('[','').replace(']','').replace("'",'').replace('"','').strip()
+                        dest_type = 'sql'
+                        print(f'DEBUG: Found connection_name: {connection_name}, dest_type: {dest_type}')
+                        break
+                    
+                    # Check for DuckDB destination
+                    elif 'dlt.destinations.duckdb' in line:
+                        dest_type = 'duckdb'
+                        print(f'DEBUG: Found DuckDB destination')
+                        # Extract database path if needed
+                        
+                    # Check for BigQuery
+                    elif 'dlt.destinations.bigquery' in line:
+                        dest_type = 'bigquery'
+                        print(f'DEBUG: Found BigQuery destination')
+                        
+                    # Check for Databricks
+                    elif 'dlt.destinations.databricks' in line:
+                        dest_type = 'databricks'
+                        print(f'DEBUG: Found Databricks destination')
+            
+            print(f'DEBUG: Final result - connection_name: {connection_name}, dest_type: {dest_type}')
+            return { 'connection_name': connection_name, 'dest_type': dest_type }
+            
+        except Exception as err:
+            print(f'Error extracting connection from pipeline: {str(err)}')
+            return { 'connection_name': None, 'dest_type': 'duckdb' }
+
 
     @staticmethod
     def run_sql_query(database = None, query = None):
@@ -426,7 +519,7 @@ class Workspace:
             fields = query.lower().split('from')[0].split('select',1)[1]
             return { 'result': result, 'fields': fields }
         
-        except duckdb.duckdb.BinderException as err:
+        except duckdb.BinderException as err:
             print(f'Error while running query: {query}')
             print(str(err))
             return { 'error': True, 'result': str(err), 'code': 'err' }

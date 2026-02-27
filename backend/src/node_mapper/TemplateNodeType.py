@@ -169,7 +169,7 @@ class TemplateNodeType:
     
     def set_source_path_for_import(ni):
         import platform
-        sep = '/' if platform.system() != 'Windows' else '\\'
+        sep = '/' if platform.system() != 'Windows' else '\\\\'  # Double backslash for Windows to escape in Python string
         src_path_add = '#Adding root folder to allow import  from src'
         src_path_add += f"{ni}from pathlib import Path{ni}from sys import path"
         src_path_add += f"{ni}src_path = str(Path(__file__).parent).replace('{sep}destinations{sep}pipeline{sep}%User_folder%','')"

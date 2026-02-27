@@ -88,6 +88,11 @@ export class LeftTabs extends ViewComponent {
 		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getPipelines(this.$parent.socketData.sid);
 		
+		// Store table metadata for later use (including connection info)
+		this.tableMetadata = {};
+		
+		console.log('DEBUG: Starting to process pipeline response');
+		
 		if(response?.no_data || Object.keys(response).length === 0){
 			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
 			this.fetchingPipelineData = false;
@@ -130,8 +135,35 @@ export class LeftTabs extends ViewComponent {
 				const tableData = data[idx];
 				if(tableData){
 					const tableToQuery = `${tableData.dbname}.${tableData.table}`;
+					
+					// Construct the correct metadata key based on destination type
+					let tableKey;
+					if (tableData.dest === 'sql') {
+						// For SQL destinations: use dbname.table format
+						tableKey = `${tableData.dbname}.${tableData.table}`;
+					} else {
+						// For DuckDB: use dbfile.duckdb.tableToQuery format
+						tableKey = `${dbfile}.duckdb.${tableToQuery}`;
+					}
+					
+					console.log('DEBUG: Storing metadata for table:', {
+						tableKey: tableKey,
+						connection_name: tableData.connection_name,
+						dest: tableData.dest,
+						ppline: tableData.ppline
+					});
+					
+					// Store metadata including connection info
+					this.tableMetadata[tableKey] = {
+						connection_name: tableData.connection_name,
+						dest_type: tableData.dest || 'duckdb',
+						ppline: tableData.ppline || dbfile,
+						dbname: tableData.dbname,
+						table: tableData.table
+					};
+					
 					const table = this.dbTreeviewProxy.addNode({ 
-						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, !(tableData.dest == 'sql')),
+						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, true),
 					});
 					dbSchema.addChild(table);
 				}
@@ -168,18 +200,41 @@ export class LeftTabs extends ViewComponent {
 	copyToClipboard = () =>
 		this.$parent.controller.copyToClipboard(this.currentTableName);
 
-	queryTable = () =>
-		this.$parent.expandDataTableView(null, this.currentTableToQuery, this.currentDBFile)
+	queryTable = () => {
+		// Get metadata for current table
+		const tableKey = this.currentTableToQuery;
+		const metadata = this.tableMetadata?.[tableKey] || {};
+		
+		console.log('DEBUG queryTable:', {
+			currentTableToQuery: this.currentTableToQuery,
+			tableKey: tableKey,
+			metadata: metadata,
+			allMetadata: this.tableMetadata
+		});
+		
+		this.$parent.expandDataTableView(null, this.currentTableToQuery, this.currentDBFile, null, metadata);
+	}
 	
 	refreshTree = async () => await this.showHideDatabase();
 
 	databaseTreeViewTemplate(tableData, tableToQuery, dbfile, showIcons = true){
 		let tableRow = `<div class='table-name'>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</div>`;
 		let cleanTableName = tableToQuery.replace(/\./g,'_');
+		
+		// Construct the correct identifier based on destination type
+		let tableIdentifier;
+		if (tableData.dest === 'sql') {
+			// For SQL destinations: use dbname.table format
+			tableIdentifier = `${tableData.dbname}.${tableData.table}`;
+		} else {
+			// For DuckDB: use dbfile.duckdb.tableToQuery format
+			tableIdentifier = `${dbfile}.duckdb.${tableToQuery}`;
+		}
+		
 		if(showIcons === true) {
 			tableRow += `
 				<span
-					onclick="self.showTableOptions('${cleanTableName}','${dbfile}','${tableToQuery}', '${dbfile}.duckdb.${tableToQuery}')"
+					onclick="self.showTableOptions('${cleanTableName}','${dbfile}','${tableToQuery}', '${tableIdentifier}')"
 					class="pipeline-menu-holder pipeline-menu-holder-table">
 					<img class="dots pipeline-menu-dots ${dbfile}${cleanTableName}" src="app/assets/imgs/file-list/dots.svg" width="12">
 					<div class="pipeline-table-menu-wrapper pipeline-table-menu-wrap-${dbfile}${cleanTableName}"></div>
@@ -281,6 +336,7 @@ export class LeftTabs extends ViewComponent {
 		this.currentDBFile = dbfile;
 		this.currentTableToQuery = tablePath;
 		this.currentTableName = tableName;
+		this.currentTableData = { table, dbfile, tableName, tablePath }; // Store for later use
 
 		const content = document.querySelector('.pipeline-submenu-contents-for-table').innerHTML;
 		const target = document.querySelector(`.pipeline-table-menu-wrap-${dbfile}${table}`);

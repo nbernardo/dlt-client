@@ -136,6 +136,7 @@ kafka-python
 dlt[sqlalchemy]
 oracledb
 polars
+connectorx
 pyodbc
 psycopg2-binary
 dlt[postgres]

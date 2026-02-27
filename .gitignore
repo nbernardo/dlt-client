@@ -1,3 +1,7 @@
+# Node modules
+node_modules/
+ui/node_modules/
+
 backend/src/*.db
 backend/src/__pycache__
 backend/src/*.duckdb

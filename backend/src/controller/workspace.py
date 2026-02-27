@@ -77,12 +77,25 @@ def connect_duckdb():
 @workspace.route('/workcpace/sql_query', methods=['POST'])
 def run_sql_query():
     payload = request.get_json()
-    database = payload['database']
-    query = payload['query']
-    if DuckDBCache.get(database) != None:
-        message = 'The database selected to query is in use by a pipeline JOB, pleas wait until it gets completed.'
+    database = payload.get('database')
+    query = payload.get('query')
+    namespace = payload.get('namespace')
+    connection_name = payload.get('connection_name')
+    dest_type = payload.get('dest_type', 'duckdb')
+    
+    # Check if database is in use
+    if database and DuckDBCache.get(database) != None:
+        message = 'The database selected to query is in use by a pipeline JOB, please wait until it gets completed.'
         return { 'error': True, 'result': message }
-    result = Workspace.run_sql_query(database, query)
+    
+    # Use Polars for non-DuckDB destinations or when connection info is provided
+    if dest_type != 'duckdb' and connection_name:
+        from utils.PolarsQueryUtil import PolarsQueryUtil
+        result = PolarsQueryUtil.execute_query(query, namespace, connection_name, dest_type)
+    else:
+        # Use existing DuckDB query for backward compatibility
+        result = Workspace.run_sql_query(database, query)
+    
     return result
 
 

@@ -33,10 +33,16 @@ export class SqlEditor extends ViewComponent {
 
 	/** @Prop */ selectedTable;
 	
+	/** @Prop */ connectionName;
+	
+	/** @Prop */ destType;
+	
+	/** @Prop */ pplineName;
+	
 	/** 
 	 * @param {Object} param0 
 	 * @param {String} param0.database  */
-	async stOnRender({ query, database, databaseParam, queryTable }){
+	async stOnRender({ query, database, databaseParam, queryTable, connectionName, destType, pplineName }){
 
 		await this.$parent.controller.loadMonacoEditorDependencies();
 		
@@ -48,15 +54,27 @@ export class SqlEditor extends ViewComponent {
 			databasename = databaseParam;
 		
 		this.query = query;
+		this.connectionName = connectionName;
+		this.destType = destType || 'duckdb';
+		this.pplineName = pplineName;
 
 		this.tablesList = await this.$parent.service.getParsedTables(this.$parent.socketData.sid);
 		this.dbpath = this.$parent.service.dbPath.slice(0,-1);
 		
 		if(this.$parent.service.fieldsByTableMap[databasename.trim()])
 			this.selectedTableFields = this.$parent.service.fieldsByTableMap[databasename.trim()];
+		if (Array.isArray(this.selectedTableFields))
+			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...this.selectedTableFields];
 
-		const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
-		this.database = `${this.dbpath}/${parseDbFilename}`;
+		// Handle database path based on destination type
+		if (this.destType === 'sql') {
+			// For SQL destinations, we don't need a file path
+			this.database = null;
+		} else {
+			// For DuckDB, parse the filename
+			const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
+			this.database = `${this.dbpath}/${parseDbFilename}`;
+		}
 		this.databasename = databasename;
 	}
 
@@ -75,14 +93,31 @@ export class SqlEditor extends ViewComponent {
 	}
 
 	setupEditorQuery(databaseName){
-		this.selectedTable = databaseName.split('.duckdb.')[1];
-		this.selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
-		const fieldsString = this.selectedTableFields.value.map(({ name }) => name).join(',');
+		// Handle table name extraction based on destination type
+		let selectedTable;
+		if (this.destType === 'sql') {
+			// For SQL destinations: databaseName is already in format "schema.table"
+			selectedTable = databaseName;
+		} else {
+			// For DuckDB: extract table from "dbfile.duckdb.schema.table" format
+			selectedTable = databaseName.split('.duckdb.')[1];
+		}
+		
+		this.selectedTable = selectedTable;
+		const selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
+		const fieldsString = selectedTableFields.map(({ name }) => name).join(',');
+		
+		if (Array.isArray(selectedTableFields))
+			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...selectedTableFields];
+
 		const query = `SELECT ${fieldsString} FROM ${this.selectedTable} LIMIT 100`
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 
-		const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
-		this.database = `${this.dbpath}/${parseDbFilename}`;
+		// Update database path for DuckDB only
+		if (this.destType !== 'sql') {
+			const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
+			this.database = `${this.dbpath}/${parseDbFilename}`;
+		}
 	}
 
 	handleHideShowFieldMenu = () => handleHideShowSubmenu('.data-base-fields-submenu', '.submenu');
@@ -91,7 +126,12 @@ export class SqlEditor extends ViewComponent {
 
 	async runSQLQuery(){
 		const newQuery = this.editor.getValue();
-		const { result, fields, error } = await this.$parent.service.runSQLQuery(newQuery, this.database);
+		const { result, fields, error } = await this.$parent.service.runSQLQuery(
+			newQuery, 
+			this.database, 
+			this.connectionName, 
+			this.destType
+		);
 		const parsedFields = (fields || '').replaceAll('\n', '')?.split(',')?.map(field => field.trim());
 		this.queryOutput.setGridData(parsedFields, result).stAfterInit(error);
 	}

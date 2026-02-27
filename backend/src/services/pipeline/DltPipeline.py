@@ -90,7 +90,7 @@ class DltPipeline:
                 filename_suffixe = '__toschedule__' if context.pipeline_action == 'onlysave' else ''
 
         ppline_file = f'{file_path}/{file_name}{filename_suffixe}.py'
-        file_open_flag = 'x+'
+        file_open_flag = 'w+'  # Changed from 'x+' to 'w+' to allow overwriting existing files
         
         self.curr_file = ppline_file
         
@@ -444,11 +444,23 @@ class DltPipeline:
             print('####### WILL RUN JOB FOR '+file_path)
 
             # Run pipeline generater above by passing the python file
+            # Pass environment variables including Vault credentials
+            env_vars = os.environ.copy()
+            if env('VAULT_ADDR'):
+                env_vars['VAULT_ADDR'] = env('VAULT_ADDR')
+            if env('VAULT_TOKEN'):
+                env_vars['VAULT_TOKEN'] = env('VAULT_TOKEN')
+            if env('HASHICORP_HOST'):
+                env_vars['HASHICORP_HOST'] = env('HASHICORP_HOST')
+            if env('HASHICORP_TOKEN'):
+                env_vars['HASHICORP_TOKEN'] = env('HASHICORP_TOKEN')
+            
             result = subprocess.Popen(['python', ppline_file],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         text=True,
-                                        bufsize=1)
+                                        bufsize=1,
+                                        env=env_vars)
             pipeline_exception = False
 
             logger = DltPipeline.get_pipeline_logger(context)

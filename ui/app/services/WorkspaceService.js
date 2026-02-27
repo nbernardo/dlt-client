@@ -106,7 +106,16 @@ export class WorkspaceService extends BaseService {
             for (const [database, ppline] of data) {
                 const tablesDetails = Object.values(ppline);
                 for (const tableDetail of tablesDetails) {
-                    const tablePath = `${database}.${tableDetail.dbname}.${tableDetail.table}`
+                    // Construct tablePath based on destination type
+                    let tablePath;
+                    if (tableDetail.dest === 'sql') {
+                        // For SQL destinations: use schema.table format
+                        tablePath = `${tableDetail.dbname}.${tableDetail.table}`;
+                    } else {
+                        // For DuckDB: use database.dbname.table format
+                        tablePath = `${database}.${tableDetail.dbname}.${tableDetail.table}`;
+                    }
+                    
                     tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}`, tablePath});
                     this.fieldsByTableMap[tablePath] = tableDetail.fields;
                 }
@@ -334,8 +343,14 @@ export class WorkspaceService extends BaseService {
     }
 
     /** @returns { { result, fields } | undefined } */
-    async runSQLQuery(query, database) {
-        const payload = { query, database };
+    async runSQLQuery(query, database, connectionName = null, destType = 'duckdb') {
+        const payload = { 
+            query, 
+            database,
+            namespace: await UserService.getNamespace(),
+            connection_name: connectionName,
+            dest_type: destType
+        };
         const url = '/workcpace/sql_query';
         const response = await $still.HTTPClient.post(url, JSON.stringify(payload), {
             headers: { 'content-type': 'Application/json' }
