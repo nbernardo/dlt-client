@@ -1,3 +1,4 @@
+import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { SqlDBComponent } from "../SqlDBComponent.js";
 import { Aggreg } from "./aggregation/Aggreg.js";
 import { TransformRow } from "./TransformRow.js";
@@ -6,7 +7,12 @@ import { TransformRow } from "./TransformRow.js";
 export async function onDataSourceSelect(obj, newValue){
 
     let fieldList = null, dataSource;
-    if(![null,undefined].includes(obj.tableSource) && obj.configData !== null){
+
+    if(WorkSpaceController.isS3AuthTemplate){
+        dataSource = obj.selectedSource.value;
+        fieldList = obj.databaseFields[dataSource.trim()];
+    }
+    else if(![null,undefined].includes(obj.tableSource) && obj.configData !== null){
     
         let table = null, schema = null;
         table = obj.tableSource[newValue];
@@ -32,7 +38,9 @@ export async function onDataSourceSelect(obj, newValue){
         }
     }
     
-    fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
+    if(WorkSpaceController.isS3AuthTemplate)
+        fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
+    
     const allFields = [{name: '- No Field -'}, ...fieldList];
     
     obj.fieldList = allFields;

@@ -5,6 +5,7 @@ import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
+import { Transformation } from "./Transformation.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
 
@@ -38,7 +39,7 @@ export class Bucket extends AbstractNode {
 	/** @Prop */ formWrapClass = '_' + UUIDUtil.newId();
 	/** @Prop */ showMoreFileOptions = false;
 	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef = null;
-	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef = null;
+	/** @Prop @type { Transformation } */ transformationStep = false;
 
 	/** @Prop */ showLoading = false;
 	/**
@@ -54,6 +55,8 @@ export class Bucket extends AbstractNode {
 	filesFromList = [];
 	bucketObjects = [];
 	selectedSecret;
+	
+	/** @Prop */ bucketObjectsSchemaMap;
 
 	/* The id will be passed when instantiating Bucket dinamically through the
 	 * Component.new(type, param) where for para nodeId will be passed  */
@@ -115,8 +118,10 @@ export class Bucket extends AbstractNode {
 			// DuckDBOutput, in case isImport == true, this event is emitted when data source/files are listed
 			this.notifyReadiness();
 			this.selectedSecret = this.importFields.connectionName;
-			if(this.importFields.connectionName) 
-				this.bucketObjects = await WorkspaceService.getBucketObjects(this.importFields.connectionName);
+			if(this.importFields.connectionName){
+				const { files, schemas } = await WorkspaceService.getBucketObjects(this.importFields.connectionName);
+				this.bucketObjects = files, this.bucketObjectsSchemaMap = schemas;
+			}
 
 			this.selectedFilePattern = this.filePattern.value;
 			if(this.bucketFileSource.value === '2'){
@@ -143,16 +148,18 @@ export class Bucket extends AbstractNode {
 	setupOnChangeListen() {
 		const mainContnr = document.querySelector('.'+this.cmpInternalId);
 		this.bucketFileSource.onChange(async (newValue) => {
-			this.showBucketUrlInput = Number(newValue);
+			this.showBucketUrlInput = Number(newValue), this.selectedSecret = '';
 			WorkSpaceController.isS3AuthTemplate= false;
 			delete WorkSpaceController.getNode(this.nodeId).data['connectionName'];
 			if(this.showBucketUrlInput == 2){
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
 				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.setAttribute('required', true));
 				WorkSpaceController.isS3AuthTemplate = true;
+				this.transformationStep.updateTransformationRows([{ name: 'No table'}]);
 			}else{
 				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('required',true);
 				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.removeAttribute('required'));
+				this.transformationStep.updateTransformationRows(this.filesFromList.value);
 			}
 			this.setNodeData('bucketFileSource', newValue);
 		});
@@ -160,11 +167,15 @@ export class Bucket extends AbstractNode {
 		this.bucketUrl.onChange((newValue) => this.setNodeData('bucketUrl', newValue));
 
 		this.selectedSecret.onChange(async value => {
+			if(value.trim() == '' && this.bucketFileSource.value == 2)
+				return this.transformationStep.updateTransformationRows([{ name: 'No table'}]);
 			if(this.bucketFileSource.value == 2){
 				this.showMoreFileOptions = true;
-				this.bucketObjects = await WorkspaceService.getBucketObjects(value);
+				const { files, schemas } = await WorkspaceService.getBucketObjects(value);
+				this.bucketObjects = files;
 				setTimeout(() => this.showMoreFileOptions = false, 100);
 				this.setNodeData('selectedSecret', value);
+				this.transformationStep.updateTransformationRows(this.bucketObjects.value, schemas);
 			}
 		});
 
@@ -269,9 +280,7 @@ export class Bucket extends AbstractNode {
 	confirmFieldName(e) {
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			e.target.blur();
-			e.target.style.color = 'black';
-			e.target.style.fontWeight = 'bold';
+			e.target.blur(), e.target.style.color = 'black', e.target.style.fontWeight = 'bold';
 		}
 	}
 

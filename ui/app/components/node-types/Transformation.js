@@ -129,11 +129,7 @@ export class Transformation extends AbstractNode {
 		this.sqlConnectionName = null, this.fileSource = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
 			
-			this.databaseList = tables;
-			[...this.fieldRows].forEach(([_, row]) => {
-				row.dataSourceList = tables;
-				row.databaseFields = this.sourceNode.tablesFieldsMap;
-			});
+			this.databaseList = tables, this.updateTransformationRows(tables);
 
 			// In case the SQL Database changes, it proliferates downstream 
 			// thereby updating the Transformation and different added transformations
@@ -142,15 +138,12 @@ export class Transformation extends AbstractNode {
 				this.dataSourceType = 'SQL', this.sqlConnectionName = this.sourceNode.selectedSecret.value;
 				this.sourceNode.selectedSecretTableList.onChange(value => {
 					value = value.map(table => ({ name: table, file: table }))
-					this.databaseList = value;
-					[...this.fieldRows].forEach(([_, row]) => {
-						row.dataSourceList = value
-						row.databaseFields = this.sourceNode.tablesFieldsMap;
-					});
+					this.databaseList = value, this.updateTransformationRows(value);
 				});
 			}else{
 				this.fileSource = (this.sourceNode.selectedFilePattern.value || '').replace('*','');
 				this.dataSourceType = 'BUCKET';
+				this.sourceNode.transformationStep = this; // This is especially when the source is Bucket (Bucket.js)
 				this.sourceNode.selectedFilePattern.onChange(value => {
 					this.fileSource = (value || '').replace('*','');
 				});
@@ -438,8 +431,11 @@ export class Transformation extends AbstractNode {
 			let readType = 'scan_csv';
 			if(tableName.endsWith('.parquet')) readType = 'scan_parquet';
 			if(tableName.endsWith('.jsonl')) readType = 'scan_ndjson'
-
-			script += `lfquery = pl.${readType}(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
+			
+			if(WorkSpaceController.isS3AuthTemplate)
+				script += `lfquery = pl.${readType}(f'{bucket_name}/${tableName.replace('*','')}', storage_options=bucket_credentials)\n\t`;
+			else
+				script += `lfquery = pl.${readType}(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
 		}else{
 			script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
 		}
@@ -468,4 +464,9 @@ export class Transformation extends AbstractNode {
 		WorkSpaceController.getNode(this.nodeId).data['aggregations'] = this.aggregations;
 	}
 
+	updateTransformationRows(tables, fieldList){
+		[...this.fieldRows].forEach(([_, row]) => {
+			row.dataSourceList = tables, row.databaseFields = fieldList || this.sourceNode.tablesFieldsMap;
+		});
+	}
 }

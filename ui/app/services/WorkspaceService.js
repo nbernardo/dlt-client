@@ -656,17 +656,18 @@ export class WorkspaceService extends BaseService {
 
     static async getBucketObjects(secretName){
         const namespace = await UserService.getNamespace();
-
+        
         const url = `/workspace/${namespace}/s3/${secretName}/objects/`;
-
         const response = await $still.HTTPClient.post(url);
-        const result = await response.json();
+        let result = await response.json(), schemas = {}, filenamePieces;
         
         if (response.ok && !result.error){
-            return result.result.map(obj => {
-                const filenamePieces = obj?.key?.split('.');
+            const files = result.result.map(obj => {
+                filenamePieces = obj?.key?.split('.'); 
+                schemas[obj?.key] = Object.entries(obj.schema).map(([name, type], id) => ({ name, type, id }));
                 return { label: `${filenamePieces.slice(0,-1)}*.${filenamePieces.slice(-1)}`, name: obj?.key }
             });
+            return { files, schemas }
         }
         else
             AppTemplate.toast.error(result.result);
