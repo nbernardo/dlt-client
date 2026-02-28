@@ -38,9 +38,9 @@ export async function onDataSourceSelect(obj, newValue){
         }
     }
     
-    if(WorkSpaceController.isS3AuthTemplate)
+    if(Array.isArray(fieldList))
         fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
-    
+
     const allFields = [{name: '- No Field -'}, ...fieldList];
     
     obj.fieldList = allFields;

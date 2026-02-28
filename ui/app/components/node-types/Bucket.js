@@ -54,6 +54,7 @@ export class Bucket extends AbstractNode {
 
 	filesFromList = [];
 	bucketObjects = [];
+	bucketObjectsFieldMaps = [];
 	selectedSecret;
 	
 	/** @Prop */ bucketObjectsSchemaMap;
@@ -172,7 +173,7 @@ export class Bucket extends AbstractNode {
 			if(this.bucketFileSource.value == 2){
 				this.showMoreFileOptions = true;
 				const { files, schemas } = await WorkspaceService.getBucketObjects(value);
-				this.bucketObjects = files;
+				this.bucketObjects = files, this.bucketObjectsFieldMaps = schemas;
 				setTimeout(() => this.showMoreFileOptions = false, 100);
 				this.setNodeData('selectedSecret', value);
 				this.transformationStep.updateTransformationRows(this.bucketObjects.value, schemas);

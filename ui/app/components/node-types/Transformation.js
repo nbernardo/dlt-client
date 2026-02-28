@@ -160,14 +160,15 @@ export class Transformation extends AbstractNode {
 	
 	async addNewField(data = null, inTheLoop = false, isNewField = false, aggregations = {}) {
 
-		const obj = this;
+		const obj = this, isCloudBkt = WorkSpaceController.isS3AuthTemplate;
 
 		if(this.isImport === true && inTheLoop === false && this.confirmModification === false && this.$parent.isAnyDiagramActive){
 			this.confirmActionDialog(handleAddField);
 		}else handleAddField();
 		
 		async function handleAddField() {
-			let dataSources = obj.databaseList.value;
+			let dataSources = isCloudBkt ? obj.sourceNode.bucketObjects.value : obj.databaseList.value;
+			let tablesFieldsMap = isCloudBkt ? obj.sourceNode?.bucketObjectsFieldMaps.value : obj.sourceNode?.tablesFieldsMap;
 			
 			if(obj.$parent.controller.importingPipelineSourceDetails !== null && obj.isImport){
 				dataSources = obj.$parent.controller.importingPipelineSourceDetails.tables;
@@ -177,7 +178,7 @@ export class Transformation extends AbstractNode {
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
 			const initialData = { 
-				dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap, 
+				dataSources, rowId, importFields: data, tablesFieldsMap, 
 				isImport: obj.isImport, isNewField, aggregations 
 			};
 			
