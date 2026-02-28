@@ -45,7 +45,7 @@ export class TransformRow extends ViewComponent {
 		const { dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField, aggregations } = data;		
 		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
-		this.configData = { ...importFields, dataSources, aggregations };		
+		this.configData = { ...importFields, dataSources, aggregations };
 		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;
 	}
 
@@ -78,8 +78,9 @@ export class TransformRow extends ViewComponent {
 			if((value?.trim() === 'FILTER') && this.selectedField.value !== '- No Field -')
 				this.selectedField = '- No Field -';
 
-			this.transformType = value?.trim();
-			this.updateTransformValue({ type: this.transformType });
+			this.transformType = value?.trim(), this.updateTransformValue({ type: value?.trim() });
+			// In case it changed from aggregation type to another one them removes tll selected aggregations
+			[...this.aggregations].forEach(([_, aggreg]) =>  aggreg.removeMe());
 		});
 
 		if (this.configData !== null) await this.handleConfigData();
@@ -106,15 +107,15 @@ export class TransformRow extends ViewComponent {
 	}
 
 	removeMe() {
-		const obj = this;
+		const obj = this, inputGroup = document.getElementById(`aggreg_group_${this.rowId}`);
 		function handleDeletion() {
 			obj.unload(), obj.$parent.removeField(obj.rowId);
 		}
 		if ((this.configData !== null && this.$parent.confirmModification === false && this.isImport) && this.$parent.$parent.isAnyDiagramActive) 
 			return this.$parent.confirmActionDialog(handleDeletion);
 		handleDeletion(this);
-		document.getElementById(`aggreg_group_${this.rowId}`).innerHTML = '';
-		[...obj.aggregations].forEach(([_, aggreg]) => aggreg.unload());
+		inputGroup.innerHTML = '', inputGroup.style.display = 'none';
+		[...obj.aggregations].forEach(([_, aggreg]) =>  aggreg.removeMe());
 	}
 
 	displayTransformationError = (error) => TransformExecution.validationErrDisplay(this.rowId, error);
