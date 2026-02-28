@@ -262,116 +262,55 @@ class DltPipeline:
         """
         self.update(file_path, file_name, data, context)
 
+    @staticmethod
+    def return_template(file_name, tplt):
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+        return tplt
 
     @staticmethod
     def get_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/simple.txt'
-
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
-
+        """ This is template handling method """
+        return DltPipeline.return_template(f'{template_dir}/simple.txt', '')
 
     @staticmethod
     def get_s3_no_auth_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/simple_s3_anon_login.txt'
+        """ This is template handling method """
+        return DltPipeline.return_template(f'{template_dir}/simple_s3_anon_login.txt', '')
 
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
 
     @staticmethod
     def get_s3_auth_template():
-        """
-        This is template handling method for authenticated S3 access
-        """
-        tplt = ''
-        file_name = f'{template_dir}/simple_s3_auth.txt'
+        return DltPipeline.return_template(f'{template_dir}/simple_s3_auth.txt', '')
 
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
+    @staticmethod
+    def get_s3_auth_transform_template():
+        return DltPipeline.return_template(f'{template_dir}/simple_s3_auth_transform_field.txt', '')
 
     @staticmethod
     def get_api_templete():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/api.txt'
+        return DltPipeline.return_template(f'{template_dir}/api.txt', '')
 
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
-    
-    
     @staticmethod
     def get_transform_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/simple_transform_field.txt'
-
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
-    
+        return DltPipeline.return_template(f'{template_dir}/simple_transform_field.txt', '')
     
     @staticmethod
     def get_sql_db_template(tamplate_name = None):
-        """
-        This is template handling method
-        """
-        tplt = ''
+        """ This is template handling method """
         tplt_file = tamplate_name if tamplate_name != None else 'sql_db.txt'
-        file_name = f'{template_dir}/{tplt_file}'
-
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt    
+        return DltPipeline.return_template(f'{template_dir}/{tplt_file}', '')
     
-
     @staticmethod
     def get_mssql_db_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/sql_server.txt'
-
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt    
-
+        """ This is template handling method """
+        return DltPipeline.return_template(f'{template_dir}/sql_server.txt', '')
 
     @staticmethod
     def get_dlt_code_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/dlt_code.txt'
+        """ This is template handling method """
+        return DltPipeline.return_template(f'{template_dir}/dlt_code.txt', '')
 
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
 
     def save_instance(self, ppline_name, content):
         """
@@ -726,7 +665,7 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
         inner_env = { 'pl': pl }
 
         if(namespace != None):
-            if dbengine == None:
+            if dbengine == None and connection_name.strip() != '':
                 from utils.BucketConnector import get_bucket_credentials
                 credentials = get_bucket_credentials(namespace,connection_name)
                 bucket_credentials = {
@@ -737,8 +676,9 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
                 bucket_name = f's3://{credentials.get('bucket_name')}/'
 
             else:
-                engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
-                inspector = inspect(engine)
+                if dbengine != None:
+                    engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
+                    inspector = inspect(engine)
         
             inner_env = {
                 'engine': engine, 'pl': pl, 'inspector': inspector, 

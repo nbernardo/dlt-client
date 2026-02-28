@@ -30,23 +30,18 @@ print(f'fetching "{connection_name}" secrets for S3 connection', flush=True)
 logger.info("Fetching S3 connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
 secret = get_bucket_credentials(namespace, connection_name)
 
-# Extract S3 credentials from secret
-AWS_ACCESS_KEY_ID = secret['access_key_id']
-AWS_SECRET_ACCESS_KEY = secret['secret_access_key']
-AWS_REGION = secret.get('region', 'us-east-1')
-
 logger.info("Initializing authenticated S3 client", extra={
     'stage': 'client_setup',
-    'region': AWS_REGION,
+    'region': secret.get('region', 'us-east-1'),
     'connection_name': connection_name
 })
 
 # Create authenticated S3 client
 s3 = boto3.client(
     's3',
-    aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    region_name=AWS_REGION
+    aws_access_key_id=secret['access_key_id'],
+    aws_secret_access_key=secret['secret_access_key'],
+    region_name=secret.get('region', 'us-east-1')
 )
 
 # Bellow mapping: primary_key = Bucket.primary_key
@@ -111,7 +106,7 @@ def stream_s3():
                 
                 try:
                     s3_object = s3.get_object(Bucket=bucket_url, Key=obj['Key'])
-                    lazy_df = pl.scan_csv(s3_object["Body"].read())
+                    lazy_df = pl.scan_%read_file_type%(s3_object["Body"].read())
 
                     file_records = 0
                     for chunk in lazy_df.collect(streaming=True).iter_slices(n_rows=10000):

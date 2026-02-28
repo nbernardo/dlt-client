@@ -23,6 +23,8 @@ valid_imports = [
     'from pymongo import MongoClient',
     'from src.services.workspace.SecretManager import referencedSecrets,SecretManager',
     'from dlt.sources.filesystem import filesystem, read_csv',
+    'from dlt.sources.filesystem import filesystem, read_jsonl',
+    'from dlt.sources.filesystem import filesystem, read_parquet',
     'from dlt.sources import TDataItems',
     'from typing import Iterator, Any',
     'from typing import Iterator',

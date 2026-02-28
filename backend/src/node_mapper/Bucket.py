@@ -25,7 +25,8 @@ class Bucket(TemplateNodeType):
             self.use_s3_auth = False
             if context.has_cloud_bucket_auth == 's3Auth':
                 self.use_s3_auth = True
-                self.template = DltPipeline.get_s3_auth_template()
+                self.template = DltPipeline.get_s3_auth_transform_template() if\
+                      self.context.transformation != None else DltPipeline.get_s3_auth_template()
             elif(context.is_cloud_url != True):
                 self.template = DltPipeline.get_template()\
                                     if context.transformation == None else DltPipeline.get_transform_template()
@@ -67,7 +68,10 @@ class Bucket(TemplateNodeType):
                 if type(data['readFileType']) == list: data['readFileType'] = data['readFileType'][0]
             
             if 'readFileType' in data:
-                self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
+                if self.context.transformation == None and  data['readFileType'] == 'jsonl':
+                    self.read_file_type = 'jsonl'
+                else:
+                    self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
 
             self.context.emit_start(self, '')
 
