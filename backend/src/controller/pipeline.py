@@ -596,14 +596,14 @@ def preview_transformation(namespace):
         
         preview_script = payload['previewScript']
         source_type = payload['sourceType']
+        connection_name = payload.get('connectionName',None)
 
         if(source_type == 'BUCKET'):
             base_path = str(BasePipeline.folder).replace('/destinations','')
             fiile_path = f'{base_path}/{BasePipeline.file_folder_map['data']}/{namespace}/'
             preview_script = preview_script.replace('%pathToFile%/',fiile_path)
-            preview_result = DltPipeline.get_file_data_transformation_preview(preview_script)
+            preview_result = DltPipeline.get_file_data_transformation_preview(preview_script, connection_name, namespace)
         else:
-            connection_name = payload['connectionName']
             dbengine = payload['dbEngine']
             preview_result = DltPipeline.get_sqldb_transformation_preview(
                 namespace, dbengine,connection_name, preview_script

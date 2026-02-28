@@ -7,6 +7,8 @@ from botocore.client import Config
 from botocore import UNSIGNED
 import traceback
 from io import BytesIO
+import polars as pl
+import asyncio
 
 class BucketUtil:
     """
@@ -364,18 +366,11 @@ class BucketUtil:
                 'message': f'Error previewing file with Polars: {str(e)}'
             }
 
+
     @staticmethod
-    def list_s3_objects(config, prefix='', max_keys=100):
+    async def list_s3_objects(config, prefix='', max_keys=100):
         """
-        List objects in S3 bucket with optional prefix filter
-        
-        Args:
-            config (dict): S3 configuration
-            prefix (str): Object key prefix filter
-            max_keys (int): Maximum number of objects to return
-            
-        Returns:
-            dict: {'objects': list, 'error': bool, 'message': str}
+        List objects in S3 bucket with optional prefix filter and schema extraction
         """
         try:
             # Extract configuration
@@ -387,24 +382,46 @@ class BucketUtil:
             # Create S3 client
             s3_client = BucketUtil.get_s3_client(access_key_id, secret_access_key, region)
             
-            # List objects
-            kwargs = {
-                'Bucket': bucket_name,
-                'MaxKeys': max_keys
-            }
-            
+            # List objects (blocking call offloaded to thread)
+            kwargs = {'Bucket': bucket_name, 'MaxKeys': max_keys}
             if prefix:
                 kwargs['Prefix'] = prefix
+                
+            response = await asyncio.to_thread(s3_client.list_objects_v2, **kwargs)
             
-            response = s3_client.list_objects_v2(**kwargs)
-            
+            storage_opts = {
+                "aws_access_key_id": access_key_id,
+                "aws_secret_access_key": secret_access_key,
+                "aws_region": region,
+            }
+
+            # Helper to extract schema for a single key
+            def _get_schema(key):
+                s3_path = f"s3://{bucket_name}/{key}"
+                try:
+                    if key.endswith(".parquet"):
+                        return pl.scan_parquet(s3_path, storage_options=storage_opts).schema
+                    elif key.endswith(".csv"):
+                        return pl.scan_csv(s3_path, storage_options=storage_opts).schema
+                    elif key.endswith((".jsonl", ".ndjson")):
+                        return pl.read_ndjson(s3_path, storage_options=storage_opts, n_rows=1).schema
+                    return None
+                except:
+                    return None
+
+            # Prepare tasks for all objects to run concurrently
+            contents = response.get('Contents', [])
+            schema_tasks = [asyncio.to_thread(_get_schema, obj['Key']) for obj in contents]
+            schemas = await asyncio.gather(*schema_tasks)
+
             objects = []
-            for obj in response.get('Contents', []):
+            for obj, schema in zip(contents, schemas):
                 objects.append({
                     'key': obj['Key'],
                     'size': obj['Size'],
                     'last_modified': obj['LastModified'].isoformat(),
-                    'storage_class': obj.get('StorageClass', 'STANDARD')
+                    'storage_class': obj.get('StorageClass', 'STANDARD'),
+                    'schema': {k: str(v) for k, v in schema.items()} if schema else None
                 })
             
             return {
@@ -419,6 +436,7 @@ class BucketUtil:
                 'error': True,
                 'message': f'Error listing S3 objects: {str(e)}'
             }
+
 
     @staticmethod
     def get_anonymous_s3_client():

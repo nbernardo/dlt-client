@@ -570,7 +570,7 @@ def test_s3_connection_with_secrets(namespace, connection_name):
 
 
 @workspace.route('/workspace/<namespace>/s3/<secret>/objects/', methods=['POST'])
-def list_s3_objects(namespace = None, secret = None):
+async def list_s3_objects(namespace = None, secret = None):
     """
     List objects in S3 bucket for data preview
     """
@@ -588,7 +588,7 @@ def list_s3_objects(namespace = None, secret = None):
         if error_response:
             return error_response
         
-        result = BucketUtil.list_s3_objects(test_config, prefix, max_keys)
+        result = await BucketUtil.list_s3_objects(test_config, prefix, max_keys)
         
         if result['error']:
             return {'error': True, 'result': result['message']}

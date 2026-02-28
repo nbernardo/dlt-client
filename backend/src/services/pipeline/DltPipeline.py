@@ -631,8 +631,8 @@ class DltPipeline:
     
 
     @staticmethod
-    def get_file_data_transformation_preview(script):
-        result = run_transform_preview(None, None, None, script)
+    def get_file_data_transformation_preview(script, connection_name, namespace):
+        result = run_transform_preview(namespace, None, connection_name, script)
         return result
     
 
@@ -720,15 +720,29 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
         return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
 
     try:
-        engine, inspector = None, None
+        engine, inspector = None, None 
+        bucket_credentials, bucket_name = None, None
+
         inner_env = { 'pl': pl }
 
         if(namespace != None):
-            engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
-            inspector = inspect(engine)
+            if dbengine == None:
+                from utils.BucketConnector import get_bucket_credentials
+                credentials = get_bucket_credentials(namespace,connection_name)
+                bucket_credentials = {
+                    "aws_access_key_id": credentials.get('access_key_id'),
+                    "aws_secret_access_key": credentials.get('secret_access_key'),
+                    "aws_region": credentials.get('region'),
+                }
+                bucket_name = f's3://{credentials.get('bucket_name')}/'
+
+            else:
+                engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
+                inspector = inspect(engine)
         
             inner_env = {
-                'engine': engine, 'pl': pl, 'inspector': inspector,
+                'engine': engine, 'pl': pl, 'inspector': inspector, 
+                'bucket_credentials': bucket_credentials, 'bucket_name': bucket_name,
                 'column_type_conversion': column_type_conversion,
             }
 
