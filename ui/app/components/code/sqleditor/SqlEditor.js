@@ -67,8 +67,8 @@ export class SqlEditor extends ViewComponent {
 			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...this.selectedTableFields];
 
 		// Handle database path based on destination type
-		if (this.destType === 'sql') {
-			// For SQL destinations, we don't need a file path
+		if (this.destType === 'sql' || this.destType === 'bigquery' || this.destType === 'databricks') {
+			// For SQL, BigQuery, and Databricks destinations, we don't need a file path
 			this.database = null;
 		} else {
 			// For DuckDB, parse the filename
@@ -95,8 +95,8 @@ export class SqlEditor extends ViewComponent {
 	setupEditorQuery(databaseName){
 		// Handle table name extraction based on destination type
 		let selectedTable;
-		if (this.destType === 'sql') {
-			// For SQL destinations: databaseName is already in format "schema.table"
+		if (this.destType === 'sql' || this.destType === 'bigquery' || this.destType === 'databricks') {
+			// For SQL, BigQuery, and Databricks: databaseName is already in format "schema.table"
 			selectedTable = databaseName;
 		} else {
 			// For DuckDB: extract table from "dbfile.duckdb.schema.table" format
@@ -114,7 +114,7 @@ export class SqlEditor extends ViewComponent {
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 
 		// Update database path for DuckDB only
-		if (this.destType !== 'sql') {
+		if (this.destType !== 'sql' && this.destType !== 'bigquery' && this.destType !== 'databricks') {
 			const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
 			this.database = `${this.dbpath}/${parseDbFilename}`;
 		}

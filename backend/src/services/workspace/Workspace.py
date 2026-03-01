@@ -290,36 +290,66 @@ class Workspace:
                 connection_name = connection_info.get('connection_name')
                 dest_type = connection_info.get('dest_type', 'sql')
                 
-                # For SQL destinations, query the database to get actual schema/table names and columns
-                sql_metadata = {}
-                if dest_type == 'sql' and connection_name:
+                # Fetch metadata based on destination type
+                metadata_map = {}
+                if connection_name:
                     from utils.PolarsQueryUtil import PolarsQueryUtil
-                    # Get namespace from files_path (e.g., .../anonymous-dlt@none.dlt/)
+                    import asyncio
+                    
+                    # Get namespace from files_path
                     namespace = files_path.split('/')[-2] if files_path.endswith('/') else files_path.split('/')[-1]
                     
-                    # Clean table names (remove quotes and whitespace)
+                    # Clean table names
                     clean_tables = [t.strip().replace("'",'').replace('"','') for t in tables if t.strip()]
                     
                     if clean_tables:
-                        metadata_result = PolarsQueryUtil.get_sql_database_metadata(namespace, connection_name, clean_tables)
+                        # Call appropriate async metadata method based on destination type
+                        # Use asyncio.run() to execute async method in sync context
+                        try:
+                            if dest_type == 'sql':
+                                metadata_result = asyncio.run(
+                                    PolarsQueryUtil.get_sql_database_metadata_async(namespace, connection_name, clean_tables)
+                                )
+                            elif dest_type == 'bigquery':
+                                metadata_result = asyncio.run(
+                                    PolarsQueryUtil.get_bigquery_metadata_async(namespace, connection_name, clean_tables)
+                                )
+                            elif dest_type == 'databricks':
+                                metadata_result = asyncio.run(
+                                    PolarsQueryUtil.get_databricks_metadata_async(namespace, connection_name, clean_tables)
+                                )
+                            else:
+                                metadata_result = {'error': True, 'tables': []}
+                        except RuntimeError as e:
+                            # If event loop is already running (e.g., in async context), fall back to sync
+                            if 'already running' in str(e):
+                                if dest_type == 'sql':
+                                    metadata_result = PolarsQueryUtil.get_sql_database_metadata(namespace, connection_name, clean_tables)
+                                elif dest_type == 'bigquery':
+                                    metadata_result = PolarsQueryUtil.get_bigquery_metadata(namespace, connection_name, clean_tables)
+                                elif dest_type == 'databricks':
+                                    metadata_result = PolarsQueryUtil.get_databricks_metadata(namespace, connection_name, clean_tables)
+                                else:
+                                    metadata_result = {'error': True, 'tables': []}
+                            else:
+                                raise
+                        
                         if not metadata_result.get('error'):
                             # Create a mapping of table_name -> {schema, columns}
-                            # Map both original name and converted name (dots to underscores)
                             for item in metadata_result.get('tables', []):
                                 actual_table = item['table']
                                 schema = item['schema']
                                 columns = item.get('columns', [])
                                 
-                                # Map the actual table name from database
-                                sql_metadata[actual_table] = {'schema': schema, 'columns': columns}
+                                # Map the actual table name
+                                metadata_map[actual_table] = {'schema': schema, 'columns': columns}
                                 
-                                # Also map the original name with dots (e.g., doctors_data.csv -> doctors_data_csv)
+                                # Also map variations (e.g., doctors_data.csv -> doctors_data_csv)
                                 if '_' in actual_table:
-                                    # Try to reverse: doctors_data_csv -> doctors_data.csv
                                     parts = actual_table.rsplit('_', 1)
                                     if len(parts) == 2:
                                         original_with_dot = f'{parts[0]}.{parts[1]}'
-                                        sql_metadata[original_with_dot] = {'schema': schema, 'columns': columns}
+                                        metadata_map[original_with_dot] = {'schema': schema, 'columns': columns}
 
                 for table in tables:
 
@@ -330,11 +360,11 @@ class Workspace:
 
                     k = f'{ppline_name}-{table_name}'
                     
-                    # Get schema/database name and columns for SQL destinations
+                    # Get schema/database name and columns based on destination type
                     dbname = ''
                     fields = []
-                    if dest_type == 'sql' and table_name in sql_metadata:
-                        metadata = sql_metadata[table_name]
+                    if table_name in metadata_map:
+                        metadata = metadata_map[table_name]
                         dbname = metadata['schema']
                         fields = metadata.get('columns', [])
 
@@ -475,31 +505,41 @@ class Workspace:
             with open(file, mode='r', encoding='utf-8') as content:
                 lines = content.readlines()
                 
+                # First pass: determine destination type
                 for line in lines:
-                    # Look for: dbconnection_name = ['mysql_test']
-                    if 'dbconnection_name' in line and '=' in line:
-                        # Extract connection name from line like: dbconnection_name = ['mysql_test']
-                        conn_part = line.split('=')[1].strip()
-                        connection_name = conn_part.replace('[','').replace(']','').replace("'",'').replace('"','').strip()
-                        dest_type = 'sql'
-                        print(f'DEBUG: Found connection_name: {connection_name}, dest_type: {dest_type}')
+                    # Check for BigQuery
+                    if 'dlt.destinations.bigquery' in line:
+                        dest_type = 'bigquery'
+                        print(f'DEBUG: Found BigQuery destination')
+                        break
+                        
+                    # Check for Databricks
+                    elif 'dlt.destinations.databricks' in line:
+                        dest_type = 'databricks'
+                        print(f'DEBUG: Found Databricks destination')
                         break
                     
                     # Check for DuckDB destination
                     elif 'dlt.destinations.duckdb' in line:
                         dest_type = 'duckdb'
                         print(f'DEBUG: Found DuckDB destination')
-                        # Extract database path if needed
-                        
-                    # Check for BigQuery
-                    elif 'dlt.destinations.bigquery' in line:
-                        dest_type = 'bigquery'
-                        print(f'DEBUG: Found BigQuery destination')
-                        
-                    # Check for Databricks
-                    elif 'dlt.destinations.databricks' in line:
-                        dest_type = 'databricks'
-                        print(f'DEBUG: Found Databricks destination')
+                        break
+                    
+                    # Check for SQLAlchemy (SQL databases)
+                    elif 'dlt.destinations.sqlalchemy' in line:
+                        dest_type = 'sql'
+                        print(f'DEBUG: Found SQLAlchemy destination')
+                        break
+                
+                # Second pass: find connection name
+                for line in lines:
+                    # Look for: dbconnection_name = ['mysql_test']
+                    if 'dbconnection_name' in line and '=' in line:
+                        # Extract connection name from line like: dbconnection_name = ['mysql_test']
+                        conn_part = line.split('=')[1].strip()
+                        connection_name = conn_part.replace('[','').replace(']','').replace("'",'').replace('"','').strip()
+                        print(f'DEBUG: Found connection_name: {connection_name}')
+                        break
             
             print(f'DEBUG: Final result - connection_name: {connection_name}, dest_type: {dest_type}')
             return { 'connection_name': connection_name, 'dest_type': dest_type }

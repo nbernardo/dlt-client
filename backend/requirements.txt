@@ -145,3 +145,5 @@ dlt[mysql]
 dlt[mssql]
 dlt[bigquery]
 dlt[databricks]
+google-cloud-bigquery>=3.11.0
+databricks-sql-connector>=2.9.0

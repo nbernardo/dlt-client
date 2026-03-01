@@ -108,8 +108,8 @@ export class WorkspaceService extends BaseService {
                 for (const tableDetail of tablesDetails) {
                     // Construct tablePath based on destination type
                     let tablePath;
-                    if (tableDetail.dest === 'sql') {
-                        // For SQL destinations: use schema.table format
+                    if (tableDetail.dest === 'sql' || tableDetail.dest === 'bigquery' || tableDetail.dest === 'databricks') {
+                        // For SQL, BigQuery, and Databricks destinations: use schema.table format
                         tablePath = `${tableDetail.dbname}.${tableDetail.table}`;
                     } else {
                         // For DuckDB: use database.dbname.table format
@@ -126,9 +126,7 @@ export class WorkspaceService extends BaseService {
 
         return this.parsedTableListStore.value;
 
-    }
-
-    async runCode(code, user) {
+    }    async runCode(code, user) {
 
         const url = '/workcpace/code/run/' + user;
         const result = await $still.HTTPClient.post(url, JSON.stringify(code), {

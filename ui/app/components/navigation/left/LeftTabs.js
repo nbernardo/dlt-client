@@ -138,8 +138,8 @@ export class LeftTabs extends ViewComponent {
 					
 					// Construct the correct metadata key based on destination type
 					let tableKey;
-					if (tableData.dest === 'sql') {
-						// For SQL destinations: use dbname.table format
+					if (tableData.dest === 'sql' || tableData.dest === 'bigquery' || tableData.dest === 'databricks') {
+						// For SQL, BigQuery, and Databricks destinations: use dbname.table format
 						tableKey = `${tableData.dbname}.${tableData.table}`;
 					} else {
 						// For DuckDB: use dbfile.duckdb.tableToQuery format
@@ -223,8 +223,8 @@ export class LeftTabs extends ViewComponent {
 		
 		// Construct the correct identifier based on destination type
 		let tableIdentifier;
-		if (tableData.dest === 'sql') {
-			// For SQL destinations: use dbname.table format
+		if (tableData.dest === 'sql' || tableData.dest === 'bigquery' || tableData.dest === 'databricks') {
+			// For SQL, BigQuery, and Databricks destinations: use dbname.table format
 			tableIdentifier = `${tableData.dbname}.${tableData.table}`;
 		} else {
 			// For DuckDB: use dbfile.duckdb.tableToQuery format
