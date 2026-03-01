@@ -47,6 +47,9 @@ valid_imports = [
     'from dlt.sources.helpers.rest_client.auth import APIKeyAuth',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation',
     'import sqlalchemy.exc',
+    'from src.utils.metastore.meta_storage import DuckDBMedaStore',
+    'from src.utils.metastore.meta_storage.DuckDBMedaStore import crate_or_update_catalog_from_file',
+    'import traceback',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

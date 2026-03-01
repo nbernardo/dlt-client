@@ -134,7 +134,7 @@ class DltPipeline:
                 line = result.stdout.readline()
                 time.sleep(0.1)
 
-                if line == '': continue
+                if line == '' or line.strip() == 'import pkg_resources': continue
                 if not line: break
                 line = line.strip()
                 

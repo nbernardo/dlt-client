@@ -13,6 +13,9 @@ class PipelineLogger:
 
     def __init__(self):
         self.setup_dlt_logging()
+        import warnings
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        warnings.filterwarnings("ignore", category=UserWarning)
 
     def info(self, description, extra=None):
         print(f'{description} |+| {json.dumps(extra)}')

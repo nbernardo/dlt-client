@@ -3,16 +3,17 @@ from dlt.sources.filesystem import filesystem, read_%read_file_type%
 import logging
 %import_from_src%
 from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.metastore.meta_storage import DuckDBMedaStore
 
 # Initialize pipeline logger
 logger = PipelineLogger()
-
 logger.info("Starting simple filesystem pipeline", extra={'stage': 'initialization', 'template_type': 'simple'})
 
+
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
-logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': '%bucket_url%', 'file_pattern': '%file_pattern%'})
-files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
-print('Files/Bucket loaded', flush=True)
+file_pattern, bucket_url = %file_pattern%, %bucket_url%
+logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': bucket_url, 'file_pattern': file_pattern})
+files = filesystem(bucket_url=bucket_url, file_glob=file_pattern)
 logger.info("Files/Bucket loaded successfully", extra={'stage': 'data_loading'})
 
 # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
@@ -43,6 +44,9 @@ try:
     
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
+
+    catalog_table_path = f'{bucket_url}/{file_pattern}'
+    DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline, '%read_file_type%')
     
 except Exception as e:
     logger.error("Pipeline execution failed", extra={
