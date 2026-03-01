@@ -109,30 +109,87 @@ class PolarsQueryUtil:
 
     @staticmethod
     def _query_s3(query: str, namespace: str, connection_name: str):
-        """Query S3 files (Parquet/CSV) - Not yet implemented"""
+        """
+        Query S3 files using DuckDB with S3 extension
+        
+        Args:
+            query: SQL query (can reference S3 paths or table names)
+            namespace: User namespace
+            connection_name: S3 connection name
+            
+        Returns:
+            dict: {'result': list of tuples, 'fields': comma-separated field names}
+        """
         try:
-            # For S3, we need to parse the query to get the file path
-            # This is a simplified implementation - may need enhancement
+            import duckdb
             
-            # Get S3 credentials
-            secret = SecretManager.get_db_secret(namespace, connection_name, from_pipeline=True)
+            print(f'Querying S3 with connection: {connection_name}')
             
-            # Extract table name from query (simplified)
-            # Assuming query like: SELECT * FROM table_name
-            table_name = query.lower().split('from')[1].split()[0].strip()
+            # Get S3 credentials from Vault
+            secret = SecretManager.get_secret(namespace, connection_name, secret_group=True, from_pipeline=True)
             
-            # TODO: Map table name to S3 file path
-            # For now, return error indicating S3 queries need special handling
-            return {
-                'error': True,
-                'result': 'S3 queries require file path mapping - not yet implemented',
-                'code': 'err'
-            }
+            access_key_id = secret['access_key_id']
+            secret_access_key = secret['secret_access_key']
+            bucket_name = secret['bucket_name']
+            region = secret.get('region', 'us-east-1')
+            
+            # Create DuckDB connection
+            con = duckdb.connect()
+            
+            # Install and load httpfs extension for S3 support
+            con.execute("INSTALL httpfs;")
+            con.execute("LOAD httpfs;")
+            
+            # Configure S3 credentials
+            con.execute(f"SET s3_region='{region}';")
+            con.execute(f"SET s3_access_key_id='{access_key_id}';")
+            con.execute(f"SET s3_secret_access_key='{secret_access_key}';")
+            
+            print(f'Executing S3 query: {query}')
+            
+            # Check if query already contains s3:// path
+            if 's3://' not in query.lower():
+                # Extract table/file name from query
+                # Query format: SELECT * FROM filename.csv
+                import re
+                from_match = re.search(r'from\s+([^\s,;]+)', query, re.IGNORECASE)
+                if from_match:
+                    table_name = from_match.group(1).strip('`"\'')
+                    # Construct S3 path
+                    s3_path = f"'s3://{bucket_name}/{table_name}'"
+                    # Replace table name with S3 path in query
+                    query = re.sub(
+                        r'from\s+([^\s,;]+)',
+                        f'FROM {s3_path}',
+                        query,
+                        flags=re.IGNORECASE
+                    )
+                    print(f'Converted query to: {query}')
+            
+            # Execute the query
+            result = con.execute(query).fetchall()
+            
+            # Get column names
+            fields_list = [desc[0] for desc in con.description]
+            fields = ','.join(fields_list)
+            
+            print(f'S3 query successful, returned {len(result)} rows')
+            
+            # Close connection
+            con.close()
+            
+            return {'result': result, 'fields': fields}
             
         except Exception as err:
-            print(f'Error querying S3: {str(err)}')
-            raise
-
+            error_msg = str(err)
+            print(f'Error querying S3: {error_msg}')
+            import traceback
+            traceback.print_exc()
+            return {
+                'error': True,
+                'result': f'S3 query error: {error_msg}',
+                'code': 'err'
+            }
     @staticmethod
     def _query_cloud_warehouse(query: str, namespace: str, connection_name: str, dest_type: str):
         """Query cloud data warehouses (BigQuery, Databricks)"""
