@@ -50,6 +50,7 @@ valid_imports = [
     'from src.utils.metastore.meta_storage import DuckDBMedaStore',
     'from src.utils.metastore.meta_storage.DuckDBMedaStore import crate_or_update_catalog_from_file',
     'import traceback',
+    'import re',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

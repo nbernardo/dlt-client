@@ -6,6 +6,8 @@ import polars as pl
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
 from src.utils.BucketConnector import get_bucket_credentials
+from src.utils.metastore.meta_storage import DuckDBMedaStore
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -18,7 +20,6 @@ namespace = %namespace%
 # Bellow mapping: connection_name = Bucket.connection_name (S3 connection name)
 connection_name = %connection_name%
 
-print(f'fetching "{connection_name}" secrets for S3 connection', flush=True)
 logger.info("Fetching S3 connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
 secret = get_bucket_credentials(namespace, connection_name)
 
@@ -29,9 +30,10 @@ will communicate with the main process about the progress
 """
 
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
-logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': '%bucket_url%', 'file_pattern': '%file_pattern%'})
+bucket_url, file_pattern = %bucket_url%, %file_pattern%
+logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': bucket_url, 'file_pattern': file_pattern})
 files = filesystem(
-    bucket_url=%bucket_url%, file_glob=%file_pattern%,
+    bucket_url=bucket_url, file_glob=file_pattern,
     credentials={
         'aws_access_key_id': secret['access_key_id'],
         'aws_secret_access_key': secret['secret_access_key'],
@@ -41,7 +43,6 @@ files = filesystem(
 
 @dlt.transformer()
 def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
-    print('Starting tranformation(s)', flush=True)
     logger.info("Starting data transformations", extra={'stage': 'data_transformation'})
     
     total_files_processed, total_rows_processed = 0, 0
@@ -114,14 +115,13 @@ def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterat
                 })
                 
                 yield batch.rows(named=True)
-    
+            
     logger.info("All transformations completed", extra={
         'stage': 'transformation_summary',
         'total_files_processed': total_files_processed,
         'total_rows_processed': total_rows_processed
     })
 
-print('Starting the pipeline', flush=True)
 logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
 
 # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
@@ -150,6 +150,8 @@ try:
     
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
+    catalog_table_path = f'{bucket_url}/{pattern}'
+    DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as err:
     logger.error("Transformation pipeline execution failed", extra={

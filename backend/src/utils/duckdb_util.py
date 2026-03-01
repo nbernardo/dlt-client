@@ -43,7 +43,7 @@ class DuckdbUtil:
     @staticmethod
     def get_meta_db_instance(path = None):
         if DuckdbUtil.mstoredbinstance == None:
-            metadb = f'{DuckdbUtil.workspacedb_path if path == None else path}/metastore.duckdb'
+            metadb = f'{DuckdbUtil.workspacedb_path if path == None else path[0:-1]}/metastore.duckdb'
             DuckdbUtil.mstoredbinstance = duckdb.connect(metadb)
         return DuckdbUtil.mstoredbinstance
 

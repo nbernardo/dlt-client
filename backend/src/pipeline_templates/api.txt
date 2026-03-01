@@ -6,7 +6,9 @@ from pathlib import Path
 from sys import path
 %auth_strategy%
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+from src.utils.metastore.meta_storage import DuckDBMedaStore
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -185,6 +187,9 @@ try:
     
     print(load_info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
+
+    catalog_table_path = %base_url%
+    DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as e:
     logger.error("API pipeline execution failed", extra={

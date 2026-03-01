@@ -6,16 +6,17 @@ including dltHub logging configuration and context management.
 """
 import logging
 import json
-
+import warnings
+import os
     
 
 class PipelineLogger:
 
     def __init__(self):
         self.setup_dlt_logging()
-        import warnings
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         warnings.filterwarnings("ignore", category=UserWarning)
+        os.environ["PYTHONWARNINGS"] = "ignore::DeprecationWarning:pkg_resources"
 
     def info(self, description, extra=None):
         print(f'{description} |+| {json.dumps(extra)}')

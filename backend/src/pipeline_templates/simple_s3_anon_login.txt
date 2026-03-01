@@ -6,7 +6,8 @@ from botocore import UNSIGNED
 from botocore.client import Config
 import fnmatch
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -15,6 +16,8 @@ logger.info("Starting S3 anonymous pipeline", extra={'stage': 'initialization', 
 
 logger.info("Initializing S3 client", extra={'stage': 'client_setup'})
 s3 = boto3.client('s3', config=Config(signature_version=UNSIGNED))
+
+namespace = %namespace%
 
 # Bellow mapping: primary_key = Bucket.primary_key
 # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table

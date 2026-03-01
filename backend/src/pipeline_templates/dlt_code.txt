@@ -4,7 +4,9 @@ from sys import path
 from pathlib import Path
 
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+from src.utils.metastore.meta_storage import DuckDBMedaStore
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -17,6 +19,7 @@ from src.services.workspace.SecretManager import referencedSecrets%secret_manage
 logger.info("Loading custom DLT code", extra={'stage': 'code_loading'})
 %template_code%
 
+namespace = %namespace%
 dest_folder = Workspace.get_duckdb_path_on_ppline()
 
 %destination_settings%
@@ -45,6 +48,9 @@ try:
     
     print(load_info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
+
+    catalog_table_path = f'{bucket_url}/{file_pattern}'
+    DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as err:
     logger.error("DLT code pipeline execution failed", extra={

@@ -5,6 +5,8 @@ from typing import Iterator
 import polars as pl
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+from src.utils.metastore.meta_storage import DuckDBMedaStore
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -17,9 +19,12 @@ hence the different print statement as this is how it
 will communicate with the main process about the progress
 """
 
+namespace = %namespace%
+
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
-logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': '%bucket_url%', 'file_pattern': '%file_pattern%'})
-files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
+file_pattern, bucket_url = %file_pattern%, %bucket_url%
+logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': bucket_url, 'file_pattern': file_pattern})
+files = filesystem(bucket_url=bucket_url, file_glob=file_pattern)
 
 @dlt.transformer()
 def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
@@ -97,6 +102,7 @@ def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterat
                 })
                 
                 yield batch.rows(named=True)
+
     
     logger.info("All transformations completed", extra={
         'stage': 'transformation_summary',
@@ -133,6 +139,9 @@ try:
     
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
+
+    catalog_table_path = f'{bucket_url}/{file_pattern}'
+    DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as err:
     logger.error("Transformation pipeline execution failed", extra={
