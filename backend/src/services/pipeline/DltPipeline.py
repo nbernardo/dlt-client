@@ -23,6 +23,7 @@ import re
 root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
 template_dir = f'{root_dir}/pipeline_templates'
+SUCCESS_RUN_MESSAGE = 'Pipeline run terminated successfully'
 
 
 def is_SAWarning(message):
@@ -134,7 +135,8 @@ class DltPipeline:
                 line = result.stdout.readline()
                 time.sleep(0.1)
 
-                if line == '' or line.strip() == 'import pkg_resources': continue
+                if line == '' or line.strip() == 'import pkg_resources' or line.strip().__contains__('import pkg_resources'): 
+                    continue
                 if not line: break
                 line = line.strip()
                 
@@ -180,7 +182,7 @@ class DltPipeline:
             handle_pipeline_log(f'PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
 
-        message, status = 'Pipeline run terminated successfully', True
+        message, status = SUCCESS_RUN_MESSAGE, True
         
         error_messages, warning_status = None, False
         if result.returncode != 0 and not(context and context.action_type == 'UPDATE' and result.returncode == 2):
@@ -192,8 +194,11 @@ class DltPipeline:
                 warning_status = True
             else:
                 message, status = '\n'.join(error_messages[1:]), False
-                if context:
+                if message.__contains__('import pkg_resources'):
+                    message, status = SUCCESS_RUN_MESSAGE, True
+                elif context and status == False:
                     context.emit_ppline_trace(message, error=True)
+                
 
         if context:
             context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
@@ -203,10 +208,11 @@ class DltPipeline:
         print("Standard Output:", result.stdout.read())
         print("Standard Error:", message if error_messages != None else None)
 
-        if (error_messages != None or result.returncode == 1) and warning_status == False:
-            status = False
-        else:
-            status = status if len(result.stderr.read()) > 0 else True
+        if(not(message.strip() == SUCCESS_RUN_MESSAGE)):
+            if (error_messages != None or result.returncode == 1) and warning_status == False:
+                status = False
+            else:
+                status = status if len(result.stderr.read()) > 0 else True
 
         return { 'status': status, 'message': message }
 
@@ -251,7 +257,7 @@ class DltPipeline:
 
         return {
             'status': True,
-            'message': 'Pipeline run terminated successfully'
+            'message': SUCCESS_RUN_MESSAGE
         }
 
 
@@ -446,10 +452,10 @@ class DltPipeline:
                 handle_pipeline_log(f'SCHEDULE PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
                 context.emit_ppline_job_trace(message, error=True)
             else:
-                if(line.__contains__('Pipeline run terminated successfully')):
+                if(line.__contains__(SUCCESS_RUN_MESSAGE)):
                     if(has_ppline_job('end',job_execution_id)):
                         pass
-                context.emit_ppline_job_trace('Pipeline run terminated successfully')
+                context.emit_ppline_job_trace(SUCCESS_RUN_MESSAGE)
             
             error_messages, status = None, True
             if result.returncode != 0:
@@ -463,8 +469,12 @@ class DltPipeline:
                     context.emit_ppline_trace(error_messages, warn=True)
                 else:
                     message = '\n'.join(error_messages[1:])
-                    context.emit_ppline_job_trace(message, error=True)
-                    status = False
+                    if message.__contains__('import pkg_resources'):
+                        status = True
+                    if status == False:
+                        context.emit_ppline_job_trace(message, error=True)
+                        status = False
+
 
             if(status):
                 context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')

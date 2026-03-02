@@ -44,7 +44,7 @@ class DuckDBLogStore:
                 e_id = "na"
 
                 if len(name_parts) >= 4 and name_parts[0] == "pipeline":
-                    nspace = '.'.join(r.name.split('.')[0:-2])
+                    nspace = '.'.join(r.name.split('.')[0:-2]).replace('pipeline.','')
                     p_id = name_parts[-2]
                     e_id = name_parts[-1]
 
@@ -356,10 +356,6 @@ class DuckDBLogStore:
 
 
     async def get_run_status_summary(namespace: str):
-
-        # This is especialy for annonymous login on dev environment
-        if namespace.__contains__('anonymous-dlt') and namespace.endswith('none.dlt'):
-            namespace = 'pipeline.anonymous-dlt@none.dlt'
 
         def _fetch():
 
