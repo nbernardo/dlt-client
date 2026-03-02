@@ -14,9 +14,6 @@ class AsyncDuckDBHandler(logging.Handler):
         # We handle batching here or simply pass to the store
         self.store.store_logs_batch([record])
 
-import logging
-from logging.handlers import QueueHandler, QueueListener
-from queue import Queue
 
 def setup_logging(app=None):
     

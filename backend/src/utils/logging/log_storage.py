@@ -18,7 +18,7 @@ class DuckDBLogStore:
         if not log_records:
             return
 
-        # Skip those fields in the extra params from the logger.info
+
         STANDARD_ATTRS = {
             'name', 'msg', 'args', 'levelname', 'levelno', 'pathname', 'filename',
             'module', 'exc_info', 'exc_text', 'stack_info', 'lineno', 'funcName',
@@ -43,18 +43,15 @@ class DuckDBLogStore:
                 p_id = "system"
                 e_id = "na"
 
-                # Hierarchy parsing
                 if len(name_parts) >= 4 and name_parts[0] == "pipeline":
-                    nspace = name_parts[1]
-                    p_id = name_parts[2]
-                    e_id = name_parts[3]
+                    nspace = '.'.join(r.name.split('.')[0:-2])
+                    p_id = name_parts[-2]
+                    e_id = name_parts[-1]
 
-                # Manual attribute overrides
                 p_id = getattr(r, 'pipeline_id', p_id)
                 e_id = getattr(r, 'execution_id', e_id)
                 nspace = getattr(r, 'namespace', nspace)
 
-                # This pulls everything you added that isn't a standard logging field
                 custom_extra = {
                     k: v for k, v in r.__dict__.items() 
                     if k not in STANDARD_ATTRS
@@ -359,116 +356,121 @@ class DuckDBLogStore:
 
 
     async def get_run_status_summary(namespace: str):
+
+        # This is especialy for annonymous login on dev environment
+        if namespace.__contains__('anonymous-dlt') and namespace.endswith('none.dlt'):
+            namespace = 'pipeline.anonymous-dlt@none.dlt'
+
         def _fetch():
 
             con = DuckdbUtil.get_log_db_instance()
-            query = """
-WITH record_counts AS (
-    SELECT
-        execution_id,
-        regexp_extract(message, '^([a-z_]+):[ ]+[0-9]+', 1) as resource_name,
-        max(TRY_CAST(
-            regexp_extract(message, '^[a-z_]+:[ ]+([0-9]+)', 1)
-        AS INTEGER)) as max_records
-    FROM pipeline_logs
-    WHERE 
-        namespace = ?
-        AND regexp_matches(message, '^[a-z_]+:[ ]+[0-9]+[ ]+\|')
-        AND timestamp >= now() - INTERVAL '7 days'
-    GROUP BY execution_id, resource_name
-),
-record_totals AS (
-    SELECT execution_id, sum(max_records)::INT as total_records
-    FROM record_counts
-    GROUP BY execution_id
-),
-base_stats AS (
-    SELECT 
-        lower(regexp_replace(trim(pl.pipeline_id), '[_\s]+', '_', 'g')) as clean_id,
-        pl.execution_id,
-        CASE 
-            WHEN count_if(UPPER(log_level) = 'ERROR') > 0 THEN 'Failed'
-            WHEN count_if(UPPER(log_level) = 'WARNING') > 0 THEN 'Warning'
-            ELSE 'Success'
-        END as final_status,
-        max(timestamp) as last_run_time,
-        (max(timestamp) - min(timestamp)) as execution_duration,
-        COALESCE(rt.total_records, 0) as total_records
-    FROM pipeline_logs pl
-    LEFT JOIN record_totals rt ON pl.execution_id = rt.execution_id
-    WHERE 
-        pl.namespace = ?
-        AND pl.pipeline_id NOT IN ('system', 'flask_server')
-        AND pl.pipeline_id IS NOT NULL
-        AND pl.timestamp >= now() - INTERVAL '7 days'
-    GROUP BY pl.execution_id, clean_id, rt.total_records
-),
-trend_stats AS (
-    SELECT
-        clean_id,
-        CAST(last_run_time AS DATE) as run_date,
-        count(*)::INT as daily_runs
-    FROM base_stats
-    GROUP BY clean_id, run_date
-),
-date_spine AS (
-    SELECT CAST(range AS DATE) as run_date
-    FROM range(
-        CAST(current_date - INTERVAL '6 days' AS TIMESTAMP),
-        CAST(current_date + INTERVAL '1 day' AS TIMESTAMP),
-        INTERVAL '1 day'
-    )
-),
-trend_arrays AS (
-    SELECT
-        p.clean_id,
-        list(COALESCE(t.daily_runs, 0) ORDER BY d.run_date ASC) as trend_data
-    FROM (SELECT DISTINCT clean_id FROM base_stats) p
-    CROSS JOIN date_spine d
-    LEFT JOIN trend_stats t 
-        ON t.clean_id = p.clean_id 
-        AND t.run_date = d.run_date
-    GROUP BY p.clean_id
-),
-global_totals AS (
-    SELECT 
-        'SUMMARY' as report_type,
-        'ALL' as pipeline_id,
-        count(*)::INT as total_runs,
-        count(*) filter (where final_status = 'Success')::INT as success_count,
-        count(*) filter (where final_status = 'Failed')::INT as failed_count,
-        count(*) filter (where final_status = 'Warning')::INT as warning_count,
-        'N/A' as status_indicator,
-        []::INT[] as trend_data,
-        0 as avg_duration,
-        sum(total_records)::INT as total_records
-    FROM base_stats
-),
-pipeline_list AS (
-    SELECT 
-        'LIST' as report_type,
-        b.clean_id as pipeline_id,
-        count(*)::INT as total_runs,
-        count(*) filter (where final_status = 'Success')::INT as success_count,
-        count(*) filter (where final_status = 'Failed')::INT as failed_count,
-        count(*) filter (where final_status = 'Warning')::INT as warning_count,
-        CASE 
-            WHEN count_if(final_status = 'Failed') > 0 THEN 'Failed'
-            WHEN count_if(final_status = 'Warning') > 0 THEN 'Warning'
-            ELSE 'Success'
-        END as status_indicator,
-        COALESCE(t.trend_data, []::INT[]) as trend_data,
-        round(avg(extract(epoch from b.execution_duration)))::INT as avg_duration,
-        sum(b.total_records)::INT as total_records
-    FROM base_stats b
-    LEFT JOIN trend_arrays t ON b.clean_id = t.clean_id
-    GROUP BY b.clean_id, t.trend_data
-)
-SELECT to_json(list(d)) FROM (
-    SELECT * FROM global_totals
-    UNION ALL
-    SELECT * FROM (SELECT * FROM pipeline_list ORDER BY failed_count DESC, total_runs DESC)
-) d;
+            query = r"""
+                WITH record_counts AS (
+                    SELECT
+                        execution_id,
+                        regexp_extract(message, '^([a-z_]+):[ ]+[0-9]+', 1) as resource_name,
+                        max(TRY_CAST(
+                            regexp_extract(message, '^[a-z_]+:[ ]+([0-9]+)', 1)
+                        AS INTEGER)) as max_records
+                    FROM pipeline_logs
+                    WHERE 
+                        namespace = ?
+                        AND regexp_matches(message, '^[a-z_]+:[ ]+[0-9]+[ ]+\|')
+                        AND timestamp >= now() - INTERVAL '7 days'
+                    GROUP BY execution_id, resource_name
+                ),
+                record_totals AS (
+                    SELECT execution_id, sum(max_records)::INT as total_records
+                    FROM record_counts
+                    GROUP BY execution_id
+                ),
+                base_stats AS (
+                    SELECT 
+                        lower(regexp_replace(trim(pl.pipeline_id), '[_\s]+', '_', 'g')) as clean_id,
+                        pl.execution_id,
+                        CASE 
+                            WHEN count_if(UPPER(log_level) = 'ERROR') > 0 THEN 'Failed'
+                            WHEN count_if(UPPER(log_level) = 'WARNING') > 0 THEN 'Warning'
+                            ELSE 'Success'
+                        END as final_status,
+                        max(timestamp) as last_run_time,
+                        (max(timestamp) - min(timestamp)) as execution_duration,
+                        COALESCE(rt.total_records, 0) as total_records
+                    FROM pipeline_logs pl
+                    LEFT JOIN record_totals rt ON pl.execution_id = rt.execution_id
+                    WHERE 
+                        pl.namespace = ?
+                        AND pl.pipeline_id NOT IN ('system', 'flask_server')
+                        AND pl.pipeline_id IS NOT NULL
+                        AND pl.timestamp >= now() - INTERVAL '7 days'
+                    GROUP BY pl.execution_id, clean_id, rt.total_records
+                ),
+                trend_stats AS (
+                    SELECT
+                        clean_id,
+                        CAST(last_run_time AS DATE) as run_date,
+                        count(*)::INT as daily_runs
+                    FROM base_stats
+                    GROUP BY clean_id, run_date
+                ),
+                date_spine AS (
+                    SELECT CAST(range AS DATE) as run_date
+                    FROM range(
+                        CAST(current_date - INTERVAL '6 days' AS TIMESTAMP),
+                        CAST(current_date + INTERVAL '1 day' AS TIMESTAMP),
+                        INTERVAL '1 day'
+                    )
+                ),
+                trend_arrays AS (
+                    SELECT
+                        p.clean_id,
+                        list(COALESCE(t.daily_runs, 0) ORDER BY d.run_date ASC) as trend_data
+                    FROM (SELECT DISTINCT clean_id FROM base_stats) p
+                    CROSS JOIN date_spine d
+                    LEFT JOIN trend_stats t 
+                        ON t.clean_id = p.clean_id 
+                        AND t.run_date = d.run_date
+                    GROUP BY p.clean_id
+                ),
+                global_totals AS (
+                    SELECT 
+                        'SUMMARY' as report_type,
+                        'ALL' as pipeline_id,
+                        count(*)::INT as total_runs,
+                        count(*) filter (where final_status = 'Success')::INT as success_count,
+                        count(*) filter (where final_status = 'Failed')::INT as failed_count,
+                        count(*) filter (where final_status = 'Warning')::INT as warning_count,
+                        'N/A' as status_indicator,
+                        []::INT[] as trend_data,
+                        0 as avg_duration,
+                        sum(total_records)::INT as total_records
+                    FROM base_stats
+                ),
+                pipeline_list AS (
+                    SELECT 
+                        'LIST' as report_type,
+                        b.clean_id as pipeline_id,
+                        count(*)::INT as total_runs,
+                        count(*) filter (where final_status = 'Success')::INT as success_count,
+                        count(*) filter (where final_status = 'Failed')::INT as failed_count,
+                        count(*) filter (where final_status = 'Warning')::INT as warning_count,
+                        CASE 
+                            WHEN count_if(final_status = 'Failed') > 0 THEN 'Failed'
+                            WHEN count_if(final_status = 'Warning') > 0 THEN 'Warning'
+                            ELSE 'Success'
+                        END as status_indicator,
+                        COALESCE(t.trend_data, []::INT[]) as trend_data,
+                        round(avg(extract(epoch from b.execution_duration)))::INT as avg_duration,
+                        sum(b.total_records)::INT as total_records
+                    FROM base_stats b
+                    LEFT JOIN trend_arrays t ON b.clean_id = t.clean_id
+                    GROUP BY b.clean_id, t.trend_data
+                )
+                SELECT to_json(list(d)) FROM (
+                    SELECT * FROM global_totals
+                    UNION ALL
+                    SELECT * FROM (SELECT * FROM pipeline_list ORDER BY failed_count DESC, total_runs DESC)
+                ) d;
             """
             
             cursor = con.cursor()
