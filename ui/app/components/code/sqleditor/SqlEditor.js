@@ -6,6 +6,7 @@ import { AIResponseLinterUtil } from "../../agent/AIResponseLinterUtil.js";
 import { Grid } from "../../grid/Grid.js";
 import { handleHideShowSubmenu } from "../../workspace/generic-util.js";
 import { Workspace } from "../../workspace/Workspace.js";
+import { isNonDuckDBDestination } from "../../../services/DestinationUtil.js";
 
 export class SqlEditor extends ViewComponent {
 
@@ -67,7 +68,7 @@ export class SqlEditor extends ViewComponent {
 			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...this.selectedTableFields];
 
 		// Handle database path based on destination type
-		if (this.destType === 'sql' || this.destType === 'bigquery' || this.destType === 'databricks') {
+		if (isNonDuckDBDestination(this.destType)) {
 			// For SQL, BigQuery, and Databricks destinations, we don't need a file path
 			this.database = null;
 		} else {
@@ -95,7 +96,7 @@ export class SqlEditor extends ViewComponent {
 	setupEditorQuery(databaseName){
 		// Handle table name extraction based on destination type
 		let selectedTable;
-		if (this.destType === 'sql' || this.destType === 'bigquery' || this.destType === 'databricks') {
+		if (isNonDuckDBDestination(this.destType)) {
 			// For SQL, BigQuery, and Databricks: databaseName is already in format "schema.table"
 			selectedTable = databaseName;
 		} else {
@@ -114,7 +115,7 @@ export class SqlEditor extends ViewComponent {
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 
 		// Update database path for DuckDB only
-		if (this.destType !== 'sql' && this.destType !== 'bigquery' && this.destType !== 'databricks') {
+		if (!isNonDuckDBDestination(this.destType)) {
 			const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
 			this.database = `${this.dbpath}/${parseDbFilename}`;
 		}

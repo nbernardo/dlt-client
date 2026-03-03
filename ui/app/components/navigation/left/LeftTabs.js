@@ -4,6 +4,7 @@ import { StillTreeView } from "../../../../@still/vendors/treeview/StillTreeView
 import { AppTemplate } from "../../../../config/app-template.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { getSupportedQueryDestinations } from "../../../services/DestinationUtil.js";
 import { FileList } from "../../filelist/FileList.js";
 import { FileUpload } from "../../fileupload/FileUpload.js";
 import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspace/icons/database.js";
@@ -91,8 +92,6 @@ export class LeftTabs extends ViewComponent {
 		// Store table metadata for later use (including connection info)
 		this.tableMetadata = {};
 		
-		console.log('DEBUG: Starting to process pipeline response');
-		
 		if(response?.no_data || Object.keys(response).length === 0){
 			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
 			this.fetchingPipelineData = false;
@@ -146,13 +145,6 @@ export class LeftTabs extends ViewComponent {
 						tableKey = `${dbfile}.duckdb.${tableToQuery}`;
 					}
 					
-					console.log('DEBUG: Storing metadata for table:', {
-						tableKey: tableKey,
-						connection_name: tableData.connection_name,
-						dest: tableData.dest,
-						ppline: tableData.ppline
-					});
-					
 					// Store metadata including connection info
 					this.tableMetadata[tableKey] = {
 						connection_name: tableData.connection_name,
@@ -162,8 +154,12 @@ export class LeftTabs extends ViewComponent {
 						table: tableData.table
 					};
 					
+					// Check if destination type is supported for querying
+					const supportedDestinations = getSupportedQueryDestinations();
+					const isQuerySupported = supportedDestinations.includes(tableData.dest || 'duckdb');
+					
 					const table = this.dbTreeviewProxy.addNode({ 
-						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, true),
+						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, isQuerySupported),
 					});
 					dbSchema.addChild(table);
 				}
@@ -204,13 +200,6 @@ export class LeftTabs extends ViewComponent {
 		// Get metadata for current table
 		const tableKey = this.currentTableToQuery;
 		const metadata = this.tableMetadata?.[tableKey] || {};
-		
-		console.log('DEBUG queryTable:', {
-			currentTableToQuery: this.currentTableToQuery,
-			tableKey: tableKey,
-			metadata: metadata,
-			allMetadata: this.tableMetadata
-		});
 		
 		this.$parent.expandDataTableView(null, this.currentTableToQuery, this.currentDBFile, null, metadata);
 	}

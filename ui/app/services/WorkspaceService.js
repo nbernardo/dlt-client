@@ -16,6 +16,7 @@ import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { UserService } from "./UserService.js";
+import { constructTablePath } from "./DestinationUtil.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -106,15 +107,8 @@ export class WorkspaceService extends BaseService {
             for (const [database, ppline] of data) {
                 const tablesDetails = Object.values(ppline);
                 for (const tableDetail of tablesDetails) {
-                    // Construct tablePath based on destination type
-                    let tablePath;
-                    if (tableDetail.dest === 'sql' || tableDetail.dest === 'bigquery' || tableDetail.dest === 'databricks') {
-                        // For SQL, BigQuery, and Databricks destinations: use schema.table format
-                        tablePath = `${tableDetail.dbname}.${tableDetail.table}`;
-                    } else {
-                        // For DuckDB: use database.dbname.table format
-                        tablePath = `${database}.${tableDetail.dbname}.${tableDetail.table}`;
-                    }
+                    // Construct tablePath based on destination type using utility function
+                    const tablePath = constructTablePath(tableDetail, database);
                     
                     tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}`, tablePath});
                     this.fieldsByTableMap[tablePath] = tableDetail.fields;

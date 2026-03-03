@@ -83,8 +83,8 @@ def run_sql_query():
     connection_name = payload.get('connection_name')
     dest_type = payload.get('dest_type', 'duckdb')
     
-    # Check if database is in use
-    if database and DuckDBCache.get(database) != None:
+    # Check if database is in use (only for DuckDB destinations)
+    if dest_type == 'duckdb' and database and DuckDBCache.get(database) != None:
         message = 'The database selected to query is in use by a pipeline JOB, please wait until it gets completed.'
         return { 'error': True, 'result': message }
     
