@@ -22,9 +22,9 @@ class Bucket(TemplateNodeType):
             self.template_type = 'non_database_source'
             
             # Check if S3 authentication is needed
-            self.use_s3_auth = False
+            self.context.use_s3_auth = False
             if context.has_cloud_bucket_auth == 's3Auth':
-                self.use_s3_auth = True
+                self.context.use_s3_auth = True
                 self.template = DltPipeline.get_s3_auth_transform_template() if\
                       self.context.transformation != None else DltPipeline.get_s3_auth_template()
             elif(context.is_cloud_url != True):
@@ -54,7 +54,7 @@ class Bucket(TemplateNodeType):
             self.namespace = data['namespace']
             
             # S3 Authentication parameters (for Secret Manager integration)
-            if self.use_s3_auth:
+            if self.context.use_s3_auth:
                 # Store connection name for secret retrieval (following SQLDatabase pattern)
                 self.connection_name = data.get('connectionName', '')
                 secret = BucketConnector.validate_and_prepare_s3_config(None, self.namespace, self.connection_name)
@@ -108,7 +108,7 @@ class Bucket(TemplateNodeType):
 
     def check_bucket_url(self):
 
-        if self.use_s3_auth: return
+        if self.context.use_s3_auth: return
 
         is_cloud_url = str(self.bucket_url).replace(' ','').__contains__('://')
         path_exists = os.path.exists(self.bucket_url)

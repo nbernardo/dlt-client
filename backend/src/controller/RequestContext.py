@@ -66,6 +66,7 @@ class RequestContext:
         self.code_source = False
         self.source_type = None
         self.bucket_source = False
+        self.use_s3_auth = False
         self.additional_secrets: list = None
         
 

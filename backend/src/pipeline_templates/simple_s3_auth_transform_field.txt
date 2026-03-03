@@ -150,7 +150,7 @@ try:
     
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
-    catalog_table_path = f'{bucket_url}/{pattern}'
+    catalog_table_path = f'{bucket_url}/{file_pattern}'
     DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as err:
