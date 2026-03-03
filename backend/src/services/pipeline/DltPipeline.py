@@ -522,7 +522,7 @@ class DltPipeline:
 
         if is_paused != 'paused':
             from services.workspace.Workspace import Workspace
-            Workspace.schedule_pipeline_job(namespace, ppline)
+            Workspace.schedule_pipeline_job(namespace, ppline, unpause=True)
         else:
             tag_name = f'{namespace}_{ppline}'
             if schedule.get_jobs(tag_name):

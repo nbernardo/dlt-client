@@ -143,7 +143,7 @@ def get_ppline_schedule(namespace):
     try:
         return Workspace.get_ppline_schedule(namespace)
     except Exception as error:
-        print(f'Error while trying to connect with AI agent')
+        print(f'Error while trying to fetch pipeline schedule')
         print(error)
         return 'failed'
 

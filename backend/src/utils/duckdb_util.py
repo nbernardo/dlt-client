@@ -36,6 +36,8 @@ class DuckdbUtil:
     def get_log_db_instance():
         if DuckdbUtil.logdbinstance == None:
             logdb = f'{DuckdbUtil.workspacedb_path}/dltlogs.duckdb'
+            if(logdb.endswith('None/dltlogs.duckdb')):
+                logdb = logdb.replace('None/dltlogs.duckdb','backend/dbs/dltlogs.duckdb')
             DuckdbUtil.logdbinstance = duckdb.connect(logdb)
         return DuckdbUtil.logdbinstance
 

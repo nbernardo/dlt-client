@@ -31,7 +31,7 @@ namespace = %namespace%
 # Execute pipeline with logging enabled
 try:
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
-    info = pipeline.run(reader, write_disposition="merge")
+    info = pipeline.run(reader, write_disposition='merge', refresh='drop_sources')
     
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:

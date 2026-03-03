@@ -1,5 +1,6 @@
 import dlt
 from sqlalchemy import create_engine, text, inspect
+import re
 
 def column_type_conversion(columns, connection, table, schema):
 
@@ -40,11 +41,11 @@ def dynamic_mssql_source(
     primary_keys: list[str],
     connection_string: str
 ):
-    """Source that generates resources dynamically with injected engine"""    
     def create_table_resource(table: str, key):
-        @dlt.resource(name=table, primary_key=key)
+        resource_name = re.sub(r'[^a-z0-9]+', '_', table.lower()).strip("_")
+        
+        @dlt.resource(name=resource_name, primary_key=key)
         def table_data():
-
             engine = create_engine(connection_string)
             inspector = inspect(engine)
 

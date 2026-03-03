@@ -138,7 +138,7 @@ print(f'Running the pipeline', flush=True)
 logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
 
 try:
-    load_info = pipeline.run(source, write_disposition='merge')
+    load_info = pipeline.run(source, write_disposition='merge', refresh='drop_sources')
     
     # Log pipeline execution results
     if hasattr(load_info, 'loads_ids') and load_info.loads_ids:
@@ -159,7 +159,7 @@ try:
     print(load_info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
 
-    catalog_table_path = f'{secret['host']}:{secret['port']}/{{secret['database']}}'
+    catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
     DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as e:
