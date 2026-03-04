@@ -86,6 +86,10 @@ class PolarsQueryUtil:
             print(f'Querying SQL database with connection: {connection_name}')
             print(f'Connection URL (SQLAlchemy format): {connection_url}')
             
+            # Detect database engine from connection URL
+            db_engine = PolarsQueryUtil._detect_database_engine(connection_url)
+            print(f'Detected database engine: {db_engine}')
+            
             # Convert SQLAlchemy URL to connectorx format
             # SQLAlchemy: mysql+pymysql://user:pass@host:port/db
             # Connectorx: mysql://user:pass@host:port/db
@@ -100,7 +104,7 @@ class PolarsQueryUtil:
             fields = ','.join(df.columns)
                 
             print(f'Query successful using Polars, returned {len(result)} rows')
-            return {'result': result, 'fields': fields}
+            return {'result': result, 'fields': fields, 'db_engine': db_engine}
             
         except Exception as err:
             print(f'Error querying SQL database: {str(err)}')
@@ -388,6 +392,26 @@ class PolarsQueryUtil:
         
         # If no driver specified, return as-is
         return sqlalchemy_url
+
+    @staticmethod
+    def _detect_database_engine(connection_url: str) -> str:
+        """
+        Detect database engine from connection URL
+        
+        Returns: 'mysql', 'postgresql', 'mssql', 'oracle', 'mariadb', or 'unknown'
+        """
+        url_lower = connection_url.lower()
+        
+        if 'mysql' in url_lower or 'mariadb' in url_lower:
+            return 'mysql'
+        elif 'postgresql' in url_lower or 'postgres' in url_lower:
+            return 'postgresql'
+        elif 'mssql' in url_lower or 'sqlserver' in url_lower:
+            return 'mssql'
+        elif 'oracle' in url_lower:
+            return 'oracle'
+        else:
+            return 'unknown'
 
     # ============================================================================
     # ASYNC METADATA METHODS (Non-blocking)

@@ -6,7 +6,7 @@ import { AIResponseLinterUtil } from "../../agent/AIResponseLinterUtil.js";
 import { Grid } from "../../grid/Grid.js";
 import { handleHideShowSubmenu } from "../../workspace/generic-util.js";
 import { Workspace } from "../../workspace/Workspace.js";
-import { isNonDuckDBDestination } from "../../../services/DestinationUtil.js";
+import { isNonDuckDBDestination, generateInitialQuery } from "../../../services/DestinationUtil.js";
 
 export class SqlEditor extends ViewComponent {
 
@@ -39,6 +39,8 @@ export class SqlEditor extends ViewComponent {
 	/** @Prop */ destType;
 	
 	/** @Prop */ pplineName;
+	
+	/** @Prop */ dbEngine;  // Database engine type for SQL dialect handling
 	
 	/** 
 	 * @param {Object} param0 
@@ -106,12 +108,15 @@ export class SqlEditor extends ViewComponent {
 		
 		this.selectedTable = selectedTable;
 		const selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
-		const fieldsString = selectedTableFields.map(({ name }) => name).join(',');
+		const fieldsArray = selectedTableFields ? selectedTableFields.map(({ name }) => name) : [];
 		
 		if (Array.isArray(selectedTableFields))
 			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...selectedTableFields];
 
-		const query = `SELECT ${fieldsString} FROM ${this.selectedTable} LIMIT 100`
+		// Generate query using database-specific syntax
+		// For SQL databases, use the detected engine; for others, default to 'mysql' syntax
+		const engine = this.destType === 'sql' ? (this.dbEngine || 'mysql') : 'mysql';
+		const query = generateInitialQuery(this.selectedTable, fieldsArray, engine, 100);
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 
 		// Update database path for DuckDB only
@@ -127,12 +132,18 @@ export class SqlEditor extends ViewComponent {
 
 	async runSQLQuery(){
 		const newQuery = this.editor.getValue();
-		const { result, fields, error } = await this.$parent.service.runSQLQuery(
+		const { result, fields, error, db_engine } = await this.$parent.service.runSQLQuery(
 			newQuery, 
 			this.database, 
 			this.connectionName, 
 			this.destType
 		);
+		
+		// Store db_engine for future queries
+		if (db_engine) {
+			this.dbEngine = db_engine;
+		}
+		
 		const parsedFields = (fields || '').replaceAll('\n', '')?.split(',')?.map(field => field.trim());
 		this.queryOutput.setGridData(parsedFields, result).stAfterInit(error);
 	}

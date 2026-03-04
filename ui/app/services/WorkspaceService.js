@@ -107,10 +107,25 @@ export class WorkspaceService extends BaseService {
             for (const [database, ppline] of data) {
                 const tablesDetails = Object.values(ppline);
                 for (const tableDetail of tablesDetails) {
+                    const pipelineName = tableDetail.ppline || database.replace('.duckdb', '');
+                    
                     // Construct tablePath based on destination type using utility function
                     const tablePath = constructTablePath(tableDetail, database);
                     
+                    // Construct metadata key to match LeftTabs.js structure
+                    // CRITICAL: Include pipeline name to avoid conflicts
+                    let metadataKey;
+                    if (tableDetail.dest === 'sql' || tableDetail.dest === 'bigquery' || tableDetail.dest === 'databricks') {
+                        // For SQL, BigQuery, and Databricks: ppline.dbname.table
+                        metadataKey = `${pipelineName}.${tableDetail.dbname}.${tableDetail.table}`;
+                    } else {
+                        // For DuckDB: ppline.database.dbname.table
+                        metadataKey = `${pipelineName}.${database}.${tableDetail.dbname}.${tableDetail.table}`;
+                    }
+                    
                     tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}`, tablePath});
+                    this.fieldsByTableMap[metadataKey] = tableDetail.fields;
+                    // Also store with tablePath for backward compatibility
                     this.fieldsByTableMap[tablePath] = tableDetail.fields;
                 }
             }
@@ -334,7 +349,7 @@ export class WorkspaceService extends BaseService {
         return null;
     }
 
-    /** @returns { { result, fields } | undefined } */
+    /** @returns { { result, fields, db_engine } | undefined } */
     async runSQLQuery(query, database, connectionName = null, destType = 'duckdb') {
         const payload = { 
             query, 

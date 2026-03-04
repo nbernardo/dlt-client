@@ -134,24 +134,27 @@ export class LeftTabs extends ViewComponent {
 				const tableData = data[idx];
 				if(tableData){
 					const tableToQuery = `${tableData.dbname}.${tableData.table}`;
+					const pipelineName = tableData.ppline || dbfile;
 					
 					// Construct the correct metadata key based on destination type
+					// CRITICAL: Include pipeline name to avoid conflicts when multiple pipelines have same table names
 					let tableKey;
 					if (tableData.dest === 'sql' || tableData.dest === 'bigquery' || tableData.dest === 'databricks') {
-						// For SQL, BigQuery, and Databricks destinations: use dbname.table format
-						tableKey = `${tableData.dbname}.${tableData.table}`;
+						// For SQL, BigQuery, and Databricks destinations: use ppline.dbname.table format
+						tableKey = `${pipelineName}.${tableData.dbname}.${tableData.table}`;
 					} else {
-						// For DuckDB: use dbfile.duckdb.tableToQuery format
-						tableKey = `${dbfile}.duckdb.${tableToQuery}`;
+						// For DuckDB: use ppline.dbfile.duckdb.tableToQuery format
+						tableKey = `${pipelineName}.${dbfile}.duckdb.${tableToQuery}`;
 					}
 					
 					// Store metadata including connection info
 					this.tableMetadata[tableKey] = {
 						connection_name: tableData.connection_name,
 						dest_type: tableData.dest || 'duckdb',
-						ppline: tableData.ppline || dbfile,
+						ppline: pipelineName,
 						dbname: tableData.dbname,
-						table: tableData.table
+						table: tableData.table,
+						dbfile: dbfile  // Store dbfile for DuckDB queries
 					};
 					
 					// Check if destination type is supported for querying
@@ -209,15 +212,17 @@ export class LeftTabs extends ViewComponent {
 	databaseTreeViewTemplate(tableData, tableToQuery, dbfile, showIcons = true){
 		let tableRow = `<div class='table-name'>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</div>`;
 		let cleanTableName = tableToQuery.replace(/\./g,'_');
+		const pipelineName = tableData.ppline || dbfile;
 		
 		// Construct the correct identifier based on destination type
+		// CRITICAL: Include pipeline name to avoid conflicts
 		let tableIdentifier;
 		if (tableData.dest === 'sql' || tableData.dest === 'bigquery' || tableData.dest === 'databricks') {
-			// For SQL, BigQuery, and Databricks destinations: use dbname.table format
-			tableIdentifier = `${tableData.dbname}.${tableData.table}`;
+			// For SQL, BigQuery, and Databricks destinations: use ppline.dbname.table format
+			tableIdentifier = `${pipelineName}.${tableData.dbname}.${tableData.table}`;
 		} else {
-			// For DuckDB: use dbfile.duckdb.tableToQuery format
-			tableIdentifier = `${dbfile}.duckdb.${tableToQuery}`;
+			// For DuckDB: use ppline.dbfile.duckdb.tableToQuery format
+			tableIdentifier = `${pipelineName}.${dbfile}.duckdb.${tableToQuery}`;
 		}
 		
 		if(showIcons === true) {
