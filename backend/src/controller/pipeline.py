@@ -28,9 +28,7 @@ def create():
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
     context.is_code_destination = payload['codeOutput']
     context.is_duck_destination = payload['duckOutput']
-
-    if('actionType' in payload):
-        context.pipeline_action = payload['actionType']
+    context.pipeline_action = payload.get('actionType', None)
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -42,12 +40,7 @@ def create():
     if(len(list(connections)[0]) == 0):
         return { 'error': True, 'result': 'Please connect all nodes accordingly.' }
     
-    first_connection_id = list(connections)[0][0]['node']
-    fst_connection = node_params.get(first_connection_id)
-
-    is_cloud_bucket_req = False
-    if 'bucketFileSource' in fst_connection['data']:
-        is_cloud_bucket_req = int(fst_connection['data']['bucketFileSource']) == 2
+    fst_connection, sql_destinations, is_cloud_bucket_req = parse_first_node(connections, node_params, False, sql_destinations)
 
     context.ppline_path = ppline_path
     context.diagrm_path = diagrm_path
@@ -63,7 +56,7 @@ def create():
 
     if 's3Auth' in payload:
         context.has_cloud_bucket_auth = 's3Auth' if payload['s3Auth'] else ''
-        
+
     context.code_source = payload['codeInput']
     context.pipeline_execution_id = create_execution_id()
 
@@ -84,6 +77,17 @@ def create():
                         duckdb_path, 
                         context)
 
+def parse_first_node(connections, node_params, is_cloud_bucket_req, sql_destinations):
+
+    first_connection_id = list(connections)[0][0]['node']
+    fst_connection = node_params.get(first_connection_id)
+
+    if fst_connection.get('name',None) == 'Bucket':
+        sql_destinations = [fst_connection['data'].get('filePattern').translate(str.maketrans(' *.','___'))]
+
+    is_cloud_bucket_req = int(fst_connection['data'].get('bucketFileSource', 0)) == 2
+
+    return fst_connection, sql_destinations, is_cloud_bucket_req
 
 
 def create_new_ppline(fst_connection, 

@@ -27,12 +27,20 @@ class RequestContext:
     FAILED = 'FAILED'
 
     def __init__(self, ppline_name=None, socket_sid=None, file_manager: FileVersionManager  = None):
+        
+        # Pipeline related context variables
         self.ppline_name = ppline_name
+        self.ppline_path = None
+        self.pipeline_lbl = None
+        self.pipeline_name = None
+        self.pipeline_execution_id = None
+
+        #self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
+        self.socket_sid = socket_sid
+        
         self.exceptions = []
         self.sql_destinations = []
         self.sql_dest = False
-        #self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
-        self.socket_sid = socket_sid
         self.user = None
         self.transformation = None
         # transformation2 is for handling transformations
@@ -41,7 +49,7 @@ class RequestContext:
         self.transformation2 = None
         self.transformation_ui_node_id = None
         self.transformation_type = None
-        self.monitor_file_name = None
+        
         self.file_manager: FileVersionManager = file_manager
         self.action_type = None
         # Flaged true in case the destination is code
@@ -56,20 +64,17 @@ class RequestContext:
 
         self.connections = None
         self.node_params = None 
-        self.ppline_path = None
         self.diagrm_path = None
-        self.pipeline_lbl = None
-        self.pipeline_name = None
-        self.pipeline_execution_id = None
-        self.is_cloud_url = False
-        self.has_cloud_bucket_auth = None
         # Flaged true in case the data source is code 
         self.code_source = False
         self.source_type = None
+        self.additional_secrets: list = None
+
+        # Bucket source not fields
         self.bucket_source = False
         self.use_s3_auth = False
-        self.additional_secrets: list = None
-        
+        self.is_cloud_url = False
+        self.has_cloud_bucket_auth = None
 
 
     def get_time(self):
