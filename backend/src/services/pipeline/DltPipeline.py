@@ -194,7 +194,7 @@ class DltPipeline:
                 warning_status = True
             else:
                 message, status = '\n'.join(error_messages[1:]), False
-                if message.__contains__('import pkg_resources'):
+                if message.__contains__('import pkg_resources') or pipeline_exception == False:
                     message, status = SUCCESS_RUN_MESSAGE, True
                 elif context and status == False:
                     context.emit_ppline_trace(message, error=True)
@@ -554,15 +554,24 @@ class DltPipeline:
                 code = file.read()
                 pipeline_code = json.loads(code)
 
-            node_list = pipeline_code['content']['Home']['data']
-            database_obj = { id: node for id, node in node_list.items() if node['name'] == 'SqlDBComponent' }
-
             datasource_details = None
-            if(len(database_obj.keys()) > 0):
+            node_list = pipeline_code['content']['Home']['data']
+            database_obj = { node['name']: node for _, node in node_list.items() if (node['name'] in ['Bucket','SqlDBComponent']) }
 
-                node = list(database_obj.values())[0]
+            if(len(database_obj.keys()) > 0): datasource_details = {}
+
+            if('SqlDBComponent' in database_obj):
+
+                node = database_obj['SqlDBComponent']
                 connection_name = node['data']['connectionName']
-                datasource_details = SQLDatabase.get_tables_list(namespace, connection_name)
+                datasource_details['SqlDBComponent'] = SQLDatabase.get_tables_list(namespace, connection_name)
+            
+            elif ('Bucket' in database_obj):
+                from utils.metastore.meta_storage import MetaStore 
+                node = database_obj['Bucket']
+                connection_name = node['data']['connectionName']
+                pipeline_name = file_path.split('/')[-1].replace('.json','')
+                datasource_details['Bucket'] = MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}')
             
             if not(not(datasource_details)):
                 del datasource_details['details']

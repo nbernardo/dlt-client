@@ -49,6 +49,7 @@ class RequestContext:
         self.is_duck_destination = False
         self.pipeline_action = None
         self.success_emitted = None
+        self.transaction_namespace = None
 
         from node_mapper.TemplateNodeType import TemplateNodeType
         self.first_node: TemplateNodeType = None

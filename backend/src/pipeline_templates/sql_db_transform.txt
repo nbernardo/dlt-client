@@ -5,7 +5,7 @@ from pathlib import Path
 from sys import path
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
-from src.utils.metastore.meta_storage import DuckDBMedaStore
+from src.utils.metastore.meta_storage import MetaStore
 import re
 
 # Initialize pipeline logger
@@ -157,7 +157,7 @@ try:
     print('RUN_SUCCESSFULLY', flush=True)
 
     catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
-    DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline)
+    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as e:
     logger.error("SQL database transformation pipeline execution failed", extra={

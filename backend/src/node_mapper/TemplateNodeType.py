@@ -150,7 +150,7 @@ class TemplateNodeType:
             if self.context.transformation_type == 'BUCKET':
                 n = '\n'
 
-            namespace = re.sub(r'[@.-]', '_', self.context.namespace)
+            namespace = re.sub(r'[@.-]', '_', self.context.transaction_namespace)
             ppline_and_output_var = f'{n}ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'%dest_secret_code%{n}dest = %destination_string%{n}'
             pipeline_name = f"ppline_path=f'{namespace.replace('/','')}_at_{{ppline_name}}'"

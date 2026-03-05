@@ -43,9 +43,12 @@ class DuckdbUtil:
 
 
     @staticmethod
-    def get_meta_db_instance(path = None):
+    def get_meta_db_instance(path = None, pipeline_name = None):
+        metadb = f'{DuckdbUtil.workspacedb_path if path == None else path[0:-1]}/{'metastore' if pipeline_name == None else pipeline_name}.duckdb'
+        
+        if pipeline_name: return duckdb.connect(metadb)
+
         if DuckdbUtil.mstoredbinstance == None:
-            metadb = f'{DuckdbUtil.workspacedb_path if path == None else path[0:-1]}/metastore.duckdb'
             DuckdbUtil.mstoredbinstance = duckdb.connect(metadb)
         return DuckdbUtil.mstoredbinstance
 

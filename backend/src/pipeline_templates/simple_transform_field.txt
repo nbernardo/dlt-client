@@ -5,7 +5,7 @@ from typing import Iterator
 import polars as pl
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
-from src.utils.metastore.meta_storage import DuckDBMedaStore
+from src.utils.metastore.meta_storage import MetaStore
 import re
 
 # Initialize pipeline logger
@@ -141,7 +141,7 @@ try:
     print('RUN_SUCCESSFULLY', flush=True)
 
     catalog_table_path = f'{bucket_url}/{file_pattern}'
-    DuckDBMedaStore.persist_catalog(catalog_table_path, src_path, pipeline)
+    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as err:
     logger.error("Transformation pipeline execution failed", extra={

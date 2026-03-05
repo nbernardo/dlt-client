@@ -52,6 +52,7 @@ def create():
     context.ppline_path = ppline_path
     context.diagrm_path = diagrm_path
     context.pipeline_lbl = pipeline_lbl
+    context.transaction_namespace = payload['user']
     context.pipeline_name = pipeline_name
     context.connections = connections
     context.node_params = node_params
@@ -512,7 +513,6 @@ def update_ppline(user, filename):
     
     return ''
 
-
    
 @pipeline.route('/ppline/diagram/<namespace>/<filename>', methods=['GET'])
 def read_diagram_content(namespace, filename):
@@ -541,8 +541,6 @@ def read_csv_file_fields(user, filename: str):
 
     if(filename.lower().endswith('jsonl')):
         return list(pl.scan_ndjson(file_path).collect_schema().keys())
-
-    
 
 
 from services.agents import AgentFactory
