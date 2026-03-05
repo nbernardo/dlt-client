@@ -8,7 +8,7 @@ export async function onDataSourceSelect(obj, newValue){
 
     let fieldList = null, dataSource;
 
-    if(WorkSpaceController.isS3AuthTemplate){
+    if(WorkSpaceController.isS3AuthTemplate || ![null, undefined, ''].includes(obj.$parent.sourceNode.selectedSecret.value)){
         dataSource = obj.selectedSource.value;
         fieldList = obj.databaseFields[dataSource.trim()];
     }
@@ -41,7 +41,7 @@ export async function onDataSourceSelect(obj, newValue){
     if(Array.isArray(fieldList))
         fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
 
-    const allFields = [{name: '- No Field -'}, ...fieldList];
+    const allFields = [{name: '- No Field -'}, ...(fieldList || [])];
     
     obj.fieldList = allFields;
     [...obj.aggregations].forEach(([_, aggreg]) => aggreg.fieldsList = allFields);

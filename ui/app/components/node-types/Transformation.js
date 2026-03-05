@@ -129,7 +129,8 @@ export class Transformation extends AbstractNode {
 		this.sqlConnectionName = null, this.fileSource = null;
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
 			
-			this.databaseList = tables, this.updateTransformationRows(tables);
+			this.databaseList = tables;
+			this.updateTransformationRows(tables, data.isCloudSource ? data.schema : []);
 
 			// In case the SQL Database changes, it proliferates downstream 
 			// thereby updating the Transformation and different added transformations
@@ -466,8 +467,10 @@ export class Transformation extends AbstractNode {
 	}
 
 	updateTransformationRows(tables, fieldList){
-		[...this.fieldRows].forEach(([_, row]) => {
-			row.dataSourceList = tables, row.databaseFields = fieldList || this.sourceNode.tablesFieldsMap;
-		});
+		try {			
+			[...this.fieldRows].forEach(([_, row]) => {
+				row.dataSourceList = tables, row.databaseFields = fieldList || this.sourceNode.tablesFieldsMap;
+			});
+		} catch (error) {}
 	}
 }

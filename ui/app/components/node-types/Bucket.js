@@ -154,13 +154,14 @@ export class Bucket extends AbstractNode {
 			delete WorkSpaceController.getNode(this.nodeId).data['connectionName'];
 			if(this.showBucketUrlInput == 2){
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
+				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('required');
 				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.setAttribute('required', true));
 				WorkSpaceController.isS3AuthTemplate = true;
-				this.transformationStep.updateTransformationRows([{ name: 'No table'}]);
+				this.updateTransformationRows([{ name: 'No table'}]);
 			}else{
 				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('required',true);
 				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.removeAttribute('required'));
-				this.transformationStep.updateTransformationRows(this.filesFromList.value);
+				this.updateTransformationRows(this.filesFromList.value);
 			}
 			this.setNodeData('bucketFileSource', newValue);
 		});
@@ -168,15 +169,17 @@ export class Bucket extends AbstractNode {
 		this.bucketUrl.onChange((newValue) => this.setNodeData('bucketUrl', newValue));
 
 		this.selectedSecret.onChange(async value => {
+			WorkSpaceController.isS3AuthTemplate = false;
 			if(value.trim() == '' && this.bucketFileSource.value == 2)
-				return this.transformationStep.updateTransformationRows([{ name: 'No table'}]);
+				return this.updateTransformationRows([{ name: 'No table'}]);
 			if(this.bucketFileSource.value == 2){
 				this.showMoreFileOptions = true;
+				WorkSpaceController.isS3AuthTemplate = true;
 				const { files, schemas } = await WorkspaceService.getBucketObjects(value);
 				this.bucketObjects = files, this.bucketObjectsFieldMaps = schemas;
 				setTimeout(() => this.showMoreFileOptions = false, 100);
 				this.setNodeData('selectedSecret', value);
-				this.transformationStep.updateTransformationRows(this.bucketObjects.value, schemas);
+				this.updateTransformationRows(this.bucketObjects.value, schemas);
 			}
 		});
 
@@ -287,16 +290,24 @@ export class Bucket extends AbstractNode {
 
 	onOutputConnection() {
 		Bucket.handleOutputConnection(this);
+		const isCloudSource = this.bucketFileSource.value == 2;
 		return {
-			tables: this.filesFromList.value,
+			tables: isCloudSource ? this.bucketObjects.value : this.filesFromList.value,
+			schema: isCloudSource && this.bucketObjectsFieldMaps.value,
 			sourceNode: this,
-			nodeCount: this.nodeCount.value
+			nodeCount: this.nodeCount.value,
+			isCloudSource
 		};
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
 		Bucket.handleInputConnection(this, data, type);
+	}
+
+	updateTransformationRows(tables, schema){
+		if(this.transformationStep instanceof Transformation)
+			this.transformationStep.updateTransformationRows(tables, schema);
 	}
 
 }
