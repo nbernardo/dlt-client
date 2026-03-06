@@ -3,14 +3,15 @@ import sqlite3
 import json
 import re
 import os
-
+from utils.duckdb_util import DuckdbUtil
 
 class MetaStore:
     """SQLite-backed catalog store for pipeline column metadata."""
 
     @staticmethod
     def _get_conn(dbs_path=None, db_name=None) -> sqlite3.Connection:
-        path = f'{dbs_path}{db_name}.db' if dbs_path else f'{db_name}.db'
+        ## This is a connection factory
+        path = f'{dbs_path}{db_name}.db' if dbs_path else f'{DuckdbUtil.workspacedb_path}/{db_name}.db'
         con = MetaStore.init_catalog_table(path)
         con.row_factory = sqlite3.Row
         con.execute("PRAGMA journal_mode = WAL")
@@ -162,34 +163,43 @@ class MetaStore:
 
 
     @staticmethod
-    def get_pipeline_metadata(pipeline):
-        con    = MetaStore._get_conn(db_name='catalog')
-        result = con.execute(
-            "SELECT * FROM column_catalog WHERE pipeline = ?", (pipeline,)
-        ).fetchall()
-        con.close()
-        return result
+    def get_pipeline_metadata(pipeline: str):
+        try:
+            con    = MetaStore._get_conn(db_name='catalog')
+            result = con.execute(
+                "SELECT column_name as name, table_name, source_store FROM column_catalog WHERE pipeline = ?", (pipeline.replace('-','_'),)
+            ).fetchall()
+            con.close()
+            return [dict(row) for row in result]
+        except Exception as err:
+            print('Error while loading catalog '+str(err))
+            return err
     
 
     def create_catalog_table(con):
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS column_catalog (
-                namespace               TEXT,
-                table_name              TEXT,
-                source_store            TEXT,
-                dest_store              TEXT,
-                source_file             TEXT,
-                pipeline                TEXT,
-                ingested_at             TEXT,
-                original_column_name    TEXT,
-                column_name             TEXT,
-                data_type               TEXT,
-                column_version          INTEGER,
-                is_deleted              INTEGER,
-                is_current              INTEGER
-            )
-        """)
-        con.execute("CREATE INDEX idx_pipeline_table ON column_catalog(pipeline, table_name)")
-        con.execute("CREATE INDEX idx_orig_col       ON column_catalog(original_column_name)")
-        con.execute("CREATE INDEX idx_version        ON column_catalog(column_version)")
-        con.commit()
+        exists = con.execute("""
+                SELECT 1 FROM sqlite_master WHERE type='table' AND name='column_catalog'
+            """).fetchone()
+        
+        if not exists:
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS column_catalog (
+                    namespace TEXT,
+                    table_name TEXT,
+                    source_store TEXT,
+                    dest_store TEXT,
+                    source_file TEXT,
+                    pipeline TEXT,
+                    ingested_at TEXT,
+                    original_column_name TEXT,
+                    column_name TEXT,
+                    data_type TEXT,
+                    column_version INTEGER,
+                    is_deleted INTEGER,
+                    is_current INTEGER
+                )
+            """)
+            con.execute("CREATE INDEX idx_pipeline_table ON column_catalog(pipeline, table_name)")
+            con.execute("CREATE INDEX idx_orig_col ON column_catalog(original_column_name)")
+            con.execute("CREATE INDEX idx_version ON column_catalog(column_version)")
+            con.commit()

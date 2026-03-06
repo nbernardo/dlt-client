@@ -52,10 +52,6 @@ def create():
     context.sql_destinations = sql_destinations
     context.sql_dest = payload['sqlDest']
     context.is_cloud_url = True if is_cloud_bucket_req else False
-    context.has_cloud_bucket_auth = ''
-
-    if 's3Auth' in payload:
-        context.has_cloud_bucket_auth = 's3Auth' if payload['s3Auth'] else ''
 
     context.code_source = payload['codeInput']
     context.pipeline_execution_id = create_execution_id()
@@ -81,7 +77,7 @@ def parse_first_node(connections, node_params, is_cloud_bucket_req, sql_destinat
 
     first_connection_id = list(connections)[0][0]['node']
     fst_connection = node_params.get(first_connection_id)
-
+    
     if fst_connection.get('name',None) == 'Bucket':
         sql_destinations = [fst_connection['data'].get('filePattern').translate(str.maketrans(' *.','___'))]
 
@@ -524,7 +520,7 @@ def read_diagram_content(namespace, filename):
    try:
         file_path = BasePipeline.folder+'/code/'+namespace+'/'+filename+'.json'
         pipeline_code, datasource_details = DltPipeline.read_pipeline(file_path, namespace)
-        return { 'pipelineCode': pipeline_code , 'dbDetailes': datasource_details }
+        return { 'pipelineCode': pipeline_code , 'dbDetails': datasource_details }
    
    except FileNotFoundError as err:
        return jsonify({'error': 'Pipeline not found'}), 404

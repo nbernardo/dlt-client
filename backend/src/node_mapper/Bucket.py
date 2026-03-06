@@ -22,8 +22,9 @@ class Bucket(TemplateNodeType):
             self.template_type = 'non_database_source'
             
             # Check if S3 authentication is needed
+            # TODO: implement other cloud providers
             self.context.use_s3_auth = False
-            if context.has_cloud_bucket_auth == 's3Auth':
+            if context.is_cloud_url:
                 self.context.use_s3_auth = True
                 self.template = DltPipeline.get_s3_auth_transform_template() if\
                       self.context.transformation != None else DltPipeline.get_s3_auth_template()
@@ -50,8 +51,10 @@ class Bucket(TemplateNodeType):
             self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
 
             self.parse_to_literal = ['read_file_type']
-
             self.namespace = data['namespace']
+
+            # primary_key is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
+            self.primary_key = data.get('primaryKey', 'UNDEFINED')
             
             # S3 Authentication parameters (for Secret Manager integration)
             if self.context.use_s3_auth:
@@ -84,8 +87,6 @@ class Bucket(TemplateNodeType):
             self.bucket_file_source = data['bucketFileSource']
             if(str(data['bucketFileSource']).endswith('.csv') and not str(data['bucketFileSource']).endswith('*.csv')):
                 self.bucket_file_source = data['bucketFileSource'].replace('.csv','*.csv')
-            # primary_key is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
-            self.primary_key = data.get('primaryKey', 'UNDEFINED')
             
         except Exception as error:
             self.notify_failure_to_ui('Bucket',error)
