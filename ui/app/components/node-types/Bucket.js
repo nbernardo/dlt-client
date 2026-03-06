@@ -63,9 +63,10 @@ export class Bucket extends AbstractNode {
 	 * Component.new(type, param) where for para nodeId will be passed  */
 	stOnRender(data) {
 		const { 
-			nodeId, isImport, bucketUrl, filePattern, primaryKey, 
+			nodeId, isImport, bucketUrl, filePattern, primaryKey, metadata,
 			bucketFileSource, aiGenerated, url, file, connectionName
 		} = data;
+
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		if(isImport) this.showLoading = true;
@@ -74,7 +75,7 @@ export class Bucket extends AbstractNode {
 		if(primaryKey) this.sourcePrimaryKey = primaryKey;
 		if(bucketFileSource) this.bucketFileSource = bucketFileSource;
 
-		this.importFields = { bucketUrl, url, filePattern, file, connectionName };
+		this.importFields = { bucketUrl, url, filePattern, file, connectionName, metadata };
 		this.aiGenerated = aiGenerated;
 
 		setTimeout(() => this.showMoreFileOptions = true, 5000);
@@ -92,6 +93,12 @@ export class Bucket extends AbstractNode {
 	}
 
 	async stAfterInit() {
+
+		if(this.importFields.connectionName) {
+			this.onOutputConnection();
+			return this.showLoading = false;
+		};
+
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 		data['namespace'] = await UserService.getNamespace();
@@ -290,9 +297,11 @@ export class Bucket extends AbstractNode {
 
 	onOutputConnection() {
 		Bucket.handleOutputConnection(this);
-		const isCloudSource = this.bucketFileSource.value == 2;
+		let isCloudSource = this.bucketFileSource.value == 2, tables;
+		tables = isCloudSource ? this.bucketObjects.value : this.filesFromList.value
+
 		return {
-			tables: isCloudSource ? this.bucketObjects.value : this.filesFromList.value,
+			tables,
 			schema: isCloudSource && this.bucketObjectsFieldMaps.value,
 			sourceNode: this,
 			nodeCount: this.nodeCount.value,

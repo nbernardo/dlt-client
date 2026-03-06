@@ -7,6 +7,7 @@ import { AIAgent } from "../components/agent/AIAgent.js";
 import { CatalogForm } from "../components/catalog/CatalogForm.js";
 import { LeftTabs } from "../components/navigation/left/LeftTabs.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
+import { IsString } from "../components/node-types/transform/util.js";
 import { Transformation } from "../components/node-types/Transformation.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
@@ -63,6 +64,10 @@ export class WorkSpaceController extends BaseController {
     isImportProgress = false;
     isSubmittingPipeline = false;
     static isS3AuthTemplate = false;
+    static importMetadataCatalog = null;
+    static importCloudBktSrc = null;
+    static importCloudBktMetadata = null;
+    static importCloudBktDataSource = null;
 
     importingPipelineSourceDetails = null;
 
@@ -294,14 +299,42 @@ export class WorkSpaceController extends BaseController {
         return WorkSpaceController.get();
     }
 
+    getImportMetadata(nodeList, importData){
+        let bucketNode = nodeList.find(r => r[1].class == 'Bucket'), cloudBktSecretName;
+        
+        if(bucketNode) cloudBktSecretName = nodeList.find(r => r[1].class == 'Bucket')[1].data.connectionName;
+        
+        const isBucketSrc = (IsString(cloudBktSecretName) && cloudBktSecretName != '');
+        if(isBucketSrc){
+            const tablesFieldsMap = {}, dataSources = [];
+            WorkSpaceController.importCloudBktMetadata = importData.dbDetails['Bucket'].reduce((acc, result) => {
+                const name = result.source_store.split('/').slice(-1)
+                if(!(name in tablesFieldsMap)){
+                    tablesFieldsMap[name] = []
+                    dataSources.push({ name });
+                }
+                tablesFieldsMap[name].push({ name: result.name });
+				acc[result.table_name] = result.table_name;
+				return acc
+			}, {});
+            WorkSpaceController.importCloudBktSrc = cloudBktSecretName;
+            WorkSpaceController.importCloudBktMetadata = tablesFieldsMap;
+            WorkSpaceController.importCloudBktDataSource = dataSources;
+        }
+    }
+
     isTemplating = false;
-    async processImportingNodes(nodeData, asTemplate = false) {
+    async processImportingNodes(importData, asTemplate = false) {
 
         WorkSpaceController.importNodeIdMapping = {};
-        const [inOutputMapping, nodeList] = [{}, Object.entries(nodeData)];
+        WorkSpaceController.importCloudBktSrc = null;
+
+        const [inOutputMapping, nodeList] = [{}, Object.entries(importData?.pipelineCode?.content['Home'].data)];
+        this.getImportMetadata(nodeList, importData);
+
         let nodeId = 0;
         this.isImportProgress = nodeList.length > 0 ? true : false, this.idCounter = 0;
-
+        
         for (let [originalNodeId, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList) {
             
             nodeId++;

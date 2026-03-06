@@ -6,9 +6,13 @@ import { TransformRow } from "./TransformRow.js";
 /** @param { TransformRow } obj  */
 export async function onDataSourceSelect(obj, newValue){
 
-    let fieldList = null, dataSource;
+    let fieldList = null, dataSource, secretName;
+    if(WorkSpaceController.importCloudBktSrc) secretName = WorkSpaceController.importCloudBktSrc
+    else{
+        secretName = obj.$parent.sourceNode.selectedSecret.value;
+    }
 
-    if(WorkSpaceController.isS3AuthTemplate || ![null, undefined, ''].includes(obj.$parent.sourceNode.selectedSecret.value)){
+    if(WorkSpaceController.isS3AuthTemplate || ![null, undefined, ''].includes(secretName)){
         dataSource = obj.selectedSource.value;
         fieldList = obj.databaseFields[dataSource.trim()];
     }
@@ -93,3 +97,5 @@ export function onChangeSelectedSource(obj){
 }
 
 export const IsObject = (elm) => Object.prototype.toString.call(elm) === '[object Object]'
+
+export const IsString = (elm) => Object.prototype.toString.call(elm) === '[object String]'

@@ -42,11 +42,11 @@ export class TransformRow extends ViewComponent {
 	$parent;
 
 	stOnRender(data) {
-		const { dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField, aggregations } = data;		
+		const { dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField, aggregations, sourceFileName } = data;		
 		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
-		this.configData = { ...importFields, dataSources, aggregations };
-		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;
+		this.configData = { ...importFields, dataSources, aggregations, sourceFileName };
+		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;				
 	}
 
 	async stAfterInit() {
@@ -87,6 +87,8 @@ export class TransformRow extends ViewComponent {
 
 		const aggregSettings = Object.values(this.configData.aggregations);
 		for(const aggreg of aggregSettings) this.addAggregation(aggreg);
+
+		this.selectedSource = this.configData.sourceFileName;
 
 	}
 

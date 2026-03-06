@@ -72,9 +72,14 @@ export class Transformation extends AbstractNode {
 		if (isImport === true) this.showLoading = true;
 		this.aiGenerated = aiGenerated
 		
+		const { importCloudBktMetadata, importCloudBktSrc, importCloudBktDataSource } = WorkSpaceController;
+
 		this.importFields = { 
-			aggregations, row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount 
+			aggregations, row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount, 
+			importCloudBktMetadata, importCloudBktSrc, importCloudBktDataSource
 		};
+
+		WorkSpaceController.importCloudBktMetadata = null;
 	}
 
 	async stAfterInit() {
@@ -83,11 +88,20 @@ export class Transformation extends AbstractNode {
 			this.databaseList = this.databaseList.value.map(itm => ({ ...itm, name: itm.name.replace('*','') }));
 			for (const rowConfig of this.rows){
 				if(rowConfig.aggregField) continue;
-				let aggregations = {}
+				let aggregations = {}, sourceFileName = null
+
+				if(rowConfig.dataSource.endsWith('.parquet') 
+					|| rowConfig.dataSource.endsWith('.csv') 
+					|| rowConfig.dataSource.endsWith('.jsonl')){
+
+						const sourceFilePieces = rowConfig.dataSource.split('.');
+						sourceFileName = sourceFilePieces.slice(0,-1).join('.')+'*.'+sourceFilePieces.slice(-1);
+				}
+
 				if(this.importFields.aggregations)
 					aggregations = this.importFields.aggregations[rowConfig.rowId];
 
-				await this.addNewField(rowConfig, true, false, aggregations);
+				await this.addNewField(rowConfig, true, false, aggregations, sourceFileName);
 			}
 			await sleepForSec(500);
 			this.showLoading = false;
@@ -95,7 +109,6 @@ export class Transformation extends AbstractNode {
 		}
 
 		if(this.aiGenerated){
-
 			let totalRows = this.importFields.numberOfRows;
 			if(this.importFields.row) totalRows = this.importFields.row;
 			if(this.importFields.rows) totalRows = this.importFields.rows;
@@ -159,7 +172,7 @@ export class Transformation extends AbstractNode {
 		return { sourceNode: this.sourceNode, nodeCount: this.nodeCount.value };
 	}
 	
-	async addNewField(data = null, inTheLoop = false, isNewField = false, aggregations = {}) {
+	async addNewField(data = null, inTheLoop = false, isNewField = false, aggregations = {}, sourceFileName = null) {
 
 		const obj = this, isCloudBkt = WorkSpaceController.isS3AuthTemplate;
 
@@ -168,19 +181,26 @@ export class Transformation extends AbstractNode {
 		}else handleAddField();
 		
 		async function handleAddField() {
-			let dataSources = isCloudBkt ? obj.sourceNode.bucketObjects.value : obj.databaseList.value;
-			let tablesFieldsMap = isCloudBkt ? obj.sourceNode?.bucketObjectsFieldMaps.value : obj.sourceNode?.tablesFieldsMap;
+			let dataSources, tablesFieldsMap;
 			
-			if(obj.$parent.controller.importingPipelineSourceDetails !== null && obj.isImport){
-				dataSources = obj.$parent.controller.importingPipelineSourceDetails.tables;
-				dataSources = Object.keys(dataSources).map(tableName => ({ 'name': tableName }));
+			if(obj.importFields.importCloudBktMetadata){
+				dataSources = obj.importFields.importCloudBktDataSource;
+				tablesFieldsMap = obj.importFields.importCloudBktMetadata;
+			}else{
+				dataSources = isCloudBkt ? obj.sourceNode.bucketObjects.value : obj.databaseList.value;
+				tablesFieldsMap = isCloudBkt ? obj.sourceNode?.bucketObjectsFieldMaps.value : obj.sourceNode?.tablesFieldsMap;
+				if(obj.$parent.controller.importingPipelineSourceDetails !== null && obj.isImport){
+					dataSources = obj.$parent.controller.importingPipelineSourceDetails.tables;
+					dataSources = Object.keys(dataSources).map(tableName => ({ 'name': tableName }));
+				}
 			}
+			
 
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
 			const initialData = { 
 				dataSources, rowId, importFields: data, tablesFieldsMap, 
-				isImport: obj.isImport, isNewField, aggregations 
+				isImport: obj.isImport, isNewField, aggregations, sourceFileName 
 			};
 			
 			// Create a new instance of TransformRow component
