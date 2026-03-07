@@ -3,19 +3,30 @@ import { SqlDBComponent } from "../SqlDBComponent.js";
 import { Aggreg } from "./aggregation/Aggreg.js";
 import { TransformRow } from "./TransformRow.js";
 
-/** @param { TransformRow } obj  */
+/** 
+ * newValue correspondes to the table and file name which data is pulled from
+ * @param { TransformRow } obj  
+ * @param { String } newValue
+ * */
 export async function onDataSourceSelect(obj, newValue){
 
     let fieldList = null, dataSource, secretName;
-    if(WorkSpaceController.importCloudBktSrc) secretName = WorkSpaceController.importCloudBktSrc
-    else{
-        secretName = obj.$parent.sourceNode.selectedSecret.value;
-    }
+    const isSourceSQL = obj.$parent?.sourceNode?.getName() === SqlDBComponent.name;
 
-    if(WorkSpaceController.isS3AuthTemplate || ![null, undefined, ''].includes(secretName)){
+    // Secret is retrieved in case the source is 
+    // a bucket in the cloud which authentication
+    if(WorkSpaceController.importCloudBktSrc && !isSourceSQL) 
+        secretName = WorkSpaceController.importCloudBktSrc;
+    else
+        secretName = obj.$parent.sourceNode.selectedSecret.value;
+    
+
+    // In case the source node is Cloud bucket with authentication
+    if(![null, undefined, ''].includes(secretName) && !isSourceSQL){
         dataSource = obj.selectedSource.value;
         fieldList = obj.databaseFields[dataSource.trim()];
     }
+    // In case we're importing existing pipeline to view the diragram in the canvas
     else if(![null,undefined].includes(obj.tableSource) && obj.configData !== null){
     
         let table = null, schema = null;
@@ -27,9 +38,11 @@ export async function onDataSourceSelect(obj, newValue){
         }
     
         fieldList = table.map(itm => ({ name: itm.column }));
+    
+    // In case the source is either SQL Database or filesystem
     }else{
         if(!newValue) return;
-        if(obj.$parent?.sourceNode?.getName() === SqlDBComponent.name) obj.isSourceSQL = true;
+        obj.isSourceSQL = isSourceSQL;
         if(!obj.isSourceSQL){
             dataSource = newValue.length > 0 && newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
             await obj.wspaceService.handleCsvSourceFields(dataSource)
@@ -42,6 +55,7 @@ export async function onDataSourceSelect(obj, newValue){
         }
     }
     
+    if(!fieldList) return;
     if(Array.isArray(fieldList))
         fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
 
@@ -63,7 +77,14 @@ export async function handleConfigData(obj) {
         dataSource !== undefined ? obj.selectedSource = dataSource.replace('*','') : '';// || dataSources;
         await sleepForSec(100);
     }
-    field !== undefined ? obj.selectedField = field : '';
+
+    // The if statement handles edge case for when importing from Metadata
+    if(obj.configData.sourceFileName && obj.isImport === true){
+			obj.selectedSource = obj.configData.sourceFileName;
+			setTimeout(() => { obj.selectedField = obj.configData.field }, 500);
+    }else
+        field !== undefined ? obj.selectedField = field : '';
+
     type !== undefined ? obj.selectedType = type : '';
 
     if (type === 'CODE') document.getElementById(`${obj.rowId}-codeTransform`).value = transform;

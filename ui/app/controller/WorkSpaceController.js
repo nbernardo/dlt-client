@@ -66,8 +66,8 @@ export class WorkSpaceController extends BaseController {
     static isS3AuthTemplate = false;
     static importMetadataCatalog = null;
     static importCloudBktSrc = null;
-    static importCloudBktMetadata = null;
-    static importCloudBktDataSource = null;
+    static importtablesFieldMap = null;
+    static importDataSource = null;
 
     importingPipelineSourceDetails = null;
 
@@ -300,14 +300,17 @@ export class WorkSpaceController extends BaseController {
     }
 
     getImportMetadata(nodeList, importData){
-        let bucketNode = nodeList.find(r => r[1].class == 'Bucket'), cloudBktSecretName;
+        let bucketNode = nodeList.find(r => r[1].class == 'Bucket'), secretName;
+        let sqlDbNode = nodeList.find(r => r[1].class == 'SqlDBComponent');
+        const name = bucketNode ? 'Bucket' : sqlDbNode ? 'SqlDBComponent' : '';
+
+        if(bucketNode || sqlDbNode) secretName = nodeList.find(r => r[1].class == name)[1].data.connectionName;
         
-        if(bucketNode) cloudBktSecretName = nodeList.find(r => r[1].class == 'Bucket')[1].data.connectionName;
-        
-        const isBucketSrc = (IsString(cloudBktSecretName) && cloudBktSecretName != '');
-        if(isBucketSrc){
+        const validConnection = (IsString(secretName) && secretName != '');
+        if(validConnection){
             const tablesFieldsMap = {}, dataSources = [];
-            WorkSpaceController.importCloudBktMetadata = importData.dbDetails['Bucket'].reduce((acc, result) => {
+            const metadataSource = bucketNode ? importData.dbDetails[name] : importData.dbDetails[name].metadata;
+            WorkSpaceController.importtablesFieldMap = metadataSource.reduce((acc, result) => {
                 const name = result.source_store.split('/').slice(-1)
                 if(!(name in tablesFieldsMap)){
                     tablesFieldsMap[name] = []
@@ -317,9 +320,9 @@ export class WorkSpaceController extends BaseController {
 				acc[result.table_name] = result.table_name;
 				return acc
 			}, {});
-            WorkSpaceController.importCloudBktSrc = cloudBktSecretName;
-            WorkSpaceController.importCloudBktMetadata = tablesFieldsMap;
-            WorkSpaceController.importCloudBktDataSource = dataSources;
+            if(bucketNode) WorkSpaceController.importCloudBktSrc = secretName;
+            WorkSpaceController.importtablesFieldMap = tablesFieldsMap;
+            WorkSpaceController.importDataSource = dataSources;
         }
     }
 

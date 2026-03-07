@@ -38,15 +38,15 @@ export class TransformRow extends ViewComponent {
 	/** @Prop @type { Map<String, Aggreg> } */ aggregations = new Map();
 	/** @Prop */ tableSource;
 
-	/** @type { Transformation } */
-	$parent;
+	/** @type { Transformation } */ $parent;
 
 	stOnRender(data) {
 		const { dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField, aggregations, sourceFileName } = data;		
 		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
+		
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
 		this.configData = { ...importFields, dataSources, aggregations, sourceFileName };
-		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;				
+		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;
 	}
 
 	async stAfterInit() {
@@ -59,13 +59,15 @@ export class TransformRow extends ViewComponent {
 		if(this.isImport && this.isSourceSQL) await sleepForSec(20);
 
 		if(this.isImport === true && String(this.configData.table).indexOf('.') > 0 && this.isSourceSQL){ 
-			let schemas = Object.keys(this.tableSource), tablePaths = [];
-			for(const schema of schemas){
-				const tables = Object.keys(this.tableSource[schema]);
-				for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
+			if(this.tableSource){
+				let schemas = Object.keys(this.tableSource), tablePaths = [];
+				for(const schema of schemas){
+					const tables = Object.keys(this.tableSource[schema]);
+					for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
+				}
+				this.dataSourceList = tablePaths;
+				await sleepForSec(500);
 			}
-			this.dataSourceList = tablePaths;
-			await sleepForSec(500);
 		}
 
 		this.onChangeSelectedSource();
@@ -83,12 +85,15 @@ export class TransformRow extends ViewComponent {
 			[...this.aggregations].forEach(([_, aggreg]) =>  aggreg.removeMe());
 		});
 
+		const fieldList = this.fieldList.value;
+
 		if (this.configData !== null) await this.handleConfigData();
+		
+		if(this.configData.sourceFileName && Array.isArray(Object.values(fieldList)))
+			this.fieldList = Object.values(fieldList)[0];
 
 		const aggregSettings = Object.values(this.configData.aggregations);
 		for(const aggreg of aggregSettings) this.addAggregation(aggreg);
-
-		this.selectedSource = this.configData.sourceFileName;
 
 	}
 
