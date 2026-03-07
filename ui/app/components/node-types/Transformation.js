@@ -83,8 +83,8 @@ export class Transformation extends AbstractNode {
 	}
 
 	async stAfterInit() {
-
 		if (this.isImport && this.rows !== null) {			
+			await sleepForSec(100);
 			this.databaseList = this.databaseList.value.map(itm => ({ ...itm, name: itm.name.replace('*','') }));
 			for (const rowConfig of this.rows){
 				if(rowConfig.aggregField) continue;
@@ -95,7 +95,7 @@ export class Transformation extends AbstractNode {
 						const sourceFilePieces = rowConfig.dataSource.split('.');
 						sourceFileName = sourceFilePieces.slice(0,-1).join('.')+'*.'+sourceFilePieces.slice(-1);
 				}
-
+				WorkSpaceController.importOriginalSource
 				if(this.importFields.aggregations)
 					aggregations = this.importFields.aggregations[rowConfig.rowId];
 
@@ -184,8 +184,10 @@ export class Transformation extends AbstractNode {
 		
 		async function handleAddField() {
 			let dataSources, tablesFieldsMap;
+			const didBringSourceDb = obj.$parent.controller.importingPipelineSourceDetails == null;
+			const isBktImportSrc = WorkSpaceController.importCloudBktSrc !== null;
 			
-			if(obj.importFields.importtablesFieldMap){
+			if(obj.importFields.importtablesFieldMap && (isBktImportSrc || !didBringSourceDb)){
 				dataSources = obj.importFields.importDataSource;
 				tablesFieldsMap = obj.importFields.importtablesFieldMap;
 			}else{

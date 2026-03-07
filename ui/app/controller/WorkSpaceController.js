@@ -66,6 +66,7 @@ export class WorkSpaceController extends BaseController {
     static isS3AuthTemplate = false;
     static importMetadataCatalog = null;
     static importCloudBktSrc = null;
+    static importOriginalSource = null;
     static importtablesFieldMap = null;
     static importDataSource = null;
 
@@ -320,6 +321,7 @@ export class WorkSpaceController extends BaseController {
 				acc[result.table_name] = result.table_name;
 				return acc
 			}, {});
+            WorkSpaceController.importOriginalSource = importData.dbDetails[name].sourceDb;
             if(bucketNode) WorkSpaceController.importCloudBktSrc = secretName;
             WorkSpaceController.importtablesFieldMap = tablesFieldsMap;
             WorkSpaceController.importDataSource = dataSources;
