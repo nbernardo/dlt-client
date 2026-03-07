@@ -124,7 +124,7 @@ class MetaStore:
                          original_column_name, column_name, data_type, column_version, is_deleted)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, updates)
-                    con.commit()
+            con.commit()
 
         except Exception as e:
             con.rollback()

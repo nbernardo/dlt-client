@@ -547,7 +547,7 @@ class DltPipeline:
 
     @staticmethod
     def read_pipeline(file_path, namespace):
-
+        from utils.metastore.meta_storage import MetaStore 
         try:
             code = ''
             with open(file_path, 'r') as file:
@@ -559,22 +559,24 @@ class DltPipeline:
             database_obj = { node['name']: node for _, node in node_list.items() if (node['name'] in ['Bucket','SqlDBComponent']) }
 
             if(len(database_obj.keys()) > 0): datasource_details = {}
+            pipeline_name = file_path.split('/')[-1].replace('.json','')
 
             if('SqlDBComponent' in database_obj):
 
                 node = database_obj['SqlDBComponent']
                 connection_name = node['data']['connectionName']
-                datasource_details['SqlDBComponent'] = SQLDatabase.get_tables_list(namespace, connection_name)
+                datasource_details['SqlDBComponent'] = {}
+                datasource_details['SqlDBComponent']['sourceDb'] = SQLDatabase.get_tables_list(namespace, connection_name)
+                datasource_details['SqlDBComponent']['metadata'] = MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}')
             
             elif ('Bucket' in database_obj):
-                from utils.metastore.meta_storage import MetaStore 
+                
                 node = database_obj['Bucket']
                 connection_name = node['data']['connectionName']
-                pipeline_name = file_path.split('/')[-1].replace('.json','')
                 datasource_details['Bucket'] = MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}')
             
-            if not(not(datasource_details)):
-                del datasource_details['details']
+            #if not(not(datasource_details)):
+            #    del datasource_details['details']
                 
             return pipeline_code, datasource_details
         

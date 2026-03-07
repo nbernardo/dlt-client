@@ -57,8 +57,11 @@ transformations = %transformation%
 def polars_db_source(tables: list[str], tables_pk: list[str]):
 
     def generate_resource(table_name, pk):
-
-        @dlt.resource(name=table_name)
+        # Bellow handles the edge case where the table also
+        # has the namespace int it (e.g. SQL Server source) 
+        resource_name = table_name.replace('.','_')
+   
+        @dlt.resource(name=resource_name)
         def load_table():
             schema, table = table_name.split(".")
             logger.info("Starting SQL Server data extraction", extra={
@@ -156,11 +159,11 @@ try:
             'template_type': 'sql_server_transform'
         })
 
-    print(load_info, flush=True)
-    print('RUN_SUCCESSFULLY', flush=True)
-
     catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
     MetaStore.persist_catalog(catalog_table_path, src_path, pipeline)
+
+    print(load_info, flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
     
 except Exception as e:
     logger.error("SQL Server transformation pipeline execution failed", extra={

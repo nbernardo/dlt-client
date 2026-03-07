@@ -72,14 +72,14 @@ export class Transformation extends AbstractNode {
 		if (isImport === true) this.showLoading = true;
 		this.aiGenerated = aiGenerated
 		
-		const { importCloudBktMetadata, importCloudBktSrc, importCloudBktDataSource } = WorkSpaceController;
+		const { importtablesFieldMap, importCloudBktSrc, importDataSource } = WorkSpaceController;
 
 		this.importFields = { 
 			aggregations, row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount, 
-			importCloudBktMetadata, importCloudBktSrc, importCloudBktDataSource
+			importtablesFieldMap, importCloudBktSrc, importDataSource
 		};
 
-		WorkSpaceController.importCloudBktMetadata = null;
+		WorkSpaceController.importtablesFieldMap = null;
 	}
 
 	async stAfterInit() {
@@ -88,11 +88,9 @@ export class Transformation extends AbstractNode {
 			this.databaseList = this.databaseList.value.map(itm => ({ ...itm, name: itm.name.replace('*','') }));
 			for (const rowConfig of this.rows){
 				if(rowConfig.aggregField) continue;
-				let aggregations = {}, sourceFileName = null
+				let aggregations = {}, sourceFileName = null, dataSource = (rowConfig.dataSource || '');
 
-				if(rowConfig.dataSource.endsWith('.parquet') 
-					|| rowConfig.dataSource.endsWith('.csv') 
-					|| rowConfig.dataSource.endsWith('.jsonl')){
+				if(dataSource.endsWith('.parquet') || dataSource.endsWith('.csv') || dataSource.endsWith('.jsonl')){
 
 						const sourceFilePieces = rowConfig.dataSource.split('.');
 						sourceFileName = sourceFilePieces.slice(0,-1).join('.')+'*.'+sourceFilePieces.slice(-1);
@@ -129,6 +127,10 @@ export class Transformation extends AbstractNode {
 
 	/** @param { InputConnectionType<SqlDBComponent|Bucket> } */
 	onInputConnection({ data, type }) {
+
+		WorkSpaceController.importCloudBktSrc = null;
+        WorkSpaceController.importtablesFieldMap = null;
+        WorkSpaceController.importDataSource = null;
 
 		let { tables, sourceNode } = data;
 		Transformation.handleInputConnection(this, data, type);
@@ -183,9 +185,9 @@ export class Transformation extends AbstractNode {
 		async function handleAddField() {
 			let dataSources, tablesFieldsMap;
 			
-			if(obj.importFields.importCloudBktMetadata){
-				dataSources = obj.importFields.importCloudBktDataSource;
-				tablesFieldsMap = obj.importFields.importCloudBktMetadata;
+			if(obj.importFields.importtablesFieldMap){
+				dataSources = obj.importFields.importDataSource;
+				tablesFieldsMap = obj.importFields.importtablesFieldMap;
 			}else{
 				dataSources = isCloudBkt ? obj.sourceNode.bucketObjects.value : obj.databaseList.value;
 				tablesFieldsMap = isCloudBkt ? obj.sourceNode?.bucketObjectsFieldMaps.value : obj.sourceNode?.tablesFieldsMap;
@@ -490,6 +492,7 @@ export class Transformation extends AbstractNode {
 		try {			
 			[...this.fieldRows].forEach(([_, row]) => {
 				row.dataSourceList = tables, row.databaseFields = fieldList || this.sourceNode.tablesFieldsMap;
+				row.configData = null;
 			});
 		} catch (error) {}
 	}

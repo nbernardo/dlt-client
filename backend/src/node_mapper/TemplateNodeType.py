@@ -166,7 +166,7 @@ class TemplateNodeType:
         if self.context.is_code_destination:
             return template
         else:
-            namespace = re.sub(r'[@.-]', '_', self.context.namespace)
+            namespace = re.sub(r'[@.-]', '_', self.context.transaction_namespace)
             ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'# -------- Running the pipeline ----------%dest_secret_code%{n}dest = %destination_string%{n}'
             pipeline_name = f"ppline_path=f'{namespace.replace('/','')}_at_{{ppline_name}}'"
