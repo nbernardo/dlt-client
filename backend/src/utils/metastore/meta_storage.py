@@ -43,7 +43,9 @@ class MetaStore:
                     data_type TEXT,
                     column_version INTEGER,
                     is_deleted INTEGER,
-                    is_current INTEGER
+                    is_current INTEGER,
+                    original_table_name TEXT,
+                    pipeline_run_id TEXT
                 )
             """)
             con.execute("CREATE INDEX idx_pipeline_table ON column_catalog(pipeline, table_name)")
@@ -66,6 +68,7 @@ class MetaStore:
         con = MetaStore._get_conn(dbs_path, 'catalog')
         dest_name = MetaStore.get_destination(pipeline)
         source_clean = table_source.replace('"', '')
+        pipeline_run_id = pipeline.last_run_info.started_at
 
         try:
             MetaStore.create_catalog_table(con)
@@ -94,6 +97,9 @@ class MetaStore:
                     if not name.startswith("_dlt_")
                 }
 
+                schema = table_meta.get("schema")
+                orig_table_name = f'{schema+'.' if schema != '' else ''}{table_name}'
+
                 updates = []
                 processed_orig_names = set()
 
@@ -106,23 +112,23 @@ class MetaStore:
                     last_state = db_map.get(orig_name)
 
                     if not last_state:
-                        updates.append((namespace, table_name, source_clean, dest_name, pipeline_name, now, orig_name, orig_name, new_type, 1, 0))
+                        updates.append((pipeline_run_id, namespace, orig_table_name, table_name, source_clean, dest_name, pipeline_name, now, orig_name, orig_name, new_type, 1, 0))
                     else:
                         if last_state['data_type'] != new_type or last_state['is_deleted']:
                             new_version = int(last_state['column_version']) + 1
-                            updates.append((namespace, table_name, source_clean, dest_name, pipeline_name, now, orig_name, orig_name, new_type, new_version, 0))
+                            updates.append((pipeline_run_id, namespace, orig_table_name, table_name, source_clean, dest_name, pipeline_name, now, orig_name, orig_name, new_type, new_version, 0))
 
                 for orig_name, last_state in db_map.items():
                     if orig_name not in processed_orig_names and not last_state['is_deleted']:
                         new_version = int(last_state['column_version']) + 1
-                        updates.append((namespace, table_name, source_clean, dest_name, pipeline_name, now, orig_name, last_state['column_name'], last_state['data_type'], new_version, 1))
+                        updates.append((pipeline_run_id, namespace, orig_table_name, table_name, source_clean, dest_name, pipeline_name, now, orig_name, last_state['column_name'], last_state['data_type'], new_version, 1))
 
                 if updates:
                     con.executemany("""
                         INSERT INTO column_catalog
-                        (namespace, table_name, source_store, dest_store, pipeline, ingested_at,
+                        (pipeline_run_id, namespace, original_table_name, table_name, source_store, dest_store, pipeline, ingested_at,
                          original_column_name, column_name, data_type, column_version, is_deleted)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, updates)
             con.commit()
 

@@ -48,8 +48,12 @@ export async function onDataSourceSelect(obj, newValue){
             await obj.wspaceService.handleCsvSourceFields(dataSource)
             fieldList = await obj.wspaceService.getCsvDataSourceFields(dataSource);
         }else{
-            if(obj.databaseFields[newValue])
-                fieldList = obj.databaseFields[newValue].map(itm => ({ name: itm.column }));
+            if(obj.databaseFields[newValue]){
+                if(!obj.databaseFields[newValue][0].name)
+                    fieldList = obj.databaseFields[newValue].map(itm => ({ name: itm.column }));
+                else
+                    fieldList = obj.databaseFields[newValue];
+            }
             else
                 fieldList = '';
         }

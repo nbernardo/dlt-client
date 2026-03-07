@@ -311,7 +311,7 @@ export class WorkSpaceController extends BaseController {
             const tablesFieldsMap = {}, dataSources = [];
             const metadataSource = bucketNode ? importData.dbDetails[name] : importData.dbDetails[name].metadata;
             WorkSpaceController.importtablesFieldMap = metadataSource.reduce((acc, result) => {
-                const name = result.source_store.split('/').slice(-1)
+                const name = sqlDbNode ? result.table_name.replace('_','.') : result.source_store.split('/').slice(-1)
                 if(!(name in tablesFieldsMap)){
                     tablesFieldsMap[name] = []
                     dataSources.push({ name });

@@ -572,8 +572,9 @@ class DltPipeline:
             elif ('Bucket' in database_obj):
                 
                 node = database_obj['Bucket']
-                connection_name = node['data']['connectionName']
-                datasource_details['Bucket'] = MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}')
+                connection_name = node['data'].get('connectionName')
+                if connection_name:
+                    datasource_details['Bucket'] = MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}')
             
             #if not(not(datasource_details)):
             #    del datasource_details['details']
