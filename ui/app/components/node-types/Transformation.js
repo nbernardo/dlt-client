@@ -2,7 +2,7 @@ import { sleepForSec } from "../../../@still/component/manager/timer.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { Components } from "../../../@still/setup/components.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
-import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { ImportSourceType, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { dataToTable } from "../../util/dataPresentationUtil.js";
 import { Workspace } from "../workspace/Workspace.js";
@@ -72,11 +72,11 @@ export class Transformation extends AbstractNode {
 		if (isImport === true) this.showLoading = true;
 		this.aiGenerated = aiGenerated
 		
-		const { importtablesFieldMap, importCloudBktSrc, importDataSource } = WorkSpaceController;
+		const { importtablesFieldMap, importCloudSecretName, importDataSource } = WorkSpaceController;
 
 		this.importFields = { 
 			aggregations, row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount, 
-			importtablesFieldMap, importCloudBktSrc, importDataSource
+			importtablesFieldMap, importCloudSecretName, importDataSource
 		};
 
 		WorkSpaceController.importtablesFieldMap = null;
@@ -84,16 +84,25 @@ export class Transformation extends AbstractNode {
 
 	async stAfterInit() {
 		if (this.isImport && this.rows !== null) {			
-			await sleepForSec(100);
+			await sleepForSec(1000);
+			const { importtablesFieldMap, importCloudSecretName, importDataSource } = this.importFields;
+
+			if(importtablesFieldMap == null && importCloudSecretName == null && importDataSource == null)
+				WorkSpaceController.typeOfImportSource = ImportSourceType.REGULAR_BUCKET;
+
 			this.databaseList = this.databaseList.value.map(itm => ({ ...itm, name: itm.name.replace('*','') }));
+			if(WorkSpaceController.typeOfImportSource == ImportSourceType.REGULAR_BUCKET)
+				this.databaseList = await this.$parent.service.listFiles();
+
 			for (const rowConfig of this.rows){
 				if(rowConfig.aggregField) continue;
-				let aggregations = {}, sourceFileName = null, dataSource = (rowConfig.dataSource || '');
+				let aggregations = {}, sourceFileName = null, dataSource = (rowConfig.dataSource || ''), sourceFilePieces;
 
 				if(dataSource.endsWith('.parquet') || dataSource.endsWith('.csv') || dataSource.endsWith('.jsonl')){
+						sourceFilePieces = rowConfig.dataSource.split('.'), sourceFileName = rowConfig.dataSource;
 
-						const sourceFilePieces = rowConfig.dataSource.split('.');
-						sourceFileName = sourceFilePieces.slice(0,-1).join('.')+'*.'+sourceFilePieces.slice(-1);
+						if(rowConfig.dataSource.indexOf('*') < 0) // Edge case
+							sourceFileName = sourceFilePieces.slice(0,-1).join('.')+'*.'+sourceFilePieces.slice(-1);
 				}
 				WorkSpaceController.importOriginalSource
 				if(this.importFields.aggregations)
@@ -128,7 +137,7 @@ export class Transformation extends AbstractNode {
 	/** @param { InputConnectionType<SqlDBComponent|Bucket> } */
 	onInputConnection({ data, type }) {
 
-		WorkSpaceController.importCloudBktSrc = null;
+		WorkSpaceController.importCloudSecretName = null;
         WorkSpaceController.importtablesFieldMap = null;
         WorkSpaceController.importDataSource = null;
 
@@ -185,7 +194,7 @@ export class Transformation extends AbstractNode {
 		async function handleAddField() {
 			let dataSources, tablesFieldsMap;
 			const didBringSourceDb = obj.$parent.controller.importingPipelineSourceDetails == null;
-			const isBktImportSrc = WorkSpaceController.importCloudBktSrc !== null;
+			const isBktImportSrc = WorkSpaceController.importCloudSecretName !== null;
 			
 			if(obj.importFields.importtablesFieldMap && (isBktImportSrc || !didBringSourceDb)){
 				dataSources = obj.importFields.importDataSource;
@@ -286,7 +295,12 @@ export class Transformation extends AbstractNode {
 		const tablesSet = Object.entries(transformations)
 		const newFieldRE = /alias\(\'([A-Z]{1,}[A-Z1-9]{0,})(_New){0,}\'\)/ig
 
-		const connectionName = this.sourceNode.selectedSecret?.value;
+		let connectionName = '';
+		if(!this.sourceNode && WorkSpaceController.importCloudSecretName){
+			connectionName = WorkSpaceController.importCloudSecretName;
+		}else
+			connectionName = this.sourceNode.selectedSecret?.value;
+
 		const dbEngine = this.sourceNode?.selectedDbEngine?.value;
 		const transformRowMapping = {};
 		
@@ -296,8 +310,11 @@ export class Transformation extends AbstractNode {
 		for(const [tableName, transformations] of tablesSet){
 
 			script = 'try:\n\t', cols = '*';
-			[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine, this.fileSource);
 			transformCount = 0, prevAg = null, isFile = tableName.endsWith('.csv') || tableName.endsWith('.jsonl') || tableName.endsWith('.parquet');
+			
+			if(!this.fileSource && isFile) this.fileSource = tableName.replace('*','');
+
+			[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine, this.fileSource);
 			
 			transformRowMapping["lfquery.with_columns("+transformations[0]+")"] = count;
 			let totalTransform = transformations.length;

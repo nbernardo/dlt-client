@@ -37,6 +37,11 @@ export const PPLineStatEnum = {
     Failed: 'Failed',
 }
 
+export const ImportSourceType = {
+    REGULAR_BUCKET: 'REGULAR_BUCKET',
+    NONE: undefined,
+}
+
 export class AIAgentExpandViewType {
     fields = '';
     query = '';
@@ -65,8 +70,9 @@ export class WorkSpaceController extends BaseController {
     isSubmittingPipeline = false;
     static isS3AuthTemplate = false;
     static importMetadataCatalog = null;
-    static importCloudBktSrc = null;
+    static importCloudSecretName = null;
     static importOriginalSource = null;
+    static typeOfImportSource = null;
     static importtablesFieldMap = null;
     static importDataSource = null;
 
@@ -301,10 +307,11 @@ export class WorkSpaceController extends BaseController {
     }
 
     getImportMetadata(nodeList, importData){
+        WorkSpaceController.isS3AuthTemplate = null;
         let bucketNode = nodeList.find(r => r[1].class == 'Bucket'), secretName;
         let sqlDbNode = nodeList.find(r => r[1].class == 'SqlDBComponent');
         const name = bucketNode ? 'Bucket' : sqlDbNode ? 'SqlDBComponent' : '';
-
+        
         if(bucketNode || sqlDbNode) secretName = nodeList.find(r => r[1].class == name)[1].data.connectionName;
         
         const validConnection = (IsString(secretName) && secretName != '');
@@ -322,9 +329,10 @@ export class WorkSpaceController extends BaseController {
 				return acc
 			}, {});
             WorkSpaceController.importOriginalSource = importData.dbDetails[name].sourceDb;
-            if(bucketNode) WorkSpaceController.importCloudBktSrc = secretName;
+            if(bucketNode) WorkSpaceController.importCloudSecretName = secretName;
             WorkSpaceController.importtablesFieldMap = tablesFieldsMap;
             WorkSpaceController.importDataSource = dataSources;
+            WorkSpaceController.typeOfImportSource = name;
         }
     }
 
@@ -332,7 +340,7 @@ export class WorkSpaceController extends BaseController {
     async processImportingNodes(importData, asTemplate = false) {
 
         WorkSpaceController.importNodeIdMapping = {};
-        WorkSpaceController.importCloudBktSrc = null;
+        WorkSpaceController.importCloudSecretName = null;
 
         const [inOutputMapping, nodeList] = [{}, Object.entries(importData?.pipelineCode?.content['Home'].data)];
         this.getImportMetadata(nodeList, importData);

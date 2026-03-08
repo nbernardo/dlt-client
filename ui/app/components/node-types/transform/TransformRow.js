@@ -1,5 +1,6 @@
 import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
+import { ImportSourceType, WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "../SqlDBComponent.js";
@@ -91,8 +92,14 @@ export class TransformRow extends ViewComponent {
 		
 		if(this.configData.sourceFileName && Array.isArray(Object.values(fieldList)))
 			this.fieldList = Object.values(fieldList)[0];
+		if(!this.fieldList.value && WorkSpaceController.typeOfImportSource == ImportSourceType.REGULAR_BUCKET)
+			this.fieldList = this.$parent.sourceNode.filesFromList.value;
 
 		const aggregSettings = Object.values(this.configData.aggregations);
+		
+		if(WorkSpaceController.typeOfImportSource == ImportSourceType.REGULAR_BUCKET)
+			await sleepForSec(500);
+
 		for(const aggreg of aggregSettings) this.addAggregation(aggreg);
 
 	}

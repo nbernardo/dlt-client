@@ -213,6 +213,7 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.warn('No data file found under ' + namespace);
         } else if (response.ok) {
             filesList = await response.json();
+            filesList = (filesList || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }))
         }
         return filesList;
     }

@@ -15,8 +15,8 @@ export async function onDataSourceSelect(obj, newValue){
 
     // Secret is retrieved in case the source is 
     // a bucket in the cloud which authentication
-    if(WorkSpaceController.importCloudBktSrc && !isSourceSQL) 
-        secretName = WorkSpaceController.importCloudBktSrc;
+    if(WorkSpaceController.importCloudSecretName && !isSourceSQL) 
+        secretName = WorkSpaceController.importCloudSecretName;
     else
         secretName = obj.$parent.sourceNode.selectedSecret.value;
     

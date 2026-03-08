@@ -42,6 +42,8 @@ export class Bucket extends AbstractNode {
 	/** @Prop @type { Transformation } */ transformationStep = false;
 
 	/** @Prop */ showLoading = false;
+	/** @Prop */ lateListCloudObjects = false;
+
 	/**
 	 * @Inject @Path services/
 	 * @type { WorkspaceService } */
@@ -82,8 +84,7 @@ export class Bucket extends AbstractNode {
 	}
 
 	async getFilesList(){
-		const result = await this.wspaceService.listFiles();
-		this.filesFromList = (result || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
+		this.filesFromList = await this.wspaceService.listFiles();
 	}
 
 	async reloadMe(){
@@ -94,11 +95,6 @@ export class Bucket extends AbstractNode {
 
 	async stAfterInit() {
 
-		if(this.importFields.connectionName) {
-			this.onOutputConnection();
-			return this.showLoading = false;
-		};
-
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 		data['namespace'] = await UserService.getNamespace();
@@ -108,6 +104,16 @@ export class Bucket extends AbstractNode {
 		if ([false, undefined].includes(this.isImport) || this.aiGenerated) this.setupOnChangeListen();
 
 		this.secretsList = (await WorkspaceService.listSecrets(3)).filter(itm => itm.host != 'None');
+		
+		if(this.importFields.connectionName) {
+			this.setupOnChangeListen();
+			this.onOutputConnection();
+			this.bucketFileSource = 2;
+			this.lateListCloudObjects = true;
+
+			setTimeout(() => this.selectedSecret = this.importFields.connectionName, 500);
+			return this.showLoading = false;
+		};
 
 		if(this.aiGenerated){
 			const bucketUrl = this.importFields.url ? this.importFields.url : this.importFields.bucketUrl;
@@ -187,6 +193,11 @@ export class Bucket extends AbstractNode {
 				setTimeout(() => this.showMoreFileOptions = false, 100);
 				this.setNodeData('selectedSecret', value);
 				this.updateTransformationRows(this.bucketObjects.value, schemas);
+
+				if(this.lateListCloudObjects == true){
+					this.lateListCloudObjects = false;
+					setTimeout(() => this.bucketFilePattern = this.importFields.filePattern,700);
+				}
 			}
 		});
 
