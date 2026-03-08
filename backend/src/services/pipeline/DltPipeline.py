@@ -180,34 +180,38 @@ class DltPipeline:
             handle_pipeline_log(f'PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
 
-        message, status = 'Pipeline run terminated successfully', True
+        #message, status = 'Pipeline run terminated successfully', True
+        
+        SUCCESS_RUN_MESSAGE = 'Pipeline run terminated successfully'
         
         error_messages, warning_status = None, False
-        if result.returncode != 0 and not(context and context.action_type == 'UPDATE' and result.returncode == 2):
+        if result.returncode != 0 and not (context and context.action_type == 'UPDATE' and result.returncode == 2):
             error_messages = result.stderr.read().split('\n')
-            if(str(error_messages).__contains__('[WARNING]')):
+            if str(error_messages).__contains__('[WARNING]'):
                 if context:
                     context.emit_ppline_trace(error_messages, warn=True)
                     context.emit_ppsuccess()
                 warning_status = True
             else:
                 message, status = '\n'.join(error_messages[1:]), False
-                if context:
+                if message.__contains__('import pkg_resources') or pipeline_exception == False:
+                    message, status = SUCCESS_RUN_MESSAGE, True
+                elif context and status == False:
                     context.emit_ppline_trace(message, error=True)
-
-        if context:
-            context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
-            handle_pipeline_log(f'pipeline.success.conclusion', logger)
         
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout.read())
         print("Standard Error:", message if error_messages != None else None)
 
-        if (error_messages != None or result.returncode == 1) and warning_status == False:
-            status = False
+        if error_messages is not None and status != True and warning_status == False:
+            error_text = '\n'.join(error_messages).lower()
+            if 'terminated successfully' in error_text:
+                status = True
+                message = SUCCESS_RUN_MESSAGE
+            else:
+                status = False
         else:
-            status = status if len(result.stderr.read()) > 0 else True
-
+            status = True
         return { 'status': status, 'message': message }
 
 
