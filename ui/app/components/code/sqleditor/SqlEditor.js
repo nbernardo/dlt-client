@@ -78,12 +78,8 @@ export class SqlEditor extends ViewComponent {
 
 	setupEditorQuery(databaseName){
 		this.selectedTable = databaseName.split('.duckdb.')[1];
-		const selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
-		const fieldsString = selectedTableFields.map(({ name }) => name).join(',');
-		
-		if (Array.isArray(selectedTableFields))
-			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...selectedTableFields];
-
+		this.selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
+		const fieldsString = this.selectedTableFields.value.map(({ name }) => name.indexOf(' ') > -1 ? `'${name}'` : name).join(',');
 		const query = `SELECT ${fieldsString} FROM ${this.selectedTable} LIMIT 100`
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 

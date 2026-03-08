@@ -1,3 +1,7 @@
+⚠️ **Action required:**
+As of Mar-08-2026, we've introduced LanceDB in the project as part of the Datacatalog implementation.
+Please refere to [LanceDB setup](../lancedb/setup.md) for this project, otherwise it might cause your pipeline not to run.
+
 # Setup
 
 To see a walk-through of the setup process see <a href="https://youtu.be/XtUrSKXlOWo" target="_blank">this video</a>.
@@ -82,6 +86,10 @@ WARNING: This is a development server. Do not use it in a production deployment.
  * Running on http://192.168.100.16:8000
 Press CTRL+C to quit
 ```
+
+### Setting up LanceDB capabilities
+Before running the backend refers to [LanceDB setup](../lancedb/setup.md), you'll need to setup the LanceDB for the Datacatalog foundantion.
+
 
 ## Setting up the Frontend
 

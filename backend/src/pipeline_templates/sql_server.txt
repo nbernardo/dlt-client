@@ -4,7 +4,9 @@ import logging
 from pathlib import Path
 from sys import path
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+from src.utils.metastore.meta_storage import MetaStore
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -57,10 +59,10 @@ def load_select_tables_from_db():
     })
 
     try:
-        source = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, connection_string)
+        source, table_to_schema_map = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, connection_string)
         
         logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
-        info = pipeline.run(source, write_disposition='merge')
+        info = pipeline.run(source, write_disposition='merge', refresh='drop_sources')
         
         # Log pipeline execution results
         if hasattr(info, 'loads_ids') and info.loads_ids:
@@ -78,6 +80,10 @@ def load_select_tables_from_db():
                 'template_type': 'sql_server'
             })
         
+        catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
+        MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, table_to_schema_map)
+
+        print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}')
         print(info,flush=True)
         print('RUN_SUCCESSFULLY', flush=True)
         

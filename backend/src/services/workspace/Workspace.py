@@ -575,7 +575,7 @@ class Workspace:
 
 
     @staticmethod
-    def schedule_pipeline_job(namespace = None, ppline = None):
+    def schedule_pipeline_job(namespace = None, ppline = None, unpause = False):
         result = Workspace.get_ppline_schedule(namespace, ppline)
         if result['error'] != True:
             schedules = result['data'] if 'data' in result else {}
@@ -584,18 +584,18 @@ class Workspace:
                 is_paused = sched['is_paused']
                 if is_paused == 'paused': continue
 
-                namespace = sched['namespace']
+                _namespace = sched['namespace']
                 type = sched['type']
                 periodicity = sched['periodicity']
                 time = int(sched['time'])
-                file_path = f'{namespace}/{ppline_name}'
-                tag_name = f'{namespace}_{ppline_name}'
+                file_path = f'{_namespace}/{ppline_name}'
+                tag_name = f'{_namespace}_{ppline_name}'
 
                 if(Workspace.schedule_jobs.get(file_path,None) != True):
                     if(type == 'min'):
-                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
+                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, _namespace).tag(tag_name)
                     if(type == 'hour'):
-                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
+                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, _namespace).tag(tag_name)
 
                     print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
                     Workspace.schedule_jobs[file_path] = True
@@ -603,7 +603,7 @@ class Workspace:
             # The infinit loop will be running in a separate thread
             # which will consider all scheduled jobs, when if specified
             # the jobe name (whithin a namespace), it'll run in the mai thread
-            if namespace == None and ppline == None:
+            if (namespace == None and ppline == None):
                 while True:
                     schedule.run_pending()
                     timelib.sleep(1)

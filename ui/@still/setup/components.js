@@ -522,6 +522,7 @@ export class Components {
                 o.defineSetter(cmp, field);
 
                 cmp.__defineSetter__(field, (newValue) => {
+                    if(cmp['$still_' + field] === newValue) return;
                     if(cmp['stOptListFieldMap']?.get(field)?.multpl)
                         cmp['$still_' + field] = newValue;
                     cmp.__defineGetter__(field, () => newValue);

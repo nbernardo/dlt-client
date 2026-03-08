@@ -2,7 +2,7 @@ import { sleepForSec } from "../../../@still/component/manager/timer.js";
 import { STForm } from "../../../@still/component/type/ComponentType.js";
 import { Components } from "../../../@still/setup/components.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
-import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { ImportSourceType, WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { dataToTable } from "../../util/dataPresentationUtil.js";
 import { Workspace } from "../workspace/Workspace.js";
@@ -72,22 +72,43 @@ export class Transformation extends AbstractNode {
 		if (isImport === true) this.showLoading = true;
 		this.aiGenerated = aiGenerated
 		
+		const { importtablesFieldMap, importCloudSecretName, importDataSource } = WorkSpaceController;
+
 		this.importFields = { 
-			aggregations, row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount 
+			aggregations, row, rows, numberOfRows, nRows: numberOfTransformations, rowCount, rowsCount, 
+			importtablesFieldMap, importCloudSecretName, importDataSource
 		};
+
+		WorkSpaceController.importtablesFieldMap = null;
 	}
 
 	async stAfterInit() {
-
 		if (this.isImport && this.rows !== null) {			
+			await sleepForSec(1000);
+			const { importtablesFieldMap, importCloudSecretName, importDataSource } = this.importFields;
+
+			if(importtablesFieldMap == null && importCloudSecretName == null && importDataSource == null)
+				WorkSpaceController.typeOfImportSource = ImportSourceType.REGULAR_BUCKET;
+
 			this.databaseList = this.databaseList.value.map(itm => ({ ...itm, name: itm.name.replace('*','') }));
+			if(WorkSpaceController.typeOfImportSource == ImportSourceType.REGULAR_BUCKET)
+				this.databaseList = await this.$parent.service.listFiles();
+
 			for (const rowConfig of this.rows){
 				if(rowConfig.aggregField) continue;
-				let aggregations = {}
+				let aggregations = {}, sourceFileName = null, dataSource = (rowConfig.dataSource || ''), sourceFilePieces;
+
+				if(dataSource.endsWith('.parquet') || dataSource.endsWith('.csv') || dataSource.endsWith('.jsonl')){
+						sourceFilePieces = rowConfig.dataSource.split('.'), sourceFileName = rowConfig.dataSource;
+
+						if(rowConfig.dataSource.indexOf('*') < 0) // Edge case
+							sourceFileName = sourceFilePieces.slice(0,-1).join('.')+'*.'+sourceFilePieces.slice(-1);
+				}
+				WorkSpaceController.importOriginalSource
 				if(this.importFields.aggregations)
 					aggregations = this.importFields.aggregations[rowConfig.rowId];
 
-				await this.addNewField(rowConfig, true, false, aggregations);
+				await this.addNewField(rowConfig, true, false, aggregations, sourceFileName);
 			}
 			await sleepForSec(500);
 			this.showLoading = false;
@@ -95,7 +116,6 @@ export class Transformation extends AbstractNode {
 		}
 
 		if(this.aiGenerated){
-
 			let totalRows = this.importFields.numberOfRows;
 			if(this.importFields.row) totalRows = this.importFields.row;
 			if(this.importFields.rows) totalRows = this.importFields.rows;
@@ -117,6 +137,10 @@ export class Transformation extends AbstractNode {
 	/** @param { InputConnectionType<SqlDBComponent|Bucket> } */
 	onInputConnection({ data, type }) {
 
+		WorkSpaceController.importCloudSecretName = null;
+        WorkSpaceController.importtablesFieldMap = null;
+        WorkSpaceController.importDataSource = null;
+
 		let { tables, sourceNode } = data;
 		Transformation.handleInputConnection(this, data, type);
 		// This is the bucket component itself
@@ -130,10 +154,7 @@ export class Transformation extends AbstractNode {
 		if ([Bucket.name, SqlDBComponent.name].includes(type)) {
 			
 			this.databaseList = tables;
-			[...this.fieldRows].forEach(([_, row]) => {
-				row.dataSourceList = tables;
-				row.databaseFields = this.sourceNode.tablesFieldsMap;
-			});
+			this.updateTransformationRows(tables, data.isCloudSource ? data.schema : []);
 
 			// In case the SQL Database changes, it proliferates downstream 
 			// thereby updating the Transformation and different added transformations
@@ -142,15 +163,12 @@ export class Transformation extends AbstractNode {
 				this.dataSourceType = 'SQL', this.sqlConnectionName = this.sourceNode.selectedSecret.value;
 				this.sourceNode.selectedSecretTableList.onChange(value => {
 					value = value.map(table => ({ name: table, file: table }))
-					this.databaseList = value;
-					[...this.fieldRows].forEach(([_, row]) => {
-						row.dataSourceList = value
-						row.databaseFields = this.sourceNode.tablesFieldsMap;
-					});
+					this.databaseList = value, this.updateTransformationRows(value);
 				});
 			}else{
 				this.fileSource = (this.sourceNode.selectedFilePattern.value || '').replace('*','');
 				this.dataSourceType = 'BUCKET';
+				this.sourceNode.transformationStep = this; // This is especially when the source is Bucket (Bucket.js)
 				this.sourceNode.selectedFilePattern.onChange(value => {
 					this.fileSource = (value || '').replace('*','');
 				});
@@ -165,27 +183,37 @@ export class Transformation extends AbstractNode {
 		return { sourceNode: this.sourceNode, nodeCount: this.nodeCount.value };
 	}
 	
-	async addNewField(data = null, inTheLoop = false, isNewField = false, aggregations = {}) {
+	async addNewField(data = null, inTheLoop = false, isNewField = false, aggregations = {}, sourceFileName = null) {
 
-		const obj = this;
+		const obj = this, isCloudBkt = WorkSpaceController.isS3AuthTemplate;
 
 		if(this.isImport === true && inTheLoop === false && this.confirmModification === false && this.$parent.isAnyDiagramActive){
 			this.confirmActionDialog(handleAddField);
 		}else handleAddField();
 		
 		async function handleAddField() {
-			let dataSources = obj.databaseList.value;
+			let dataSources, tablesFieldsMap;
+			const didBringSourceDb = obj.$parent.controller.importingPipelineSourceDetails == null;
+			const isBktImportSrc = WorkSpaceController.importCloudSecretName !== null;
 			
-			if(obj.$parent.controller.importingPipelineSourceDetails !== null && obj.isImport){
-				dataSources = obj.$parent.controller.importingPipelineSourceDetails.tables;
-				dataSources = Object.keys(dataSources).map(tableName => ({ 'name': tableName }));
+			if(obj.importFields.importtablesFieldMap && (isBktImportSrc || !didBringSourceDb)){
+				dataSources = obj.importFields.importDataSource;
+				tablesFieldsMap = obj.importFields.importtablesFieldMap;
+			}else{
+				dataSources = isCloudBkt ? obj.sourceNode.bucketObjects.value : obj.databaseList.value;
+				tablesFieldsMap = isCloudBkt ? obj.sourceNode?.bucketObjectsFieldMaps.value : obj.sourceNode?.tablesFieldsMap;
+				if(obj.$parent.controller.importingPipelineSourceDetails !== null && obj.isImport){
+					dataSources = obj.$parent.controller.importingPipelineSourceDetails.tables;
+					dataSources = Object.keys(dataSources).map(tableName => ({ 'name': tableName }));
+				}
 			}
+			
 
 			const parentId = obj.cmpInternalId;
 			const rowId = TRANFORM_ROW_PREFIX + '' + UUIDUtil.newId();
 			const initialData = { 
-				dataSources, rowId, importFields: data, tablesFieldsMap: obj.sourceNode?.tablesFieldsMap, 
-				isImport: obj.isImport, isNewField, aggregations 
+				dataSources, rowId, importFields: data, tablesFieldsMap, 
+				isImport: obj.isImport, isNewField, aggregations, sourceFileName 
 			};
 			
 			// Create a new instance of TransformRow component
@@ -267,7 +295,12 @@ export class Transformation extends AbstractNode {
 		const tablesSet = Object.entries(transformations)
 		const newFieldRE = /alias\(\'([A-Z]{1,}[A-Z1-9]{0,})(_New){0,}\'\)/ig
 
-		const connectionName = this.sourceNode.selectedSecret?.value;
+		let connectionName = '';
+		if(!this.sourceNode && WorkSpaceController.importCloudSecretName){
+			connectionName = WorkSpaceController.importCloudSecretName;
+		}else
+			connectionName = this.sourceNode.selectedSecret?.value;
+
 		const dbEngine = this.sourceNode?.selectedDbEngine?.value;
 		const transformRowMapping = {};
 		
@@ -277,8 +310,11 @@ export class Transformation extends AbstractNode {
 		for(const [tableName, transformations] of tablesSet){
 
 			script = 'try:\n\t', cols = '*';
-			[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine, this.fileSource);
 			transformCount = 0, prevAg = null, isFile = tableName.endsWith('.csv') || tableName.endsWith('.jsonl') || tableName.endsWith('.parquet');
+			
+			if(!this.fileSource && isFile) this.fileSource = tableName.replace('*','');
+
+			[script, cols] = Transformation.setPolarsDataFrameSource(script, tableName, cols, dbEngine, this.fileSource);
 			
 			transformRowMapping["lfquery.with_columns("+transformations[0]+")"] = count;
 			let totalTransform = transformations.length;
@@ -438,8 +474,11 @@ export class Transformation extends AbstractNode {
 			let readType = 'scan_csv';
 			if(tableName.endsWith('.parquet')) readType = 'scan_parquet';
 			if(tableName.endsWith('.jsonl')) readType = 'scan_ndjson'
-
-			script += `lfquery = pl.${readType}(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
+			
+			if(WorkSpaceController.isS3AuthTemplate)
+				script += `lfquery = pl.${readType}(f'{bucket_name}/${tableName.replace('*','')}', storage_options=bucket_credentials)\n\t`;
+			else
+				script += `lfquery = pl.${readType}(f'%pathToFile%/${tableName.replace('*','')}')\n\t`;
 		}else{
 			script += `lfquery = pl.read_database(f'SELECT ${cols} FROM ${tableName}', engine).lazy()\n\t`;
 		}
@@ -468,4 +507,12 @@ export class Transformation extends AbstractNode {
 		WorkSpaceController.getNode(this.nodeId).data['aggregations'] = this.aggregations;
 	}
 
+	updateTransformationRows(tables, fieldList){
+		try {			
+			[...this.fieldRows].forEach(([_, row]) => {
+				row.dataSourceList = tables, row.databaseFields = fieldList || this.sourceNode.tablesFieldsMap;
+				row.configData = null;
+			});
+		} catch (error) {}
+	}
 }

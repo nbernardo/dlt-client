@@ -1,4 +1,5 @@
 from controller.RequestContext import RequestContext
+import re
 
 class TemplateNodeType:
     """
@@ -90,6 +91,8 @@ class TemplateNodeType:
             n = '\n    ' if template_type == 'sql_database' else '\n'
             template = self.regular_template_destination_config(n, template)
 
+        if self.context.use_s3_auth: n = '\n'
+
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
         dbcredentials_var = f"{n}dbcredentials = SecretManager.get_db_secret(namespace, dbconnection_name[0], from_pipeline=True)['connection_url']"
         dbconnecting_log = f"{n}print('Connecting to destination Database', flush=True){n}"
@@ -126,6 +129,8 @@ class TemplateNodeType:
         # the replacement is done by the specialized source (e.g. InputAPI, Bucket)
         template = template.replace('%ppline_dest_table%', f"'{dest_table_name}'")
         
+        if self.context.use_s3_auth or self.context.transformation_type == 'BUCKET': n = '\n'
+
         namespace_var = f"{n}namespace = %namespace%"
         connect_secret_vault = f"{n}SecretManager.ppline_connect_to_vault()"
         connaction_name_var = f"{n}dbconnection_name = ['%outdb_secret_name%']"
@@ -145,12 +150,13 @@ class TemplateNodeType:
             if self.context.transformation_type == 'BUCKET':
                 n = '\n'
 
+            namespace = re.sub(r'[@.-]', '_', self.context.transaction_namespace)
             ppline_and_output_var = f'{n}ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'%dest_secret_code%{n}dest = %destination_string%{n}'
-            print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
-            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name,progress="log")'
+            pipeline_name = f"ppline_path=f'{namespace.replace('/','')}_at_{{ppline_name}}'"
+            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_path,destination=dest,dataset_name=output_name,progress="log")'
 
-        dest_settings = f'{ppline_and_output_var}{secrets_and_dest_var}{print_var}{n}{pipeline_var}'
+        dest_settings = f'{ppline_and_output_var}{secrets_and_dest_var}{pipeline_name}{n}{pipeline_var}'
         template = template.replace('%destination_settings%',dest_settings)
         return template
             
@@ -160,12 +166,13 @@ class TemplateNodeType:
         if self.context.is_code_destination:
             return template
         else:
+            namespace = re.sub(r'[@.-]', '_', self.context.transaction_namespace)
             ppline_and_output_var = f'ppline_name, output_name = %pipeline_name%, %output_dest_name%{n}'
             secrets_and_dest_var = f'# -------- Running the pipeline ----------%dest_secret_code%{n}dest = %destination_string%{n}'
-            print_var = """print(f"Staring '{ppline_name}' pipeline creation", flush=True)"""
-            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_name,destination=dest,dataset_name=output_name,progress="log")'
+            pipeline_name = f"ppline_path=f'{namespace.replace('/','')}_at_{{ppline_name}}'"
+            pipeline_var = 'pipeline = dlt.pipeline(pipeline_name=ppline_path,destination=dest,dataset_name=output_name,progress="log")'
 
-            dest_settings = f'{ppline_and_output_var}{secrets_and_dest_var}{print_var}{n}{pipeline_var}'
+            dest_settings = f'{ppline_and_output_var}{secrets_and_dest_var}{pipeline_name}{n}{pipeline_var}'
             template = template.replace('%destination_settings%',dest_settings)
 
             return template

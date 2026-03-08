@@ -526,7 +526,11 @@ export class Workspace extends ViewComponent {
 			const response = await self.service.readDiagramFile(await UserService.getNamespace(), pplineName);
 			const result = JSON.parse(response);
 
-			self.controller.importingPipelineSourceDetails = result?.dbDetailes || null;
+			self.controller.importingPipelineSourceDetails = null;
+
+			if(result?.dbDetails?.SqlDBComponent && (result?.dbDetails?.SqlDBComponent || {}).sourceDb)
+				self.controller.importingPipelineSourceDetails = result?.dbDetails.SqlDBComponent.sourceDb;
+
 			if(asTemplate === false) {
 				self.activeGrid = result?.pipelineCode?.pipeline_lbl;
 				document.querySelector('.clear-workspace-btn').style.right = '110px';
@@ -537,7 +541,7 @@ export class Workspace extends ViewComponent {
 			}else{
 				self.controller.shouldDisableNodeFormInputs = false;
 			}
-			await self.controller.processImportingNodes(result?.pipelineCode?.content['Home'].data, asTemplate);
+			await self.controller.processImportingNodes(result, asTemplate);
 			AppTemplate.hideLoading();
 			self.wasDiagramSaved = false;
 

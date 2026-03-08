@@ -7,6 +7,7 @@ import { AIAgent } from "../components/agent/AIAgent.js";
 import { CatalogForm } from "../components/catalog/CatalogForm.js";
 import { LeftTabs } from "../components/navigation/left/LeftTabs.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
+import { IsString } from "../components/node-types/transform/util.js";
 import { Transformation } from "../components/node-types/Transformation.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
@@ -36,6 +37,11 @@ export const PPLineStatEnum = {
     Failed: 'Failed',
 }
 
+export const ImportSourceType = {
+    REGULAR_BUCKET: 'REGULAR_BUCKET',
+    NONE: undefined,
+}
+
 export class AIAgentExpandViewType {
     fields = '';
     query = '';
@@ -63,6 +69,12 @@ export class WorkSpaceController extends BaseController {
     isImportProgress = false;
     isSubmittingPipeline = false;
     static isS3AuthTemplate = false;
+    static importMetadataCatalog = null;
+    static importCloudSecretName = null;
+    static importOriginalSource = null;
+    static typeOfImportSource = null;
+    static importtablesFieldMap = null;
+    static importDataSource = null;
 
     importingPipelineSourceDetails = null;
 
@@ -294,14 +306,48 @@ export class WorkSpaceController extends BaseController {
         return WorkSpaceController.get();
     }
 
+    getImportMetadata(nodeList, importData){
+        WorkSpaceController.isS3AuthTemplate = null;
+        let bucketNode = nodeList.find(r => r[1].class == 'Bucket'), secretName;
+        let sqlDbNode = nodeList.find(r => r[1].class == 'SqlDBComponent');
+        const name = bucketNode ? 'Bucket' : sqlDbNode ? 'SqlDBComponent' : '';
+        
+        if(bucketNode || sqlDbNode) secretName = nodeList.find(r => r[1].class == name)[1].data.connectionName;
+        
+        const validConnection = (IsString(secretName) && secretName != '');
+        if(validConnection){
+            const tablesFieldsMap = {}, dataSources = [];
+            const metadataSource = bucketNode ? importData.dbDetails[name] : importData.dbDetails[name].metadata;
+            WorkSpaceController.importtablesFieldMap = metadataSource.reduce((acc, result) => {
+                const name = sqlDbNode ? result.table_name.replace('_','.') : result.source_store.split('/').slice(-1)
+                if(!(name in tablesFieldsMap)){
+                    tablesFieldsMap[name] = []
+                    dataSources.push({ name });
+                }
+                tablesFieldsMap[name].push({ name: result.name });
+				acc[result.table_name] = result.table_name;
+				return acc
+			}, {});
+            WorkSpaceController.importOriginalSource = importData.dbDetails[name].sourceDb;
+            if(bucketNode) WorkSpaceController.importCloudSecretName = secretName;
+            WorkSpaceController.importtablesFieldMap = tablesFieldsMap;
+            WorkSpaceController.importDataSource = dataSources;
+            WorkSpaceController.typeOfImportSource = name;
+        }
+    }
+
     isTemplating = false;
-    async processImportingNodes(nodeData, asTemplate = false) {
+    async processImportingNodes(importData, asTemplate = false) {
 
         WorkSpaceController.importNodeIdMapping = {};
-        const [inOutputMapping, nodeList] = [{}, Object.entries(nodeData)];
+        WorkSpaceController.importCloudSecretName = null;
+
+        const [inOutputMapping, nodeList] = [{}, Object.entries(importData?.pipelineCode?.content['Home'].data)];
+        this.getImportMetadata(nodeList, importData);
+
         let nodeId = 0;
         this.isImportProgress = nodeList.length > 0 ? true : false, this.idCounter = 0;
-
+        
         for (let [originalNodeId, { class: name, data, pos_x, pos_y, source, dest, inputs, outputs }] of nodeList) {
             
             nodeId++;

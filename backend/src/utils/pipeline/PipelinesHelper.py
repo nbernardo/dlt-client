@@ -1,7 +1,16 @@
 from utils.logging.pipeline_logger_config import PipelineLogger as PL
 from polars.dataframe import DataFrame
+from dlt.common.schema.schema import Schema 
 
 PipelineLogger = PL
+
+def set_dlt_pipeline_schema_naming():
+    import os
+    os.environ["SCHEMA__NAMING"] = "direct"
+
+
+set_dlt_pipeline_schema_naming()
+
 
 def parse_aggregation(df: DataFrame, aggregation_list: list) -> DataFrame:
 
@@ -29,12 +38,3 @@ def parse_aggregation(df: DataFrame, aggregation_list: list) -> DataFrame:
         df = df.join(df_aggreg, on=prev_aggregatio_field, how="left")
 
     return df
-
-"""
-agg_df = (
-    df.group_by("OrganizationLevel")
-      .agg(...)
-)
-
-df = df.join(agg_df, on="OrganizationLevel", how="left")
-"""
