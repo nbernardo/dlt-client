@@ -1,141 +1,184 @@
 from datetime import datetime
-import sqlite3
 import json
 import re
-import os
+import pyarrow as pa
+import lancedb
+import duckdb
 from utils.duckdb_util import DuckdbUtil
 
+CATALOG_SCHEMA = pa.schema([
+    pa.field("pipeline_run_id", pa.string()),
+    pa.field("namespace", pa.string()),
+    pa.field("original_table_name", pa.string()),
+    pa.field("table_name", pa.string()),
+    pa.field("source_store", pa.string()),
+    pa.field("dest_store", pa.string()),
+    pa.field("pipeline", pa.string()),
+    pa.field("ingested_at", pa.string()),
+    pa.field("original_column_name", pa.string()),
+    pa.field("column_name", pa.string()),
+    pa.field("data_type", pa.string()),
+    pa.field("column_version", pa.int32()),
+    pa.field("is_deleted", pa.int32()),
+])
+
+
 class MetaStore:
-    """SQLite-backed catalog store for pipeline column metadata."""
+    """LanceDB-backed catalog store. Writes via LanceDB (MVCC), reads via DuckDB SQL."""
 
     @staticmethod
-    def _get_conn(dbs_path=None, db_name=None) -> sqlite3.Connection:
-        ## This is a connection factory
-        path = f'{dbs_path}{db_name}.db' if dbs_path else f'{DuckdbUtil.workspacedb_path}/{db_name}.db'
-        con = MetaStore.init_catalog_table(path)
-        con.row_factory = sqlite3.Row
-        con.execute("PRAGMA journal_mode = WAL")
-        con.execute("PRAGMA synchronous = NORMAL")
-        con.execute("PRAGMA cache_size = -64000")  # 64MB
-        con.execute("PRAGMA temp_store = MEMORY")
+    def _get_lance_path(dbs_path=None) -> str:
+        return f'{dbs_path}catalog.lance' if dbs_path else f'{DuckdbUtil.workspacedb_path}/catalog.lance'
+
+
+    @staticmethod
+    def _get_table(dbs_path=None):
+        """Opens or creates the LanceDB catalog table. Safe for concurrent first-run."""
+        lance_path = MetaStore._get_lance_path(dbs_path)
+        db = lancedb.connect(lance_path)
+
+        try:
+            return db.open_table('column_catalog')
+        except Exception:
+            try:
+                return db.create_table('column_catalog', schema=CATALOG_SCHEMA)
+            except Exception:
+                return db.open_table('column_catalog')
+
+
+    @staticmethod
+    def _get_duckdb_conn(dbs_path=None) -> duckdb.DuckDBPyConnection:
+        """Returns a DuckDB connection with a catalog view over the LanceDB files."""
+        lance_path = MetaStore._get_lance_path(dbs_path)
+        con = duckdb.connect()
+        con.execute("LOAD lance")
+        con.execute(f"""
+            CREATE VIEW column_catalog AS
+            SELECT * FROM '{lance_path}/column_catalog.lance'
+        """)
         return con
 
 
     @staticmethod
-    def init_catalog_table(path=None) -> sqlite3.Connection:
-        """Creates SQLite main catalog DB. No-op if already exists. Call once at startup."""
-
-        con = sqlite3.connect(path)
-        if os.path.exists(path): return con
-
-        try:
-            con.execute("""
-                CREATE TABLE column_catalog (
-                    namespace TEXT,
-                    table_name TEXT,
-                    source_store TEXT,
-                    dest_store TEXT,
-                    source_file TEXT,
-                    pipeline TEXT,
-                    ingested_at TEXT,
-                    original_column_name TEXT,
-                    column_name TEXT,
-                    data_type TEXT,
-                    column_version INTEGER,
-                    is_deleted INTEGER,
-                    is_current INTEGER,
-                    original_table_name TEXT,
-                    pipeline_run_id TEXT
-                )
-            """)
-            con.execute("CREATE INDEX idx_pipeline_table ON column_catalog(pipeline, table_name)")
-            con.execute("CREATE INDEX idx_orig_col ON column_catalog(original_column_name)")
-            con.execute("CREATE INDEX idx_version ON column_catalog(column_version)")
-            con.commit()
-
-            return con
-        finally:
-            con.close()
+    def _build_catalog_row(
+        pipeline_run_id, namespace, orig_table_name, table_name,
+        source_clean, dest_name, pipeline_name, now,
+        orig_name, column_name, data_type, column_version, is_deleted
+    ) -> dict:
+        return {
+            "pipeline_run_id": pipeline_run_id,
+            "namespace": namespace,
+            "original_table_name": orig_table_name,
+            "table_name": table_name,
+            "source_store": source_clean,
+            "dest_store": dest_name,
+            "pipeline": pipeline_name,
+            "ingested_at": now,
+            "original_column_name": orig_name,
+            "column_name": column_name,
+            "data_type": data_type,
+            "column_version": column_version,
+            "is_deleted": is_deleted,
+        }
 
 
     @staticmethod
-    def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info = None, table_to_schema_map = {}):
-        """Creates the catalog for the calling pipeline. Runs in a separate thread."""
-        [pipeline_name, now] = [pipeline.pipeline_name, datetime.now().isoformat()]
-
+    def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info=None, table_to_schema_map={}):
+        """Persists column catalog to LanceDB. Concurrent writes via MVCC — no lock needed."""
+        pipeline_name = pipeline.pipeline_name
+        now = datetime.now().isoformat()
         namespace = pipeline_name.split('_at_')[0]
-        dbs_path = dbs_path if dbs_path is None else f'{dbs_path}/dbs/files/'
-        con = MetaStore._get_conn(dbs_path, 'catalog')
+        dbs_path = None if dbs_path is None else f'{dbs_path}/dbs/files/'
         dest_name = MetaStore.get_destination(pipeline)
         source_clean = table_source.replace('"', '')
-        pipeline_run_id = getattr(pipeline._last_trace, 'transaction_id')
-        #started_at = str(getattr(pipeline._last_trace, 'started_at'))
-        #finished_at = str(getattr(pipeline._last_trace, 'finished_at'))
+        pipeline_run_id = str(getattr(pipeline._last_trace, 'transaction_id', ''))
+
+        all_updates = []
+        for table_name, table_meta in pipeline.default_schema.tables.items():
+            if table_name.startswith('_dlt_'): continue
+
+            active_dlt_cols = {
+                name: info for name, info in table_meta.get("columns", {}).items()
+                if not name.startswith("_dlt_")
+            }
+
+            orig_table_name = table_to_schema_map.get(table_name, table_name) \
+                if isinstance(table_to_schema_map, dict) else table_name
+
+            all_updates.append((table_name, active_dlt_cols, orig_table_name))
+
+        tbl = MetaStore._get_table(dbs_path)
+        con = MetaStore._get_duckdb_conn(dbs_path)
 
         try:
-            MetaStore.create_catalog_table(con)
+            existing = con.execute("""
+                SELECT
+                    table_name,
+                    original_column_name,
+                    data_type,
+                    column_version,
+                    is_deleted,
+                    column_name
+                FROM column_catalog
+                WHERE pipeline = ?
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY table_name, original_column_name
+                    ORDER BY column_version DESC
+                ) = 1
+            """, (pipeline_name,)).fetchall()
 
-            for table_name, table_meta in pipeline.default_schema.tables.items():
-                if table_name.startswith('_dlt_'): continue
-
-                rows = con.execute("""
-                    SELECT t1.original_column_name, t1.data_type, t1.column_version,
-                           t1.is_deleted, t1.column_name
-                    FROM column_catalog t1
-                    INNER JOIN (
-                        SELECT original_column_name, MAX(column_version) AS max_version
-                        FROM column_catalog
-                        WHERE table_name = ? AND pipeline = ?
-                        GROUP BY original_column_name
-                    ) t2 ON  t1.original_column_name = t2.original_column_name
-                         AND t1.column_version        = t2.max_version
-                    WHERE t1.table_name = ? AND t1.pipeline = ?
-                """, (table_name, pipeline_name, table_name, pipeline_name)).fetchall()
-
-                db_map = {row["original_column_name"]: dict(row) for row in rows}
-
-                active_dlt_cols = {
-                    name: info for name, info in table_meta.get("columns", {}).items()
-                    if not name.startswith("_dlt_")
+            db_map = {}
+            for row in existing:
+                table, orig_col, dtype, version, deleted, col_name = row
+                db_map.setdefault(table, {})[orig_col] = {
+                    "data_type": dtype,
+                    "column_version": version,
+                    "is_deleted": deleted,
+                    "column_name": col_name,
                 }
 
-                orig_table_name = table_to_schema_map.get(table_name, table_name)\
-                      if type(table_to_schema_map) == dict else table_name
+            rows_to_insert = []
 
-                updates = []
+            for table_name, active_dlt_cols, orig_table_name in all_updates:
+                table_state = db_map.get(table_name, {})
                 processed_orig_names = set()
 
                 for name, info in active_dlt_cols.items():
                     orig_name = info.get("name", name)
-                    norm_name = MetaStore.get_normalized_name_selective(dest_name, name)
-                    new_type  = info["data_type"]
+                    new_type = info["data_type"]
                     processed_orig_names.add(orig_name)
-
-                    last_state = db_map.get(orig_name)
+                    last_state = table_state.get(orig_name)
 
                     if not last_state:
-                        updates.append((pipeline_run_id, namespace, orig_table_name, table_name, source_clean, dest_name, pipeline_name, now, orig_name, orig_name, new_type, 1, 0))
+                        rows_to_insert.append(MetaStore._build_catalog_row(
+                            pipeline_run_id, namespace, orig_table_name, table_name,
+                            source_clean, dest_name, pipeline_name, now,
+                            orig_name, orig_name, new_type, 1, 0
+                        ))
                     else:
-                        if last_state['data_type'] != new_type or last_state['is_deleted']:
-                            new_version = int(last_state['column_version']) + 1
-                            updates.append((pipeline_run_id, namespace, orig_table_name, table_name, source_clean, dest_name, pipeline_name, now, orig_name, orig_name, new_type, new_version, 0))
+                        if last_state["data_type"] != new_type or last_state["is_deleted"]:
+                            rows_to_insert.append(MetaStore._build_catalog_row(
+                                pipeline_run_id, namespace, orig_table_name, table_name,
+                                source_clean, dest_name, pipeline_name, now,
+                                orig_name, orig_name, new_type,
+                                int(last_state["column_version"]) + 1, 0
+                            ))
 
-                for orig_name, last_state in db_map.items():
-                    if orig_name not in processed_orig_names and not last_state['is_deleted']:
-                        new_version = int(last_state['column_version']) + 1
-                        updates.append((pipeline_run_id, namespace, orig_table_name, table_name, source_clean, dest_name, pipeline_name, now, orig_name, last_state['column_name'], last_state['data_type'], new_version, 1))
+                for orig_name, last_state in table_state.items():
+                    if orig_name not in processed_orig_names and not last_state["is_deleted"]:
+                        rows_to_insert.append(MetaStore._build_catalog_row(
+                            pipeline_run_id, namespace, orig_table_name, table_name,
+                            source_clean, dest_name, pipeline_name, now,
+                            orig_name, last_state["column_name"], last_state["data_type"],
+                            int(last_state["column_version"]) + 1, 1
+                        ))
 
-                if updates:
-                    con.executemany("""
-                        INSERT INTO column_catalog
-                        (pipeline_run_id, namespace, original_table_name, table_name, source_store, dest_store, pipeline, ingested_at,
-                         original_column_name, column_name, data_type, column_version, is_deleted)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, updates)
-            con.commit()
+            if rows_to_insert:
+                tbl.add(rows_to_insert)
+                if tbl.version % 100 == 0:
+                    MetaStore.compact_catalog(dbs_path)
 
         except Exception as e:
-            con.rollback()
             print(f"Catalog Evolution Update Failed: {e}")
 
         finally:
@@ -143,21 +186,79 @@ class MetaStore:
 
 
     @staticmethod
+    def get_pipeline_metadata(pipeline: str, dbs_path=None):
+        try:
+            con = MetaStore._get_duckdb_conn(dbs_path)
+            result = con.execute("""
+                SELECT column_name AS name, table_name, source_store
+                FROM column_catalog
+                WHERE pipeline = ?
+            """, (pipeline.replace('-', '_'),)).fetchall()
+            con.close()
+            return [{"name": r[0], "table_name": r[1], "source_store": r[2]} for r in result]
+        except Exception as err:
+            print(f'Error while loading catalog: {err}')
+            return err
+
+
+    @staticmethod
+    def get_table_history(table_name: str, pipeline: str, dbs_path=None):
+        """Returns full version history for a table's columns."""
+        try:
+            con = MetaStore._get_duckdb_conn(dbs_path)
+            result = con.execute("""
+                SELECT original_column_name, data_type, column_version,
+                       is_deleted, ingested_at
+                FROM column_catalog
+                WHERE table_name = ? AND pipeline = ?
+                ORDER BY original_column_name, column_version
+            """, (table_name, pipeline)).fetchall()
+            con.close()
+            return result
+        except Exception as err:
+            print(f'Error while loading table history: {err}')
+            return err
+
+
+    @staticmethod
+    def get_current_schema(table_name: str, pipeline: str, dbs_path=None):
+        """Returns only the latest non-deleted version of each column."""
+        try:
+            con = MetaStore._get_duckdb_conn(dbs_path)
+            result = con.execute("""
+                SELECT original_column_name, column_name,
+                       data_type, column_version, ingested_at
+                FROM column_catalog
+                WHERE table_name = ?
+                  AND pipeline   = ?
+                  AND is_deleted = 0
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY original_column_name
+                    ORDER BY column_version DESC
+                ) = 1
+                ORDER BY original_column_name
+            """, (table_name, pipeline)).fetchall()
+            con.close()
+            return result
+        except Exception as err:
+            print(f'Error while loading current schema: {err}')
+            return err
+
+
+    @staticmethod
     def get_normalized_name_selective(destination_type: str, column_name: str) -> str:
         if not column_name: return "unnamed_column"
-
         target = destination_type.lower()
-
         if target == 'bigquery': return column_name
         if target in ['postgres', 'postgresql', 'athena', 'redshift']: return column_name.lower()
         if target == 'snowflake': return column_name.upper()
-
         return column_name
 
 
     @staticmethod
     def get_destination(pipeline):
-        creds = getattr(pipeline.destination.configuration, 'credentials', None) or pipeline.destination.config_params
+        creds = getattr(pipeline.destination.configuration, 'credentials', None) \
+            or pipeline.destination.config_params
         if hasattr(creds, 'password'): creds.password = '************'
         if isinstance(creds, dict):
             destination_str = json.dumps({k: str(v) for k, v in creds.items() if k != 'password'})
@@ -171,43 +272,11 @@ class MetaStore:
 
 
     @staticmethod
-    def get_pipeline_metadata(pipeline: str):
-        try:
-            con    = MetaStore._get_conn(db_name='catalog')
-            result = con.execute(
-                "SELECT column_name as name, table_name, source_store FROM column_catalog WHERE pipeline = ?", (pipeline.replace('-','_'),)
-            ).fetchall()
-            con.close()
-            return [dict(row) for row in result]
-        except Exception as err:
-            print('Error while loading catalog '+str(err))
-            return err
-    
-
-    def create_catalog_table(con):
-        exists = con.execute("""
-                SELECT 1 FROM sqlite_master WHERE type='table' AND name='column_catalog'
-            """).fetchone()
-        
-        if not exists:
-            con.execute("""
-                CREATE TABLE IF NOT EXISTS column_catalog (
-                    namespace TEXT,
-                    table_name TEXT,
-                    source_store TEXT,
-                    dest_store TEXT,
-                    source_file TEXT,
-                    pipeline TEXT,
-                    ingested_at TEXT,
-                    original_column_name TEXT,
-                    column_name TEXT,
-                    data_type TEXT,
-                    column_version INTEGER,
-                    is_deleted INTEGER,
-                    is_current INTEGER
-                )
-            """)
-            con.execute("CREATE INDEX idx_pipeline_table ON column_catalog(pipeline, table_name)")
-            con.execute("CREATE INDEX idx_orig_col ON column_catalog(original_column_name)")
-            con.execute("CREATE INDEX idx_version ON column_catalog(column_version)")
-            con.commit()
+    def compact_catalog(dbs_path=None, older_than_days=30):
+        from datetime import timedelta
+        lance_path = MetaStore._get_lance_path(dbs_path)
+        db = lancedb.connect(lance_path)
+        tbl = db.open_table('column_catalog')
+        tbl.cleanup_old_versions(older_than=timedelta(days=older_than_days))
+        tbl.compact_files()
+        print("✅ Catalog compacted")
