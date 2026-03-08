@@ -5,6 +5,7 @@ from typing import Iterator
 import polars as pl
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+from src.utils.BucketConnector import get_bucket_credentials
 from src.utils.metastore.meta_storage import MetaStore
 import re
 
@@ -13,26 +14,38 @@ logger = PipelineLogger()
 
 logger.info("Starting transformation pipeline", extra={'stage': 'initialization', 'template_type': 'transform'})
 
+# Bellow mapping: namespace = Bucket.namespace
+namespace = %namespace%
+
+# Bellow mapping: connection_name = Bucket.connection_name (S3 connection name)
+connection_name = %connection_name%
+
+logger.info("Fetching S3 connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
+secret = get_bucket_credentials(namespace, connection_name)
+
 """
 The pipeline run in a different process/sub-process
 hence the different print statement as this is how it
 will communicate with the main process about the progress
 """
 
-namespace = %namespace%
-
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
-file_pattern, bucket_url = %file_pattern%, %bucket_url%
+bucket_url, file_pattern = %bucket_url%, %file_pattern%
 logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': bucket_url, 'file_pattern': file_pattern})
-files = filesystem(bucket_url=bucket_url, file_glob=file_pattern)
+files = filesystem(
+    bucket_url=bucket_url, file_glob=file_pattern,
+    credentials={
+        'aws_access_key_id': secret['access_key_id'],
+        'aws_secret_access_key': secret['secret_access_key'],
+        'region_name': secret.get('region', 'us-east-1')
+    }
+)
 
 @dlt.transformer()
 def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterator[TDataItems]:
-    print('Starting tranformation(s)', flush=True)
     logger.info("Starting data transformations", extra={'stage': 'data_transformation'})
     
-    total_files_processed = 0
-    total_rows_processed = 0
+    total_files_processed, total_rows_processed = 0, 0
     
     for cur_file in files_list:
         logger.debug("Processing file", extra={'stage': 'file_processing', 'file_name': str(cur_file)})
@@ -102,15 +115,13 @@ def read_file_and_transform_fields(files_list: Iterator[FileItemDict]) -> Iterat
                 })
                 
                 yield batch.rows(named=True)
-
-    
+            
     logger.info("All transformations completed", extra={
         'stage': 'transformation_summary',
         'total_files_processed': total_files_processed,
         'total_rows_processed': total_rows_processed
     })
 
-print('Starting the pipeline', flush=True)
 logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
 
 # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table

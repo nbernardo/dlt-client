@@ -1,5 +1,6 @@
 import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
+import { ImportSourceType, WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "../SqlDBComponent.js";
@@ -38,14 +39,14 @@ export class TransformRow extends ViewComponent {
 	/** @Prop @type { Map<String, Aggreg> } */ aggregations = new Map();
 	/** @Prop */ tableSource;
 
-	/** @type { Transformation } */
-	$parent;
+	/** @type { Transformation } */ $parent;
 
 	stOnRender(data) {
-		const { dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField, aggregations } = data;		
+		const { dataSources, rowId, importFields, tablesFieldsMap, isImport, isNewField, aggregations, sourceFileName } = data;		
 		this.fieldList = Array.isArray(tablesFieldsMap) ? [{name: '- No Field -'}, ...tablesFieldsMap] : tablesFieldsMap;
+		
 		this.databaseFields = tablesFieldsMap, this.rowId = rowId, this.isImport = isImport;
-		this.configData = { ...importFields, dataSources, aggregations };		
+		this.configData = { ...importFields, dataSources, aggregations, sourceFileName };
 		this.isNewField = (isNewField === true || importFields?.isNewField === true) ? true : false;
 	}
 
@@ -59,13 +60,15 @@ export class TransformRow extends ViewComponent {
 		if(this.isImport && this.isSourceSQL) await sleepForSec(20);
 
 		if(this.isImport === true && String(this.configData.table).indexOf('.') > 0 && this.isSourceSQL){ 
-			let schemas = Object.keys(this.tableSource), tablePaths = [];
-			for(const schema of schemas){
-				const tables = Object.keys(this.tableSource[schema]);
-				for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
+			if(this.tableSource){
+				let schemas = Object.keys(this.tableSource), tablePaths = [];
+				for(const schema of schemas){
+					const tables = Object.keys(this.tableSource[schema]);
+					for(const table of tables) tablePaths.push({ name: `${schema}.${table}` })
+				}
+				this.dataSourceList = tablePaths;
+				await sleepForSec(500);
 			}
-			this.dataSourceList = tablePaths;
-			await sleepForSec(500);
 		}
 
 		this.onChangeSelectedSource();
@@ -78,13 +81,25 @@ export class TransformRow extends ViewComponent {
 			if((value?.trim() === 'FILTER') && this.selectedField.value !== '- No Field -')
 				this.selectedField = '- No Field -';
 
-			this.transformType = value?.trim();
-			this.updateTransformValue({ type: this.transformType });
+			this.transformType = value?.trim(), this.updateTransformValue({ type: value?.trim() });
+			// In case it changed from aggregation type to another one them removes tll selected aggregations
+			[...this.aggregations].forEach(([_, aggreg]) =>  aggreg.removeMe());
 		});
 
+		const fieldList = this.fieldList.value;
+
 		if (this.configData !== null) await this.handleConfigData();
+		
+		if(this.configData.sourceFileName && Array.isArray(Object.values(fieldList)))
+			this.fieldList = Object.values(fieldList)[0];
+		if(!this.fieldList.value && WorkSpaceController.typeOfImportSource == ImportSourceType.REGULAR_BUCKET)
+			this.fieldList = this.$parent.sourceNode.filesFromList.value;
 
 		const aggregSettings = Object.values(this.configData.aggregations);
+		
+		if(WorkSpaceController.typeOfImportSource == ImportSourceType.REGULAR_BUCKET)
+			await sleepForSec(500);
+
 		for(const aggreg of aggregSettings) this.addAggregation(aggreg);
 
 	}
@@ -106,15 +121,15 @@ export class TransformRow extends ViewComponent {
 	}
 
 	removeMe() {
-		const obj = this;
+		const obj = this, inputGroup = document.getElementById(`aggreg_group_${this.rowId}`);
 		function handleDeletion() {
 			obj.unload(), obj.$parent.removeField(obj.rowId);
 		}
 		if ((this.configData !== null && this.$parent.confirmModification === false && this.isImport) && this.$parent.$parent.isAnyDiagramActive) 
 			return this.$parent.confirmActionDialog(handleDeletion);
 		handleDeletion(this);
-		document.getElementById(`aggreg_group_${this.rowId}`).innerHTML = '';
-		[...obj.aggregations].forEach(([_, aggreg]) => aggreg.unload());
+		inputGroup.innerHTML = '', inputGroup.style.display = 'none';
+		[...obj.aggregations].forEach(([_, aggreg]) =>  aggreg.removeMe());
 	}
 
 	displayTransformationError = (error) => TransformExecution.validationErrDisplay(this.rowId, error);

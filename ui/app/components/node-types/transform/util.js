@@ -1,12 +1,33 @@
+import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { SqlDBComponent } from "../SqlDBComponent.js";
 import { Aggreg } from "./aggregation/Aggreg.js";
 import { TransformRow } from "./TransformRow.js";
 
-/** @param { TransformRow } obj  */
+/** 
+ * newValue correspondes to the table and file name which data is pulled from
+ * @param { TransformRow } obj  
+ * @param { String } newValue
+ * */
 export async function onDataSourceSelect(obj, newValue){
 
-    let fieldList = null, dataSource;
-    if(![null,undefined].includes(obj.tableSource) && obj.configData !== null){
+    let fieldList = null, dataSource, secretName;
+    const isSourceSQL = obj.$parent?.sourceNode?.getName() === SqlDBComponent.name;
+
+    // Secret is retrieved in case the source is 
+    // a bucket in the cloud which authentication
+    if(WorkSpaceController.importCloudSecretName && !isSourceSQL) 
+        secretName = WorkSpaceController.importCloudSecretName;
+    else
+        secretName = obj.$parent.sourceNode.selectedSecret.value;
+    
+
+    // In case the source node is Cloud bucket with authentication
+    if(![null, undefined, ''].includes(secretName) && !isSourceSQL){
+        dataSource = obj.selectedSource.value;
+        fieldList = obj.databaseFields[dataSource.trim()];
+    }
+    // In case we're importing existing pipeline to view the diragram in the canvas
+    else if(![null,undefined].includes(obj.tableSource) && obj.configData !== null){
     
         let table = null, schema = null;
         table = obj.tableSource[newValue];
@@ -17,23 +38,32 @@ export async function onDataSourceSelect(obj, newValue){
         }
     
         fieldList = table.map(itm => ({ name: itm.column }));
+    
+    // In case the source is either SQL Database or filesystem
     }else{
         if(!newValue) return;
-        if(obj.$parent?.sourceNode?.getName() === SqlDBComponent.name) obj.isSourceSQL = true;
+        obj.isSourceSQL = isSourceSQL;
         if(!obj.isSourceSQL){
             dataSource = newValue.length > 0 && newValue.trim().replace('*',''); //If it's file will be filename, id DB it'll be table name
             await obj.wspaceService.handleCsvSourceFields(dataSource)
             fieldList = await obj.wspaceService.getCsvDataSourceFields(dataSource);
         }else{
-            if(obj.databaseFields[newValue])
-                fieldList = obj.databaseFields[newValue].map(itm => ({ name: itm.column }));
+            if(obj.databaseFields[newValue]){
+                if(!obj.databaseFields[newValue][0].name)
+                    fieldList = obj.databaseFields[newValue].map(itm => ({ name: itm.column }));
+                else
+                    fieldList = obj.databaseFields[newValue];
+            }
             else
                 fieldList = '';
         }
     }
     
-    fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
-    const allFields = [{name: '- No Field -'}, ...fieldList];
+    if(!fieldList) return;
+    if(Array.isArray(fieldList))
+        fieldList = fieldList.map(itm => ({ ...itm, name: itm.name.replace(/\"/g,'') }));
+
+    const allFields = [{name: '- No Field -'}, ...(fieldList || [])];
     
     obj.fieldList = allFields;
     [...obj.aggregations].forEach(([_, aggreg]) => aggreg.fieldsList = allFields);
@@ -51,7 +81,14 @@ export async function handleConfigData(obj) {
         dataSource !== undefined ? obj.selectedSource = dataSource.replace('*','') : '';// || dataSources;
         await sleepForSec(100);
     }
-    field !== undefined ? obj.selectedField = field : '';
+
+    // The if statement handles edge case for when importing from Metadata
+    if(obj.configData.sourceFileName && obj.isImport === true){
+			obj.selectedSource = obj.configData.sourceFileName;
+			setTimeout(() => { obj.selectedField = obj.configData.field }, 500);
+    }else
+        field !== undefined ? obj.selectedField = field : '';
+
     type !== undefined ? obj.selectedType = type : '';
 
     if (type === 'CODE') document.getElementById(`${obj.rowId}-codeTransform`).value = transform;
@@ -85,3 +122,5 @@ export function onChangeSelectedSource(obj){
 }
 
 export const IsObject = (elm) => Object.prototype.toString.call(elm) === '[object Object]'
+
+export const IsString = (elm) => Object.prototype.toString.call(elm) === '[object String]'

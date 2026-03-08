@@ -177,6 +177,9 @@ class SecretManager(SecretManagerType):
         elif not edit and not str(path).startswith('main/db/'):
             path = 'metadata' if path == 'metadata' else 'main/api/'+path
         try:
+            if not SecretManager.vault_instance.is_authenticated():
+                SecretManager.ppline_connect_to_vault()
+                
             secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
                 path=path,
                 mount_point=namespace,

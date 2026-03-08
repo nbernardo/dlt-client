@@ -5,6 +5,7 @@ import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { InputDropdown } from "../../util/InputDropdownUtil.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
+import { Transformation } from "./Transformation.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
 
@@ -38,9 +39,11 @@ export class Bucket extends AbstractNode {
 	/** @Prop */ formWrapClass = '_' + UUIDUtil.newId();
 	/** @Prop */ showMoreFileOptions = false;
 	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef = null;
-	/** @Prop @type { MoreOptionsMenu } */ moreOptionsRef = null;
+	/** @Prop @type { Transformation } */ transformationStep = false;
 
 	/** @Prop */ showLoading = false;
+	/** @Prop */ lateListCloudObjects = false;
+
 	/**
 	 * @Inject @Path services/
 	 * @type { WorkspaceService } */
@@ -53,15 +56,19 @@ export class Bucket extends AbstractNode {
 
 	filesFromList = [];
 	bucketObjects = [];
+	bucketObjectsFieldMaps = [];
 	selectedSecret;
+	
+	/** @Prop */ bucketObjectsSchemaMap;
 
 	/* The id will be passed when instantiating Bucket dinamically through the
 	 * Component.new(type, param) where for para nodeId will be passed  */
 	stOnRender(data) {
 		const { 
-			nodeId, isImport, bucketUrl, filePattern, primaryKey, 
+			nodeId, isImport, bucketUrl, filePattern, primaryKey, metadata,
 			bucketFileSource, aiGenerated, url, file, connectionName
 		} = data;
+
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		if(isImport) this.showLoading = true;
@@ -70,15 +77,14 @@ export class Bucket extends AbstractNode {
 		if(primaryKey) this.sourcePrimaryKey = primaryKey;
 		if(bucketFileSource) this.bucketFileSource = bucketFileSource;
 
-		this.importFields = { bucketUrl, url, filePattern, file, connectionName };
+		this.importFields = { bucketUrl, url, filePattern, file, connectionName, metadata };
 		this.aiGenerated = aiGenerated;
 
 		setTimeout(() => this.showMoreFileOptions = true, 5000);
 	}
 
 	async getFilesList(){
-		const result = await this.wspaceService.listFiles();
-		this.filesFromList = (result || []).map(file => ({ ...file, name: `${file.name.split('.').slice(0,-1)}*.${file.type}`, file: file.name }));
+		this.filesFromList = await this.wspaceService.listFiles();
 	}
 
 	async reloadMe(){
@@ -88,6 +94,7 @@ export class Bucket extends AbstractNode {
 	}
 
 	async stAfterInit() {
+
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 		data['bucketFileSource'] = 1;
 		data['namespace'] = await UserService.getNamespace();
@@ -97,6 +104,16 @@ export class Bucket extends AbstractNode {
 		if ([false, undefined].includes(this.isImport) || this.aiGenerated) this.setupOnChangeListen();
 
 		this.secretsList = (await WorkspaceService.listSecrets(3)).filter(itm => itm.host != 'None');
+		
+		if(this.importFields.connectionName) {
+			this.setupOnChangeListen();
+			this.onOutputConnection();
+			this.bucketFileSource = 2;
+			this.lateListCloudObjects = true;
+
+			setTimeout(() => this.selectedSecret = this.importFields.connectionName, 500);
+			return this.showLoading = false;
+		};
 
 		if(this.aiGenerated){
 			const bucketUrl = this.importFields.url ? this.importFields.url : this.importFields.bucketUrl;
@@ -115,8 +132,10 @@ export class Bucket extends AbstractNode {
 			// DuckDBOutput, in case isImport == true, this event is emitted when data source/files are listed
 			this.notifyReadiness();
 			this.selectedSecret = this.importFields.connectionName;
-			if(this.importFields.connectionName) 
-				this.bucketObjects = await WorkspaceService.getBucketObjects(this.importFields.connectionName);
+			if(this.importFields.connectionName){
+				const { files, schemas } = await WorkspaceService.getBucketObjects(this.importFields.connectionName);
+				this.bucketObjects = files, this.bucketObjectsSchemaMap = schemas;
+			}
 
 			this.selectedFilePattern = this.filePattern.value;
 			if(this.bucketFileSource.value === '2'){
@@ -143,16 +162,19 @@ export class Bucket extends AbstractNode {
 	setupOnChangeListen() {
 		const mainContnr = document.querySelector('.'+this.cmpInternalId);
 		this.bucketFileSource.onChange(async (newValue) => {
-			this.showBucketUrlInput = Number(newValue);
+			this.showBucketUrlInput = Number(newValue), this.selectedSecret = '';
 			WorkSpaceController.isS3AuthTemplate= false;
 			delete WorkSpaceController.getNode(this.nodeId).data['connectionName'];
 			if(this.showBucketUrlInput == 2){
 				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('(required)');
+				mainContnr?.querySelector('.input-file-bucket')?.removeAttribute('required');
 				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.setAttribute('required', true));
 				WorkSpaceController.isS3AuthTemplate = true;
+				this.updateTransformationRows([{ name: 'No table'}]);
 			}else{
 				mainContnr?.querySelector('.input-file-bucket')?.setAttribute('required',true);
 				mainContnr?.querySelectorAll('.input-file-bucket1')?.forEach(elm => elm.removeAttribute('required'));
+				this.updateTransformationRows(this.filesFromList.value);
 			}
 			this.setNodeData('bucketFileSource', newValue);
 		});
@@ -160,10 +182,22 @@ export class Bucket extends AbstractNode {
 		this.bucketUrl.onChange((newValue) => this.setNodeData('bucketUrl', newValue));
 
 		this.selectedSecret.onChange(async value => {
+			WorkSpaceController.isS3AuthTemplate = false;
+			if(value.trim() == '' && this.bucketFileSource.value == 2)
+				return this.updateTransformationRows([{ name: 'No table'}]);
 			if(this.bucketFileSource.value == 2){
 				this.showMoreFileOptions = true;
-				this.bucketObjects = await WorkspaceService.getBucketObjects(value);
+				WorkSpaceController.isS3AuthTemplate = true;
+				const { files, schemas } = await WorkspaceService.getBucketObjects(value);
+				this.bucketObjects = files, this.bucketObjectsFieldMaps = schemas;
 				setTimeout(() => this.showMoreFileOptions = false, 100);
+				this.setNodeData('selectedSecret', value);
+				this.updateTransformationRows(this.bucketObjects.value, schemas);
+
+				if(this.lateListCloudObjects == true){
+					this.lateListCloudObjects = false;
+					setTimeout(() => this.bucketFilePattern = this.importFields.filePattern,700);
+				}
 			}
 		});
 
@@ -268,24 +302,32 @@ export class Bucket extends AbstractNode {
 	confirmFieldName(e) {
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			e.target.blur();
-			e.target.style.color = 'black';
-			e.target.style.fontWeight = 'bold';
+			e.target.blur(), e.target.style.color = 'black', e.target.style.fontWeight = 'bold';
 		}
 	}
 
 	onOutputConnection() {
 		Bucket.handleOutputConnection(this);
+		let isCloudSource = this.bucketFileSource.value == 2, tables;
+		tables = isCloudSource ? this.bucketObjects.value : this.filesFromList.value
+
 		return {
-			tables: this.filesFromList.value,
+			tables,
+			schema: isCloudSource && this.bucketObjectsFieldMaps.value,
 			sourceNode: this,
-			nodeCount: this.nodeCount.value
+			nodeCount: this.nodeCount.value,
+			isCloudSource
 		};
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
 		Bucket.handleInputConnection(this, data, type);
+	}
+
+	updateTransformationRows(tables, schema){
+		if(this.transformationStep instanceof Transformation)
+			this.transformationStep.updateTransformationRows(tables, schema);
 	}
 
 }

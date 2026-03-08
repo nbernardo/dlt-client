@@ -6,7 +6,9 @@ from os import getenv as env
 from pathlib import Path
 from sys import path
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+from src.utils.metastore.meta_storage import MetaStore
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -39,20 +41,21 @@ database_to_connect = %source_database%
 logger.info("Establishing database connection", extra={'stage': 'database_connection', 'database': database_to_connect})
 
 credentials = ConnectionStringCredentials(connection_string)
+table_to_schema_map = {}
 
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()
 
     %destination_settings%
 
-    # Bellow mapping: tables = SqlDBComponent.source_tables
-    tables = %source_tables%
+    # Bellow mapping: original_tables = SqlDBComponent.source_tables
+    original_tables = %source_tables%
 
     # Bellow mapping: tables_pk = SqlDBComponent.primary_keys
-    tables_pk = %primary_keys%
+    original_tables_pk = %primary_keys%
     
-    logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(tables)})
-    tables = normalize_table_names(secret, tables)
+    logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(original_tables)})
+    tables, tables_pk = normalize_table_names(secret, original_tables, original_tables_pk)
 
     # Bellow mapping: schema = SqlDBComponent.schema
     schema = %schema%
@@ -63,11 +66,12 @@ def load_select_tables_from_db():
         'has_schema': schema is not None,
         'schema': schema
     })
-
+    
     if schema:
         source = []
         for idx in range(len(tables)):
             schema_name, table_name = tables[idx].split('.')
+            table_to_schema_map[f'{schema_name}_{table_name}'] = original_tables[idx]
             logger.debug("Processing table with schema", extra={
                 'stage': 'table_processing',
                 'table_name': table_name,
@@ -78,7 +82,7 @@ def load_select_tables_from_db():
             })
             
             db_table = sql_table(table=table_name,  credentials=credentials, schema=schema_name)
-            db_table.apply_hints(primary_key=tables_pk[idx])
+            #db_table.apply_hints(primary_key=tables_pk[idx], table_name=f'{schema_name}_{table_name}')
             source.append(converts_field_type(db_table, tables_pk[idx]))
 
     else:
@@ -98,7 +102,7 @@ def load_select_tables_from_db():
 
     print('Starting pipeline run', flush=True)
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
-    info = pipeline.run(source, write_disposition='merge', %table_format%)
+    info = pipeline.run(source, write_disposition='merge', refresh='drop_sources', %table_format%)
     
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:
@@ -116,6 +120,10 @@ def load_select_tables_from_db():
             'template_type': 'sql_db'
         })
     
+    catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
+    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, table_to_schema_map)
+
+    print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}')
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
 

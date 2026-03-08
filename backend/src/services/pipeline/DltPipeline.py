@@ -23,6 +23,7 @@ import re
 root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
 template_dir = f'{root_dir}/pipeline_templates'
+SUCCESS_RUN_MESSAGE = 'Pipeline run terminated successfully'
 
 
 def is_SAWarning(message):
@@ -134,7 +135,8 @@ class DltPipeline:
                 line = result.stdout.readline()
                 time.sleep(0.1)
 
-                if line == '': continue
+                if line == '' or line.strip() == 'import pkg_resources' or line.strip().__contains__('import pkg_resources'): 
+                    continue
                 if not line: break
                 line = line.strip()
                 
@@ -180,9 +182,7 @@ class DltPipeline:
             handle_pipeline_log(f'PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
 
-        #message, status = 'Pipeline run terminated successfully', True
-        
-        SUCCESS_RUN_MESSAGE = 'Pipeline run terminated successfully'
+        message, status = SUCCESS_RUN_MESSAGE, True
         
         error_messages, warning_status = None, False
         if result.returncode != 0 and not (context and context.action_type == 'UPDATE' and result.returncode == 2):
@@ -198,20 +198,22 @@ class DltPipeline:
                     message, status = SUCCESS_RUN_MESSAGE, True
                 elif context and status == False:
                     context.emit_ppline_trace(message, error=True)
+                
+
+        if context:
+            context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
+            handle_pipeline_log(f'pipeline.success.conclusion', logger)
         
         print("Return Code:", result.returncode)
         print("Standard Output:", result.stdout.read())
         print("Standard Error:", message if error_messages != None else None)
 
-        if error_messages is not None and status != True and warning_status == False:
-            error_text = '\n'.join(error_messages).lower()
-            if 'terminated successfully' in error_text:
-                status = True
-                message = SUCCESS_RUN_MESSAGE
-            else:
+        if(not(message.strip() == SUCCESS_RUN_MESSAGE)):
+            if (error_messages != None or result.returncode == 1) and warning_status == False:
                 status = False
-        else:
-            status = True
+            else:
+                status = status if len(result.stderr.read()) > 0 else True
+
         return { 'status': status, 'message': message }
 
 
@@ -255,7 +257,7 @@ class DltPipeline:
 
         return {
             'status': True,
-            'message': 'Pipeline run terminated successfully'
+            'message': SUCCESS_RUN_MESSAGE
         }
 
 
@@ -266,116 +268,55 @@ class DltPipeline:
         """
         self.update(file_path, file_name, data, context)
 
+    @staticmethod
+    def return_template(file_name, tplt):
+        with open(f'{file_name}', 'r', encoding='utf-8') as file:
+            tplt = file.read()
+        return tplt
 
     @staticmethod
     def get_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/simple.txt'
-
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
-
+        """ This is template handling method """
+        return DltPipeline.return_template(f'{template_dir}/simple.txt', '')
 
     @staticmethod
     def get_s3_no_auth_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/simple_s3_anon_login.txt'
+        """ This is template handling method """
+        return DltPipeline.return_template(f'{template_dir}/simple_s3_anon_login.txt', '')
 
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
 
     @staticmethod
     def get_s3_auth_template():
-        """
-        This is template handling method for authenticated S3 access
-        """
-        tplt = ''
-        file_name = f'{template_dir}/simple_s3_auth.txt'
+        return DltPipeline.return_template(f'{template_dir}/simple_s3_auth.txt', '')
 
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
+    @staticmethod
+    def get_s3_auth_transform_template():
+        return DltPipeline.return_template(f'{template_dir}/simple_s3_auth_transform_field.txt', '')
 
     @staticmethod
     def get_api_templete():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/api.txt'
+        return DltPipeline.return_template(f'{template_dir}/api.txt', '')
 
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
-    
-    
     @staticmethod
     def get_transform_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/simple_transform_field.txt'
-
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
-    
+        return DltPipeline.return_template(f'{template_dir}/simple_transform_field.txt', '')
     
     @staticmethod
     def get_sql_db_template(tamplate_name = None):
-        """
-        This is template handling method
-        """
-        tplt = ''
+        """ This is template handling method """
         tplt_file = tamplate_name if tamplate_name != None else 'sql_db.txt'
-        file_name = f'{template_dir}/{tplt_file}'
-
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt    
+        return DltPipeline.return_template(f'{template_dir}/{tplt_file}', '')
     
-
     @staticmethod
     def get_mssql_db_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/sql_server.txt'
-
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt    
-
+        """ This is template handling method """
+        return DltPipeline.return_template(f'{template_dir}/sql_server.txt', '')
 
     @staticmethod
     def get_dlt_code_template():
-        """
-        This is template handling method
-        """
-        tplt = ''
-        file_name = f'{template_dir}/dlt_code.txt'
+        """ This is template handling method """
+        return DltPipeline.return_template(f'{template_dir}/dlt_code.txt', '')
 
-        with open(f'{file_name}', 'r', encoding='utf-8') as file:
-            tplt = file.read()
-
-        return tplt
 
     def save_instance(self, ppline_name, content):
         """
@@ -511,10 +452,10 @@ class DltPipeline:
                 handle_pipeline_log(f'SCHEDULE PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
                 context.emit_ppline_job_trace(message, error=True)
             else:
-                if(line.__contains__('Pipeline run terminated successfully')):
+                if(line.__contains__(SUCCESS_RUN_MESSAGE)):
                     if(has_ppline_job('end',job_execution_id)):
                         pass
-                context.emit_ppline_job_trace('Pipeline run terminated successfully')
+                context.emit_ppline_job_trace(SUCCESS_RUN_MESSAGE)
             
             error_messages, status = None, True
             if result.returncode != 0:
@@ -528,8 +469,12 @@ class DltPipeline:
                     context.emit_ppline_trace(error_messages, warn=True)
                 else:
                     message = '\n'.join(error_messages[1:])
-                    context.emit_ppline_job_trace(message, error=True)
-                    status = False
+                    if message.__contains__('import pkg_resources'):
+                        status = True
+                    if status == False:
+                        context.emit_ppline_job_trace(message, error=True)
+                        status = False
+
 
             if(status):
                 context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
@@ -577,7 +522,7 @@ class DltPipeline:
 
         if is_paused != 'paused':
             from services.workspace.Workspace import Workspace
-            Workspace.schedule_pipeline_job(namespace, ppline)
+            Workspace.schedule_pipeline_job(namespace, ppline, unpause=True)
         else:
             tag_name = f'{namespace}_{ppline}'
             if schedule.get_jobs(tag_name):
@@ -602,25 +547,37 @@ class DltPipeline:
 
     @staticmethod
     def read_pipeline(file_path, namespace):
-
+        from utils.metastore.meta_storage import MetaStore 
         try:
             code = ''
             with open(file_path, 'r') as file:
                 code = file.read()
                 pipeline_code = json.loads(code)
 
-            node_list = pipeline_code['content']['Home']['data']
-            database_obj = { id: node for id, node in node_list.items() if node['name'] == 'SqlDBComponent' }
-
             datasource_details = None
-            if(len(database_obj.keys()) > 0):
+            node_list = pipeline_code['content']['Home']['data']
+            database_obj = { node['name']: node for _, node in node_list.items() if (node['name'] in ['Bucket','SqlDBComponent']) }
 
-                node = list(database_obj.values())[0]
+            if(len(database_obj.keys()) > 0): datasource_details = {}
+            pipeline_name = file_path.split('/')[-1].replace('.json','')
+
+            if('SqlDBComponent' in database_obj):
+
+                node = database_obj['SqlDBComponent']
                 connection_name = node['data']['connectionName']
-                datasource_details = SQLDatabase.get_tables_list(namespace, connection_name)
+                datasource_details['SqlDBComponent'] = {}
+                datasource_details['SqlDBComponent']['sourceDb'] = SQLDatabase.get_tables_list(namespace, connection_name)
+                datasource_details['SqlDBComponent']['metadata'] = MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}')
             
-            if not(not(datasource_details)):
-                del datasource_details['details']
+            elif ('Bucket' in database_obj):
+                
+                node = database_obj['Bucket']
+                connection_name = node['data'].get('connectionName')
+                if connection_name:
+                    datasource_details['Bucket'] = MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}')
+            
+            #if not(not(datasource_details)):
+            #    del datasource_details['details']
                 
             return pipeline_code, datasource_details
         
@@ -635,8 +592,8 @@ class DltPipeline:
     
 
     @staticmethod
-    def get_file_data_transformation_preview(script):
-        result = run_transform_preview(None, None, None, script)
+    def get_file_data_transformation_preview(script, connection_name, namespace):
+        result = run_transform_preview(namespace, None, connection_name, script)
         return result
     
 
@@ -696,7 +653,8 @@ def check_invalid_code(code):
 
     for line in code_lines:
 
-        if FORBIDDEN_CALLS_REGEX.search(line) or FORBIDDEN_DUNDER_REGEX.search(line):
+        if (FORBIDDEN_CALLS_REGEX.search(line) or FORBIDDEN_DUNDER_REGEX.search(line))\
+            and not line.__contains__('__dlt__transaction_id:{'):
             raise RuntimeError('Invalid code provided which might cause security breach')
 
         line_of_code = line.strip()
@@ -724,15 +682,31 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
         return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
 
     try:
-        engine, inspector = None, None
+        engine, inspector = None, None 
+        bucket_credentials, bucket_name = None, None
+
         inner_env = { 'pl': pl }
 
         if(namespace != None):
-            engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
-            inspector = inspect(engine)
+            if connection_name == None: connection_name = ''
+            if dbengine == None and connection_name.strip() != '':
+                from utils.BucketConnector import get_bucket_credentials
+                credentials = get_bucket_credentials(namespace,connection_name)
+                bucket_credentials = {
+                    "aws_access_key_id": credentials.get('access_key_id'),
+                    "aws_secret_access_key": credentials.get('secret_access_key'),
+                    "aws_region": credentials.get('region'),
+                }
+                bucket_name = f's3://{credentials.get('bucket_name')}/'
+
+            else:
+                if dbengine != None:
+                    engine = SQLDatabase.get_connnection(namespace,dbengine,connection_name)
+                    inspector = inspect(engine)
         
             inner_env = {
-                'engine': engine, 'pl': pl, 'inspector': inspector,
+                'engine': engine, 'pl': pl, 'inspector': inspector, 
+                'bucket_credentials': bucket_credentials, 'bucket_name': bucket_name,
                 'column_type_conversion': column_type_conversion,
             }
 

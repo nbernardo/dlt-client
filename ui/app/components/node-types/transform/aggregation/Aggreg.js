@@ -75,14 +75,15 @@ export class Aggreg extends ViewComponent {
 		this.updateTransformation({ aggregField });
 
 	removeMe(){
-		document.getElementById(`aggreg_row_${this.cmpInternalId}`).remove();
 		//Traces all aggregation in a given field/TransformRow
 		this.$parent.aggregations.delete(this.cmpInternalId);
 		//Add the agregation transformation to the Transform component
 		this.$parent.$parent.transformPieces.delete(this.cmpInternalId);
 		this.$parent.$parent.unregisterAggregation(this.$parent.rowId, this.cmpInternalId);
 		this.$parent.aggregationRemNotify();
-		this.unload();
+		try {
+			document.getElementById(`aggreg_row_${this.cmpInternalId}`).remove()
+		} catch (error) { }
 	}
 
 	updateTransformation(value){
