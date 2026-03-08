@@ -13,20 +13,15 @@
 		<div class="action-icon counter-icon generic-context-drop-menu data-base-fields-submenu" 
 			 style="cursor: pointer; border: none; display: flex; font-size: 13px; font-weight: bold;">
 			:: Fields <span class="menu-added-arrow" style="padding-top: 3px; margin-top: -11px;">⌄</span>
-			<ul class="submenu">
-				<li style="background: #f8f8f8 !important; cursor:auto;">
-					&nbsp;Fields in the table
+			<ul class="submenu" (forEach)="selectedTableFields">
+				<li each="item">
+					<div class="list-item-header">
+						<span class="field-type">
+							{item.type}
+						</span> 
+						{item.name}
+					</div>
 				</li>
-				@for(field in this.selectedTableFields)
-					<li>
-						<div class="list-item-header">
-							<span class="field-type">
-								{field.type}
-							</span> 
-							{field.name}
-						</div>
-					</li>
-				@endfor
 			</ul>
 		</div>
 

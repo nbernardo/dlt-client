@@ -54,6 +54,8 @@ export class SqlEditor extends ViewComponent {
 		
 		if(this.$parent.service.fieldsByTableMap[databasename.trim()])
 			this.selectedTableFields = this.$parent.service.fieldsByTableMap[databasename.trim()];
+		if (Array.isArray(this.selectedTableFields))
+			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...this.selectedTableFields];
 
 		const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
 		this.database = `${this.dbpath}/${parseDbFilename}`;

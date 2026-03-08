@@ -27,4 +27,3 @@ See the [ARCHITECTURE.md](ARCHITECTURE.md) to follow the latest progress of the 
 2. [Scheduling a job for pipeline](https://youtu.be/OuzI65-iMos)
 
 3. [Pipeline versioning, Data transformation and File system sourceing](https://youtu.be/Do5xXC7_d8Y)
-
