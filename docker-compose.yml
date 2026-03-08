@@ -15,7 +15,7 @@ services:
       - VAULT_TOKEN=root
       - ALLOW_ORIGINS_DOCKER=*
     ports:
-      - "8006:8000"
+      - "8000:8000"
     depends_on:
       vault:
         condition: service_healthy

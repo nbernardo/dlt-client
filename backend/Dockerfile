@@ -1,6 +1,5 @@
 FROM python:3.12-slim
 
-# Instala dependências do sistema (ODBC + MSSQL)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     unixodbc \
     curl \
@@ -13,15 +12,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Instala uv e define PATH imediatamente (sem .bashrc)
+# Instala uv e define PATH.
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && rm -rf /root/.local/share/uv  # opcional: limpa cache desnecessário
+    && rm -rf /root/.local/share/uv 
 
 ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-# Copia e instala deps com uv (agora PATH está correto)
+# Copia e instala deps com uv.
 COPY requirements.txt .
 RUN uv pip install --system --no-cache-dir -r requirements.txt
 
