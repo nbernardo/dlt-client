@@ -653,7 +653,8 @@ def check_invalid_code(code):
 
     for line in code_lines:
 
-        if FORBIDDEN_CALLS_REGEX.search(line) or FORBIDDEN_DUNDER_REGEX.search(line):
+        if (FORBIDDEN_CALLS_REGEX.search(line) or FORBIDDEN_DUNDER_REGEX.search(line))\
+            and not line.__contains__('__dlt__transaction_id:{'):
             raise RuntimeError('Invalid code provided which might cause security breach')
 
         line_of_code = line.strip()
@@ -687,6 +688,7 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
         inner_env = { 'pl': pl }
 
         if(namespace != None):
+            if connection_name == None: connection_name = ''
             if dbengine == None and connection_name.strip() != '':
                 from utils.BucketConnector import get_bucket_credentials
                 credentials = get_bucket_credentials(namespace,connection_name)

@@ -59,7 +59,7 @@ class MetaStore:
 
 
     @staticmethod
-    def persist_catalog(table_source: str, dbs_path=None, pipeline=None):
+    def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info = None, table_to_schema_map = {}):
         """Creates the catalog for the calling pipeline. Runs in a separate thread."""
         [pipeline_name, now] = [pipeline.pipeline_name, datetime.now().isoformat()]
 
@@ -68,7 +68,9 @@ class MetaStore:
         con = MetaStore._get_conn(dbs_path, 'catalog')
         dest_name = MetaStore.get_destination(pipeline)
         source_clean = table_source.replace('"', '')
-        pipeline_run_id = pipeline.last_run_info.started_at
+        pipeline_run_id = getattr(pipeline._last_trace, 'transaction_id')
+        #started_at = str(getattr(pipeline._last_trace, 'started_at'))
+        #finished_at = str(getattr(pipeline._last_trace, 'finished_at'))
 
         try:
             MetaStore.create_catalog_table(con)
@@ -97,8 +99,8 @@ class MetaStore:
                     if not name.startswith("_dlt_")
                 }
 
-                schema = table_meta.get("schema")
-                orig_table_name = f'{schema+'.' if schema != '' else ''}{table_name}'
+                orig_table_name = table_to_schema_map.get(table_name, table_name)\
+                      if type(table_to_schema_map) == dict else table_name
 
                 updates = []
                 processed_orig_names = set()
