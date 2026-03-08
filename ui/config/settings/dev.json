@@ -1,8 +1,8 @@
 {
   "httpClient": {
-    "baseUrl": "http://localhost:8006"
+    "baseUrl": "http://localhost:8000"
   },
-  "websocketAddr": "ws://127.0.0.1:8006/pipeline",
+  "websocketAddr": "ws://127.0.0.1:8000/pipeline",
   "logs": {
     "default": true,
     "error": false,
@@ -16,7 +16,7 @@
     "domain": "dev-rmnn416pju788hwl.us.auth0.com",
     "clientId": "lwfP9CGSSXC3Fvo1vVhHv21Pmm4oLdBG"
   },
-  "anonymousLogin": true,
+  "anonymousLogin": false,
   "fileUploadSizeLimit": "500m",
   "maxAgentConversationTurns": null
 }
