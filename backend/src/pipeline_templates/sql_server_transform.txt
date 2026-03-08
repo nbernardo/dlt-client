@@ -14,7 +14,7 @@ logger = PipelineLogger()
 
 logger.info("Starting SQL Server transformation pipeline", extra={'stage': 'initialization', 'template_type': 'sql_server_transform'})
 
-#Adding root folder to allow import  from src
+# Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
 path.insert(0, src_path)
 path.insert(0, src_path+'/src')
@@ -53,6 +53,8 @@ schemas = %schemas%
 transformations = %transformation%
 %transformation2%
 
+table_to_schema_map = {}
+
 @dlt.source
 def polars_db_source(tables: list[str], tables_pk: list[str]):
 
@@ -60,10 +62,11 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
         # Bellow handles the edge case where the table also
         # has the namespace int it (e.g. SQL Server source) 
         resource_name = table_name.replace('.','_')
+        schema, table = table_name.split(".")
+        table_to_schema_map[resource_name] = f'{schema}.{table}'
    
         @dlt.resource(name=resource_name)
         def load_table():
-            schema, table = table_name.split(".")
             logger.info("Starting SQL Server data extraction", extra={
                 'stage': 'data_extraction',
                 'table_name': table_name,
@@ -160,8 +163,9 @@ try:
         })
 
     catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
-    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline)
+    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, load_info, table_to_schema_map)
 
+    print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}')
     print(load_info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
     

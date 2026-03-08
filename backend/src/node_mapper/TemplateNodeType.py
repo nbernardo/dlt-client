@@ -129,7 +129,7 @@ class TemplateNodeType:
         # the replacement is done by the specialized source (e.g. InputAPI, Bucket)
         template = template.replace('%ppline_dest_table%', f"'{dest_table_name}'")
         
-        if self.context.use_s3_auth: n = '\n'
+        if self.context.use_s3_auth or self.context.transformation_type == 'BUCKET': n = '\n'
 
         namespace_var = f"{n}namespace = %namespace%"
         connect_secret_vault = f"{n}SecretManager.ppline_connect_to_vault()"

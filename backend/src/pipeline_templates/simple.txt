@@ -43,11 +43,12 @@ try:
     else:
         logger.info("Pipeline execution completed", extra={'stage': 'pipeline_completion'})
     
+    catalog_table_path = f'{bucket_url}/{file_pattern}'
+    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info)
+
+    print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}')
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
-
-    catalog_table_path = f'{bucket_url}/{file_pattern}'
-    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline)
     
 except Exception as e:
     logger.error("Pipeline execution failed", extra={
