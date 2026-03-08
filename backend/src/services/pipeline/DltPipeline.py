@@ -185,9 +185,9 @@ class DltPipeline:
         message, status = SUCCESS_RUN_MESSAGE, True
         
         error_messages, warning_status = None, False
-        if result.returncode != 0 and not(context and context.action_type == 'UPDATE' and result.returncode == 2):
+        if result.returncode != 0 and not (context and context.action_type == 'UPDATE' and result.returncode == 2):
             error_messages = result.stderr.read().split('\n')
-            if(str(error_messages).__contains__('[WARNING]')):
+            if str(error_messages).__contains__('[WARNING]'):
                 if context:
                     context.emit_ppline_trace(error_messages, warn=True)
                     context.emit_ppsuccess()

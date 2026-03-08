@@ -39,5 +39,4 @@ services:
 networks:
   app-net:
   vault_network:
-    external: true
   
