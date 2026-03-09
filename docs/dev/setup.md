@@ -1,7 +1,3 @@
-⚠️ **Action required:**
-As of Mar-08-2026, we've introduced LanceDB in the project as part of the Datacatalog implementation.
-Please refere to [LanceDB setup](../lancedb/setup.md) for this project, otherwise it might cause your pipeline not to run.
-
 # Setup
 
 To see a walk-through of the setup process see <a href="https://youtu.be/XtUrSKXlOWo" target="_blank">this video</a>.
