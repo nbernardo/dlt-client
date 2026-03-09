@@ -268,7 +268,7 @@ class MetaStore:
                 for k in dir(creds)
                 if not k.startswith('_') and not callable(getattr(creds, k)) and k != 'password'
             })
-        return re.sub(r'(://[^:]+):([^@]+)@', r'\1:***@', destination_str)
+        return re.sub(r':([^@]+)@', ':***@', destination_str)
 
 
     @staticmethod
