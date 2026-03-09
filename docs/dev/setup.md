@@ -30,14 +30,20 @@ From the root of the project, cd into the backend folder:
 
 `cd backend/`
 
-Run the following command to install the necessary dependencies:
+The recommended way to set up the backend is using the project's **Makefile**. This command installs all dependencies and DuckDB extensions in one step:
 
 ```
-pip install -r requirements.txt
+make install
 ```
 
-Optional alternative install: Use uv for faster dependency installation (recommended for local dev)
-uv is a modern, much faster alternative to pip (parallel installs, better caching). It's optional and local-only for now — the project still uses pip officially.
+This will:
+
+- Install dependencies from requirements.txt (using pip by default).
+- Run setup extensions to install DuckDB community extensions (e.g., LanceDB).
+
+Optional: Use uv for faster installation (local dev only)
+
+uv is a modern, faster alternative to pip (parallel downloads, better caching). It's not required and not yet official in the project, but you can use it locally without changing anything else.
 
 1. Install uv globally (one-time):
 
@@ -50,16 +56,25 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 uv venv
 source .venv/bin/activate
-uv pip install -r requirements.txt
 ```
 
-3. Run the app with uv:
+3. Run the Makefile with uv:
 
 ```
-uv run python src/app.py
+make install
 ```
 
-This speeds up setup significantly. When we migrate to uv officially (with Makefile), we'll update these instructions.
+The Makefile will automatically detect uv and use uv pip install instead of pip (fallback to pip if uv is not available).
+
+4. Run the app:
+
+```
+python src/app.py
+```
+
+(or uv run python src/app.py if you prefer)
+
+Note: uv is optional and local-only for now. The project still uses pip officially via Makefile. When uv becomes the standard (with Makefile integration), these manual steps will be optional.
 
 Now continue with the Vault setup below...
 

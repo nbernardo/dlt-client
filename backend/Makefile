@@ -1,9 +1,15 @@
-install: pip_install extensions
+UV := $(shell command -v uv 2> /dev/null)
 
-pip_install:
+install: install-deps extensions
+
+install-deps:
+ifeq ($(UV),)
 	pip install -r requirements.txt
+else
+	uv pip install -r requirements.txt
+endif
 
-extensions: pip_install
+extensions: install-deps
 	python setup_extensions.py
 
-.PHONY: install pip_install extensions
+.PHONY: install install-deps extensions
