@@ -20,7 +20,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-# Copia e instala deps com uv.
+# Copia e instala dependencies com uv.
 COPY requirements.txt .
 RUN uv pip install --system --no-cache-dir -r requirements.txt
 
