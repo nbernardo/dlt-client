@@ -1,5 +1,6 @@
 import dlt
 from sqlalchemy import create_engine, text, inspect
+import re
 
 def column_type_conversion(columns, connection, table, schema):
 
@@ -34,30 +35,40 @@ def column_type_conversion(columns, connection, table, schema):
     return ", ".join(columns)
 
 
-@dlt.source
 def dynamic_mssql_source(
     tables: list[str],
     primary_keys: list[str],
-    connection_string: str
+    connection_string: str,
 ):
-    """Source that generates resources dynamically with injected engine"""    
-    def create_table_resource(table: str, key):
-        @dlt.resource(name=table, primary_key=key)
-        def table_data():
 
-            engine = create_engine(connection_string)
-            inspector = inspect(engine)
+    table_to_schema_map = {}
 
-            schema_name, table_name = table.split('.')
-            columns = inspector.get_columns(table_name, schema=schema_name)
-            parsed_columns = column_type_conversion(columns, engine.connect(), table_name, schema_name)
-
-            query = f"SELECT {parsed_columns} FROM {schema_name}.{table_name}"
-            result = engine.connect().execute(text(query))
+    @dlt.source
+    def source(
+        tables: list[str],
+        primary_keys: list[str],
+        connection_string: str,
+    ):
+        def create_table_resource(table: str, key):
+            resource_name = table.replace('.','_')
             
-            for row in result:
-                yield dict(row._mapping)
-        
-        return table_data
+            table_to_schema_map[resource_name] = table
+            @dlt.resource(name=resource_name, primary_key=key)
+            def table_data():
+                engine = create_engine(connection_string)
+                inspector = inspect(engine)
+
+                schema_name, table_name = table.split('.')
+                columns = inspector.get_columns(table_name, schema=schema_name)
+                parsed_columns = column_type_conversion(columns, engine.connect(), table_name, schema_name)
+
+                query = f"SELECT {parsed_columns} FROM {schema_name}.{table_name}"
+                result = engine.connect().execute(text(query))
+                
+                for row in result:
+                    yield dict(row._mapping)
+            
+            return table_data
+        return [create_table_resource(tables[index], primary_keys[index]) for index in range(len(tables))]
     
-    return [create_table_resource(tables[index], primary_keys[index]) for index in range(len(tables))]
+    return source(tables, primary_keys, connection_string), table_to_schema_map 

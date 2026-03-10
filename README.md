@@ -5,6 +5,9 @@
 e2e-Data/~DLT Client~ is an MVP Data Engineering project designed to build ETL pipelines through a web interface, using low/no-code
 features.
 
+⚠️ **Action required:**
+As of Mar-08-2026, we've introduced LanceDB in the project as part of the Datacatalog implementation.
+Please refere to [LanceDB setup](../lancedb/setup.md) for this project, otherwise it might cause your pipeline not to run.
 
 The front end is built using the <a href="https://stilljs.dev/">Still.js</a> framework and the Backend is built in 
 <a href="https://dlthub.com/">dlt-hub (Python)</a>. This is a single repository comprising both the backend and the UI.
@@ -22,8 +25,3 @@ See the [ARCHITECTURE.md](ARCHITECTURE.md) to follow the latest progress of the 
 2. [Scheduling a job for pipeline](https://youtu.be/OuzI65-iMos)
 
 3. [Pipeline versioning, Data transformation and File system sourceing](https://youtu.be/Do5xXC7_d8Y)
-
-### About the Maintainer
-
-This project is maintained by [Nakassony Bernardo](https://github.com/nbernardo), a software and data engineer with experience in cloud-native systems, distributed architectures, and Generative AI–assisted data platforms. Sponsorship supports long-term maintenance, faster AI-driven features, and a thriving open-source ecosystem.
-

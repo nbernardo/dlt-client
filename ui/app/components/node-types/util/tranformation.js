@@ -149,17 +149,24 @@ export class DatabaseTransformation {
     static transformations = {};
     static otherTransformations = {};
     static transformTypeMap = {};
+    static aggregations = {};
 
     static sourceTransformation(transformPieces, rowsConfig = []) {
-        let finalCode = '', comma = null;
+        let finalCode = '', comma = null, aggregation = null;
         DatabaseTransformation.transformations = {};
+        DatabaseTransformation.aggregations = {};
         DatabaseTransformation.otherTransformations = {};
         for (const [_, code] of [...transformPieces]) {
             let finalCode = '';
             let { type, field, transform, table, isNewField } = code;
     
             rowsConfig.push(code);
-            comma = '';//finalCode.length > 0 ? ',\n' : '';
+            comma = '', aggregation = null;//finalCode.length > 0 ? ',\n' : '';
+
+            if(type === 'AGGREG' || table === undefined) continue;
+
+            if('aggregation' in code)
+                aggregation = DatabaseTransformation.parseAggregation(code);
 
             if(type === 'CODE' && code === '') return '';
             if (type === 'CODE'){
@@ -219,7 +226,9 @@ export class DatabaseTransformation {
                 DatabaseTransformation.transformations[table] = []
 
             const prevVal = DatabaseTransformation.transformations[table];
-            DatabaseTransformation.transformations[table] = [...prevVal, finalCode];
+            DatabaseTransformation.transformations[table] = [
+                ...prevVal, aggregation != null ? aggregation : finalCode
+            ];
     
         }
         return finalCode;
@@ -240,6 +249,10 @@ export class DatabaseTransformation {
 			? `pl.col('${field}').str.to_uppercase().alias('${field}')`
 			: 'LOWER' === transform ? `pl.col('${field}').str.to_lowercase().alias('${field}')`
 				: `# pl.col('${field}') Unchenged case`;
+	}
+
+    static parseAggregation({ aggregField, aggregation, fieldAlias, field }) {
+		return { aggreg: `pl.col('${aggregField}').${aggregation}().alias('${fieldAlias}')`, field };
 	}
 
     static parseCalculate(transform = '') {

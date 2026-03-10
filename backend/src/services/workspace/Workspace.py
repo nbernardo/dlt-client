@@ -172,7 +172,9 @@ class Workspace:
 
             if _file.endswith('.duckdb') or _file.endswith('.db'):
                 ppline_name = str(_file).replace('.duckdb','')
-                if (ppline_name in ppelines): continue
+                if (ppline_name in ppelines): 
+                    if(len(ppelines[ppline_name].values()) > 0): continue
+                    
                 if _file not in result:
                     if ppline_name in ppelines:
                         del ppelines[ppline_name]
@@ -346,21 +348,10 @@ class Workspace:
                 is_withmetadata = True
                 if _file not in result:
                     result[ppline_name] = {}
-            # Support old format (single underscore) for backward compatibility
-            elif _file.endswith('_withmetadata_.py'):
-                ppline_name =_file.replace('_withmetadata_.py', '')
-                is_withmetadata = True
-                if _file not in result:
-                    result[ppline_name] = {}
 
             # Support new format (double underscore)
             if _file.endswith('__toschedule__.py') and is_withmetadata == False:
                 ppline_name =_file.replace('__toschedule__.py', '')
-                if _file not in result:
-                    result[ppline_name] = {}
-            # Support old format (single underscore) for backward compatibility
-            elif _file.endswith('_toschedule_.py') and is_withmetadata == False:
-                ppline_name =_file.replace('_toschedule_.py', '')
                 if _file not in result:
                     result[ppline_name] = {}
 
@@ -744,7 +735,7 @@ class Workspace:
 
 
     @staticmethod
-    def schedule_pipeline_job(namespace = None, ppline = None):
+    def schedule_pipeline_job(namespace = None, ppline = None, unpause = False):
         result = Workspace.get_ppline_schedule(namespace, ppline)
         if result['error'] != True:
             schedules = result['data'] if 'data' in result else {}
@@ -753,18 +744,18 @@ class Workspace:
                 is_paused = sched['is_paused']
                 if is_paused == 'paused': continue
 
-                namespace = sched['namespace']
+                _namespace = sched['namespace']
                 type = sched['type']
                 periodicity = sched['periodicity']
                 time = int(sched['time'])
-                file_path = f'{namespace}/{ppline_name}'
-                tag_name = f'{namespace}_{ppline_name}'
+                file_path = f'{_namespace}/{ppline_name}'
+                tag_name = f'{_namespace}_{ppline_name}'
 
                 if(Workspace.schedule_jobs.get(file_path,None) != True):
                     if(type == 'min'):
-                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
+                        schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, _namespace).tag(tag_name)
                     if(type == 'hour'):
-                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
+                        schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, _namespace).tag(tag_name)
 
                     print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
                     Workspace.schedule_jobs[file_path] = True
@@ -772,7 +763,7 @@ class Workspace:
             # The infinit loop will be running in a separate thread
             # which will consider all scheduled jobs, when if specified
             # the jobe name (whithin a namespace), it'll run in the mai thread
-            if namespace == None and ppline == None:
+            if (namespace == None and ppline == None):
                 while True:
                     schedule.run_pending()
                     timelib.sleep(1)

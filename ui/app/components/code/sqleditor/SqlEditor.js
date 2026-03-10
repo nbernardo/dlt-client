@@ -1,6 +1,5 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { ListState, State } from "../../../../@still/component/type/ComponentType.js";
-import { Assets } from "../../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { AIResponseLinterUtil } from "../../agent/AIResponseLinterUtil.js";
 import { Grid } from "../../grid/Grid.js";

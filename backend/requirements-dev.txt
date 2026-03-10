@@ -1,0 +1,5 @@
+pytest
+pytest-asyncio
+types-requests
+types-setuptools
+mypy_extensions

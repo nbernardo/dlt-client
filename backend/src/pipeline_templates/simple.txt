@@ -1,35 +1,37 @@
 %metadata_section%import dlt
-from dlt.sources.filesystem import filesystem, read_csv
+from dlt.sources.filesystem import filesystem, read_%read_file_type%
 import logging
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+from src.utils.metastore.meta_storage import MetaStore
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
-
 logger.info("Starting simple filesystem pipeline", extra={'stage': 'initialization', 'template_type': 'simple'})
 
 # Bellow mapping: bucket_url = Bucket.bucket_url, file_glob = Bucket.file_pattern
-logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': '%bucket_url%', 'file_pattern': '%file_pattern%'})
-files = filesystem(bucket_url=%bucket_url%, file_glob=%file_pattern%)
-print('Files/Bucket loaded', flush=True)
+file_pattern, bucket_url = %file_pattern%, %bucket_url%
+logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bucket_url': bucket_url, 'file_pattern': file_pattern})
+files = filesystem(bucket_url=bucket_url, file_glob=file_pattern)
 logger.info("Files/Bucket loaded successfully", extra={'stage': 'data_loading'})
 
 # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
-logger.info("Creating CSV reader", extra={'stage': 'data_transformation', 'destination_table': %ppline_dest_table%})
-reader = (files | read_csv()).with_name(%ppline_dest_table%)
+logger.info("Creating %read_file_type% reader", extra={'stage': 'data_transformation', 'destination_table': %ppline_dest_table%})
+reader = (files | read_%read_file_type%()).with_name(%ppline_dest_table%)
 
 if %primary_key% != 'UNDEFINED':
     # Bellow mapping: primary_key = Bucket.primary_key
     logger.info("Applying primary key hints", extra={'stage': 'data_transformation', 'primary_key': %primary_key%})
     reader.apply_hints(primary_key=%primary_key%)
 
+namespace = %namespace%
 %destination_settings%
 
 # Execute pipeline with logging enabled
 try:
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
-    info = pipeline.run(reader, write_disposition="merge")
+    info = pipeline.run(reader, write_disposition='merge', refresh='drop_sources')
     
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:
@@ -41,6 +43,10 @@ try:
     else:
         logger.info("Pipeline execution completed", extra={'stage': 'pipeline_completion'})
     
+    catalog_table_path = f'{bucket_url}/{file_pattern}'
+    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info)
+
+    print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}')
     print(info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
     

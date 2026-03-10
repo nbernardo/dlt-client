@@ -5,14 +5,16 @@ import logging
 from pathlib import Path
 from sys import path
 %import_from_src%
-from src.utils.logging.pipeline_logger_config import PipelineLogger
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
+from src.utils.metastore.meta_storage import MetaStore
+import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
 
 logger.info("Starting SQL Server transformation pipeline", extra={'stage': 'initialization', 'template_type': 'sql_server_transform'})
 
-#Adding root folder to allow import  from src
+# Adding root folder to allow import  from src
 src_path = str(Path(__file__).parent).replace('/destinations/pipeline/%User_folder%','')
 path.insert(0, src_path)
 path.insert(0, src_path+'/src')
@@ -51,14 +53,20 @@ schemas = %schemas%
 transformations = %transformation%
 %transformation2%
 
+table_to_schema_map = {}
+
 @dlt.source
 def polars_db_source(tables: list[str], tables_pk: list[str]):
 
     def generate_resource(table_name, pk):
-
-        @dlt.resource(name=table_name)
+        # Bellow handles the edge case where the table also
+        # has the namespace int it (e.g. SQL Server source) 
+        resource_name = table_name.replace('.','_')
+        schema, table = table_name.split(".")
+        table_to_schema_map[resource_name] = f'{schema}.{table}'
+   
+        @dlt.resource(name=resource_name)
         def load_table():
-            schema, table = table_name.split(".")
             logger.info("Starting SQL Server data extraction", extra={
                 'stage': 'data_extraction',
                 'table_name': table_name,
@@ -69,7 +77,7 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
             
             select_columns = SQLServerUtil.column_type_conversion([], engine.connect(), table, schema)
             
-            total_records = 0
+            total_records, processed_df = 0, None
             for df in pl.read_database(
                 query=f"SELECT {select_columns} FROM {table_name}",
                 connection=engine,
@@ -78,6 +86,7 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
             ):
                 batch_size = len(df)
                 total_records += batch_size
+                df = parse_aggregation(df, transformations.get(table_name, []))
                 
                 print(f'fetch data chunk from {table_name}', flush=True)
                 logger.debug("Processing SQL Server data batch", extra={
@@ -93,7 +102,9 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
                         'stage': 'transformation_primary',
                         'table_name': table_name
                     })
-                    df = df.with_columns(transformations[table_name])
+                    # Remove any trasformation of type aggregations
+                    columns = [item for item in transformations[table_name] if type(item) != dict]
+                    df = df.with_columns(columns)
                     print(f'applied transformation for {table_name}', flush=True)
                     
                 # Transformation with not column format change (e.g. dedup, column drop)
@@ -106,7 +117,8 @@ def polars_db_source(tables: list[str], tables_pk: list[str]):
                     for transform in transformations2[table_name]: df = transform(df)
 
                 for row in df.iter_rows(named=True): yield row
-            
+                processed_df = df
+
             logger.info("SQL Server data extraction completed", extra={
                 'stage': 'extraction_complete',
                 'table_name': table_name,
@@ -132,7 +144,7 @@ print(f'Running the pipeline', flush=True)
 logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
 
 try:
-    load_info = pipeline.run(source)
+    load_info = pipeline.run(source, write_disposition='merge', refresh='drop_sources')
     
     # Log pipeline execution results
     if hasattr(load_info, 'loads_ids') and load_info.loads_ids:
@@ -150,6 +162,10 @@ try:
             'template_type': 'sql_server_transform'
         })
 
+    catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
+    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, load_info, table_to_schema_map)
+
+    print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}')
     print(load_info, flush=True)
     print('RUN_SUCCESSFULLY', flush=True)
     

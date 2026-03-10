@@ -22,10 +22,12 @@ class Bucket(TemplateNodeType):
             self.template_type = 'non_database_source'
             
             # Check if S3 authentication is needed
-            self.use_s3_auth = False
-            if context.has_cloud_bucket_auth == 's3Auth':
-                self.use_s3_auth = True
-                self.template = DltPipeline.get_s3_auth_template()
+            # TODO: implement other cloud providers
+            self.context.use_s3_auth = False
+            if context.is_cloud_url:
+                self.context.use_s3_auth = True
+                self.template = DltPipeline.get_s3_auth_transform_template() if\
+                      self.context.transformation != None else DltPipeline.get_s3_auth_template()
             elif(context.is_cloud_url != True):
                 self.template = DltPipeline.get_template()\
                                     if context.transformation == None else DltPipeline.get_transform_template()
@@ -49,11 +51,13 @@ class Bucket(TemplateNodeType):
             self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
 
             self.parse_to_literal = ['read_file_type']
-
             self.namespace = data['namespace']
+
+            # primary_key is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
+            self.primary_key = data.get('primaryKey', 'UNDEFINED')
             
             # S3 Authentication parameters (for Secret Manager integration)
-            if self.use_s3_auth:
+            if self.context.use_s3_auth:
                 # Store connection name for secret retrieval (following SQLDatabase pattern)
                 self.connection_name = data.get('connectionName', '')
                 secret = BucketConnector.validate_and_prepare_s3_config(None, self.namespace, self.connection_name)
@@ -67,7 +71,10 @@ class Bucket(TemplateNodeType):
                 if type(data['readFileType']) == list: data['readFileType'] = data['readFileType'][0]
             
             if 'readFileType' in data:
-                self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
+                if self.context.transformation == None and  data['readFileType'] == 'jsonl':
+                    self.read_file_type = 'jsonl'
+                else:
+                    self.read_file_type = 'ndjson' if data['readFileType'] == 'jsonl' else data['readFileType']
 
             self.context.emit_start(self, '')
 
@@ -80,8 +87,6 @@ class Bucket(TemplateNodeType):
             self.bucket_file_source = data['bucketFileSource']
             if(str(data['bucketFileSource']).endswith('.csv') and not str(data['bucketFileSource']).endswith('*.csv')):
                 self.bucket_file_source = data['bucketFileSource'].replace('.csv','*.csv')
-            # primary_key is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
-            self.primary_key = data.get('primaryKey', 'UNDEFINED')
             
         except Exception as error:
             self.notify_failure_to_ui('Bucket',error)
@@ -104,7 +109,7 @@ class Bucket(TemplateNodeType):
 
     def check_bucket_url(self):
 
-        if self.use_s3_auth: return
+        if self.context.use_s3_auth: return
 
         is_cloud_url = str(self.bucket_url).replace(' ','').__contains__('://')
         path_exists = os.path.exists(self.bucket_url)

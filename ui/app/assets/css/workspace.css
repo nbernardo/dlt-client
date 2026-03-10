@@ -210,10 +210,11 @@
 
 	.btn-padding-height7{ padding: 4px 7px; }
 
-	.e2e-btn-secondary{ margin-left: 18px; background: #2c3e50; }
+	.e2e-btn-secondary{  background: #2c3e50; }
+	.left-18px{ margin-left: 18px; background: #2c3e50; }
 	
 	.add-btn-primary:hover{ background: green; }
-	.e2e-btn-secondary:hover{ margin-left: 18px; background: #17232e; }
+	.e2e-btn-secondary:hover{ background: #17232e; }
 
 	/** End Dialog styling */
 

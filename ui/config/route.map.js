@@ -121,6 +121,10 @@ export const stillRoutesMap = {
             LogQueryDisplay: {
                 path: "app/components/log/logquery",
                 url: "/log-query-display"
+            },
+            Aggreg: {
+                path: "app/components/node-types/transform/aggregation",
+                url: "/aggreg"
             }
         },
         lazyInitial: {}

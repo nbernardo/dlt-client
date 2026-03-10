@@ -50,10 +50,10 @@ class SqlDBComponent(TemplateNodeType):
         self.context.emit_start(self, '')
 
         # source_tables fields is mapped in /pipeline_templates/sql_db.txt
-        self.source_tables = list(data['tables'].values())
+        self.source_tables = [table for table in list(data['tables'].values()) if table != None]
 
         # primary_keys fields is mapped in /pipeline_templates/sql_db.txt
-        self.primary_keys = list(data['primaryKeys'].values())
+        self.primary_keys = [key for key in list(data['primaryKeys'].values()) if key != None]
 
         # source_database fields is mapped in /pipeline_templates/sql_db.txt
         self.source_database = data['database']

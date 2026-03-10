@@ -23,8 +23,11 @@ valid_imports = [
     'from pymongo import MongoClient',
     'from src.services.workspace.SecretManager import referencedSecrets,SecretManager',
     'from dlt.sources.filesystem import filesystem, read_csv',
+    'from dlt.sources.filesystem import filesystem, read_jsonl',
+    'from dlt.sources.filesystem import filesystem, read_parquet',
     'from dlt.sources import TDataItems',
     'from typing import Iterator, Any',
+    'from typing import Iterator',
     'import requests',
     'from src.utils.APIClientUtil import PaginateParam',
     'import boto3',
@@ -42,6 +45,12 @@ valid_imports = [
     'from google.oauth2 import service_account',
     'from databricks import sql',
     'from dlt.sources.helpers.rest_client.auth import APIKeyAuth',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation',
+    'import sqlalchemy.exc',
+    'from src.utils.metastore.meta_storage import MetaStore',
+    'from src.utils.metastore.meta_storage.MetaStore import crate_or_update_catalog_from_file',
+    'import traceback',
+    'import re',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

@@ -7,6 +7,7 @@ class DuckdbUtil:
     dltdbinstance = None
     dltdbinstance_count = 0
     logdbinstance = None
+    mstoredbinstance = None
     workspacedb_path = None
 
     @staticmethod
@@ -34,9 +35,22 @@ class DuckdbUtil:
     @staticmethod
     def get_log_db_instance():
         if DuckdbUtil.logdbinstance == None:
-            workspacedb = f'{DuckdbUtil.workspacedb_path}/dltlogs.duckdb'
-            DuckdbUtil.logdbinstance = duckdb.connect(workspacedb)
+            logdb = f'{DuckdbUtil.workspacedb_path}/dltlogs.duckdb'
+            if(logdb.endswith('None/dltlogs.duckdb')):
+                logdb = logdb.replace('None/dltlogs.duckdb','backend/dbs/dltlogs.duckdb')
+            DuckdbUtil.logdbinstance = duckdb.connect(logdb)
         return DuckdbUtil.logdbinstance
+
+
+    @staticmethod
+    def get_meta_db_instance(path = None, pipeline_name = None):
+        metadb = f'{DuckdbUtil.workspacedb_path if path == None else path[0:-1]}/{'metastore' if pipeline_name == None else pipeline_name}.duckdb'
+        
+        if pipeline_name: return duckdb.connect(metadb)
+
+        if DuckdbUtil.mstoredbinstance == None:
+            DuckdbUtil.mstoredbinstance = duckdb.connect(metadb)
+        return DuckdbUtil.mstoredbinstance
 
 
     @staticmethod

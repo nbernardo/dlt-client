@@ -1,0 +1,46 @@
+<form (formRef)="formRef">
+	<td style="padding-right: 5px; padding-left: 3px;">
+		<span onclick="component.removeMe()" style="font-weight: bold; cursor: pointer;">x</span>
+	</td>
+
+		<td>
+		<span class="combobox transform-container-row">
+			<select (required)="true" (value)="aggregationType" placeholder="Aggreg Type" (validator)="text">
+				<option value="">Aggreg Type</option>
+				<option value="" name="greyed">- NUMERIC -</option>
+				<option value="sum">Sum</option>
+				<option value="mean">Mean</option>
+				<option value="median">Median</option>
+				<option value="min">Min</option>
+				<option value="max">Max</option>
+				<option value="std">Std</option>
+				<option value="var">Var</option>
+				<option value="" name="greyed">- COUNT -</option>
+				<option value="quantile">Quantile</option>
+				<option value="len">Len</option>
+				<option value="count">Count</option>
+				<option value="n_unique">Num unique</option>
+			</select>
+		</span>
+	</td>
+
+	<td>
+		<span class="combobox transform-container-row">
+			<select (required)="true" (forEach)="fieldsList" (value)="selectedField"
+				placeholder="Field name" (validator)="text">
+				<option each="item" value="{item.name}">{item.name}</option>
+			</select>
+		</span>
+	</td>
+
+
+
+	<td class="aggregation-alias-field transform-container-row">
+		<input type="text" (value)="aggregationAlias" placeholder="Field Alias" (required)="alphanumeric">
+	</td>
+</form>
+
+<style>
+	.combobox select { width: 125px; display: flex; }
+	.aggregation-alias-field input { padding-left: 5px; }
+</style>

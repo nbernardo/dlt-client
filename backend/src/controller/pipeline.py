@@ -28,9 +28,7 @@ def create():
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
     context.is_code_destination = payload['codeOutput']
     context.is_duck_destination = payload['duckOutput']
-
-    if('actionType' in payload):
-        context.pipeline_action = payload['actionType']
+    context.pipeline_action = payload.get('actionType', None)
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -42,27 +40,19 @@ def create():
     if(len(list(connections)[0]) == 0):
         return { 'error': True, 'result': 'Please connect all nodes accordingly.' }
     
-    first_connection_id = list(connections)[0][0]['node']
-    fst_connection = node_params.get(first_connection_id)
-
-    is_cloud_bucket_req = False
-    if 'bucketFileSource' in fst_connection['data']:
-        is_cloud_bucket_req = int(fst_connection['data']['bucketFileSource']) == 2
+    fst_connection, sql_destinations, is_cloud_bucket_req = parse_first_node(connections, node_params, False, sql_destinations)
 
     context.ppline_path = ppline_path
     context.diagrm_path = diagrm_path
     context.pipeline_lbl = pipeline_lbl
+    context.transaction_namespace = payload['user']
     context.pipeline_name = pipeline_name
     context.connections = connections
     context.node_params = node_params
     context.sql_destinations = sql_destinations
     context.sql_dest = payload['sqlDest']
     context.is_cloud_url = True if is_cloud_bucket_req else False
-    context.has_cloud_bucket_auth = ''
 
-    if 's3Auth' in payload:
-        context.has_cloud_bucket_auth = 's3Auth' if payload['s3Auth'] else ''
-        
     context.code_source = payload['codeInput']
     context.pipeline_execution_id = create_execution_id()
 
@@ -83,6 +73,17 @@ def create():
                         duckdb_path, 
                         context)
 
+def parse_first_node(connections, node_params, is_cloud_bucket_req, sql_destinations):
+
+    first_connection_id = list(connections)[0][0]['node']
+    fst_connection = node_params.get(first_connection_id)
+    
+    if fst_connection.get('name',None) == 'Bucket':
+        sql_destinations = [fst_connection['data'].get('filePattern').translate(str.maketrans(' *.','___'))]
+
+    is_cloud_bucket_req = int(fst_connection['data'].get('bucketFileSource', 0)) == 2
+
+    return fst_connection, sql_destinations, is_cloud_bucket_req
 
 
 def create_new_ppline(fst_connection, 
@@ -129,7 +130,8 @@ def create_new_ppline(fst_connection,
         print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
         return { 'error': True, 'result': context.exceptions }
 
-    pipeline_instance, success = DltPipeline(), True
+    pipeline_instance = DltPipeline() 
+    success = True
 
     ppline_path = context.ppline_path
     diagrm_path = context.diagrm_path
@@ -244,7 +246,7 @@ def parse_transformation_task(node_params, context: RequestContext):
             source_type = node_data['dataSourceType']
             transformation_str, transformation_str2 = None, None
 
-            if source_type == 'SQL':
+            if ['SQL','BUCKET'].__contains__(source_type):
                 context.transformation_ui_node_id = node_data['componentId']
                 context.transformation_type = source_type
                 all_tables = list(node_data['code'].keys()) + list(node_data['code2'].keys())
@@ -368,7 +370,9 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
             t = '    '
             transformation2 = context.transformation2
             transformation2 = handle_transform_indent(transformation2)
-            transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = list(transformations2.values())[0]'
+            transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = list(transformations2.values())'
+            transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = transformations2[0] if len(transformations2) > 0 else []'
+            
             
         template = template.replace(placeholder, f'transformations2 = {transformation2}')
     else:
@@ -516,7 +520,6 @@ def update_ppline(user, filename):
     
     return ''
 
-
    
 @pipeline.route('/ppline/diagram/<namespace>/<filename>', methods=['GET'])
 def read_diagram_content(namespace, filename):
@@ -524,7 +527,7 @@ def read_diagram_content(namespace, filename):
    try:
         file_path = BasePipeline.folder+'/code/'+namespace+'/'+filename+'.json'
         pipeline_code, datasource_details = DltPipeline.read_pipeline(file_path, namespace)
-        return { 'pipelineCode': pipeline_code , 'dbDetailes': datasource_details }
+        return { 'pipelineCode': pipeline_code , 'dbDetails': datasource_details }
    
    except FileNotFoundError as err:
        return jsonify({'error': 'Pipeline not found'}), 404
@@ -545,8 +548,6 @@ def read_csv_file_fields(user, filename: str):
 
     if(filename.lower().endswith('jsonl')):
         return list(pl.scan_ndjson(file_path).collect_schema().keys())
-
-    
 
 
 from services.agents import AgentFactory
@@ -600,14 +601,14 @@ def preview_transformation(namespace):
         
         preview_script = payload['previewScript']
         source_type = payload['sourceType']
+        connection_name = payload.get('connectionName',None)
 
         if(source_type == 'BUCKET'):
             base_path = str(BasePipeline.folder).replace('/destinations','')
             fiile_path = f'{base_path}/{BasePipeline.file_folder_map['data']}/{namespace}/'
             preview_script = preview_script.replace('%pathToFile%/',fiile_path)
-            preview_result = DltPipeline.get_file_data_transformation_preview(preview_script)
+            preview_result = DltPipeline.get_file_data_transformation_preview(preview_script, connection_name, namespace)
         else:
-            connection_name = payload['connectionName']
             dbengine = payload['dbEngine']
             preview_result = DltPipeline.get_sqldb_transformation_preview(
                 namespace, dbengine,connection_name, preview_script

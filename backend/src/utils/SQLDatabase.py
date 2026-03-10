@@ -4,7 +4,6 @@ from sqlalchemy.exc import NoInspectionAvailable
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import traceback
 import platform
-import polars as pl
 from utils.SQLServerUtil import column_type_conversion
 
 class SQLDatabase:
@@ -390,25 +389,26 @@ class SQLConnection:
         )
 
 
-def normalize_table_names(secrets, tables):
-    """
-        This method only purspose is to convert table names case to lower or keep upper 
-        according to how they are named in the database. Especially for ORACLE
-    """
-    credentials = secrets['connection_url']
-    dbengine = secrets['dbengine']
+def normalize_table_names(secrets, tables, primary_keys=None):
+    dbengine  = secrets['dbengine']
     actual_tables = tables
-    
+    actual_pks    = primary_keys
+
     if dbengine == 'oracle':
-        schema = secrets['username']
-        engine = create_engine(credentials)
+        engine    = create_engine(secrets['connection_url'])
         inspector = inspect(engine)
-        available = inspector.get_table_names(schema=schema)
-        
+        available = inspector.get_table_names(schema=secrets['username'])
+
         if available[0].islower():
-            actual_tables = [table.lower() for table in tables]
-    
-    return actual_tables
+            actual_tables = [t.lower() for t in tables]
+
+        if primary_keys:
+            actual_pks = [
+                [pk.lower() for pk in pks] if isinstance(pks, list) else pks.lower()
+                for pks in primary_keys
+            ]
+
+    return actual_tables, actual_pks
 
 
 def converts_field_type(table, pk):
