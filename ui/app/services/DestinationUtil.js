@@ -13,16 +13,30 @@ export function isNonDuckDBDestination(destType) {
 
 /**
  * Construct table path based on destination type
+ * 
+ * Different database systems use different identifier formats:
+ * - SQL databases (PostgreSQL, MySQL, SQL Server, Oracle, MariaDB): schema.table (2-part)
+ * - DuckDB: database.schema.table (3-part)
+ * - BigQuery: project.dataset.table (3-part, different semantics)
+ * 
  * @param {Object} tableDetail - Table detail object containing dest, dbname, and table
  * @param {string} database - Database name (used for DuckDB)
  * @returns {string} Constructed table path
  */
 export function constructTablePath(tableDetail, database = null) {
     if (isNonDuckDBDestination(tableDetail.dest)) {
-        // For SQL, BigQuery, and Databricks destinations: use schema.table format
-        return `${tableDetail.dbname}.${tableDetail.table}`;
+        // For SQL, BigQuery, and Databricks: use schema.table format (two-part)
+        // Defensive: if dbname contains a dot, extract only the schema part
+        // This handles cases where metadata incorrectly includes "database.schema" format
+        let schema = tableDetail.dbname;
+        if (schema && schema.includes('.')) {
+            // Extract schema from "database.schema" format
+            const parts = schema.split('.');
+            schema = parts[parts.length - 1]; // Take the last part (schema)
+        }
+        return `${schema}.${tableDetail.table}`;
     } else {
-        // For DuckDB: use database.dbname.table format
+        // For DuckDB: use database.dbname.table format (three-part)
         return `${database}.${tableDetail.dbname}.${tableDetail.table}`;
     }
 }

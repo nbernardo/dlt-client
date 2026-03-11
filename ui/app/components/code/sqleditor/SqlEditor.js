@@ -63,6 +63,9 @@ export class SqlEditor extends ViewComponent {
 		this.tablesList = await this.$parent.service.getParsedTables(this.$parent.socketData.sid);
 		this.dbpath = this.$parent.service.dbPath.slice(0,-1);
 		
+		// Initialize databasename with the correct value BEFORE accessing fieldsByTableMap
+		this.databasename = databasename;
+		
 		if(this.$parent.service.fieldsByTableMap[databasename.trim()])
 			this.selectedTableFields = this.$parent.service.fieldsByTableMap[databasename.trim()];
 		if (Array.isArray(this.selectedTableFields))
@@ -73,9 +76,19 @@ export class SqlEditor extends ViewComponent {
 			// For SQL, BigQuery, and Databricks destinations, we don't need a file path
 			this.database = null;
 		} else {
-			// For DuckDB, parse the filename
-			const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
-			this.database = `${this.dbpath}/${parseDbFilename}`;
+			// For DuckDB, parse the filename from databasename format: "ppline.dbfile.duckdb.schema.table"
+			const parts = databasename.split('.');
+			const duckdbIndex = parts.indexOf('duckdb');
+			
+			if (duckdbIndex > 0) {
+				// Get the database file name (part before 'duckdb')
+				const parseDbFilename = `${parts[duckdbIndex - 1]}.duckdb`;
+				this.database = `${this.dbpath}/${parseDbFilename}`;
+			} else {
+				// Fallback: try old format
+				const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
+				this.database = `${this.dbpath}/${parseDbFilename}`;
+			}
 		}
 		this.databasename = databasename;
 	}
@@ -98,11 +111,41 @@ export class SqlEditor extends ViewComponent {
 		// Handle table name extraction based on destination type
 		let selectedTable;
 		if (isNonDuckDBDestination(this.destType)) {
-			// For SQL, BigQuery, and Databricks: databaseName is already in format "schema.table"
-			selectedTable = databaseName;
+			// For SQL, BigQuery, and Databricks: databaseName is in format "ppline.schema.table"
+			// We need to strip the pipeline name prefix to get "schema.table"
+			const parts = databaseName.split('.');
+			if (parts.length >= 3) {
+				// Remove first part (pipeline name) and keep "schema.table"
+				selectedTable = parts.slice(1).join('.');
+			} else {
+				// Fallback: use as-is if format is unexpected
+				selectedTable = databaseName;
+			}
 		} else {
-			// For DuckDB: extract table from "dbfile.duckdb.schema.table" format
-			selectedTable = databaseName.split('.duckdb.')[1];
+			// For DuckDB: databaseName is in format "ppline.dbfile.duckdb.schema.table"
+			// Example: "duckdb_test.duckdb_test.duckdb.main.people"
+			// We need to extract "dbfile.schema.table" format: "duckdb_test.main.people"
+			const parts = databaseName.split('.');
+			
+			// Find the index of 'duckdb' in the parts array
+			const duckdbIndex = parts.indexOf('duckdb');
+			
+			if (duckdbIndex > 0 && parts.length > duckdbIndex + 1) {
+				// Get the database file name (part before 'duckdb')
+				const dbFileName = parts[duckdbIndex - 1];
+				// Get schema and table (parts after 'duckdb')
+				const schemaAndTable = parts.slice(duckdbIndex + 1).join('.');
+				// Construct: dbfile.schema.table
+				selectedTable = `${dbFileName}.${schemaAndTable}`;
+			} else {
+				// Fallback: try old format "dbfile.duckdb.schema.table"
+				const splitResult = databaseName.split('.duckdb.');
+				if (splitResult.length > 1) {
+					selectedTable = `${splitResult[0].split('.').pop()}.${splitResult[1]}`;
+				} else {
+					selectedTable = databaseName;
+				}
+			}
 		}
 		
 		this.selectedTable = selectedTable;
@@ -120,8 +163,20 @@ export class SqlEditor extends ViewComponent {
 
 		// Update database path for DuckDB only
 		if (!isNonDuckDBDestination(this.destType)) {
-			const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
-			this.database = `${this.dbpath}/${parseDbFilename}`;
+			// For DuckDB: databaseName is in format "ppline.dbfile.duckdb.schema.table"
+			// We need to extract just the dbfile name
+			const parts = databaseName.split('.');
+			const duckdbIndex = parts.indexOf('duckdb');
+			
+			if (duckdbIndex > 0) {
+				// Get the database file name (part before 'duckdb')
+				const parseDbFilename = `${parts[duckdbIndex - 1]}.duckdb`;
+				this.database = `${this.dbpath}/${parseDbFilename}`;
+			} else {
+				// Fallback: try old format
+				const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
+				this.database = `${this.dbpath}/${parseDbFilename}`;
+			}
 		}
 	}
 

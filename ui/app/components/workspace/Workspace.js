@@ -648,7 +648,8 @@ export class Workspace extends ViewComponent {
 			query, fields: parsedFields, data, database, databaseParam, dbfile, queryTable,
 			connectionName: tableMetadata.connection_name,
 			destType: tableMetadata.dest_type,
-			pplineName: tableMetadata.ppline
+			pplineName: tableMetadata.ppline,
+			selectedDatabase: databaseParam  // Pre-select the database dropdown with the clicked table
 		};
 		const { template: gridUI, component: gridComponent } = await Components.new('Grid', gridInitData, parentId);
 		const { template: editorUI, component: editorCmp } = await Components.new('SqlEditor', editorInitData, parentId);

@@ -390,6 +390,15 @@ class Workspace:
                     if table_name in metadata_map:
                         metadata = metadata_map[table_name]
                         dbname = metadata['schema']
+                        
+                        # Defensive: ensure dbname contains only schema name, not database.schema
+                        # This prevents three-part identifiers for SQL databases that only support two-part
+                        if dbname and '.' in dbname:
+                            # Extract schema from "database.schema" format
+                            parts = dbname.split('.')
+                            dbname = parts[-1]  # Take the last part (schema)
+                            print(f'WARNING: Schema contained database prefix, extracted schema: {dbname}')
+                        
                         fields = metadata.get('columns', [])
                         # Use the actual table name from metadata if available
                         actual_table_name = metadata.get('actual_table_name', table_name)
