@@ -587,3 +587,20 @@
 }
 
 /** End of Toggle CSS styling */
+
+
+.extension-no-found-exception {
+	position: fixed;
+    margin-left: 5px;
+    z-index: 10;
+    margin-top: 46px;
+    background: #f200001c;
+    border-radius: 4px;
+    padding: 7px;
+    border: 1.5px solid red;
+    color: red;
+	width: 30%;
+	.view-doc{ background-color: #856404; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-size: 14px; font-weight: 600; }
+	.duckdb-link{ color: #533f03; font-weight: bold; text-decoration: underline; }
+	.ignore-btn { background-color: #ffffff; color: #333333; border: 1px solid #cccccc; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background-color 0.2s; }
+}
