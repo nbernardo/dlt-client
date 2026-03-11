@@ -107,10 +107,12 @@ class MetaStore:
 
             all_updates.append((table_name, active_dlt_cols, orig_table_name))
 
-        tbl = MetaStore._get_table(dbs_path)
-        con = MetaStore._get_duckdb_conn(dbs_path)
-
+        con, tbl = None, None
         try:
+
+            tbl = MetaStore._get_table(dbs_path)
+            con = MetaStore._get_duckdb_conn(dbs_path)
+            
             existing = con.execute("""
                 SELECT
                     table_name,
@@ -182,7 +184,8 @@ class MetaStore:
             print(f"Catalog Evolution Update Failed: {e}")
 
         finally:
-            con.close()
+            if con:
+                con.close()
 
 
     @staticmethod
@@ -197,7 +200,12 @@ class MetaStore:
             con.close()
             return [{"name": r[0], "table_name": r[1], "source_store": r[2]} for r in result]
         except Exception as err:
-            print(f'Error while loading catalog: {err}')
+            if str(err).__contains__('Extension'):
+                print(f'ERROR: Duckdb missing Extension - The lancedb extension for Duckdb is not installed: {err}')
+                print(f'Please install this extentions according to the documentation on https://duckdb.org/community_extensions/extensions/lance')
+                return []
+            else:
+                print(f'Error while loading catalog: {err}')
             return err
 
 

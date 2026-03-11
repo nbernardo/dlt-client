@@ -139,6 +139,8 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */ openAgent = false;
 
+	/** @Prop */ extentionWarning;
+
 	selectedLeftTab = 'content-diagram';
 
 	/** @Prop */ schedulePeriodicitySelected;
