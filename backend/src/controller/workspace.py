@@ -159,6 +159,10 @@ def get_initial_data(namespace):
         'user_message_count_limit': user_message_count_limit
     }
 
+    from utils.duckdb_util import is_extension_installed
+    # Check if LanceDB extension from Duckdb is installed
+    is_lancedb_on_duckdb = is_extension_installed('lance')  
+
     try:
         total_pipelines = 0
         if os.path.exists(f'{BasePipeline.folder}/pipeline/{namespace}'):
@@ -167,7 +171,8 @@ def get_initial_data(namespace):
         return {
             'schedules': Workspace.get_ppline_schedule(namespace),
             'ai_agent_namespace_details': ai_agent_namespace_details,
-            'total_pipelines':  total_pipelines
+            'total_pipelines':  total_pipelines,
+            'is_lancedb_on_duckdb':  is_lancedb_on_duckdb,
         }
     
     except Exception as error:
