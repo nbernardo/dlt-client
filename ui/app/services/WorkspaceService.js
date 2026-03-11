@@ -16,6 +16,7 @@ import { SqlDBComponent } from "../components/node-types/SqlDBComponent.js";
 import { Transformation } from "../components/node-types/Transformation.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { UserService } from "./UserService.js";
+import { constructTablePath } from "./DestinationUtil.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -106,8 +107,25 @@ export class WorkspaceService extends BaseService {
             for (const [database, ppline] of data) {
                 const tablesDetails = Object.values(ppline);
                 for (const tableDetail of tablesDetails) {
-                    const tablePath = `${database}.${tableDetail.dbname}.${tableDetail.table}`
+                    const pipelineName = tableDetail.ppline || database.replace('.duckdb', '');
+                    
+                    // Construct tablePath based on destination type using utility function
+                    const tablePath = constructTablePath(tableDetail, database);
+                    
+                    // Construct metadata key to match LeftTabs.js structure
+                    // CRITICAL: Include pipeline name to avoid conflicts
+                    let metadataKey;
+                    if (tableDetail.dest === 'sql' || tableDetail.dest === 'bigquery' || tableDetail.dest === 'databricks') {
+                        // For SQL, BigQuery, and Databricks: ppline.dbname.table
+                        metadataKey = `${pipelineName}.${tableDetail.dbname}.${tableDetail.table}`;
+                    } else {
+                        // For DuckDB: ppline.database.dbname.table
+                        metadataKey = `${pipelineName}.${database}.${tableDetail.dbname}.${tableDetail.table}`;
+                    }
+                    
                     tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}`, tablePath});
+                    this.fieldsByTableMap[metadataKey] = tableDetail.fields;
+                    // Also store with tablePath for backward compatibility
                     this.fieldsByTableMap[tablePath] = tableDetail.fields;
                 }
             }
@@ -117,9 +135,7 @@ export class WorkspaceService extends BaseService {
 
         return this.parsedTableListStore.value;
 
-    }
-
-    async runCode(code, user) {
+    }    async runCode(code, user) {
 
         const url = '/workcpace/code/run/' + user;
         const result = await $still.HTTPClient.post(url, JSON.stringify(code), {
@@ -334,9 +350,15 @@ export class WorkspaceService extends BaseService {
         return null;
     }
 
-    /** @returns { { result, fields } | undefined } */
-    async runSQLQuery(query, database) {
-        const payload = { query, database };
+    /** @returns { { result, fields, db_engine } | undefined } */
+    async runSQLQuery(query, database, connectionName = null, destType = 'duckdb') {
+        const payload = { 
+            query, 
+            database,
+            namespace: await UserService.getNamespace(),
+            connection_name: connectionName,
+            dest_type: destType
+        };
         const url = '/workcpace/sql_query';
         const response = await $still.HTTPClient.post(url, JSON.stringify(payload), {
             headers: { 'content-type': 'Application/json' }

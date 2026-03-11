@@ -1,11 +1,11 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { ListState, State } from "../../../../@still/component/type/ComponentType.js";
-import { Assets } from "../../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { AIResponseLinterUtil } from "../../agent/AIResponseLinterUtil.js";
 import { Grid } from "../../grid/Grid.js";
 import { handleHideShowSubmenu } from "../../workspace/generic-util.js";
 import { Workspace } from "../../workspace/Workspace.js";
+import { isNonDuckDBDestination, generateInitialQuery } from "../../../services/DestinationUtil.js";
 
 export class SqlEditor extends ViewComponent {
 
@@ -33,10 +33,18 @@ export class SqlEditor extends ViewComponent {
 
 	/** @Prop */ selectedTable;
 	
+	/** @Prop */ connectionName;
+	
+	/** @Prop */ destType;
+	
+	/** @Prop */ pplineName;
+	
+	/** @Prop */ dbEngine;  // Database engine type for SQL dialect handling
+	
 	/** 
 	 * @param {Object} param0 
 	 * @param {String} param0.database  */
-	async stOnRender({ query, database, databaseParam, queryTable }){
+	async stOnRender({ query, database, databaseParam, queryTable, connectionName, destType, pplineName }){
 
 		await this.$parent.controller.loadMonacoEditorDependencies();
 		
@@ -48,17 +56,40 @@ export class SqlEditor extends ViewComponent {
 			databasename = databaseParam;
 		
 		this.query = query;
+		this.connectionName = connectionName;
+		this.destType = destType || 'duckdb';
+		this.pplineName = pplineName;
 
 		this.tablesList = await this.$parent.service.getParsedTables(this.$parent.socketData.sid);
 		this.dbpath = this.$parent.service.dbPath.slice(0,-1);
+		
+		// Initialize databasename with the correct value BEFORE accessing fieldsByTableMap
+		this.databasename = databasename;
 		
 		if(this.$parent.service.fieldsByTableMap[databasename.trim()])
 			this.selectedTableFields = this.$parent.service.fieldsByTableMap[databasename.trim()];
 		if (Array.isArray(this.selectedTableFields))
 			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...this.selectedTableFields];
 
-		const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
-		this.database = `${this.dbpath}/${parseDbFilename}`;
+		// Handle database path based on destination type
+		if (isNonDuckDBDestination(this.destType)) {
+			// For SQL, BigQuery, and Databricks destinations, we don't need a file path
+			this.database = null;
+		} else {
+			// For DuckDB, parse the filename from databasename format: "ppline.dbfile.duckdb.schema.table"
+			const parts = databasename.split('.');
+			const duckdbIndex = parts.indexOf('duckdb');
+			
+			if (duckdbIndex > 0) {
+				// Get the database file name (part before 'duckdb')
+				const parseDbFilename = `${parts[duckdbIndex - 1]}.duckdb`;
+				this.database = `${this.dbpath}/${parseDbFilename}`;
+			} else {
+				// Fallback: try old format
+				const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
+				this.database = `${this.dbpath}/${parseDbFilename}`;
+			}
+		}
 		this.databasename = databasename;
 	}
 
@@ -77,14 +108,76 @@ export class SqlEditor extends ViewComponent {
 	}
 
 	setupEditorQuery(databaseName){
-		this.selectedTable = databaseName.split('.duckdb.')[1];
-		this.selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
-		const fieldsString = this.selectedTableFields.value.map(({ name }) => name.indexOf(' ') > -1 ? `'${name}'` : name).join(',');
-		const query = `SELECT ${fieldsString} FROM ${this.selectedTable} LIMIT 100`
+		// Handle table name extraction based on destination type
+		let selectedTable;
+		if (isNonDuckDBDestination(this.destType)) {
+			// For SQL, BigQuery, and Databricks: databaseName is in format "ppline.schema.table"
+			// We need to strip the pipeline name prefix to get "schema.table"
+			const parts = databaseName.split('.');
+			if (parts.length >= 3) {
+				// Remove first part (pipeline name) and keep "schema.table"
+				selectedTable = parts.slice(1).join('.');
+			} else {
+				// Fallback: use as-is if format is unexpected
+				selectedTable = databaseName;
+			}
+		} else {
+			// For DuckDB: databaseName is in format "ppline.dbfile.duckdb.schema.table"
+			// Example: "duckdb_test.duckdb_test.duckdb.main.people"
+			// We need to extract "dbfile.schema.table" format: "duckdb_test.main.people"
+			const parts = databaseName.split('.');
+			
+			// Find the index of 'duckdb' in the parts array
+			const duckdbIndex = parts.indexOf('duckdb');
+			
+			if (duckdbIndex > 0 && parts.length > duckdbIndex + 1) {
+				// Get the database file name (part before 'duckdb')
+				const dbFileName = parts[duckdbIndex - 1];
+				// Get schema and table (parts after 'duckdb')
+				const schemaAndTable = parts.slice(duckdbIndex + 1).join('.');
+				// Construct: dbfile.schema.table
+				selectedTable = `${dbFileName}.${schemaAndTable}`;
+			} else {
+				// Fallback: try old format "dbfile.duckdb.schema.table"
+				const splitResult = databaseName.split('.duckdb.');
+				if (splitResult.length > 1) {
+					selectedTable = `${splitResult[0].split('.').pop()}.${splitResult[1]}`;
+				} else {
+					selectedTable = databaseName;
+				}
+			}
+		}
+		
+		this.selectedTable = selectedTable;
+		const selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
+		const fieldsArray = selectedTableFields ? selectedTableFields.map(({ name }) => name) : [];
+		
+		if (Array.isArray(selectedTableFields))
+			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...selectedTableFields];
+
+		// Generate query using database-specific syntax
+		// For SQL databases, use the detected engine; for others, default to 'mysql' syntax
+		const engine = this.destType === 'sql' ? (this.dbEngine || 'mysql') : 'mysql';
+		const query = generateInitialQuery(this.selectedTable, fieldsArray, engine, 100);
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 
-		const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
-		this.database = `${this.dbpath}/${parseDbFilename}`;
+		// Update database path for DuckDB only
+		if (!isNonDuckDBDestination(this.destType)) {
+			// For DuckDB: databaseName is in format "ppline.dbfile.duckdb.schema.table"
+			// We need to extract just the dbfile name
+			const parts = databaseName.split('.');
+			const duckdbIndex = parts.indexOf('duckdb');
+			
+			if (duckdbIndex > 0) {
+				// Get the database file name (part before 'duckdb')
+				const parseDbFilename = `${parts[duckdbIndex - 1]}.duckdb`;
+				this.database = `${this.dbpath}/${parseDbFilename}`;
+			} else {
+				// Fallback: try old format
+				const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
+				this.database = `${this.dbpath}/${parseDbFilename}`;
+			}
+		}
 	}
 
 	handleHideShowFieldMenu = () => handleHideShowSubmenu('.data-base-fields-submenu', '.submenu');
@@ -93,7 +186,18 @@ export class SqlEditor extends ViewComponent {
 
 	async runSQLQuery(){
 		const newQuery = this.editor.getValue();
-		const { result, fields, error } = await this.$parent.service.runSQLQuery(newQuery, this.database);
+		const { result, fields, error, db_engine } = await this.$parent.service.runSQLQuery(
+			newQuery, 
+			this.database, 
+			this.connectionName, 
+			this.destType
+		);
+		
+		// Store db_engine for future queries
+		if (db_engine) {
+			this.dbEngine = db_engine;
+		}
+		
 		const parsedFields = (fields || '').replaceAll('\n', '')?.split(',')?.map(field => field.trim());
 		this.queryOutput.setGridData(parsedFields, result).stAfterInit(error);
 	}

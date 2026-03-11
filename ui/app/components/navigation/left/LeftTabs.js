@@ -4,6 +4,7 @@ import { StillTreeView } from "../../../../@still/vendors/treeview/StillTreeView
 import { AppTemplate } from "../../../../config/app-template.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { getSupportedQueryDestinations } from "../../../services/DestinationUtil.js";
 import { FileList } from "../../filelist/FileList.js";
 import { FileUpload } from "../../fileupload/FileUpload.js";
 import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspace/icons/database.js";
@@ -88,6 +89,9 @@ export class LeftTabs extends ViewComponent {
 		this.dbTreeviewProxy.clearTreeData();
 		let response = await this.service.getPipelines(this.$parent.socketData.sid);
 		
+		// Store table metadata for later use (including connection info)
+		this.tableMetadata = {};
+		
 		if(response?.no_data || Object.keys(response).length === 0){
 			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
 			this.fetchingPipelineData = false;
@@ -130,8 +134,35 @@ export class LeftTabs extends ViewComponent {
 				const tableData = data[idx];
 				if(tableData){
 					const tableToQuery = `${tableData.dbname}.${tableData.table}`;
+					const pipelineName = tableData.ppline || dbfile;
+					
+					// Construct the correct metadata key based on destination type
+					// CRITICAL: Include pipeline name to avoid conflicts when multiple pipelines have same table names
+					let tableKey;
+					if (tableData.dest === 'sql' || tableData.dest === 'bigquery' || tableData.dest === 'databricks') {
+						// For SQL, BigQuery, and Databricks destinations: use ppline.dbname.table format
+						tableKey = `${pipelineName}.${tableData.dbname}.${tableData.table}`;
+					} else {
+						// For DuckDB: use ppline.dbfile.duckdb.tableToQuery format
+						tableKey = `${pipelineName}.${dbfile}.duckdb.${tableToQuery}`;
+					}
+					
+					// Store metadata including connection info
+					this.tableMetadata[tableKey] = {
+						connection_name: tableData.connection_name,
+						dest_type: tableData.dest || 'duckdb',
+						ppline: pipelineName,
+						dbname: tableData.dbname,
+						table: tableData.table,
+						dbfile: dbfile  // Store dbfile for DuckDB queries
+					};
+					
+					// Check if destination type is supported for querying
+					const supportedDestinations = getSupportedQueryDestinations();
+					const isQuerySupported = supportedDestinations.includes(tableData.dest || 'duckdb');
+					
 					const table = this.dbTreeviewProxy.addNode({ 
-						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, !(tableData.dest == 'sql')),
+						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, isQuerySupported),
 					});
 					dbSchema.addChild(table);
 				}
@@ -168,18 +199,36 @@ export class LeftTabs extends ViewComponent {
 	copyToClipboard = () =>
 		this.$parent.controller.copyToClipboard(this.currentTableName);
 
-	queryTable = () =>
-		this.$parent.expandDataTableView(null, this.currentTableToQuery, this.currentDBFile)
+	queryTable = () => {
+		// Get metadata for current table
+		const tableKey = this.currentTableToQuery;
+		const metadata = this.tableMetadata?.[tableKey] || {};
+		
+		this.$parent.expandDataTableView(null, this.currentTableToQuery, this.currentDBFile, null, metadata);
+	}
 	
 	refreshTree = async () => await this.showHideDatabase();
 
 	databaseTreeViewTemplate(tableData, tableToQuery, dbfile, showIcons = true){
 		let tableRow = `<div class='table-name'>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</div>`;
 		let cleanTableName = tableToQuery.replace(/\./g,'_');
+		const pipelineName = tableData.ppline || dbfile;
+		
+		// Construct the correct identifier based on destination type
+		// CRITICAL: Include pipeline name to avoid conflicts
+		let tableIdentifier;
+		if (tableData.dest === 'sql' || tableData.dest === 'bigquery' || tableData.dest === 'databricks') {
+			// For SQL, BigQuery, and Databricks destinations: use ppline.dbname.table format
+			tableIdentifier = `${pipelineName}.${tableData.dbname}.${tableData.table}`;
+		} else {
+			// For DuckDB: use ppline.dbfile.duckdb.tableToQuery format
+			tableIdentifier = `${pipelineName}.${dbfile}.duckdb.${tableToQuery}`;
+		}
+		
 		if(showIcons === true) {
 			tableRow += `
 				<span
-					onclick="self.showTableOptions('${cleanTableName}','${dbfile}','${tableToQuery}', '${dbfile}.duckdb.${tableToQuery}')"
+					onclick="self.showTableOptions('${cleanTableName}','${dbfile}','${tableToQuery}', '${tableIdentifier}')"
 					class="pipeline-menu-holder pipeline-menu-holder-table">
 					<img class="dots pipeline-menu-dots ${dbfile}${cleanTableName}" src="app/assets/imgs/file-list/dots.svg" width="12">
 					<div class="pipeline-table-menu-wrapper pipeline-table-menu-wrap-${dbfile}${cleanTableName}"></div>
@@ -281,6 +330,7 @@ export class LeftTabs extends ViewComponent {
 		this.currentDBFile = dbfile;
 		this.currentTableToQuery = tablePath;
 		this.currentTableName = tableName;
+		this.currentTableData = { table, dbfile, tableName, tablePath }; // Store for later use
 
 		const content = document.querySelector('.pipeline-submenu-contents-for-table').innerHTML;
 		const target = document.querySelector(`.pipeline-table-menu-wrap-${dbfile}${table}`);

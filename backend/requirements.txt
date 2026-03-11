@@ -122,6 +122,7 @@ kafka-python
 dlt[sqlalchemy]
 oracledb
 polars
+connectorx
 pyodbc
 psycopg2-binary
 dlt[postgres]
@@ -131,3 +132,5 @@ dlt[mssql]
 dlt[bigquery]
 dlt[databricks]
 lancedb
+google-cloud-bigquery>=3.11.0
+databricks-sql-connector>=2.9.0
