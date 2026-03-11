@@ -1,0 +1,236 @@
+<div class="window-popup-mov-window" (showIf)="self.showWindowPopup">
+	<!-- <button onclick="component.openPopup()">Open Popup-mov-window</button> -->
+	<div id="container-@uniqueId" class="popup-windows-cmp-container">
+		<div id="@uniqueId" class="popup-mov-window" style="width: 98%; height: 95%; top: 50%;">
+			<span>
+				
+			</span>
+			<div class="resize-handle n"></div>
+			<div class="resize-handle s"></div>
+			<div class="resize-handle w"></div>
+			<div class="resize-handle e"></div>
+			<div class="resize-handle nw"></div>
+			<div class="resize-handle ne"></div>
+			<div class="resize-handle sw"></div>
+			<div class="resize-handle se"></div>
+
+			<div class="popup-mov-window-header-@uniqueId popup-mov-window-header">
+				<div class="popup-mov-window-title">Data Catalog popup</div>
+				<div class="popup-mov-window-controls">
+					<button class="minimize" style="visibility: hidden;" onclick="component.toggleMinimize()">−</button>
+					<button class="maximize" style="visibility: hidden;" onclick="component.toggleMaximize()">□</button>
+					<button class="close" onclick="component.closePopup()">×</button>
+				</div>
+			</div>
+
+			<div class="popup-mov-window-content">
+				<div class="code-editor-container">
+
+					<div class="shell">
+						<header class="topbar">
+							<div class="logo">
+							<div class="logo-dot"></div>
+							DataCatalog
+							</div>
+							<div class="topbar-divider"></div>
+							<div class="pipeline-selector">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted)"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+							<select id="pipelineSelect" onchange="onPipelineChange()">
+								<option value="">— select pipeline —</option>
+								<option value="p1">google_oauth2_116448449010041059402_at_orcl_testing_to_mssql</option>
+								<option value="p2">google_oauth2_116448449010041059402_at_0_testing_mssql_to_psql</option>
+								<option value="p3">google_oauth2_116448449010041059402_at_testing_transform_pgsql</option>
+							</select>
+							</div>
+							<div class="topbar-right">
+							<div class="tab-bar">
+								<button class="tab-btn active" onclick="switchTab('catalog', this)">Catalog</button>
+								<button class="tab-btn" onclick="switchTab('rules', this)">Rules</button>
+								<button class="tab-btn" onclick="switchTab('history', this)">History</button>
+							</div>
+							</div>
+						</header>
+
+						<aside class="sidebar">
+							<div class="sidebar-section">
+							<div class="sidebar-label">
+								Tables
+								<span id="tableCount">0</span>
+							</div>
+							<div id="tableList"></div>
+							</div>
+						</aside>
+
+						<main class="main">
+
+							<div id="tab-catalog" class="tab-content active">
+
+							<div class="stats-row">
+								<div class="stat-cell">
+								<div class="stat-label">Total Columns</div>
+								<div class="stat-value accent" id="statTotal">—</div>
+								<div class="stat-sub">across all tables</div>
+								</div>
+								<div class="stat-cell">
+								<div class="stat-label">Active</div>
+								<div class="stat-value success" id="statActive">—</div>
+								<div class="stat-sub">not deleted</div>
+								</div>
+								<div class="stat-cell">
+								<div class="stat-label">Deleted</div>
+								<div class="stat-value danger" id="statDeleted">—</div>
+								<div class="stat-sub">marked removed</div>
+								</div>
+								<div class="stat-cell">
+								<div class="stat-label">Evolved</div>
+								<div class="stat-value warning" id="statEvolved">—</div>
+								<div class="stat-sub">version > 1</div>
+								</div>
+							</div>
+
+							<div class="panel">
+								<div class="panel-header">
+								<div class="panel-title">
+									<div class="panel-title-dot"></div>
+									<span id="panelTableName">Select a table</span>
+								</div>
+								<div class="panel-actions">
+									<div class="search-bar">
+									<span class="search-icon">⌕</span>
+									<input type="text" placeholder="Search columns..." id="colSearch" oninput="filterColumns()">
+									</div>
+									<button class="btn btn-ghost" onclick="exportCSV()">Export</button>
+								</div>
+								</div>
+
+								<div class="filter-row">
+								<span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">Filter:</span>
+								<button class="filter-chip active" onclick="setFilter('all', this)">All</button>
+								<button class="filter-chip" onclick="setFilter('active', this)">Active</button>
+								<button class="filter-chip" onclick="setFilter('deleted', this)">Deleted</button>
+								<button class="filter-chip" onclick="setFilter('evolved', this)">Evolved</button>
+								<button class="filter-chip" onclick="setFilter('pending', this)">Pending Semantic</button>
+								</div>
+
+								<div style="overflow-x:auto">
+								<table class="col-table">
+									<thead>
+									<tr>
+										<th>Column Name</th>
+										<th>Data Type</th>
+										<th>Version</th>
+										<th>Status</th>
+										<th>Semantic Concept</th>
+										<th>Source</th>
+										<th></th>
+									</tr>
+									</thead>
+									<tbody id="colTableBody">
+									<tr><td colspan="7"><div class="empty"><div class="empty-icon">◈</div><div class="empty-text">Select a pipeline and table to view columns</div></div></td></tr>
+									</tbody>
+								</table>
+								</div>
+							</div>
+
+							</div>
+
+							<div id="tab-rules" class="tab-content">
+							<div class="panel">
+								<div class="panel-header">
+								<div class="panel-title">
+									<div class="panel-title-dot"></div>
+									Rule-Based Pattern Definitions
+								</div>
+								<div class="panel-actions">
+									<button class="btn btn-ghost" onclick="resetRules()">Reset to Defaults</button>
+									<button class="btn btn-accent" onclick="openAddRuleModal()">+ Add Rule</button>
+								</div>
+								</div>
+								<div style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,212,255,0.03)">
+								<div style="font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.6">
+									Rules are matched against column names using regex patterns. Matched columns are automatically assigned a semantic concept without LLM inference. Higher confidence rules take priority.
+								</div>
+								</div>
+								<div style="display:grid;grid-template-columns:1fr 1fr 100px 80px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.2)">
+								<div style="padding:8px 16px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);border-right:1px solid var(--border)">Pattern (Regex)</div>
+								<div style="padding:8px 16px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);border-right:1px solid var(--border)">Semantic Concept</div>
+								<div style="padding:8px 16px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);border-right:1px solid var(--border)">Confidence</div>
+								<div style="padding:8px 16px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);text-align:center">Actions</div>
+								</div>
+								<div class="rules-grid" id="rulesGrid"></div>
+							</div>
+
+							<div class="panel">
+								<div class="panel-header">
+								<div class="panel-title">
+									<div class="panel-title-dot" style="background:var(--accent2)"></div>
+									Test Rules
+								</div>
+								</div>
+								<div style="padding:16px 20px">
+								<label class="form-label">Column Name to Test</label>
+								<input class="form-input" id="testColInput" placeholder="e.g. customer_id, total_amount, email_address" oninput="testRule()">
+								</div>
+								<div id="testResult" style="padding:0 20px 16px"></div>
+							</div>
+							</div>
+
+							<div id="tab-history" class="tab-content">
+							<div class="panel">
+								<div class="panel-header">
+								<div class="panel-title">
+									<div class="panel-title-dot" style="background:var(--warning)"></div>
+									Schema Evolution History
+								</div>
+								<div class="panel-actions">
+									<div class="search-bar">
+									<span class="search-icon">⌕</span>
+									<input type="text" placeholder="Search history...">
+									</div>
+								</div>
+								</div>
+								<div class="history-list" id="historyList">
+								<div class="empty"><div class="empty-icon">◈</div><div class="empty-text">No history yet</div></div>
+								</div>
+							</div>
+							</div>
+
+						</main>
+					</div>
+
+					<div class="modal-overlay" id="ruleModal">
+						<div class="modal">
+							<div class="modal-title">◈ Add Pattern Rule</div>
+							<div class="form-group">
+							<label class="form-label">Regex Pattern</label>
+							<input class="form-input" id="newPattern" placeholder=".*_id$|^id$" oninput="previewRule()">
+							<div class="form-hint">Matches against column names. Use regex syntax.</div>
+							</div>
+							<div class="form-group">
+							<label class="form-label">Semantic Concept</label>
+							<input class="form-input" id="newConcept" placeholder="identifier" oninput="previewRule()">
+							<div class="form-hint">The business concept this pattern represents.</div>
+							</div>
+							<div class="form-group">
+							<label class="form-label">Confidence Score: <span id="confLabel">0.90</span></label>
+							<input type="range" class="confidence-slider" style="width:100%;height:4px" min="0" max="1" step="0.01" value="0.90"
+								oninput="document.getElementById('confLabel').textContent=parseFloat(this.value).toFixed(2)">
+							</div>
+							<div id="rulePreview" style="padding:10px 12px;background:var(--bg);border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--muted);min-height:36px"></div>
+							<div class="modal-actions">
+							<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+							<button class="btn btn-accent" onclick="addRule()">Add Rule</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="toast" id="toast">
+						<div class="toast-dot"></div>
+						<span id="toastMsg"></span>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

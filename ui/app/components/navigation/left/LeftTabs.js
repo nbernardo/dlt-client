@@ -329,10 +329,8 @@ export class LeftTabs extends ViewComponent {
 		setTimeout(() => document.getElementById('ai-chat-user-input').focus());
 	}
 
-	setNewPrompt(content){
-		this.$parent.controller.startedAgent.setUserPrompt(content)
-	}
-
+	setNewPrompt = (content) => this.$parent.controller.startedAgent.setUserPrompt(content)
+	
 	togglePromptPopup(element,isContent = false) {		
 		const rect = element.getBoundingClientRect();
 		
@@ -394,5 +392,9 @@ export class LeftTabs extends ViewComponent {
 	filterDataFile = (name) => this.fileListProxy.filterFileByName('data', name);
 
 	toggleFilterSchedulePPline = (isChecked) => this.onlyScheduledPplineFilter = isChecked;
-	
+
+	showDataCatalog = (event) => {
+		event.preventDefault();
+		this.$parent.showDataCatalog();
+	}
 }

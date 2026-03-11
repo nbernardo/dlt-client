@@ -125,6 +125,10 @@ export const stillRoutesMap = {
             Aggreg: {
                 path: "app/components/node-types/transform/aggregation",
                 url: "/aggreg"
+            },
+            DataCatalogUI: {
+                path: "app/components/data-catalog",
+                url: "/data-catalog-ui"
             }
         },
         lazyInitial: {}
