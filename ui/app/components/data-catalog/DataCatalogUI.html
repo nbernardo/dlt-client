@@ -35,7 +35,7 @@
 							<div class="topbar-divider"></div>
 							<div class="pipeline-selector">
 							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted)"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-							<select id="pipelineSelect" onchange="onPipelineChange()">
+							<select id="pipelineSelect" onchange="component.onPipelineChange()">
 								<option value="">— select pipeline —</option>
 								<option value="p1">google_oauth2_116448449010041059402_at_orcl_testing_to_mssql</option>
 								<option value="p2">google_oauth2_116448449010041059402_at_0_testing_mssql_to_psql</option>
@@ -44,9 +44,9 @@
 							</div>
 							<div class="topbar-right">
 							<div class="tab-bar">
-								<button class="tab-btn active" onclick="switchTab('catalog', this)">Catalog</button>
-								<button class="tab-btn" onclick="switchTab('rules', this)">Rules</button>
-								<button class="tab-btn" onclick="switchTab('history', this)">History</button>
+								<button class="tab-btn active" onclick="component.switchTab('catalog', this)">Catalog</button>
+								<button class="tab-btn" onclick="component.switchTab('rules', this)">Rules</button>
+								<button class="tab-btn" onclick="component.switchTab('history', this)">History</button>
 							</div>
 							</div>
 						</header>
@@ -97,7 +97,7 @@
 								<div class="panel-actions">
 									<div class="search-bar">
 									<span class="search-icon">⌕</span>
-									<input type="text" placeholder="Search columns..." id="colSearch" oninput="filterColumns()">
+									<input type="text" placeholder="Search columns..." id="colSearch" oninput="component.filterColumns()">
 									</div>
 									<button class="btn btn-ghost" onclick="exportCSV()">Export</button>
 								</div>
@@ -105,11 +105,11 @@
 
 								<div class="filter-row">
 								<span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">Filter:</span>
-								<button class="filter-chip active" onclick="setFilter('all', this)">All</button>
-								<button class="filter-chip" onclick="setFilter('active', this)">Active</button>
-								<button class="filter-chip" onclick="setFilter('deleted', this)">Deleted</button>
-								<button class="filter-chip" onclick="setFilter('evolved', this)">Evolved</button>
-								<button class="filter-chip" onclick="setFilter('pending', this)">Pending Semantic</button>
+								<button class="filter-chip active" onclick="component.setFilter('all', this)">All</button>
+								<button class="filter-chip" onclick="component.setFilter('active', this)">Active</button>
+								<button class="filter-chip" onclick="component.setFilter('deleted', this)">Deleted</button>
+								<button class="filter-chip" onclick="component.setFilter('evolved', this)">Evolved</button>
+								<button class="filter-chip" onclick="component.setFilter('pending', this)">Pending Semantic</button>
 								</div>
 
 								<div style="overflow-x:auto">
@@ -142,8 +142,8 @@
 									Rule-Based Pattern Definitions
 								</div>
 								<div class="panel-actions">
-									<button class="btn btn-ghost" onclick="resetRules()">Reset to Defaults</button>
-									<button class="btn btn-accent" onclick="openAddRuleModal()">+ Add Rule</button>
+									<button class="btn btn-ghost" onclick="component.resetRules()">Reset to Defaults</button>
+									<button class="btn btn-accent" onclick="component.openAddRuleModal()">+ Add Rule</button>
 								</div>
 								</div>
 								<div style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,212,255,0.03)">
@@ -218,8 +218,8 @@
 							</div>
 							<div id="rulePreview" style="padding:10px 12px;background:var(--bg);border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--muted);min-height:36px"></div>
 							<div class="modal-actions">
-							<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-							<button class="btn btn-accent" onclick="addRule()">Add Rule</button>
+							<button class="btn btn-ghost" onclick="component.closeModal()">Cancel</button>
+							<button class="btn btn-accent" onclick="component.addRule()">Add Rule</button>
 							</div>
 						</div>
 					</div>
