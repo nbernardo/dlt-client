@@ -286,6 +286,7 @@ class Workspace:
                     k = f'{ppline_name}-{table_name}'
 
                     if(k != prev_key):
+                        if not ('data' in pipeline_schedules): pipeline_schedules['data'] = {}
                         curr_schedule = pipeline_schedules['data'].get(ppline_name)
                         result[ppline_name][table_name] = { 
                             'ppline': '',
