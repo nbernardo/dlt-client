@@ -1,6 +1,8 @@
 import { Assets } from "../../../@still/util/componentUtil.js";
+import { PipelineService } from "../../services/PipelineService.js";
 import { ModalWindowComponent } from "../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../popup-window/PopupUtil.js";
+import { Workspace } from "../workspace/Workspace.js";
 import { dataCatalogsMock } from "./mock.js";
 
 export class DataCatalogUI extends ModalWindowComponent {
@@ -11,7 +13,7 @@ export class DataCatalogUI extends ModalWindowComponent {
 
   /** @Prop */ uniqueId = false;
 
-  /** @Prop */ popup = false;
+  /** @Prop @type { HTMLElement } */ popup = false;
 
   /** @Prop */ currentPipeline = null;
   /** @Prop */ currentTable = null;
@@ -21,6 +23,11 @@ export class DataCatalogUI extends ModalWindowComponent {
 
   /** @Prop */ PIPELINES = dataCatalogsMock.PIPELINES;
   /** @Prop */ RULES = dataCatalogsMock.RULES;
+
+  pipelineList;
+  selectedPipeline;
+
+  /** @type { Workspace } */ $parent;
 
 	async stOnRender(){
 		await Assets.import({ path: '/app/assets/css/data-catalog.css' });
@@ -34,6 +41,9 @@ export class DataCatalogUI extends ModalWindowComponent {
 
     this.renderSidebar();
     this.renderColumns();
+
+    this.pipelineList = await PipelineService.getPipelinesNames();  
+
   }
 
   showToast(msg, type='default') {
@@ -52,8 +62,11 @@ export class DataCatalogUI extends ModalWindowComponent {
     if (tab === 'history') this.renderHistory();
   }
 
-  onPipelineChange() {
-    const val = document.getElementById('pipelineSelect').value;
+  async onPipelineChange(val) {
+    const catalogData = await PipelineService.getDataCatalog(val);
+    console.log(`CATALOG DATA: `, catalogData);
+    
+    return;
     this.currentPipeline = val || null;
     this.currentTable = null;
     this.renderSidebar();
