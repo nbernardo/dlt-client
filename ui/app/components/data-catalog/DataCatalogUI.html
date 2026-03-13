@@ -42,9 +42,9 @@
 								</div>
 								<div class="topbar-right">
 								<div class="tab-bar">
-									<button class="tab-btn active" onclick="component.switchTab('catalog', this)">Catalog</button>
-									<button class="tab-btn" onclick="component.switchTab('rules', this)">Rules</button>
-									<button class="tab-btn" onclick="component.switchTab('history', this)">History</button>
+									<div class="tab-btn active" onclick="component.switchTab('catalog', this)">Catalog</div>
+									<div class="tab-btn" onclick="component.switchTab('rules', this)">Rules</div>
+									<div class="tab-btn" onclick="component.switchTab('history', this)">History</div>
 								</div>
 								</div>
 							</header>
@@ -97,17 +97,17 @@
 										<span class="search-icon">⌕</span>
 										<input type="text" placeholder="Search columns..." id="colSearch" oninput="component.filterColumns()">
 										</div>
-										<button class="btn btn-ghost" onclick="exportCSV()">Export</button>
+										<div class="btn btn-ghost" onclick="exportCSV()">Export</div>
 									</div>
 									</div>
 	
 									<div class="filter-row">
 									<span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase">Filter:</span>
-									<button class="filter-chip active" onclick="component.setFilter('all', this)">All</button>
-									<button class="filter-chip" onclick="component.setFilter('active', this)">Active</button>
-									<button class="filter-chip" onclick="component.setFilter('deleted', this)">Deleted</button>
-									<button class="filter-chip" onclick="component.setFilter('evolved', this)">Evolved</button>
-									<button class="filter-chip" onclick="component.setFilter('pending', this)">Pending Semantic</button>
+									<div class="filter-chip active" onclick="component.setFilter(event, 'all', this)">All</div>
+									<div class="filter-chip" onclick="component.setFilter(event, 'active', this)">Active</div>
+									<div class="filter-chip" onclick="component.setFilter(event, 'deleted', this)">Deleted</div>
+									<div class="filter-chip" onclick="component.setFilter(event, 'evolved', this)">Evolved</div>
+									<div class="filter-chip" onclick="component.setFilter(event, 'pending', this)">Pending Semantic</div>
 									</div>
 	
 									<div style="overflow-x:auto">
@@ -140,8 +140,8 @@
 										Rule-Based Pattern Definitions
 									</div>
 									<div class="panel-actions">
-										<button class="btn btn-ghost" onclick="component.resetRules()">Reset to Defaults</button>
-										<button class="btn btn-accent" onclick="component.openAddRuleModal()">+ Add Rule</button>
+										<div class="btn btn-ghost" onclick="component.resetRules()">Reset to Defaults</div>
+										<div class="btn btn-accent" onclick="component.openAddRuleModal()">+ Add Rule</div>
 									</div>
 									</div>
 									<div style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,212,255,0.03)">
@@ -217,8 +217,8 @@
 							</div>
 							<div id="rulePreview" style="padding:10px 12px;background:var(--bg);border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--muted);min-height:36px"></div>
 							<div class="modal-actions">
-							<button class="btn btn-ghost" onclick="component.closeModal()">Cancel</button>
-							<button class="btn btn-accent" onclick="component.addRule()">Add Rule</button>
+							<div class="btn btn-ghost" onclick="component.closeModal()">Cancel</div>
+							<div class="btn btn-accent" onclick="component.addRule()">Add Rule</div>
 							</div>
 						</div>
 					</div>

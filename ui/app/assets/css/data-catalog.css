@@ -17,20 +17,20 @@
 
 
   .shell {
-
     background: var(--bg);
     color: var(--text);
     font-family: var(--sans);
     font-size: 14px;
-    min-height: 100vh;
     overflow-x: hidden;
-
     display: grid;
     grid-template-columns: 260px 1fr;
     grid-template-rows: 56px 1fr;
-    min-height: 100vh;
+    max-height: 100vh;
     position: relative;
     z-index: 1;
+    height: 82.6vh;
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
   }
 
   .topbar {
@@ -369,7 +369,7 @@
   .semantic-tag {
     font-family: var(--mono);
     font-size: 11px;
-    padding: 3px 8px;
+    padding: 3px 0px !important;
     border-radius: 4px;
     background: rgba(0,230,118,0.08);
     color: var(--success);

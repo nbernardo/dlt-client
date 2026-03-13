@@ -63,10 +63,16 @@ export class DataCatalogUI extends ModalWindowComponent {
   }
 
   async onPipelineChange(val) {
+    this.PIPELINES = { [val]: { tables: {} } };
     const catalogData = await PipelineService.getDataCatalog(val);
-    console.log(`CATALOG DATA: `, catalogData);
-    
-    return;
+    for(const field of catalogData){
+
+      if(!this.PIPELINES[val]['tables'][field.table_name]) 
+        this.PIPELINES[val]['tables'][field.table_name] = { columns: [] };
+
+      this.PIPELINES[val]['tables'][field.table_name].columns.push({ name: field.name });
+    }
+    console.log(`CATALOG DATA: `, this.PIPELINES);
     this.currentPipeline = val || null;
     this.currentTable = null;
     this.renderSidebar();
@@ -125,7 +131,8 @@ export class DataCatalogUI extends ModalWindowComponent {
     document.getElementById('statEvolved').textContent = evolved;
   }
 
-  setFilter(f, btn) {
+  setFilter(event, f, btn) {
+    event.preventDefault();
     this.currentFilter = f;
     document.querySelectorAll('.filter-chip').forEach(el => el.classList.remove('active'));
     btn.classList.add('active');
@@ -156,7 +163,7 @@ export class DataCatalogUI extends ModalWindowComponent {
       tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">◈</div><div class="empty-text">${!this.currentTable ? 'Select a table' : 'No columns match filter'}</div></div></td></tr>`;
       return;
     }
-    tbody.innerHTML = cols.map((c, i) => {
+    const tableBody = cols.map((c, i) => {
       const statusBadge = c.deleted
         ? `<span class="badge badge-red">deleted</span>`
         : c.version > 1
@@ -182,11 +189,13 @@ export class DataCatalogUI extends ModalWindowComponent {
         <td>${statusBadge}</td>
         <td>${semCell}</td>
         <td><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${this.PIPELINES[this.currentPipeline]?.name || ''}</span></td>
-        <td>${!c.deleted ? `<button class="icon-btn" onclick="inner.showColHistory('${c.name}')">⊙</button>` : ''}</td>
+        <td>${!c.deleted ? `<div class="icon-btn" onclick="inner.showColHistory('${c.name}')">⊙</div>` : ''}</td>
       </tr>`;
 
       return this.parseEvents(result);
     }).join('');
+
+    tbody.innerHTML = tableBody;
   }
 
   editSemantic(idx, el) {
@@ -254,7 +263,7 @@ export class DataCatalogUI extends ModalWindowComponent {
           <span style="font-family:var(--mono);font-size:11px;color:var(--muted);min-width:32px">${r.confidence.toFixed(2)}</span>
         </div>
         <div class="rule-cell rule-actions">
-          <button class="icon-btn delete" onclick="deleteRule(${r.id})">✕</button>
+          <div class="icon-btn delete" onclick="deleteRule(${r.id})">✕</div>
         </div>
       </div>`)
     ).join('');
