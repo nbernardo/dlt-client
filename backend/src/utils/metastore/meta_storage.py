@@ -2,9 +2,10 @@ from datetime import datetime
 import json
 import re
 import pyarrow as pa
-import lancedb
-import duckdb
 from utils.duckdb_util import DuckdbUtil
+import duckdb
+from utils.db.lancedb import LanceConnectionFactory
+from services.modeling.SemanticModel import SemanticModel
 
 CATALOG_SCHEMA = pa.schema([
     pa.field("pipeline_run_id", pa.string()),
@@ -14,12 +15,20 @@ CATALOG_SCHEMA = pa.schema([
     pa.field("source_store", pa.string()),
     pa.field("dest_store", pa.string()),
     pa.field("pipeline", pa.string()),
-    pa.field("ingested_at", pa.string()),
     pa.field("original_column_name", pa.string()),
     pa.field("column_name", pa.string()),
     pa.field("data_type", pa.string()),
-    pa.field("column_version", pa.int32()),
-    pa.field("is_deleted", pa.int32()),
+    pa.field("ingested_at", pa.string()),
+    # semantic-specific
+    pa.field("semantic_concept", pa.string()),
+    pa.field("confidence_score", pa.float32()),
+    pa.field("description", pa.string()),
+    pa.field("source", pa.string()),
+    pa.field("validated", pa.int32()),
+    pa.field("validated_by", pa.string()),
+    pa.field("validated_at", pa.string()),
+    # vector embedding
+    pa.field("embedding", pa.list_(pa.float32(), 384)),
 ])
 
 
@@ -27,15 +36,14 @@ class MetaStore:
     """LanceDB-backed catalog store. Writes via LanceDB (MVCC), reads via DuckDB SQL."""
 
     @staticmethod
-    def _get_lance_path(dbs_path=None) -> str:
-        return f'{dbs_path}catalog.lance' if dbs_path else f'{DuckdbUtil.workspacedb_path}/catalog.lance'
+    def _get_lance_conn(dbs_path=None) -> str:
+        return LanceConnectionFactory.get(dbs_path)
 
 
     @staticmethod
     def _get_table(dbs_path=None):
         """Opens or creates the LanceDB catalog table. Safe for concurrent first-run."""
-        lance_path = MetaStore._get_lance_path(dbs_path)
-        db = lancedb.connect(lance_path)
+        db = MetaStore._get_lance_conn(dbs_path)
 
         try:
             return db.open_table('column_catalog')
@@ -49,7 +57,7 @@ class MetaStore:
     @staticmethod
     def _get_duckdb_conn(dbs_path=None) -> duckdb.DuckDBPyConnection:
         """Returns a DuckDB connection with a catalog view over the LanceDB files."""
-        lance_path = MetaStore._get_lance_path(dbs_path)
+        lance_path = f'{dbs_path}catalog.lance' if dbs_path else f'{DuckdbUtil.workspacedb_path}/catalog.lance'
         con = duckdb.connect()
         con.execute("LOAD lance")
         con.execute(f"""
@@ -84,7 +92,7 @@ class MetaStore:
 
     @staticmethod
     def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info=None, table_to_schema_map={}):
-        """Persists column catalog to LanceDB. Concurrent writes via MVCC — no lock needed."""
+        """Persists column catalog to LanceDB. Concurrent writes via MVCC — This is called from the pipeline run itself"""
         pipeline_name = pipeline.pipeline_name
         now = datetime.now().isoformat()
         namespace = pipeline_name.split('_at_')[0]
@@ -115,12 +123,9 @@ class MetaStore:
             
             existing = con.execute("""
                 SELECT
-                    table_name,
-                    original_column_name,
-                    data_type,
-                    column_version,
-                    is_deleted,
-                    column_name
+                    table_name, original_column_name,
+                    data_type, column_version,
+                    is_deleted, column_name
                 FROM column_catalog
                 WHERE pipeline = ?
                 QUALIFY ROW_NUMBER() OVER (
@@ -133,10 +138,7 @@ class MetaStore:
             for row in existing:
                 table, orig_col, dtype, version, deleted, col_name = row
                 db_map.setdefault(table, {})[orig_col] = {
-                    "data_type": dtype,
-                    "column_version": version,
-                    "is_deleted": deleted,
-                    "column_name": col_name,
+                    "data_type": dtype, "column_version": version, "is_deleted": deleted, "column_name": col_name,
                 }
 
             rows_to_insert = []
@@ -176,29 +178,38 @@ class MetaStore:
                         ))
 
             if rows_to_insert:
+                new_rows = [r for r in rows_to_insert if r['column_version'] == 1 and r['is_deleted'] == 0]
+                rows_to_insert = SemanticModel.get_semantic_model(rows_to_insert, new_rows, dbs_path)
+                rows_to_insert = SemanticModel.get_embeddings(rows_to_insert)
+                
                 tbl.add(rows_to_insert)
                 if tbl.version % 100 == 0:
                     MetaStore.compact_catalog(dbs_path)
 
+
         except Exception as e:
-            print(f"Catalog Evolution Update Failed: {e}")
+            print(f"Catalog Evolution Update Failed: {str(e)}")
 
         finally:
-            if con:
-                con.close()
+            if con: con.close()
 
 
     @staticmethod
-    def get_pipeline_metadata(pipeline: str, dbs_path=None):
+    def get_pipeline_metadata(pipeline: str, dbs_path=None, display_fields = False):
         try:
             con = MetaStore._get_duckdb_conn(dbs_path)
-            result = con.execute("""
-                SELECT column_name AS name, table_name, source_store
+            more_fields = ''
+            if display_fields:
+                more_fields = ',data_type as type, is_deleted as deleted, column_version as version'
+            result = con.execute(f"""
+                SELECT column_name AS name, table_name, source_store {more_fields}
                 FROM column_catalog
                 WHERE pipeline = ?
             """, (pipeline.replace('-', '_'),)).fetchall()
             con.close()
-            return [{"name": r[0], "table_name": r[1], "source_store": r[2]} for r in result]
+            if(display_fields == False):
+                return [{"name": r[0], "table_name": r[1], "source_store": r[2]} for r in result]
+            return [{"name": r[0], "table_name": r[1], "source": r[2], "type": r[3], "deleted": r[4], "version": r[5]} for r in result]
         except Exception as err:
             if str(err).__contains__('Extension'):
                 print(f'ERROR: Duckdb missing Extension - The lancedb extension for Duckdb is not installed: {err}')
@@ -215,8 +226,7 @@ class MetaStore:
         try:
             con = MetaStore._get_duckdb_conn(dbs_path)
             result = con.execute("""
-                SELECT original_column_name, data_type, column_version,
-                       is_deleted, ingested_at
+                SELECT original_column_name, data_type, column_version, is_deleted, ingested_at
                 FROM column_catalog
                 WHERE table_name = ? AND pipeline = ?
                 ORDER BY original_column_name, column_version
@@ -234,12 +244,9 @@ class MetaStore:
         try:
             con = MetaStore._get_duckdb_conn(dbs_path)
             result = con.execute("""
-                SELECT original_column_name, column_name,
-                       data_type, column_version, ingested_at
+                SELECT original_column_name, column_name, data_type, column_version, ingested_at
                 FROM column_catalog
-                WHERE table_name = ?
-                  AND pipeline   = ?
-                  AND is_deleted = 0
+                WHERE table_name = ? AND pipeline = ? AND is_deleted = 0
                 QUALIFY ROW_NUMBER() OVER (
                     PARTITION BY original_column_name
                     ORDER BY column_version DESC
@@ -272,8 +279,7 @@ class MetaStore:
             destination_str = json.dumps({k: str(v) for k, v in creds.items() if k != 'password'})
         else:
             destination_str = json.dumps({
-                k: str(getattr(creds, k))
-                for k in dir(creds)
+                k: str(getattr(creds, k)) for k in dir(creds)
                 if not k.startswith('_') and not callable(getattr(creds, k)) and k != 'password'
             })
         return re.sub(r':([^@]+)@', ':***@', destination_str)
@@ -282,8 +288,7 @@ class MetaStore:
     @staticmethod
     def compact_catalog(dbs_path=None, older_than_days=30):
         from datetime import timedelta
-        lance_path = MetaStore._get_lance_path(dbs_path)
-        db = lancedb.connect(lance_path)
+        db = MetaStore._get_lance_conn(dbs_path)
         tbl = db.open_table('column_catalog')
         tbl.cleanup_old_versions(older_than=timedelta(days=older_than_days))
         tbl.compact_files()
