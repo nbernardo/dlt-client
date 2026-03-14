@@ -2,8 +2,7 @@ from utils.db.lancedb import LanceConnectionFactory
 from utils.metastore.DataCatalog import DataCatalog
 
 class MetaStore:
-    """LanceDB-backed catalog store. Writes via LanceDB (MVCC), reads via DuckDB SQL."""
-
+    """ Centralize the access to all metastore capabilities (e.g. DataCatalog) """
     @staticmethod
     def _get_lance_conn(dbs_path=None) -> str:
         return LanceConnectionFactory.get(dbs_path)
