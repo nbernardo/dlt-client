@@ -70,7 +70,7 @@ export class DataCatalogUI extends ModalWindowComponent {
       if(!this.PIPELINES[val]['tables'][field.table_name]) 
         this.PIPELINES[val]['tables'][field.table_name] = { columns: [] };
 
-      this.PIPELINES[val]['tables'][field.table_name].columns.push({ name: field.name });
+      this.PIPELINES[val]['tables'][field.table_name].columns.push(field);
     }
     console.log(`CATALOG DATA: `, this.PIPELINES);
     this.currentPipeline = val || null;
@@ -108,6 +108,7 @@ export class DataCatalogUI extends ModalWindowComponent {
   }
 
   selectTable(name) {
+    this.switchTab('catalog', this.popup.querySelector('.data-catalog-tabe'));
     this.currentTable = name;
     this.renderSidebar();
     this.renderColumns();
@@ -172,11 +173,11 @@ export class DataCatalogUI extends ModalWindowComponent {
 
       const semCell = c.deleted ? '—' : c.semantic
         ? `<div class="semantic-cell">
-            <span class="semantic-tag ${c.validated ? '' : 'pending'}" onclick="editSemantic(${i}, this)">${c.semantic}</span>
+            <span class="semantic-tag ${c.validated ? '' : 'pending'}" onclick="inner.editSemantic(${i}, this)">${c.semantic}</span>
             ${c.validated ? '<span style="color:var(--success);font-size:10px">✓</span>' : '<span style="color:var(--warning);font-size:10px">⏳</span>'}
             <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">${c.sem_source}</span>
           </div>`
-        : `<div class="semantic-cell"><span class="semantic-tag empty" onclick="editSemantic(${i}, this)">+ assign</span></div>`;
+        : `<div class="semantic-cell"><span class="semantic-tag empty" onclick="inner.editSemantic(${i}, this)">+ assign</span></div>`;
 
       const versionEl = c.version > 1
         ? `<span class="version-chip changed">v${c.version} ↑</span>`
@@ -188,7 +189,7 @@ export class DataCatalogUI extends ModalWindowComponent {
         <td>${versionEl}</td>
         <td>${statusBadge}</td>
         <td>${semCell}</td>
-        <td><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${this.PIPELINES[this.currentPipeline]?.name || ''}</span></td>
+        <td><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${this.currentPipeline || ''}</span></td>
         <td>${!c.deleted ? `<div class="icon-btn" onclick="inner.showColHistory('${c.name}')">⊙</div>` : ''}</td>
       </tr>`;
 
@@ -220,9 +221,10 @@ export class DataCatalogUI extends ModalWindowComponent {
       cols[colIdx].semantic = val;
       cols[colIdx].validated = 0;
       cols[colIdx].sem_source = 'manual';
-      editingCell = null;
+      self.markUnsaved();
+      self.editingCell = null;
       self.renderColumns();
-      if (val) showToast(`Semantic concept "${val}" assigned`, 'success');
+      if (val) self.showToast(`Semantic concept "${val}" assigned`, 'success');
     }
 
     input.addEventListener('blur', save);
@@ -387,5 +389,12 @@ export class DataCatalogUI extends ModalWindowComponent {
     this.switchTab('history', document.querySelector('.tab-btn:nth-child(3)'));
     this.showToast(`Showing history for ${colName}`);
   }
+
+  saveSemantic() {
+    document.getElementById('btnSaveSemantic').classList.remove('unsaved');
+    showToast('Semantic changes saved', 'success');
+  }
+
+  markUnsaved = () =>  document.getElementById('btnSaveSemantic').classList.add('unsaved');
 
 }

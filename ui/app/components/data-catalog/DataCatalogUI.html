@@ -42,7 +42,7 @@
 								</div>
 								<div class="topbar-right">
 								<div class="tab-bar">
-									<div class="tab-btn active" onclick="component.switchTab('catalog', this)">Catalog</div>
+									<div class="tab-btn active data-catalog-tabe" onclick="component.switchTab('catalog', this)">Catalog</div>
 									<div class="tab-btn" onclick="component.switchTab('rules', this)">Rules</div>
 									<div class="tab-btn" onclick="component.switchTab('history', this)">History</div>
 								</div>
@@ -108,6 +108,7 @@
 									<div class="filter-chip" onclick="component.setFilter(event, 'deleted', this)">Deleted</div>
 									<div class="filter-chip" onclick="component.setFilter(event, 'evolved', this)">Evolved</div>
 									<div class="filter-chip" onclick="component.setFilter(event, 'pending', this)">Pending Semantic</div>
+									<div class="btn btn-ghost btn-save-semantic" id="btnSaveSemantic" onclick="saveSemantic()"><div class="save-dot"></div>Save</div>
 									</div>
 	
 									<div style="overflow-x:auto">
