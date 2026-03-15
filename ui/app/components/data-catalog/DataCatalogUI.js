@@ -9,7 +9,7 @@ export class DataCatalogUI extends ModalWindowComponent {
 
 	isPublic = false;
 
-  /** @Prop */ showWindowPopup = true;
+  /** @Prop */ showWindowPopup = false;
 
   /** @Prop */ uniqueId = false;
 
@@ -34,6 +34,7 @@ export class DataCatalogUI extends ModalWindowComponent {
 	}
 
   async stAfterInit(){
+    this.selectedPipeline.onChange(async val => await this.onPipelineChange(val))
     this.popup = document.getElementById(this.uniqueId);
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
@@ -42,7 +43,7 @@ export class DataCatalogUI extends ModalWindowComponent {
     this.renderSidebar();
     this.renderColumns();
 
-    this.pipelineList = await PipelineService.getPipelinesNames();  
+    this.pipelineList = await PipelineService.getPipelinesNames();
 
   }
 
@@ -62,17 +63,17 @@ export class DataCatalogUI extends ModalWindowComponent {
     if (tab === 'history') this.renderHistory();
   }
 
-  async onPipelineChange(val) {
+  async onPipelineChange(val, fromProxy = false) {
+    if(fromProxy) document.querySelector('.catalog-list-of-pipelines').querySelector('select').value = val;
     this.PIPELINES = { [val]: { tables: {} } };
     const catalogData = await PipelineService.getDataCatalog(val);
     for(const field of catalogData){
-
       if(!this.PIPELINES[val]['tables'][field.table_name]) 
         this.PIPELINES[val]['tables'][field.table_name] = { columns: [] };
 
       this.PIPELINES[val]['tables'][field.table_name].columns.push(field);
     }
-    console.log(`CATALOG DATA: `, this.PIPELINES);
+
     this.currentPipeline = val || null;
     this.currentTable = null;
     this.renderSidebar();

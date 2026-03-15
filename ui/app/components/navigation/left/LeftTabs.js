@@ -294,6 +294,7 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	renderDropDownMenu(dbfile, isScheduled, isSchedulePaused){
+		WorkspaceService.currentSelectedPpeline = dbfile;
 		const content = document.querySelector('.pipeline-submenu-contents').innerHTML;
 		const target = document.querySelector(`.pipeline-menu-wrap-${dbfile}`);
 		target.style.display = '';
@@ -304,7 +305,6 @@ export class LeftTabs extends ViewComponent {
 		});
 		if(isScheduled) {
 			target.querySelector('.scheduled-pipeline-menu-option').style.display = '';
-			WorkspaceService.currentSelectedPpeline = dbfile;
 			WorkspaceService.currentSelectedPpelineStatus = isSchedulePaused;
 			const label = isSchedulePaused === 'paused' ? 'Resume' : 'Pause';
 			const delLabel = isSchedulePaused !== 'paused' ? 'Resume' : 'Pause';
@@ -390,11 +390,11 @@ export class LeftTabs extends ViewComponent {
 
 	filterScriptFile = (name) => this.scriptListProxy.filterFileByName('script',name);
 	filterDataFile = (name) => this.fileListProxy.filterFileByName('data', name);
-
 	toggleFilterSchedulePPline = (isChecked) => this.onlyScheduledPplineFilter = isChecked;
 
 	showDataCatalog = (event) => {
 		event.preventDefault();
 		this.$parent.showDataCatalog();
+		this.$parent.dataCatalogUIProxy.onPipelineChange(WorkspaceService.currentSelectedPpeline, true);
 	}
 }
