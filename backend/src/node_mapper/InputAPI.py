@@ -4,6 +4,7 @@ from services.pipeline.DltPipeline import DltPipeline
 from services.workspace.SecretManager import SecretManager
 import requests
 from requests.exceptions import ConnectionError, Timeout, RequestException
+from utils.pipeline import NodeType
 
 class InputAPI(TemplateNodeType):
     """
@@ -26,6 +27,8 @@ class InputAPI(TemplateNodeType):
             # Nothing more takes place except for the template itself
             if data is None: return None
             if len(data.keys()) == 0: return None
+
+            self.context.pipeline_metadata.source_type = NodeType.API_SOURCE
 
             # Every field in this list will be parse and considerd as pure python code
             self.parse_to_literal = ['paginate_params','auth_config','auth_strategy','endpoints_params']

@@ -3,6 +3,7 @@ from .TemplateNodeType import TemplateNodeType
 from controller.RequestContext import RequestContext
 import os
 import uuid
+from utils.pipeline import NodeType
 
 class DuckDBOutput(TemplateNodeType):
     """
@@ -21,6 +22,7 @@ class DuckDBOutput(TemplateNodeType):
 
         self.context = context
         self.component_id = data['componentId']
+        self.context.pipeline_metadata.destination_type = NodeType.DUCKDB_DEST
 
         self.context.emit_start(self, '')
         # database is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt

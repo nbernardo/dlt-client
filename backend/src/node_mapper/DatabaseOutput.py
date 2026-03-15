@@ -1,5 +1,6 @@
 from .TemplateNodeType import TemplateNodeType
 from controller.RequestContext import RequestContext
+from utils.pipeline import NodeType
 
 class DatabaseOutput(TemplateNodeType):
     """ Bucket type mapping class """
@@ -22,6 +23,8 @@ class DatabaseOutput(TemplateNodeType):
         # and this takes place according to the logic implemented on the 
         # TemplateNodeType.parse_destination_string which is inherited by ant nodeType (e.g. DatabaseOutput)
         self.outdb_secret_name = data['outDBconnectionName']
+        self.context.pipeline_metadata.destination_secret = self.outdb_secret_name
+        self.context.pipeline_metadata.destination_type = NodeType.SQL_DEST
 
 
     def run(self) -> None:

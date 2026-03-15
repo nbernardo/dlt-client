@@ -2,6 +2,7 @@ from .TemplateNodeType import TemplateNodeType
 from controller.RequestContext import RequestContext
 from services.pipeline.DltPipeline import DltPipeline
 from services.workspace.SecretManager import SecretManager
+from utils.pipeline import NodeType
 
 class DLTCode(TemplateNodeType):
     """ DLTCode type mapping class """
@@ -22,8 +23,10 @@ class DLTCode(TemplateNodeType):
         if data is None: return None
         if len(data.keys()) == 0: return None
 
+        
         self.context = context
         self.component_id = data['componentId']
+        self.context.pipeline_metadata.source_type = NodeType.CODE_SOURCE
 
         if str(data['dltCode']) == '':
             return self.notify_failure_to_ui('DLTCode','No template or code was provided')
