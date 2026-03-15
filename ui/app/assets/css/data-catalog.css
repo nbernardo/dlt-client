@@ -580,6 +580,6 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-.btn-save-semantic { margin-left: auto; display: flex; align-items: center; gap: 6px; width: 78px; }
-.save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0; flex-shrink: 0; }
+.btn-save-semantic { margin-left: auto; display: flex; align-items: center; gap: 6px; width: 90px; background: var(--accent); color: black; }
+.save-dot { width: 13px; height: 13px; border-radius: 50%; background: red; opacity: 0; flex-shrink: 0; }
 .btn-save-semantic.unsaved .save-dot { opacity: 1; animation: pulse 2s ease-in-out infinite; }

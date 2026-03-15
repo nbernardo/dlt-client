@@ -19,7 +19,7 @@
 				<div class="popup-mov-window-controls">
 					<button class="minimize" style="visibility: hidden;" onclick="component.toggleMinimize()">−</button>
 					<button class="maximize" style="visibility: hidden;" onclick="component.toggleMaximize()">□</button>
-					<button class="close" onclick="component.closePopup()">×</button>
+					<button class="close" onclick="component.closeMe()">×</button>
 				</div>
 			</div>
 
@@ -110,7 +110,7 @@
 									<div class="filter-chip" onclick="component.setFilter(event, 'deleted', this)">Deleted</div>
 									<div class="filter-chip" onclick="component.setFilter(event, 'evolved', this)">Evolved</div>
 									<div class="filter-chip" onclick="component.setFilter(event, 'pending', this)">Pending Semantic</div>
-									<div class="btn btn-ghost btn-save-semantic" id="btnSaveSemantic" onclick="saveSemantic()"><div class="save-dot"></div>Save</div>
+									<div class="btn btn-ghost btn-save-semantic" id="btnSaveSemantic" onclick="component.saveSemantic()"><div class="save-dot"></div>Save</div>
 									</div>
 	
 									<div style="overflow-x:auto">

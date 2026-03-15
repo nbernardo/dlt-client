@@ -13,7 +13,11 @@ export class DataCatalogUI extends ModalWindowComponent {
 
   /** @Prop */ uniqueId = false;
 
+  /** @Prop */ unsavedState = false;
+
   /** @Prop @type { HTMLElement } */ popup = false;
+
+  /** @Prop @type { HTMLElement } */ pipelineComboBox = false;
 
   /** @Prop */ currentPipeline = null;
   /** @Prop */ currentTable = null;
@@ -34,8 +38,9 @@ export class DataCatalogUI extends ModalWindowComponent {
 	}
 
   async stAfterInit(){
-    this.selectedPipeline.onChange(async val => await this.onPipelineChange(val))
+
     this.popup = document.getElementById(this.uniqueId);
+    this.pipelineComboBox = document.querySelector('.catalog-list-of-pipelines').querySelector('select');
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
     this.util = new PopupUtil();
@@ -64,21 +69,32 @@ export class DataCatalogUI extends ModalWindowComponent {
   }
 
   async onPipelineChange(val, fromProxy = false) {
-    if(fromProxy) document.querySelector('.catalog-list-of-pipelines').querySelector('select').value = val;
-    this.PIPELINES = { [val]: { tables: {} } };
-    const catalogData = await PipelineService.getDataCatalog(val);
-    for(const field of catalogData){
-      if(!this.PIPELINES[val]['tables'][field.table_name]) 
-        this.PIPELINES[val]['tables'][field.table_name] = { columns: [] };
-
-      this.PIPELINES[val]['tables'][field.table_name].columns.push(field);
+    const self = this;
+    if(this.unsavedState) {
+      return PipelineService.checkUnsavedStatusAlert(
+        { cancel: () => this.pipelineComboBox.value = this.currentPipeline, confirm: applyPipelineChange }
+      );
     }
+    
+    await applyPipelineChange();
 
-    this.currentPipeline = val || null;
-    this.currentTable = null;
-    this.renderSidebar();
-    this.renderColumns();
-    this.updateStats();
+    async function applyPipelineChange(){
+      if(fromProxy) self.pipelineComboBox.value = val;
+      self.PIPELINES = { [val]: { tables: {} } };
+      const catalogData = await PipelineService.getDataCatalog(val);
+      for(const field of catalogData){
+        if(!self.PIPELINES[val]['tables'][field.table_name]) 
+          self.PIPELINES[val]['tables'][field.table_name] = { columns: [] };
+  
+        self.PIPELINES[val]['tables'][field.table_name].columns.push(field);
+      }
+  
+      self.currentPipeline = val || null;
+      self.currentTable = null;
+      self.renderSidebar();
+      self.renderColumns();
+      self.updateStats();
+    }
   }
 
   renderSidebar() {
@@ -109,10 +125,22 @@ export class DataCatalogUI extends ModalWindowComponent {
   }
 
   selectTable(name) {
+    const self = this;
     this.switchTab('catalog', this.popup.querySelector('.data-catalog-tabe'));
-    this.currentTable = name;
-    this.renderSidebar();
-    this.renderColumns();
+    if(this.unsavedState) {
+      return PipelineService.checkUnsavedStatusAlert(
+        { cancel: () => this.pipelineComboBox.value = this.currentPipeline, confirm: changeTable }
+      );
+    }
+
+    changeTable();
+    
+    function changeTable(){
+      self.currentTable = name;
+      self.renderSidebar();
+      self.renderColumns();
+    }
+
   }
   
   updateStats() {
@@ -174,9 +202,9 @@ export class DataCatalogUI extends ModalWindowComponent {
 
       const semCell = c.deleted ? '—' : c.semantic
         ? `<div class="semantic-cell">
-            <span class="semantic-validate ${c.validated ? '' : 'pending'}" onclick="inner.validateSemantic(${i}, this)">&check;</span>
+            <span class="semantic-validate ${c.validated ? '' : 'pending'}" onclick="inner.validateSemantic(${i}, this)">✓</span>
             <span class="semantic-tag ${c.validated ? '' : 'pending'}" onclick="inner.editSemantic(${i}, this)">${c.semantic}</span>
-            ${c.validated ? '<span style="color:var(--success);font-size:10px">✓</span>' : '<span style="color:var(--warning);font-size:10px">⏳</span>'}
+            ${c.validated ? '' : '<span style="color:var(--warning);font-size:10px">⏳</span>'}
             <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">${c.sem_source}</span>
           </div>`
         : `<div class="semantic-cell"><span class="semantic-tag empty" onclick="inner.editSemantic(${i}, this)">+ assign</span></div>`;
@@ -204,7 +232,8 @@ export class DataCatalogUI extends ModalWindowComponent {
   validateSemantic(idx, el) { 
     this.getFilteredCols()[idx].validated = 1; 
     el.classList.remove('pending');
-    this.renderColumns()
+    this.renderColumns();
+    this.markUnsaved();
   }
 
   editSemantic(idx, el) {
@@ -411,10 +440,27 @@ export class DataCatalogUI extends ModalWindowComponent {
 
   saveSemantic() {
     document.getElementById('btnSaveSemantic').classList.remove('unsaved');
-    showToast('Semantic changes saved', 'success');
+    this.showToast('Semantic changes saved', 'success');
+    this.unsavedState = false;
   }
 
-  markUnsaved = () =>  document.getElementById('btnSaveSemantic').classList.add('unsaved');
-  remMarkUnsaved = () =>  document.getElementById('btnSaveSemantic').classList.remove('unsaved');
+  markUnsaved = () => {
+    this.unsavedState = true; 
+    document.getElementById('btnSaveSemantic').classList.add('unsaved');
+  }
+
+  remMarkUnsaved = () => {
+    this.unsavedState = false; 
+    document.getElementById('btnSaveSemantic').classList.remove('unsaved');
+  }
+
+  closeMe(){
+    if(this.unsavedState) {
+      return PipelineService.checkUnsavedStatusAlert(
+        { cancel: () => { this.pipelineComboBox.value = '' }, confirm: () => { this.closePopup(this), this.unsavedState = false; } }
+      );
+    }
+    this.pipelineComboBox.value = '';
+  }
 
 }

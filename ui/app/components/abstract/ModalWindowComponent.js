@@ -71,11 +71,11 @@ export class ModalWindowComponent extends ViewComponent {
 
 	}
 
-    closePopup(){
-        this.popup.classList.add('hidden');
-        this.popup.classList.remove('minimized', 'maximized');
-        this.isMinimized = false;
-        this.showWindowPopup = false;
+    closePopup(obj){
+        (obj || this).popup.classList.add('hidden');
+        (obj || this).popup.classList.remove('minimized', 'maximized');
+        (obj || this).isMinimized = false;
+        (obj || this).showWindowPopup = false;
     }
 
     showPopup = () => {

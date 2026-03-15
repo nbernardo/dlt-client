@@ -1,5 +1,6 @@
 import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
+import { WorkSpaceController } from "../controller/WorkSpaceController.js";
 import { UserService } from "./UserService.js";
 
 export class PipelineService extends BaseService {
@@ -39,6 +40,14 @@ export class PipelineService extends BaseService {
         const result = await response.json();
 
         return result;
+    }
+
+    static checkUnsavedStatusAlert({ confirm, cancel }){
+		let message = 'You have unsaved Semantic concept. Do you which to leave without save?';
+		let title = 'Unsave changes!';
+        const onConfirm = async () => await confirm();
+        const onCancel = async () => await cancel();
+        return WorkSpaceController.get().showDialog(message, { type: 'confirm', title, onConfirm, onCancel })
     }
 
 }
