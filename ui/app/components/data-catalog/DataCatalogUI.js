@@ -174,6 +174,7 @@ export class DataCatalogUI extends ModalWindowComponent {
 
       const semCell = c.deleted ? '—' : c.semantic
         ? `<div class="semantic-cell">
+            <span class="semantic-validate ${c.validated ? '' : 'pending'}" onclick="inner.validateSemantic(${i}, this)">&check;</span>
             <span class="semantic-tag ${c.validated ? '' : 'pending'}" onclick="inner.editSemantic(${i}, this)">${c.semantic}</span>
             ${c.validated ? '<span style="color:var(--success);font-size:10px">✓</span>' : '<span style="color:var(--warning);font-size:10px">⏳</span>'}
             <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">${c.sem_source}</span>
@@ -200,13 +201,19 @@ export class DataCatalogUI extends ModalWindowComponent {
     tbody.innerHTML = tableBody;
   }
 
+  validateSemantic(idx, el) { 
+    this.getFilteredCols()[idx].validated = 1; 
+    el.classList.remove('pending');
+    this.renderColumns()
+  }
+
   editSemantic(idx, el) {
     if (this.editingCell) return;
-    this.editingCell = true;
-
+    
     const cols = this.PIPELINES[this.currentPipeline].tables[this.currentTable].columns;
     const visible = this.getFilteredCols();
     const col = visible[idx];
+    this.editingCell = col;
     const colIdx = cols.indexOf(col);
     const input = document.createElement('input');
 
@@ -220,12 +227,23 @@ export class DataCatalogUI extends ModalWindowComponent {
     function save() {
       const val = input.value.trim();
       cols[colIdx].semantic = val;
-      cols[colIdx].validated = 0;
-      cols[colIdx].sem_source = 'manual';
-      self.markUnsaved();
+      
+      if(cols.find(r => r.semantic != r.original_semantic) !== undefined && !(cols[colIdx].original_semantic != val)){
+        self.markUnsaved(), self.editingCell = null;
+        return self.renderColumns();
+      }else{
+        cols[colIdx].sem_source = cols[colIdx].original_source;
+        self.remMarkUnsaved();
+      }
+      
+      if(cols[colIdx].original_semantic != val){
+        cols[colIdx].validated = 0;
+        cols[colIdx].sem_source = 'manual';
+        if (val) self.showToast(`Semantic concept "${val}" assigned`, 'success');
+        self.markUnsaved();
+      }
       self.editingCell = null;
       self.renderColumns();
-      if (val) self.showToast(`Semantic concept "${val}" assigned`, 'success');
     }
 
     input.addEventListener('blur', save);
@@ -397,5 +415,6 @@ export class DataCatalogUI extends ModalWindowComponent {
   }
 
   markUnsaved = () =>  document.getElementById('btnSaveSemantic').classList.add('unsaved');
+  remMarkUnsaved = () =>  document.getElementById('btnSaveSemantic').classList.remove('unsaved');
 
 }

@@ -201,7 +201,7 @@ class DataCatalog:
             con = DataCatalog._get_duckdb_conn(dbs_path)
             more_fields = ''
             if display_fields:
-                more_fields = ',data_type as type, is_deleted as deleted, column_version as version'
+                more_fields = ',data_type, is_deleted, column_version, semantic_concept, confidence_score, validated, source'
             result = con.execute(f"""
                 SELECT column_name AS name, table_name, source_store {more_fields}
                 FROM column_catalog
@@ -210,7 +210,13 @@ class DataCatalog:
             con.close()
             if(display_fields == False):
                 return [{"name": r[0], "table_name": r[1], "source_store": r[2]} for r in result]
-            return [{"name": r[0], "table_name": r[1], "source": r[2], "type": r[3], "deleted": r[4], "version": r[5]} for r in result]
+            
+            return [
+                {
+                    'name': r[0], 'table_name': r[1], 'source': r[2], 'type': r[3], 'deleted': r[4], 'original_semantic': r[6],
+                    'version': r[5], 'semantic': r[6], 'confidence': r[7], 'validated': r[8], 'sem_source': r[9], 'original_source': r[9]
+                }  for r in result
+            ]
         except Exception as err:
             if str(err).__contains__('Extension'):
                 print(f'ERROR: Duckdb missing Extension - The lancedb extension for Duckdb is not installed: {err}')

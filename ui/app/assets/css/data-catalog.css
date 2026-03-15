@@ -366,7 +366,7 @@
 
   .semantic-cell { display: flex; align-items: center; gap: 6px; }
 
-  .semantic-tag {
+  .semantic-tag, .semantic-validate {
     font-family: var(--mono);
     font-size: 11px;
     padding: 3px 0px !important;
@@ -377,8 +377,11 @@
     cursor: pointer;
     transition: all 0.15s;
   }
+
+  .semantic-validate{ width: 12px; height: 14px; padding: 0 !important; text-align: center; }
+
   .semantic-tag:hover { background: rgba(0,230,118,0.15); }
-  .semantic-tag.pending { background: rgba(255,171,64,0.08); color: var(--warning); border-color: rgba(255,171,64,0.15); }
+  .semantic-tag.pending, .semantic-validate.pending { background: rgba(255,171,64,0.08); color: var(--warning); border-color: rgba(255,171,64,0.15); }
   .semantic-tag.empty { background: transparent; color: var(--muted); border-color: var(--border); border-style: dashed; }
 
   .semantic-edit-input {
