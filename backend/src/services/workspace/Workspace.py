@@ -6,7 +6,6 @@ import duckdb
 import re
 from utils.duckdb_util import DuckdbUtil
 from tabulate import tabulate
-from controller.pipeline import BasePipeline
 from services.pipeline.DltPipeline import DltPipeline
 import schedule
 import time as timelib
@@ -35,6 +34,7 @@ class Workspace:
             }
 
         try:
+            from controller.pipeline import BasePipeline
             folder = BasePipeline.folder+'/duckdb/'+user
             db_cnx = duckdb.connect(f'{folder}/{database}', read_only=True)
             Workspace.duckdb_open_connections[database] = db_cnx

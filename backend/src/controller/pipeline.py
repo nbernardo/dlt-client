@@ -8,6 +8,8 @@ import pandas as pd
 from utils.duckdb_util import DuckdbUtil
 from utils.workspace_util import handle_conversasion_turn_limit
 import traceback
+from services.agents import AgentFactory
+from utils.metastore.meta_storage import MetaStore
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -361,16 +363,14 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
         transformation2 = context.transformation2
         if(context.source_type == 'BUCKET'):
             t = '    '
-            transformation2 = context.transformation2
-            transformation2 = handle_transform_indent(transformation2)
+            transformation2 = handle_transform_indent(context.transformation2)
             transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = list(transformations2.values())'
             transformation2 = f'{transformation2}\n{t}{t}{t}transformations2 = transformations2[0] if len(transformations2) > 0 else []'
-            
             
         template = template.replace(placeholder, f'transformations2 = {transformation2}')
     else:
         template = template.replace(placeholder, 'transformations2 = []')
-    
+
     return template
 
 
@@ -388,9 +388,7 @@ def parse_secrets(template: str, context: RequestContext = None):
 
 
 def parse_node(connections, node_params, data_place, context: RequestContext, node_list: list):
-    """
-    This extract data from everysingle node
-    """
+    """ This extract data from everysingle node """
     for connection in connections:
         for conn in connection:
             node_id = conn['node']
@@ -543,8 +541,6 @@ def read_csv_file_fields(user, filename: str):
         return list(pl.scan_ndjson(file_path).collect_schema().keys())
 
 
-from services.agents import AgentFactory
-
 def send_message_to_pipeline_agent_wit_groq(message, namespace, user_id = None):
     user = user_id if user_id != None else namespace
     agent = AgentFactory.get_pipeline_agent(user)
@@ -563,7 +559,6 @@ def send_message_to_pipeline_agent_wit_groq(message, namespace, user_id = None):
 def message_ai_agent(namespace):
 
     try:
-
         message_turn_limit = handle_conversasion_turn_limit(request, namespace)
         if message_turn_limit.get('error', None):
             return message_turn_limit
@@ -589,7 +584,6 @@ def message_ai_agent(namespace):
 def preview_transformation(namespace):
 
     try:
-
         payload = request.get_json()
         
         preview_script = payload['previewScript']
@@ -624,8 +618,6 @@ def update_pipeline_pause(namespace, pipeline, status):
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }
 
-
-from utils.metastore.meta_storage import MetaStore
 
 @pipeline.route('/ppline/<pipeline_name>/catalog/<namespace>', methods=['GET'])
 def get_data_catalog(pipeline_name, namespace):

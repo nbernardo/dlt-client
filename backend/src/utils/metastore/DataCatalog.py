@@ -6,6 +6,7 @@ from utils.duckdb_util import DuckdbUtil
 import duckdb
 from utils.db.lancedb import LanceConnectionFactory
 from services.modeling.SemanticModel import SemanticModel
+import sys
 
 CATALOG_SCHEMA = pa.schema([
     pa.field("pipeline_run_id", pa.string()),
@@ -191,6 +192,7 @@ class DataCatalog:
 
         finally:
             if con: con.close()
+            sys.exit(0) # Gracefully terminates the sub-process
 
 
     @staticmethod

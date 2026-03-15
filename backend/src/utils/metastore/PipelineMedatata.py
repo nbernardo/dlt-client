@@ -8,6 +8,8 @@ PIPELINE_METADATA_SCHEMA = pa.schema([
     pa.field("namespace", pa.string()),
     pa.field("source_secret_name", pa.string()),
     pa.field("dest_secret_name", pa.string()),
+    pa.field("source_type", pa.string()),
+    pa.field("dest_type", pa.string()),
     pa.field("pipeline", pa.string())
 ])
 
@@ -53,8 +55,8 @@ class PipelineMedatata:
             tbl = PipelineMedatata._get_table()
 
             rows_to_insert = [{
-                'namespace': namespace, 'source_secret_name': details.get('secret_name', ''),
-                'pipeline': pipeline, 'dest_secret_name': details.get('secret_name', ''),
+                'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'],
+                'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type']
             }]
 
             tbl.add(rows_to_insert)
@@ -73,7 +75,7 @@ class PipelineMedatata:
         try:
             con = PipelineMedatata._get_duckdb_conn()
             row = con.execute(f"""
-                SELECT pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline
+                SELECT pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, source_type, dest_type
                 FROM pipeline_metadata WHERE pipeline = '{pipeline}'
             """).fetchone()
 

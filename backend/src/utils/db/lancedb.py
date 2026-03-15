@@ -9,7 +9,7 @@ class LanceConnectionFactory:
     lance_path = None
 
     @staticmethod
-    def get(dbs_path, storage_options=None):
+    def get(dbs_path = None, storage_options=None):
 
         lance_path = \
             f'{dbs_path}catalog.lance' if dbs_path else f'{DuckdbUtil.workspacedb_path}/catalog.lance'
