@@ -7,7 +7,7 @@ features.
 
 ⚠️ **Action required:**
 As of Mar-08-2026, we've introduced LanceDB in the project as part of the Datacatalog implementation.
-Please refere to [LanceDB setup](../lancedb/setup.md) for this project, otherwise it might cause your pipeline not to run.
+Please refere to [LanceDB setup](../lancedb/setup.md) or [Environment re-run setup](../lancedb/DATACATALOG_README.md)  for this project, otherwise it might cause your pipeline not to run.
 
 The front end is built using the <a href="https://stilljs.dev/">Still.js</a> framework and the Backend is built in 
 <a href="https://dlthub.com/">dlt-hub (Python)</a>. This is a single repository comprising both the backend and the UI.

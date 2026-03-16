@@ -131,3 +131,4 @@ dlt[mssql]
 dlt[bigquery]
 dlt[databricks]
 lancedb
+fastembed

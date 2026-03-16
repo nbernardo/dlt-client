@@ -2,13 +2,15 @@ import duckdb
 from pathlib import Path
 import time
 
-lance_table_path = Path(__file__).parent / "../../dbs/files/catalog.lance/column_catalog.lance"
+datacatalog_path = Path(__file__).parent / "../../dbs/files/catalog.lance/column_catalog.lance"
+metadata_path = Path(__file__).parent / "../../dbs/files/catalog.lance/pipeline_metadata.lance"
 
 con = duckdb.connect()
 con.execute("LOAD lance")
-con.execute(f"CREATE VIEW column_catalog AS SELECT * FROM '{lance_table_path.resolve()}'")
+con.execute(f"CREATE VIEW column_catalog AS SELECT * FROM '{datacatalog_path.resolve()}'")
+con.execute(f"CREATE VIEW pipeline_metadata AS SELECT * FROM '{metadata_path.resolve()}'")
 
-print(f"✅ Connected to: {lance_table_path.resolve()}")
+print(f"✅ Connected to LanceDB tables: column_catalog and pipeline_metadata")
 print("📊 Opening DuckDB UI at http://localhost:4213")
 
 con.execute("CALL start_ui()")

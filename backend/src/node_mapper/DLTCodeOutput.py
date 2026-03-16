@@ -3,6 +3,7 @@ from controller.RequestContext import RequestContext
 from services.pipeline.DltPipeline import DltPipeline
 from services.workspace.SecretManager import SecretManager
 import re
+from utils.pipeline import NodeType
 
 class DLTCodeOutput(TemplateNodeType):
     """ DLTCodeOutput type mapping class """
@@ -26,6 +27,7 @@ class DLTCodeOutput(TemplateNodeType):
         self.context = context
         self.component_id = data['componentId']
 
+        self.context.pipeline_metadata.destination_type = NodeType.CODE_DEST
         self.context.emit_start(self, '')
 
         import_stmnt = r'\n*\s*import dlt\s*\n*'

@@ -39,14 +39,19 @@ def run_code(user):
 
 
 @workspace.route('/workcpace/duckdb/list/<user>/<socket_id>', methods=['POST'])
-def list_pipelines(user, socket_id):
+@workspace.route('/workspace/pipelines/list/<user>', methods=['POST'])
+def list_pipelines(user, socket_id = None):
 
     ppelines_path = BasePipeline.folder+'/pipeline/'+user+'/'
     duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+user+'/'
 
-    pipeline_schedules = Workspace.get_ppline_schedule(user)
-    ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
-    duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user, ppelines, pipeline_schedules)
+    if(socket_id == None):
+        ppelines = Workspace.list_pipeline_from_files(ppelines_path)
+        return { **ppelines }
+    else:
+        pipeline_schedules = Workspace.get_ppline_schedule(user)
+        ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
+        duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user, ppelines, pipeline_schedules)
     
     errors_list = None
 
