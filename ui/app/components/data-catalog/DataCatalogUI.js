@@ -4,6 +4,7 @@ import { ModalWindowComponent } from "../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../popup-window/PopupUtil.js";
 import { Workspace } from "../workspace/Workspace.js";
 import { dataCatalogsMock } from "./mock.js";
+import { DataCatalogUIUtil } from "./util.js";
 
 export class DataCatalogUI extends ModalWindowComponent {
 
@@ -18,6 +19,10 @@ export class DataCatalogUI extends ModalWindowComponent {
   /** @Prop @type { HTMLElement } */ popup = false;
 
   /** @Prop @type { HTMLElement } */ pipelineComboBox = false;
+
+  /** @Prop @type { HTMLElement } */ catalogSaveInProgress = false;
+
+  /** @Prop @type { HTMLElement } */ pipelineFetchInProgress = false;
 
   /** @Prop */ currentPipeline = null;
   /** @Prop */ currentTable = null;
@@ -70,9 +75,10 @@ export class DataCatalogUI extends ModalWindowComponent {
 
   async onPipelineChange(val, fromProxy = false) {
     const self = this;
+    this.pipelineFetchInProgress = true;
     if(this.unsavedState) {
       return PipelineService.checkUnsavedStatusAlert(
-        { cancel: () => this.pipelineComboBox.value = this.currentPipeline, confirm: applyPipelineChange }
+        { cancel: () => {this.pipelineComboBox.value = this.currentPipeline; this.pipelineFetchInProgress = false;}, confirm: applyPipelineChange }
       );
     }
     
@@ -82,6 +88,7 @@ export class DataCatalogUI extends ModalWindowComponent {
       if(fromProxy) self.pipelineComboBox.value = val;
       self.PIPELINES = { [val]: { tables: {} } };
       const catalogData = await PipelineService.getDataCatalog(val);
+      self.pipelineFetchInProgress = false;
       for(const field of catalogData){
         if(!self.PIPELINES[val]['tables'][field.table_name]) 
           self.PIPELINES[val]['tables'][field.table_name] = { columns: [] };
@@ -206,7 +213,8 @@ export class DataCatalogUI extends ModalWindowComponent {
             <span class="semantic-tag ${c.validated ? '' : 'pending'}" onclick="inner.editSemantic(${i}, this)">${c.semantic}</span>
             ${c.validated ? '' : '<span style="color:var(--warning);font-size:10px">⏳</span>'}
             <span style="font-family:var(--mono);font-size:10px;color:var(--muted)">${c.sem_source}</span>
-          </div>`
+          </div>
+          `
         : `<div class="semantic-cell"><span class="semantic-tag empty" onclick="inner.editSemantic(${i}, this)">+ assign</span></div>`;
 
       const versionEl = c.version > 1
@@ -219,8 +227,9 @@ export class DataCatalogUI extends ModalWindowComponent {
         <td>${versionEl}</td>
         <td>${statusBadge}</td>
         <td>${semCell}</td>
+        <td><span onclick="inner.editSemanticDescription(${i}, this)">${c.description == '' ? '<span class="semantic-describe-cell">describe me...</span>' : c.description}</span></td>
         <td><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${this.currentPipeline || ''}</span></td>
-        <td>${!c.deleted ? `<div class="icon-btn" onclick="inner.showColHistory('${c.name}')">⊙</div>` : ''}</td>
+        <td>${!c.deleted ? `<!-- TODO: Implement showHistory logic <div class="icon-btn" onclick="inner.showColHistory('${c.name}')">⊙</div> -->` : ''}</td>
       </tr>`;
 
       return this.parseEvents(result);
@@ -234,55 +243,12 @@ export class DataCatalogUI extends ModalWindowComponent {
     el.classList.remove('pending');
     this.renderColumns();
     this.markUnsaved();
-  }
-
-  editSemantic(idx, el) {
-    if (this.editingCell) return;
+    console.log(this.getFilteredCols());
     
-    const cols = this.PIPELINES[this.currentPipeline].tables[this.currentTable].columns;
-    const visible = this.getFilteredCols();
-    const col = visible[idx];
-    this.editingCell = col;
-    const colIdx = cols.indexOf(col);
-    const input = document.createElement('input');
-
-    input.className = 'semantic-edit-input';
-    input.value = col.semantic || '';
-    input.placeholder = 'concept name...';
-    el.replaceWith(input);
-    input.focus();
-    const self = this;
-
-    function save() {
-      const val = input.value.trim();
-      cols[colIdx].semantic = val;
-      
-      if(cols.find(r => r.semantic != r.original_semantic) !== undefined && !(cols[colIdx].original_semantic != val)){
-        self.markUnsaved(), self.editingCell = null;
-        return self.renderColumns();
-      }else{
-        cols[colIdx].sem_source = cols[colIdx].original_source;
-        self.remMarkUnsaved();
-      }
-      
-      if(cols[colIdx].original_semantic != val){
-        cols[colIdx].validated = 0;
-        cols[colIdx].sem_source = 'manual';
-        if (val) self.showToast(`Semantic concept "${val}" assigned`, 'success');
-        self.markUnsaved();
-      }
-      self.editingCell = null;
-      self.renderColumns();
-    }
-
-    input.addEventListener('blur', save);
-
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') save();
-      if (e.key === 'Escape') { editingCell = null; this.renderColumns(); }
-    });
-
   }
+
+  editSemantic = (idx, el) => DataCatalogUIUtil.editSemantic(this, idx, el);
+  editSemanticDescription = (idx, el) => DataCatalogUIUtil.editSemanticDescription(this, idx, el);
 
   exportCSV() {
     const cols = this.getFilteredCols();
@@ -439,9 +405,11 @@ export class DataCatalogUI extends ModalWindowComponent {
   }
 
   saveSemantic() {
+    if(!this.unsavedState) return this.showToast(`No catalog changes to be saved.`);
     document.getElementById('btnSaveSemantic').classList.remove('unsaved');
-    this.showToast('Semantic changes saved', 'success');
-    this.unsavedState = false;
+    PipelineService.updateDataCatalogByPipelineTable(
+      this.currentPipeline, this.currentTable, this.getFilteredCols(), this
+    );
   }
 
   markUnsaved = () => {

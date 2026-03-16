@@ -36,17 +36,24 @@
 								<div class="topbar-divider"></div>
 								<div class="pipeline-selector">
 								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted)"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-								<div class="catalog-list-of-pipelines">
+								<div class="catalog-list-of-pipelines" style="display: flex;">
 									<select (forEach)="pipelineList" placeholder="— Select pipeline —" onchange="component.onPipelineChange(this.value)">
 										<option value="{item.name}" each="item">{item.name}</option>
 									</select>
+									<span style="margin-left: 8px; margin-top: -9px;">
+										<div class="resizable-spinner-wrap" (showIf)="self.pipelineFetchInProgress">
+											<div class="container">
+												<div class="spinner"></div>
+											</div>
+										</div>
+									</span>
 								</div>
 								</div>
 								<div class="topbar-right">
 								<div class="tab-bar">
 									<div class="tab-btn active data-catalog-tabe" onclick="component.switchTab('catalog', this)">Catalog</div>
 									<div class="tab-btn" onclick="component.switchTab('rules', this)">Rules</div>
-									<div class="tab-btn" onclick="component.switchTab('history', this)">History</div>
+									<!-- <div class="tab-btn" onclick="component.switchTab('history', this)">History</div> -->
 								</div>
 								</div>
 							</header>
@@ -110,7 +117,15 @@
 									<div class="filter-chip" onclick="component.setFilter(event, 'deleted', this)">Deleted</div>
 									<div class="filter-chip" onclick="component.setFilter(event, 'evolved', this)">Evolved</div>
 									<div class="filter-chip" onclick="component.setFilter(event, 'pending', this)">Pending Semantic</div>
-									<div class="btn btn-ghost btn-save-semantic" id="btnSaveSemantic" onclick="component.saveSemantic()"><div class="save-dot"></div>Save</div>
+									<div class="btn btn-ghost btn-save-semantic" id="btnSaveSemantic" onclick="component.saveSemantic()">
+										<span (showIf)="!self.catalogSaveInProgress"> <div class="save-dot"></div> </span>
+										<div class="resizable-spinner-wrap" (showIf)="self.catalogSaveInProgress">
+											<div class="container">
+												<div class="spinner"></div>
+											</div>
+										</div>
+										Save
+									</div>
 									</div>
 	
 									<div style="overflow-x:auto">
@@ -122,6 +137,7 @@
 											<th>Version</th>
 											<th>Status</th>
 											<th>Semantic Concept</th>
+											<th>Semantic Description</th>
 											<th>Source</th>
 											<th></th>
 										</tr>
@@ -143,8 +159,15 @@
 										Rule-Based Pattern Definitions
 									</div>
 									<div class="panel-actions">
-										<div class="btn btn-ghost" onclick="component.resetRules()">Reset to Defaults</div>
-										<div class="btn btn-accent" onclick="component.openAddRuleModal()">+ Add Rule</div>
+										<!-- 
+											TODO: Implement rules reset
+											<div class="btn btn-ghost" onclick="component.resetRules()">Reset to Defaults</div> 
+										-->
+										<!-- 
+											TODO: Implement openAddRuleModal logic
+											<div class="btn btn-accent" onclick="component.openAddRuleModal()">+ Add Rule</div> 
+										-->
+										<div class="btn btn-accent" style="cursor:not-allowed;">+ Add Rule</div>
 									</div>
 									</div>
 									<div style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,212,255,0.03)">
@@ -163,15 +186,21 @@
 	
 								<div class="panel">
 									<div class="panel-header">
-									<div class="panel-title">
+									<!-- 
+										TODO: Implement rules testing
+										<div class="panel-title">
 										<div class="panel-title-dot" style="background:var(--accent2)"></div>
 										Test Rules
+									</div> 
+									-->
 									</div>
-									</div>
+									<!-- 
+									TODO: Implement rules testing 									
 									<div style="padding:16px 20px">
 									<label class="form-label">Column Name to Test</label>
 									<input class="form-input" id="testColInput" placeholder="e.g. customer_id, total_amount, email_address" oninput="testRule()">
 									</div>
+									-->
 									<div id="testResult" style="padding:0 20px 16px"></div>
 								</div>
 								</div>
