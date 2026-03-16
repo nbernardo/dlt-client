@@ -25,7 +25,7 @@ def download_embedding_model():
     TextEmbedding("intfloat/multilingual-e5-small")
     print("✅ fastembed model intfloat/multilingual-e5-small installed")
 
-
+'''
 answer = input(
     "\nDo you want to install intfloat/multilingual-e5-small for multilingual vector embedding and semantic search?\n"
     "This model supports 100+ languages with 384 dims (~120MB download).\n"
@@ -37,13 +37,16 @@ install_embedding = answer == 'y'
 threads = [threading.Thread(target=install_duckdb_extensions)]
 if install_embedding:
     threads.append(threading.Thread(target=download_embedding_model))
+'''
+threads = [threading.Thread(target=install_duckdb_extensions)]
+threads.append(threading.Thread(target=download_embedding_model))
 
 for t in threads:
     t.start()
 for t in threads:
     t.join()
 
-if not install_embedding:
-    print("⚠️  Embedding model not installed — vector embedding and semantic search unavailable")
+#if not install_embedding:
+#    print("⚠️  Embedding model not installed — vector embedding and semantic search unavailable")
 
 print("✅ All extensions installed")

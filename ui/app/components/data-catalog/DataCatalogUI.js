@@ -428,6 +428,7 @@ export class DataCatalogUI extends ModalWindowComponent {
         { cancel: () => { this.pipelineComboBox.value = '' }, confirm: () => { this.closePopup(this), this.unsavedState = false; } }
       );
     }
+    this.closePopup(this);
     this.pipelineComboBox.value = '';
   }
 
