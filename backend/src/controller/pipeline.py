@@ -618,7 +618,3 @@ def update_pipeline_pause(namespace, pipeline, status):
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }
 
-
-@pipeline.route('/ppline/<pipeline_name>/catalog/<namespace>', methods=['GET'])
-def get_data_catalog(pipeline_name, namespace):
-    return MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}', None, True)

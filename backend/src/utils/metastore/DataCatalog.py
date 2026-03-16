@@ -201,7 +201,7 @@ class DataCatalog:
             con = DataCatalog._get_duckdb_conn(dbs_path)
             more_fields = ''
             if display_fields:
-                more_fields = ',data_type, is_deleted, column_version, semantic_concept, confidence_score, validated, source'
+                more_fields = ',data_type, is_deleted, column_version, semantic_concept, confidence_score, validated, source, description'
             result = con.execute(f"""
                 SELECT column_name AS name, table_name, source_store {more_fields}
                 FROM column_catalog
@@ -214,7 +214,8 @@ class DataCatalog:
             return [
                 {
                     'name': r[0], 'table_name': r[1], 'source': r[2], 'type': r[3], 'deleted': r[4], 'original_semantic': r[6],
-                    'version': r[5], 'semantic': r[6], 'confidence': r[7], 'validated': r[8], 'sem_source': r[9], 'original_source': r[9]
+                    'version': r[5], 'semantic': r[6], 'confidence': r[7], 'validated': r[8], 'sem_source': r[9], 'original_source': r[9],
+                    'description': r[10], 'original_description': r[10]
                 }  for r in result
             ]
         except Exception as err:

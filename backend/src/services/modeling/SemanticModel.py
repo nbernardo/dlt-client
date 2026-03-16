@@ -6,6 +6,7 @@ from groq import Groq, RateLimitError, BadRequestError
 import pyarrow as pa
 from os import getenv as env
 from services.modeling.prompts import SEMANTIC_MODEL_PROMPR
+from utils.duckdb_util import DuckdbUtil
 
 
 DEFAULT_RULES = [
@@ -60,7 +61,7 @@ class SemanticModel:
     @staticmethod
     def _get_duckdb_conn() -> duckdb.DuckDBPyConnection:
         """Returns a DuckDB connection with a column_catalog view over LanceDB files."""
-        lance_path = LanceConnectionFactory.lance_path
+        lance_path = DuckdbUtil.workspacedb_path+'/catalog.lance'
         con = duckdb.connect()
         con.execute("LOAD lance")
         con.execute(f"CREATE VIEW column_catalog AS SELECT * FROM '{lance_path}/column_catalog.lance'")
@@ -248,3 +249,75 @@ class SemanticModel:
             )
             SemanticModel._embedding_model = TextEmbedding(EMBEDDING_MODEL)
         return SemanticModel._embedding_model
+    
+
+    @staticmethod
+    def save_semantic_updates(rows: list[dict], pipeline: str, table_name: str, namespace: str) -> int:
+        from datetime import datetime
+
+        if not rows:
+            return 0
+
+        try:
+            con = SemanticModel._get_duckdb_conn()
+            tbl = SemanticModel._get_table()
+
+            namespace = namespace.replace('-','_')
+            pipeline = f'{namespace}_at_{pipeline}'
+
+            existing_rows = con.execute(f"""
+                SELECT * FROM column_catalog
+                WHERE pipeline = '{pipeline}' AND table_name = '{table_name}' AND namespace = '{namespace}'
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY pipeline, table_name, original_column_name
+                    ORDER BY ingested_at DESC
+                ) = 1
+            """).fetchall()
+
+            col_names = [d[0] for d in con.description]
+            existing_map = {
+                row[col_names.index('original_column_name')]: dict(zip(col_names, row))
+                for row in existing_rows
+            }
+
+            rows_to_insert = []
+            for row in rows:
+                existing_row = existing_map.get(row['name'], {})
+
+                semantic_changed = row['semantic'] != existing_row.get('semantic_concept', '')
+                description_changed = row.get('description', '') != existing_row.get('description', '')
+
+                if not semantic_changed and not description_changed:
+                    continue
+
+                entry = {
+                    **existing_row,
+                    'semantic_concept': row['semantic'],
+                    'confidence_score': row['confidence'],
+                    'source': row['sem_source'],
+                    'validated': row['validated'],
+                    'description': row['description'],
+                    'validated_by': '',
+                    'validated_at': datetime.utcnow().isoformat() if row['validated'] else '',
+                    'ingested_at': datetime.utcnow().isoformat(),
+                    'embedding': SemanticModel.get_embeddings([{
+                                    'semantic_concept': row['semantic'],
+                                    'description': row.get('description', existing_row.get('description', ''))
+                                }])[0]['embedding'],
+                }
+                rows_to_insert.append(entry)
+
+            if rows_to_insert:
+                column_names_to_delete = ", ".join(f"'{r['original_column_name']}'" for r in rows_to_insert)
+                tbl.delete(f"pipeline = '{pipeline}' AND original_column_name IN ({column_names_to_delete})")
+
+                tbl.add(rows_to_insert)
+                print(f'{len(rows_to_insert)} semantic updates saved')
+
+            return { 'error': False, 'result': f'{len(rows_to_insert)} semantic updates saved' }
+        
+        except Exception as err:
+            error = 'Error while updating semantic model: '+str(err)
+            print('Error on updating semantic: ', error)
+            print(error)
+            return { 'error': True, 'result': { 'result': error } } 
