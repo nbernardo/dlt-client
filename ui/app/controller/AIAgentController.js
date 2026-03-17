@@ -192,6 +192,7 @@ export class AIAgentController extends BaseController {
 
         self.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow(this.flowPrefix.data));
         self.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow(this.flowPrefix.pipeline));
+        self.botInstance.setSubroutine('setSemanticFlow', () => this.setAgentFlow(this.flowPrefix.pipeline));
         self.botInstance.setSubroutine('setDontFollowAgent', (_, args) => self.dontFollowAgentFlag = args[0]);
         
         self.botInstance.setSubroutine('showSerets', (_, args) => {
