@@ -251,3 +251,21 @@ class DataCatalog:
         tbl.cleanup_old_versions(older_than=timedelta(days=older_than_days))
         tbl.compact_files()
         print("✅ Catalog compacted")
+
+    
+    @staticmethod
+    def query_similarity_catalog(query):
+        
+        query_embedding = SemanticModel._get_embedding_model().embed(query)
+        query_vector = list(query_embedding)[0].tolist()
+
+        db = LanceConnectionFactory.get()
+        tbl = db.open_table('column_catalog')
+
+        results = (
+            tbl.search(query_vector)
+            .limit(50)
+            .to_list()
+        )
+
+        return [r for r in results if r['_distance'] < 0.5]

@@ -1,4 +1,4 @@
-from services.agents.DataQueryAIAssistent import DataQueryAIAssistent
+from services.agents.data_query.DataQueryAIAssistent import DataQueryAIAssistent
 from services.agents.PipelineAIAssistent import PipelineAIAssistent
 from typing import List
 import os 
