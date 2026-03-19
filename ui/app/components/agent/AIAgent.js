@@ -229,7 +229,9 @@ export class AIAgent extends ViewComponent {
 		const notCreate1 = message.search(/pipeline[\w]*\s*(create|build|construct|creation)/i) >= 0;
 		const notCreate2 = message.search(/(create|build|construct|creation)\s*[\w]*\s*pipeline/i) >= 0;
 		const notCreating = !notCreate1 && !notCreate2;
-		const isChangingPipeline = message.search(/change(ed)*|assign(ed)*|replace(ed)*|add(ed)*|remove(d)*|modify|modified|will be|is/i) >= 0;
+		let isChangingPipeline = message.search(/change(ed)*|assign(ed)*|replace(ed)*|add(ed)*|remove(d)*|modify|modified|will be|is/i) >= 0;
+		if(this.controller.flowPrefix.pipeline !== this.controller.getActiveFlow())
+			isChangingPipeline = false;
 		return { notCreating, isChangingPipeline, isCreatingPipeline: !notCreating };
 	}
 

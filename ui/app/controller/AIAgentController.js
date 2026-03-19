@@ -134,9 +134,9 @@ export class AIAgentController extends BaseController {
         const { isChangingPipeline } = this.agentInstance.checkPromptAction(userPrompt);
 
         if(
-            userPrompt.trim().search(/data[\s\-]{0,}query\s{0,}\:|query[\s\-]{0,}data\s{0,}\:|DQ\{0,}\s:/i
+            userPrompt.trim().search(/data[\s\-]{0,}query\s{0,}\:|query[\s\-]{0,}data\s{0,}\:|DQ\{0,}\s:/i) == 0
             && !isChangingPipeline
-        ) == 0){
+        ){
             userPrompt = this.preRoutePrefix.data + userPrompt;
             this.setAgentFlow(this.flowPrefix.data);
         }

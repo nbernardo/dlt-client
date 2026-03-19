@@ -2,7 +2,7 @@ import { agentOptions } from "./commons.js";
 
 export const semanticOption = '(semantic model|data catalog|catalog of data|tables mapping|field mapping|column mapping|column concept|column meaning|semantic catalog|database schema|table schema|tables schema)';
 
-export const semanticPrompt0 = `[*] (data) [*] (catalog|schema) [*]`;
+export const semanticPrompt0 = `[*] (data catalog|data schema) [*]`;
 export const semanticPrompt1 = `[*] (catalog) [*] (data|tables|columns|fields|schema) [*]`;
 export const semanticPrompt2 = `[*] (tables|fields|columns|database|db) [*] (mapping|schema) [*]`;
 export const semanticPrompt3 = `[*] (schema) [*] (table|tables|database|db|use|should) [*]`;
