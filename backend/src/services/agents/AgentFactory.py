@@ -1,4 +1,5 @@
 from services.agents.data_query.DataQueryAIAssistent import DataQueryAIAssistent
+from services.agents.data_query.DataQueryFromCatalogAIAssistent import DataQueryFromCatalogAIAssistent
 from services.agents.PipelineAIAssistent import PipelineAIAssistent
 from typing import List
 import os 
@@ -10,6 +11,7 @@ agents_type_list = {
 
 pipeline_agents_list: List[PipelineAIAssistent] = {}
 dataquery_agents_list: List[DataQueryAIAssistent] = {}
+datacatalog_agents_list: List[DataQueryFromCatalogAIAssistent] = {}
 
 def get_data_agent(user, namespace = None, namespace_folder = None) -> DataQueryAIAssistent:
 
@@ -20,6 +22,18 @@ def get_data_agent(user, namespace = None, namespace_folder = None) -> DataQuery
         dataquery_agents_list[user].namespace = namespace
 
     return dataquery_agents_list[user]
+    
+
+
+def get_data_catalog_agent(user, namespace = None, namespace_folder = None) -> DataQueryAIAssistent:
+
+    if(not(user in dataquery_agents_list)):
+        if(not os.path.exists(namespace_folder)):
+            return None
+        datacatalog_agents_list[user] = DataQueryAIAssistent(namespace_folder)
+        datacatalog_agents_list[user].namespace = namespace
+
+    return datacatalog_agents_list[user]
     
 
 

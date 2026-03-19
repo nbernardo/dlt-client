@@ -19,7 +19,6 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
             from services.agents import AgentFactory
             DataQueryFromCatalogAIAssistent.agent_factory = AgentFactory
 
-
         self.DB_SCHEMA = '''The database contains %total_table% tables:'''
         self.db_path = base_db_path if base_db_path.__contains__('/') else self.db_path
         self.db = f'{self.db_path}/{dbfile}'
@@ -27,10 +26,8 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
         self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
         self.messages = [{"role": "system", "content": self.get_system_instructions_from_ini_meta()}]
 
-        api_key = env('MISTRAL_API_KEY')
-        #self.model = "mistral-large-latest"
-        self.model = "mistral-medium-2508"
-        self.client = None #Mistral(api_key=api_key)
+        self.model = None
+        self.client = None
         self.chat_turns = []
         
 
