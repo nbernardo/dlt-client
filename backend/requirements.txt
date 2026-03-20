@@ -132,5 +132,7 @@ dlt[mssql]
 dlt[bigquery]
 dlt[databricks]
 lancedb
+fastembed
 google-cloud-bigquery>=3.11.0
 databricks-sql-connector>=2.9.0
+polars[connectorx]
