@@ -139,10 +139,6 @@ try:
     
     catalog_table_path = f'{bucket_url}/{file_pattern}'
     MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info)
-
-    print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}')
-    print(info, flush=True)
-    print('RUN_SUCCESSFULLY', flush=True)
     
 except Exception as err:
     logger.error("Transformation pipeline execution failed", extra={

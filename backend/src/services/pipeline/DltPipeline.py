@@ -19,7 +19,7 @@ import schedule
 import logging
 from utils.logging.pipeline_logger_config import handle_pipeline_log
 import re
-
+from utils.metastore.meta_storage import MetaStore
 
 root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
@@ -194,7 +194,10 @@ class DltPipeline:
                             context.emit_ppline_trace(ui_log)
                             handle_pipeline_log(line, logger)
             
-        result.kill()
+        #result.kill() # Each process will be responsible to kill/exit ifself
+        MetaStore.persist_pipeline_metadata(
+            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata)
+        )
 
         if pipeline_exception == True:
             handle_pipeline_log(f'PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)

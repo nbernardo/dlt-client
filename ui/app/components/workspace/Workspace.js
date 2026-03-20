@@ -26,6 +26,7 @@ import { sleepForSec } from "../../../@still/component/manager/timer.js";
 import { CatalogForm } from "../catalog/CatalogForm.js";
 import { expoandApiTestData } from "../catalog/util/CatalogUtil.js";
 import { LogQueryDisplay } from "../log/logquery/LogQueryDisplay.js";
+import { DataCatalogUI } from "../data-catalog/DataCatalogUI.js";
 
 export class Workspace extends ViewComponent {
 
@@ -139,11 +140,15 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */ openAgent = false;
 
+	/** @Prop */ extentionWarning;
+
 	selectedLeftTab = 'content-diagram';
 
 	/** @Prop */ schedulePeriodicitySelected;
 	
 	/** @Prop */ dynamicViewPlaceholder;
+
+	/** @Prop @type { DataCatalogUI } */ dataCatalogUIProxy;
 
 	/** @Prop @type { CatalogForm } */ secretPopupForm;
 
@@ -490,21 +495,9 @@ export class Workspace extends ViewComponent {
 		this.isEditorOpened = true;
 	}
 
-	showHideEditor() {
-		if (this.isEditorOpened) {
-			// 88 Is because we're taking into account the splitter height itself 
-			this.codeEditorSplitter.setHeight(88);
-			this.isEditorOpened = false;
-		} else {
-			this.codeEditorSplitter.setMaxHeight();
-			this.isEditorOpened = true;
-		}
-	}
-
-	checkActiveDiagram(){
-		return this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0;
-	}
-
+	checkActiveDiagram = () =>
+		this.isAnyDiagramActive || this.controller.currentTotalNodes() > 0;
+	
 	async viewPipelineDiagram(event, pplineName, asTemplate = false, fromReview = false) {
 		this.controller.shouldDisableNodeFormInputs = true;
 		event.preventDefault();
@@ -672,4 +665,7 @@ export class Workspace extends ViewComponent {
 	}
 
 	showAPIData = (contentId) => expoandApiTestData(contentId);
+
+	showDataCatalog = () => this.dataCatalogUIProxy.showPopup();
+	
 }

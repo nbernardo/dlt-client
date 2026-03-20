@@ -4,6 +4,7 @@ import os
 from services.pipeline.DltPipeline import DltPipeline
 from controller.file_upload import BaseUpload
 from utils.BucketConnector import BucketConnector
+from utils.pipeline import NodeType
 
 class Bucket(TemplateNodeType):
     """
@@ -44,6 +45,8 @@ class Bucket(TemplateNodeType):
             if data is None: return None
             if len(data.keys()) == 0: return None
 
+            self.context.pipeline_metadata.source_type = NodeType.FS_SOURCE
+            
             user_folder = BaseUpload.upload_folder+'/'+context.user            
             self.component_id = data['componentId']
             # bucket_url is mapped in /pipeline_templates/simple.txt
@@ -62,6 +65,8 @@ class Bucket(TemplateNodeType):
                 self.connection_name = data.get('connectionName', '')
                 secret = BucketConnector.validate_and_prepare_s3_config(None, self.namespace, self.connection_name)
                 self.bucket_url = f's3://{secret[0]['bucket_name']}/'
+                self.context.pipeline_metadata.source_secret = self.connection_name
+                self.context.pipeline_metadata.source_type = NodeType.S3_SOURCE
                 
                 # Validate required connection name
                 if not self.connection_name:

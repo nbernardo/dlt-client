@@ -27,6 +27,38 @@
 					(onResize)="verticalResize(newSize)" />
 
 				<div class="col-right" id="still-adj-right-panel" style="position: relative;">
+					<span (showIf)="self.extentionWarning">
+						<div class="extension-no-found-exception">
+							<strong style="font-size: 1.15em; display: flex; align-items: center; gap: 8px;">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;">
+									<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+									<line x1="12" y1="9" x2="12" y2="13"></line>
+									<line x1="12" y1="17" x2="12.01" y2="17"></line>
+								</svg>
+								Warning: LanceDB Extension Not Found
+							</strong>
+	
+							<p style="margin: 12px 0;">
+								<br>The <strong>LanceDB extension</strong> for DuckDB is not installed. Without it, the pipeline cannot generate the <strong>Data Catalog</strong>, which disables key features like <strong>semantic queries</strong> via the AI agent.
+							</p>
+	
+							<p style="margin-bottom: 20px; font-size: 0.95em;">
+								<br>Please install the extension to enable full capabilities. Refer to the project 
+									<code><a href="https://github.com/nbernardo/dlt-client/blob/main/docs/lancedb/setup.md" class="duckdb-link" target="_blank">README.md</a></code> 
+									or the 
+								<a href="https://duckdb.org/community_extensions/extensions/lance" target="_blank" class="duckdb-link">official DuckDB documentation</a>.
+							</p>
+	
+							<div style="display: flex; gap: 10px;">
+								<br>
+								<a href="https://duckdb.org/community_extensions/extensions/lance" target="_blank" class="view-doc">View Docs</a>
+								
+								<button type="button" onclick="this.parentElement.parentElement.style.display='none';" onmouseover="this.style.backgroundColor='#f8f9fa'" class="ignore-btn" onmouseout="this.style.backgroundColor='#ffffff'">
+									Ignore
+								</button>
+							</div>
+						</div>
+					</span>
 					<div class="menu">
 						<ul style="display: flex;">
 							<li style="border: none;">
@@ -113,9 +145,11 @@
 						</ul>
 					</div>
 
-					<st-element component="PopupWindow" @delayed="2s" proxy="popupWindowProxy"></st-element>
+					<st-element component="PopupWindow" @delayed="1.5s" proxy="popupWindowProxy"></st-element>
 					
-					<st-element component="LogQueryDisplay" @delayed="3s" proxy="logQueryDisplayProxy"></st-element>
+					<st-element component="LogQueryDisplay" @delayed="2s" proxy="logQueryDisplayProxy"></st-element>
+
+					<st-element component="DataCatalogUI" @delayed="2.5s" proxy="dataCatalogUIProxy"></st-element>
 					
 					<div class="dynamicViewPlaceholder"></div>
 

@@ -182,10 +182,6 @@ try:
 
     catalog_table_path = f's3://{bucket_url}/{pattern}'
     MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, load_info)
-
-    print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}')
-    print(info, flush=True)
-    print('RUN_SUCCESSFULLY', flush=True)
     
 except Exception as e:
     logger.error("S3 authenticated pipeline execution failed", extra={

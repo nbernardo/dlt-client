@@ -83,7 +83,9 @@ export class Header extends ViewComponent {
 	async getInitData(){
 
 		const namespaceInitData = await WorkspaceService.getPipelineInitialData();
-
+		
+		this.$parent.extentionWarning = !namespaceInitData.is_lancedb_on_duckdb;		
+		this.$parent.extentionWarning = !namespaceInitData.is_lancedb_on_duckdb;		
 		this.workspaceService.aiAgentNamespaceDetails = namespaceInitData.ai_agent_namespace_details;
 		this.workspaceService.schedulePipelinesStore = Object.values(namespaceInitData.schedules.data);			
 		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value.map(itm =>

@@ -6,7 +6,6 @@ import duckdb
 import re
 from utils.duckdb_util import DuckdbUtil
 from tabulate import tabulate
-from controller.pipeline import BasePipeline
 from services.pipeline.DltPipeline import DltPipeline
 import schedule
 import time as timelib
@@ -35,6 +34,7 @@ class Workspace:
             }
 
         try:
+            from controller.pipeline import BasePipeline
             folder = BasePipeline.folder+'/duckdb/'+user
             db_cnx = duckdb.connect(f'{folder}/{database}', read_only=True)
             Workspace.duckdb_open_connections[database] = db_cnx
@@ -404,6 +404,7 @@ class Workspace:
                         actual_table_name = metadata.get('actual_table_name', table_name)
 
                     if(k != prev_key):
+                        if not ('data' in pipeline_schedules): pipeline_schedules['data'] = {}
                         curr_schedule = pipeline_schedules['data'].get(ppline_name)
                         result[ppline_name][table_name] = { 
                             'ppline': ppline_name,

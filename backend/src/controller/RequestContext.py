@@ -75,6 +75,7 @@ class RequestContext:
         self.use_s3_auth = False
         self.is_cloud_url = False
         self.has_cloud_bucket_auth = None
+        self.pipeline_metadata: PipelineMetadata = PipelineMetadata()
 
 
     def get_time(self):
@@ -183,3 +184,14 @@ class RequestContext:
         (e.g. logs)
         """
         self.emit_ppline_trace(data,error,True)
+
+
+
+
+class PipelineMetadata:
+
+    def __init__(self):
+        self.source_type = ''
+        self.destination_type = ''
+        self.source_secret = ''
+        self.destination_secret = ''

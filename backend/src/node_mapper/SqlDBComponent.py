@@ -1,6 +1,7 @@
 from .TemplateNodeType import TemplateNodeType
 from controller.RequestContext import RequestContext
 from services.pipeline.DltPipeline import DltPipeline
+from utils.pipeline import NodeType
 
 class SqlDBComponent(TemplateNodeType):
     """
@@ -37,6 +38,8 @@ class SqlDBComponent(TemplateNodeType):
         if data: 
             if 'componentId' not in data:
                 return None
+            
+        self.context.pipeline_metadata.source_type = NodeType.SQL_SOURCE
 
         # In case there is transformation step after the extraction node, 
         # first thing it'll do before SqlDBComponent run itself will be 
@@ -66,6 +69,8 @@ class SqlDBComponent(TemplateNodeType):
 
         # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
         self.connection_name = data['connectionName']
+
+        self.context.pipeline_metadata.source_secret = self.connection_name
 
         if data['dbengine'] == 'postgresql':
             self.parse_tables_and_schema()

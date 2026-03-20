@@ -148,7 +148,7 @@ class SQLDatabase:
             secret = SQLDatabase.secret_manager.get_secret(namespace,path=path)
 
             table_list = None
-            dbengine = secret['dbengine']
+            dbengine = secret['dbengine'] if 'dbengine' in secret else None
 
             if(dbengine == 'mysql'):
                 table_list = SQLDatabase.get_mysql_tables(namespace, connection_name, secret)

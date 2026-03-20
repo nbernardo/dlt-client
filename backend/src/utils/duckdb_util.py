@@ -232,3 +232,14 @@ class DuckdbUtil:
             # Logging should be optional and not break the main application
 
 
+
+def is_extension_installed(extension_name):
+    con = duckdb.connect()
+
+    result = con.execute(f"""
+        SELECT installed
+        FROM duckdb_extensions()
+        WHERE extension_name = '{extension_name}'
+    """).fetchone()
+
+    return result is not None and result[0]

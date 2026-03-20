@@ -8,7 +8,7 @@ from flask_cors import cross_origin
 import threading
 import requests
 import time
-from services.agents.DataQueryAIAssistent import DataQueryAIAssistent as Agent
+from services.agents.data_query.DataQueryAIAssistent import DataQueryAIAssistent as Agent
 from typing import List
 import traceback
 from flask import abort, send_file
@@ -39,14 +39,19 @@ def run_code(user):
 
 
 @workspace.route('/workcpace/duckdb/list/<user>/<socket_id>', methods=['POST'])
-def list_pipelines(user, socket_id):
+@workspace.route('/workspace/pipelines/list/<user>', methods=['POST'])
+def list_pipelines(user, socket_id = None):
 
     ppelines_path = BasePipeline.folder+'/pipeline/'+user+'/'
     duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+user+'/'
 
-    pipeline_schedules = Workspace.get_ppline_schedule(user)
-    ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
-    duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user, ppelines, pipeline_schedules)
+    if(socket_id == None):
+        ppelines = Workspace.list_pipeline_from_files(ppelines_path)
+        return { **ppelines }
+    else:
+        pipeline_schedules = Workspace.get_ppline_schedule(user)
+        ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
+        duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user, ppelines, pipeline_schedules)
     
     errors_list = None
 
@@ -172,6 +177,10 @@ def get_initial_data(namespace):
         'user_message_count_limit': user_message_count_limit
     }
 
+    from utils.duckdb_util import is_extension_installed
+    # Check if LanceDB extension from Duckdb is installed
+    is_lancedb_on_duckdb = is_extension_installed('lance')  
+
     try:
         total_pipelines = 0
         if os.path.exists(f'{BasePipeline.folder}/pipeline/{namespace}'):
@@ -180,7 +189,8 @@ def get_initial_data(namespace):
         return {
             'schedules': Workspace.get_ppline_schedule(namespace),
             'ai_agent_namespace_details': ai_agent_namespace_details,
-            'total_pipelines':  total_pipelines
+            'total_pipelines':  total_pipelines,
+            'is_lancedb_on_duckdb':  is_lancedb_on_duckdb,
         }
     
     except Exception as error:

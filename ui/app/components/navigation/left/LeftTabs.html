@@ -16,6 +16,17 @@
             <label for="nav-toggle" class="sidebar-toggle">☰</label>
 
             <ul class="sidebar-menu">
+                <li class="left-menu-item" data-tooltip="DataCatalog" style="display: none;">
+                    <label for="tab-data-catalog" data-progress="init" onclick="component.showHideDatabase(this)">
+                        <span class="icon">
+                            <img src="app/assets/imgs/brochure.svg" width="23" alt="">
+                        </span>
+                        <span 
+                            style="letter-spacing: 0px; font-size: 15px; margin-left: -7px;"
+                            class="text">Data Catalog</span>
+                    </label>
+                </li>
+
                 <li class="left-menu-item" data-tooltip="Outputs">
                     <label for="tab-outputs" data-progress="init" onclick="component.showHideDatabase(this)">
                         <span class="icon">
@@ -471,6 +482,12 @@
             style="float: left; margin-top: 0px; margin-left: -3px; width: 22px;"
             src="app/assets/imgs/duplicate.svg" width="20px" alt="">
             &nbsp;Use as template
+    </div>
+    <div style="padding: 5px;" class="pipeline-foldable-menu-option" onclick="component.showDataCatalog(event)">
+        <img 
+            style="float: left; margin-top: 0px; margin-left: -1px; width: 17px;"
+            src="app/assets/imgs/brochure.svg" width="16px" alt="">
+            &nbsp;Data catalog
     </div>
     <div style="padding: 5px;" class="pipeline-foldable-menu-option pipeline-foldable-menu-option-disable">
         <img 
