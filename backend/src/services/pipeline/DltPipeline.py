@@ -2,6 +2,7 @@ import os
 import subprocess
 import duckdb
 import json
+from os import getenv as env
 from controller.RequestContext import RequestContext
 from pathlib import Path
 from typing import Dict
@@ -38,6 +39,23 @@ class DltPipeline:
     def __init__(self):
         self.curr_file = None
         self.logger = logging.getLogger(__name__)
+
+    @staticmethod
+    def prepare_pipeline_env_vars():
+        """
+        Prepare environment variables for pipeline execution including Vault credentials
+        Returns a copy of os.environ with Vault-related variables added
+        """
+        env_vars = os.environ.copy()
+        if env('VAULT_ADDR'):
+            env_vars['VAULT_ADDR'] = env('VAULT_ADDR')
+        if env('VAULT_TOKEN'):
+            env_vars['VAULT_TOKEN'] = env('VAULT_TOKEN')
+        if env('HASHICORP_HOST'):
+            env_vars['HASHICORP_HOST'] = env('HASHICORP_HOST')
+        if env('HASHICORP_TOKEN'):
+            env_vars['HASHICORP_TOKEN'] = env('HASHICORP_TOKEN')
+        return env_vars
 
 
     def create(self, data):
@@ -400,11 +418,15 @@ class DltPipeline:
             print('####### WILL RUN JOB FOR '+file_path)
 
             # Run pipeline generater above by passing the python file
+            # Pass environment variables including Vault credentials
+            env_vars = DltPipeline.prepare_pipeline_env_vars()
+            
             result = subprocess.Popen(['python', ppline_file],
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         text=True,
-                                        bufsize=1)
+                                        bufsize=1,
+                                        env=env_vars)
             pipeline_exception = False
 
             logger = DltPipeline.get_pipeline_logger(context)
@@ -587,6 +609,11 @@ class DltPipeline:
         except Exception as err:
             return {}, {}
         
+
+    @staticmethod
+    def get_pipeline_source_destination_type(namespace):
+        return MetaStore.get_pipeline_source_destination_type(namespace)
+
     
     @staticmethod
     def get_sqldb_transformation_preview(namespace, dbengine, connection_name, script):

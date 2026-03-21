@@ -10,6 +10,8 @@ export class PipelineService extends BaseService {
     table = new ServiceEvent([]);
     static tableListStore;
     static jsonHeaders = { 'Content-Type': 'application/json' };
+    static pipelineSourcesAndSestinationsMap = {};
+    static sqlEditorCurrPipeline = null;
 
     async createOrUpdatePipeline(content = null, update = false, actionType = '') {
 
@@ -29,7 +31,7 @@ export class PipelineService extends BaseService {
         const response = await $still.HTTPClient.post(url, null, {
             headers: { 'Content-Type': 'application/json' }
         });
-        const { db_path: _, ...tables } = await response.json();
+        const { db_path: _, pipeline_sources_and_destinations, ...tables } = await response.json();
         PipelineService.tableListStore = tables;
 
         return Object.keys(PipelineService.tableListStore).map( name => ({name}));

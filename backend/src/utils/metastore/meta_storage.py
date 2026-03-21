@@ -31,5 +31,10 @@ class MetaStore:
 
 
     @staticmethod
+    def get_pipeline_source_destination_type(namespace: str):
+        return PipelineMedatata.get_pipeline_source_destination_type(namespace)
+
+
+    @staticmethod
     def persist_pipeline_metadata(namespace: str, pipeline: str, details: dict):
         return PipelineMedatata.persist_metadata(namespace, pipeline, details)

@@ -24,7 +24,7 @@ class DatabaseOutput(TemplateNodeType):
         # TemplateNodeType.parse_destination_string which is inherited by ant nodeType (e.g. DatabaseOutput)
         self.outdb_secret_name = data['outDBconnectionName']
         self.context.pipeline_metadata.destination_secret = self.outdb_secret_name
-        self.context.pipeline_metadata.destination_type = NodeType.SQL_DEST
+        self.context.pipeline_metadata.destination_type = NodeType.SQL_DEST + f'({data['dbengine']})'
 
 
     def run(self) -> None:

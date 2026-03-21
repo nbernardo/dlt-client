@@ -134,9 +134,9 @@ export class AIAgentController extends BaseController {
         const { isChangingPipeline } = this.agentInstance.checkPromptAction(userPrompt);
 
         if(
-            userPrompt.trim().search(/data[\s\-]{0,}query\s{0,}\:|query[\s\-]{0,}data\s{0,}\:|DQ\{0,}\s:/i
+            userPrompt.trim().search(/data[\s\-]{0,}query\s{0,}\:|query[\s\-]{0,}data\s{0,}\:|DQ\{0,}\s:/i) == 0
             && !isChangingPipeline
-        ) == 0){
+        ){
             userPrompt = this.preRoutePrefix.data + userPrompt;
             this.setAgentFlow(this.flowPrefix.data);
         }
@@ -192,6 +192,7 @@ export class AIAgentController extends BaseController {
 
         self.botInstance.setSubroutine('setDataQueryFlow', () => this.setAgentFlow(this.flowPrefix.data));
         self.botInstance.setSubroutine('setPipelineFlow', () => this.setAgentFlow(this.flowPrefix.pipeline));
+        self.botInstance.setSubroutine('setSemanticFlow', () => this.setAgentFlow(this.flowPrefix.pipeline));
         self.botInstance.setSubroutine('setDontFollowAgent', (_, args) => self.dontFollowAgentFlag = args[0]);
         
         self.botInstance.setSubroutine('showSerets', (_, args) => {

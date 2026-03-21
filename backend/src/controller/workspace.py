@@ -1,5 +1,5 @@
 from os import getenv as env
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from services.workspace.Workspace import Workspace
 from services.workspace.SecretManager import SecretManager
 from controller.pipeline import BasePipeline
@@ -8,7 +8,7 @@ from flask_cors import cross_origin
 import threading
 import requests
 import time
-from services.agents.DataQueryAIAssistent import DataQueryAIAssistent as Agent
+from services.agents.data_query.DataQueryAIAssistent import DataQueryAIAssistent as Agent
 from typing import List
 import traceback
 from flask import abort, send_file
@@ -38,28 +38,30 @@ def run_code(user):
     return { 'output': output, 'lang': payload['code'] }
 
 
-@workspace.route('/workcpace/duckdb/list/<user>/<socket_id>', methods=['POST'])
-@workspace.route('/workspace/pipelines/list/<user>', methods=['POST'])
-def list_pipelines(user, socket_id = None):
-
-    ppelines_path = BasePipeline.folder+'/pipeline/'+user+'/'
-    duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+user+'/'
+@workspace.route('/workcpace/duckdb/list/<namespace>/<socket_id>', methods=['POST'])
+@workspace.route('/workspace/pipelines/list/<namespace>', methods=['POST'])
+def list_pipelines(namespace, socket_id = None):
+    from services.pipeline.DltPipeline import DltPipeline
+    ppelines_path = BasePipeline.folder+'/pipeline/'+namespace+'/'
+    duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+namespace+'/'
 
     if(socket_id == None):
         ppelines = Workspace.list_pipeline_from_files(ppelines_path)
         return { **ppelines }
     else:
-        pipeline_schedules = Workspace.get_ppline_schedule(user)
+        pipeline_schedules = Workspace.get_ppline_schedule(namespace)
         ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
-        duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user, ppelines, pipeline_schedules)
+        duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, namespace, ppelines, pipeline_schedules)
     
     errors_list = None
 
-    if((user in Workspace.duckdb_open_errors)):
+    pipeline_sources_and_destinations = DltPipeline.get_pipeline_source_destination_type(namespace)
+
+    if((namespace in Workspace.duckdb_open_errors)):
         
-        if(len(Workspace.duckdb_open_errors[user]) > 0):
-            errors_list = Workspace.duckdb_open_errors[user]
-            del Workspace.duckdb_open_errors[user]
+        if(len(Workspace.duckdb_open_errors[namespace]) > 0):
+            errors_list = Workspace.duckdb_open_errors[namespace]
+            del Workspace.duckdb_open_errors[namespace]
 
             return { 
                 'error': True, 
@@ -67,7 +69,7 @@ def list_pipelines(user, socket_id = None):
                 'trace': errors_list
             }
 
-    return { **ppelines, **duckdb_ppelines }
+    return { **ppelines, **duckdb_ppelines, 'pipeline_sources_and_destinations': pipeline_sources_and_destinations }
 
 
 @workspace.route('/workcpace/duckdb/connect', methods=['POST'])
@@ -82,12 +84,25 @@ def connect_duckdb():
 @workspace.route('/workcpace/sql_query', methods=['POST'])
 def run_sql_query():
     payload = request.get_json()
-    database = payload['database']
-    query = payload['query']
-    if DuckDBCache.get(database) != None:
-        message = 'The database selected to query is in use by a pipeline JOB, pleas wait until it gets completed.'
+    database = payload.get('database')
+    query = payload.get('query')
+    namespace = payload.get('namespace')
+    connection_name = payload.get('connection_name')
+    dest_type = payload.get('dest_type', 'duckdb')
+    
+    # Check if database is in use (only for DuckDB destinations)
+    if dest_type == 'duckdb' and database and DuckDBCache.get(database) != None:
+        message = 'The database selected to query is in use by a pipeline JOB, please wait until it gets completed.'
         return { 'error': True, 'result': message }
-    result = Workspace.run_sql_query(database, query)
+    
+    # Use Polars for non-DuckDB destinations or when connection info is provided
+    if dest_type != 'duckdb' and connection_name:
+        from utils.PolarsQueryUtil import PolarsQueryUtil
+        result = PolarsQueryUtil.execute_query(query, namespace, connection_name, dest_type)
+    else:
+        # Use existing DuckDB query for backward compatibility
+        result = Workspace.run_sql_query(database, query)
+    
     return result
 
 
