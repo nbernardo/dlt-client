@@ -95,5 +95,7 @@ class PipelineMedatata:
     @staticmethod
     def get_pipeline_source_destination_type(namespace):
         return PipelineMedatata._get_duckdb_conn().execute("""
-                SELECT JSON_GROUP_ARRAY(JSON_OBJECT('sourceType', source_type, 'destType', dest_type, 'pipeline', pipeline))
+                SELECT JSON_GROUP_ARRAY(
+                    JSON_OBJECT('sourceType', source_type, 'destType', dest_type, 'pipeline', pipeline, 'sourceSecretName', source_secret_name, 'destSecretName', dest_secret_name)
+                )
                 FROM pipeline_metadata WHERE namespace = ?""", [namespace]).fetchone()[0]

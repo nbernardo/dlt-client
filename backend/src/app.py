@@ -15,6 +15,7 @@ from controller.workspace import workspace, call_scheduled_job
 from controller.logs import logs
 from controller.file_upload import upload, BaseUpload
 from controller.data_catalog import datacatalog
+from utils.app_util import add_app_custom_handlers
 
 from services.workspace.SecretManager import SecretManager
 from utils.duckdb_util import DuckdbUtil
@@ -46,6 +47,7 @@ app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
 app.register_blueprint(upload)
 app.register_blueprint(datacatalog)
+add_app_custom_handlers(app)
 
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
     app.register_blueprint(logs)

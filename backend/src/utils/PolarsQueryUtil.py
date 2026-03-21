@@ -82,22 +82,18 @@ class PolarsQueryUtil:
             # Get connection credentials from secret manager
             secret = SecretManager.get_db_secret(namespace, connection_name, from_pipeline=True)
             connection_url = secret['connection_url']
-            
-            print(f'Querying SQL database with connection: {connection_name}')
-            print(f'Connection URL (SQLAlchemy format): {connection_url}')
-            
+                        
             # Detect database engine from connection URL
             db_engine = PolarsQueryUtil._detect_database_engine(connection_url)
-            print(f'Detected database engine: {db_engine}')
             
             # Convert SQLAlchemy URL to connectorx format
             # SQLAlchemy: mysql+pymysql://user:pass@host:port/db
             # Connectorx: mysql://user:pass@host:port/db
             cx_url = PolarsQueryUtil._convert_to_connectorx_url(connection_url)
-            print(f'Connection URL (connectorx format): {cx_url}')
+            engine = create_engine(cx_url).connect()
             
             # Use Polars with connectorx to execute query
-            df = pl.read_database_uri(query, cx_url)
+            df = pl.read_database(query, connection=engine)
             
             # Convert DataFrame to list of tuples for JSON serialization
             result = [tuple(row) for row in df.iter_rows()]
