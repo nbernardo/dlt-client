@@ -1,5 +1,5 @@
 from os import getenv as env
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from services.workspace.Workspace import Workspace
 from services.workspace.SecretManager import SecretManager
 from controller.pipeline import BasePipeline
@@ -38,28 +38,30 @@ def run_code(user):
     return { 'output': output, 'lang': payload['code'] }
 
 
-@workspace.route('/workcpace/duckdb/list/<user>/<socket_id>', methods=['POST'])
-@workspace.route('/workspace/pipelines/list/<user>', methods=['POST'])
-def list_pipelines(user, socket_id = None):
-
-    ppelines_path = BasePipeline.folder+'/pipeline/'+user+'/'
-    duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+user+'/'
+@workspace.route('/workcpace/duckdb/list/<namespace>/<socket_id>', methods=['POST'])
+@workspace.route('/workspace/pipelines/list/<namespace>', methods=['POST'])
+def list_pipelines(namespace, socket_id = None):
+    from services.pipeline.DltPipeline import DltPipeline
+    ppelines_path = BasePipeline.folder+'/pipeline/'+namespace+'/'
+    duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+namespace+'/'
 
     if(socket_id == None):
         ppelines = Workspace.list_pipeline_from_files(ppelines_path)
         return { **ppelines }
     else:
-        pipeline_schedules = Workspace.get_ppline_schedule(user)
+        pipeline_schedules = Workspace.get_ppline_schedule(namespace)
         ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
-        duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, user, ppelines, pipeline_schedules)
+        duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, namespace, ppelines, pipeline_schedules)
     
     errors_list = None
 
-    if((user in Workspace.duckdb_open_errors)):
+    pipeline_sources_and_destinations = DltPipeline.get_pipeline_source_destination_type(namespace)
+
+    if((namespace in Workspace.duckdb_open_errors)):
         
-        if(len(Workspace.duckdb_open_errors[user]) > 0):
-            errors_list = Workspace.duckdb_open_errors[user]
-            del Workspace.duckdb_open_errors[user]
+        if(len(Workspace.duckdb_open_errors[namespace]) > 0):
+            errors_list = Workspace.duckdb_open_errors[namespace]
+            del Workspace.duckdb_open_errors[namespace]
 
             return { 
                 'error': True, 
@@ -67,7 +69,7 @@ def list_pipelines(user, socket_id = None):
                 'trace': errors_list
             }
 
-    return { **ppelines, **duckdb_ppelines }
+    return { **ppelines, **duckdb_ppelines, 'pipeline_sources_and_destinations': pipeline_sources_and_destinations }
 
 
 @workspace.route('/workcpace/duckdb/connect', methods=['POST'])

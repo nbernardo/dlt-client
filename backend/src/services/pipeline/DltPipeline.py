@@ -609,6 +609,11 @@ class DltPipeline:
         except Exception as err:
             return {}, {}
         
+
+    @staticmethod
+    def get_pipeline_source_destination_type(namespace):
+        return MetaStore.get_pipeline_source_destination_type(namespace)
+
     
     @staticmethod
     def get_sqldb_transformation_preview(namespace, dbengine, connection_name, script):

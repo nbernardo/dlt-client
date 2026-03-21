@@ -39,7 +39,7 @@ class SqlDBComponent(TemplateNodeType):
             if 'componentId' not in data:
                 return None
             
-        self.context.pipeline_metadata.source_type = NodeType.SQL_SOURCE
+        self.context.pipeline_metadata.source_type = NodeType.SQL_SOURCE + f'({data['dbengine']})'
 
         # In case there is transformation step after the extraction node, 
         # first thing it'll do before SqlDBComponent run itself will be 

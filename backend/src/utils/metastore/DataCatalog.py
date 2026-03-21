@@ -240,7 +240,8 @@ class DataCatalog:
                 k: str(getattr(creds, k)) for k in dir(creds)
                 if not k.startswith('_') and not callable(getattr(creds, k)) and k != 'password'
             })
-        return re.sub(r':([^@]+)@', ':***@', destination_str)
+
+        return re.sub(r'(\b\w+://[^:]+:)[^@]+(@)', r'\1*****\2', destination_str)
 
 
     @staticmethod
