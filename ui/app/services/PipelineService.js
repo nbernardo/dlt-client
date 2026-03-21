@@ -11,7 +11,8 @@ export class PipelineService extends BaseService {
     static tableListStore;
     static jsonHeaders = { 'Content-Type': 'application/json' };
     static pipelineSourcesAndSestinationsMap = {};
-    static sqlEditorCurrPipeline = null;
+    static sqlEditorDestType = null;
+    static sqlEditorDestSecretName = null;
 
     async createOrUpdatePipeline(content = null, update = false, actionType = '') {
 

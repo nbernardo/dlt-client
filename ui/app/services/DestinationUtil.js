@@ -2,6 +2,8 @@
  * Utility functions for handling different destination types
  */
 
+import { PipelineService } from "./PipelineService.js";
+
 /**
  * Check if destination type is a non-DuckDB destination (SQL, BigQuery, Databricks)
  * @param {string} destType - The destination type
@@ -102,20 +104,28 @@ export function adjustQueryForDialect(query, dbEngine) {
  * @param {number} limit - Number of rows to limit (default: 100)
  * @returns {string} Generated SQL query
  */
-export function generateInitialQuery(tableName, fields, dbEngine, limit = 100) {
+export function generateInitialQuery(tableName, fields, sourceDestDetails, limit = 100) {
     
-    if('destType' in dbEngine){
+    let dbEngine;
+    if('destType' in (sourceDestDetails || {})){
         // By doing .match it extracts the dbengine type
-        dbEngine = dbEngine.destType.match(/SQL_DEST\(([^)]+)\)/);
+        dbEngine = sourceDestDetails.destType.match(/SQL_DEST\(([^)]+)\)/);
 		if(dbEngine) dbEngine = dbEngine[1];
     }else
         dbEngine = 'mysql';
         
         
-    const fieldsString = fields && fields.length > 0 ? fields.map(f => 'postgresql' == dbEngine ? `"${f}"` : f).join(', ') : '*';
-    tableName = 'postgresql' == dbEngine ? tableName.split('.').map(t => `"${t}"`).join('.') : tableName;
+    const fieldsString = fields && fields.length > 0 
+        ? fields.map(f => (['postgresql','mssql'].includes(dbEngine) || f.trim().indexOf(' ') > 0) ? `"${f}"` : f).join(', ') 
+        : '*';
+    tableName = ['postgresql','mssql'].includes(dbEngine) ? tableName.split('.').map(t => `"${t}"`).join('.') : tableName;
 
     const engine = (dbEngine || 'mysql').toLowerCase();
+
+    if(['postgresql','mssql','oracle','mysql'].includes(dbEngine) && sourceDestDetails !== undefined) {
+        PipelineService.sqlEditorDestType = 'sql';
+        PipelineService.sqlEditorDestSecretName = sourceDestDetails.destSecretName;
+    }
     
     if (engine === 'mssql') {
         // SQL Server: SELECT TOP n
