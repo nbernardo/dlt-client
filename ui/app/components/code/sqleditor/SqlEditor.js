@@ -6,6 +6,7 @@ import { Grid } from "../../grid/Grid.js";
 import { handleHideShowSubmenu } from "../../workspace/generic-util.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { isNonDuckDBDestination, generateInitialQuery } from "../../../services/DestinationUtil.js";
+import { PipelineService } from "../../../services/PipelineService.js";
 
 export class SqlEditor extends ViewComponent {
 
@@ -47,6 +48,7 @@ export class SqlEditor extends ViewComponent {
 	async stOnRender({ query, database, databaseParam, queryTable, connectionName, destType, pplineName }){
 
 		await this.$parent.controller.loadMonacoEditorDependencies();
+		PipelineService.sqlEditorCurrPipeline = pplineName;
 		
 		let dbPath = null, databasename = '';
 		if(database){
@@ -109,12 +111,13 @@ export class SqlEditor extends ViewComponent {
 
 	setupEditorQuery(databaseName){
 		// Handle table name extraction based on destination type
-		let selectedTable;
+		let selectedTable, sourceAndDestType;
 		if (isNonDuckDBDestination(this.destType)) {
 			// For SQL, BigQuery, and Databricks: databaseName is in format "ppline.schema.table"
 			// We need to strip the pipeline name prefix to get "schema.table"
 			const parts = databaseName.split('.');
 			if (parts.length >= 3) {
+				sourceAndDestType = PipelineService.pipelineSourcesAndSestinationsMap[parts[0]];
 				// Remove first part (pipeline name) and keep "schema.table"
 				selectedTable = parts.slice(1).join('.');
 			} else {
@@ -156,9 +159,7 @@ export class SqlEditor extends ViewComponent {
 			this.selectedTableFields = [{ name: 'Fields in the table', type: '' }, ...selectedTableFields];
 
 		// Generate query using database-specific syntax
-		// For SQL databases, use the detected engine; for others, default to 'mysql' syntax
-		const engine = this.destType === 'sql' ? (this.dbEngine || 'mysql') : 'mysql';
-		const query = generateInitialQuery(this.selectedTable, fieldsArray, engine, 100);
+		const query = generateInitialQuery(this.selectedTable, fieldsArray, sourceAndDestType, 100);
 		this.setCode(AIResponseLinterUtil.formatSQL(query));
 
 		// Update database path for DuckDB only

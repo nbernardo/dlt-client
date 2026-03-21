@@ -17,6 +17,7 @@ import { Transformation } from "../components/node-types/Transformation.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { UserService } from "./UserService.js";
 import { constructTablePath } from "./DestinationUtil.js";
+import { PipelineService } from "./PipelineService.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -110,7 +111,7 @@ export class WorkspaceService extends BaseService {
                     const pipelineName = tableDetail.ppline || database.replace('.duckdb', '');
                     
                     // Construct tablePath based on destination type using utility function
-                    const tablePath = constructTablePath(tableDetail, database);
+                    const tablePath = constructTablePath(tableDetail, database, pipelineName);
                     
                     // Construct metadata key to match LeftTabs.js structure
                     // CRITICAL: Include pipeline name to avoid conflicts
@@ -157,7 +158,13 @@ export class WorkspaceService extends BaseService {
             const response = await $still.HTTPClient.post(url, null, {
                 headers: { 'Content-Type': 'application/json' }
             });
-            const { db_path, ...tables } = await response.json();
+            const { db_path, pipeline_sources_and_destinations, ...tables } = await response.json();
+            PipelineService.pipelineSourcesAndSestinationsMap = JSON.parse(pipeline_sources_and_destinations)
+                .reduce((accum, curr) => {
+                    accum[curr.pipeline] = { ...curr }
+                    return accum
+                }, {});
+
             this.dbPath = db_path;
             this.tableListStore = tables;
         //}

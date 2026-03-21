@@ -23,7 +23,7 @@ export function isNonDuckDBDestination(destType) {
  * @param {string} database - Database name (used for DuckDB)
  * @returns {string} Constructed table path
  */
-export function constructTablePath(tableDetail, database = null) {
+export function constructTablePath(tableDetail, database = null, pipelineName) {
     if (isNonDuckDBDestination(tableDetail.dest)) {
         // For SQL, BigQuery, and Databricks: use schema.table format (two-part)
         // Defensive: if dbname contains a dot, extract only the schema part
@@ -34,7 +34,7 @@ export function constructTablePath(tableDetail, database = null) {
             const parts = schema.split('.');
             schema = parts[parts.length - 1]; // Take the last part (schema)
         }
-        return `${schema}.${tableDetail.table}`;
+        return `${pipelineName}.${schema}.${tableDetail.table}`;
     } else {
         // For DuckDB: use database.dbname.table format (three-part)
         return `${database}.${tableDetail.dbname}.${tableDetail.table}`;
@@ -102,9 +102,19 @@ export function adjustQueryForDialect(query, dbEngine) {
  * @param {number} limit - Number of rows to limit (default: 100)
  * @returns {string} Generated SQL query
  */
-export function generateInitialQuery(tableName, fields, dbEngine = 'mysql', limit = 100) {
-    const fieldsString = fields && fields.length > 0 ? fields.join(', ') : '*';
+export function generateInitialQuery(tableName, fields, dbEngine, limit = 100) {
     
+    if('destType' in dbEngine){
+        // By doing .match it extracts the dbengine type
+        dbEngine = dbEngine.destType.match(/SQL_DEST\(([^)]+)\)/);
+		if(dbEngine) dbEngine = dbEngine[1];
+    }else
+        dbEngine = 'mysql';
+        
+        
+    const fieldsString = fields && fields.length > 0 ? fields.map(f => 'postgresql' == dbEngine ? `"${f}"` : f).join(', ') : '*';
+    tableName = 'postgresql' == dbEngine ? tableName.split('.').map(t => `"${t}"`).join('.') : tableName;
+
     const engine = (dbEngine || 'mysql').toLowerCase();
     
     if (engine === 'mssql') {
