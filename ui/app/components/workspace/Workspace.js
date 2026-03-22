@@ -297,7 +297,7 @@ export class Workspace extends ViewComponent {
 			}
 
 			if (component.getName() === DLTCode.name || component.getName() === DLTCodeOutput.name) {
-				const /** @type { DLTCode } */ castedCmp = component;
+				const /** @type { DLTCode | DLTCodeOutput } */ castedCmp = component;
 				await castedCmp.getCode();
 				if(component.getName() === DLTCodeOutput.name) codeOutput = true;
 				if(component.getName() === DLTCode.name) codeInput = true;

@@ -157,12 +157,6 @@ export class DLTCode extends AbstractNode {
 		});
 	}
 
-	async getCode() {
-		this.showTemplateList = true;
-		WorkSpaceController.getNode(this.nodeId).data['dltCode'] = this.codeContent;
-		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
-	}
-
 	onOutputConnection(){
 		DLTCode.handleOutputConnection(this);
 		return { nodeCount: this.nodeCount.value };

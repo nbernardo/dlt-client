@@ -161,11 +161,7 @@ export class DLTCodeOutput extends AbstractNode {
 		this.stopReloadNode();
 	}
 
-	async getCode() {
-		this.showTemplateList = true;
-		WorkSpaceController.getNode(this.nodeId).data['dltCode'] = this.codeContent;
-		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
-	}
+	async getCode() { super.getCode(true) }
 
 	onOutputConnection(){
 		DLTCodeOutput.handleOutputConnection(this);

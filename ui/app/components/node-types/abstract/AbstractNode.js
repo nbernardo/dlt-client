@@ -1,5 +1,6 @@
 import { BaseComponent } from "../../../../@still/component/super/BaseComponent.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
+import { UserService } from "../../../services/UserService.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 
 /** @implements { NodeTypeInterface } */
@@ -63,5 +64,32 @@ export class AbstractNode extends BaseComponent {
   setNodeData = (field, value) => 
     WorkSpaceController.getNode(this.nodeId).data[field] = value;
   
+  /**
+   * This is specific to DLTCode kind of pipeline diagram node
+   */
+  async getCode(isDestination = false) {
+		this.showTemplateList = true;
+		WorkSpaceController.getNode(this.nodeId).data['dltCode'] = this.codeContent;
+		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
+    if(isDestination){
+      const { configDetails, pipelineDestination } = this.parsePipelineDestinationCode(this.codeContent);
+      WorkSpaceController.getNode(this.nodeId).data['configDetails'] = configDetails;
+      WorkSpaceController.getNode(this.nodeId).data['pipelineDestination'] = pipelineDestination;
+    }
+	}
+
+  /** @param {String} code */
+  parsePipelineDestinationCode(code){
+    const configDetails = code.match(/(config|credentials)\s*\=\s*\n*\t*\{[\s\S]*\}/i);
+    let pipelineDestination = code.match(/destination[^(]*/);
+    if(pipelineDestination){
+      pipelineDestination = pipelineDestination[0].split('=')[1];
+      // Handles the scenario where full dlt destination 
+      // path is specified (e.g. dlt.destination.databricks)
+      if(pipelineDestination.includes('.'))
+        pipelineDestination = String(pipelineDestination).split('.').slice(-1)[0];
+    }
+    return { configDetails: configDetails && String(configDetails[0]), pipelineDestination };
+  }
 
 }

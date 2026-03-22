@@ -943,7 +943,7 @@ export class WorkSpaceController extends BaseController {
 			value: this.query, language: lang,
 			theme, automaticLayout: true,
 			minimap: { enabled: false }, scrollBeyondLastLine: false,
-			fontSize
+			fontSize,
 		});
     }
 
