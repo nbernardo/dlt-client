@@ -195,3 +195,5 @@ class PipelineMetadata:
         self.destination_type = ''
         self.source_secret = ''
         self.destination_secret = ''
+        self.destination_config = ''
+        self.source_config = ''

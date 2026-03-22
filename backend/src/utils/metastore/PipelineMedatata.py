@@ -52,9 +52,12 @@ class PipelineMedatata:
 
         try:
             tbl = PipelineMedatata._get_table()
+            PipelineMedatata._migrate_pipeline_metadata(tbl)
+
             rows_to_insert = [{
                 'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'],
-                'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type']
+                'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type'],
+                'source_config': details['source_config'], 'destination_config': details['destination_config']
             }]
 
             tbl.add(rows_to_insert)
@@ -99,3 +102,25 @@ class PipelineMedatata:
                     JSON_OBJECT('sourceType', source_type, 'destType', dest_type, 'pipeline', pipeline, 'sourceSecretName', source_secret_name, 'destSecretName', dest_secret_name)
                 )
                 FROM pipeline_metadata WHERE namespace = ?""", [namespace]).fetchone()[0]
+
+
+    @staticmethod
+    def _migrate_pipeline_metadata(tbl):
+        """This is used to add a new metadata field in case it didn't exist"""
+        try:
+            existing_cols = tbl.schema.names
+
+            new_fields = {
+                'destination_config': "cast(null as string)", #added in Mar/22/2026
+                'source_config': "cast(null as string)", #added in Mar/22/2026
+            }
+
+            for col, expr in new_fields.items():
+                if col not in existing_cols:
+                    tbl.add_columns({col: expr})
+                    print(f'pipeline_metadata.{col} added')
+                else:
+                    print(f'pipeline_metadata.{col} already exists — skipped')
+
+        except Exception as e:
+            print(f'pipeline_metadata migration failed: {e}')    

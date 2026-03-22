@@ -28,6 +28,9 @@ def column_type_conversion(columns, connection, table, schema):
             columns.append(
                 f"CAST([{col_name}] AS datetime2) AS [{col_name}]"
             )
+
+        elif data_type.lower() == 'time':
+            columns.append(f"CONVERT(VARCHAR, [{col_name}], 108) AS [{col_name}]")
             
         else:
             columns.append(f"[{col_name}]")

@@ -21,13 +21,16 @@ class DLTCodeOutput(TemplateNodeType):
         if data is None: return None
         if len(data.keys()) == 0: return None
 
+        destination_type = data['pipelineDestination']
         self.parse_to_literal = ['destination_settings','secret_manager_import']
         self.secret_manager_import = ''
 
         self.context = context
         self.component_id = data['componentId']
 
-        self.context.pipeline_metadata.destination_type = NodeType.CODE_DEST
+        self.context.pipeline_metadata.destination_type = NodeType.CODE_DEST + f'({destination_type})'
+        self.context.pipeline_metadata.destination_config = data['configDetails']
+        
         self.context.emit_start(self, '')
 
         import_stmnt = r'\n*\s*import dlt\s*\n*'
