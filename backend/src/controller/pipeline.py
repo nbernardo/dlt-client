@@ -390,6 +390,10 @@ def parse_secrets(template: str, context: RequestContext = None):
     if has_metadata:
         if not template.startswith('# METADATA: dest_tables=['):
             template = f'# METADATA: dest_tables=[]\n{template}'
+
+        if context.pipeline_metadata.referenced_secrets == '':    
+            context.pipeline_metadata.referenced_secrets = str(context.additional_secrets).replace('"','')
+            
         return template.replace('%referenced_secrets_list%', str(context.additional_secrets).replace('"',''))
     return template
 

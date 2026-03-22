@@ -39,7 +39,10 @@ class DLTCodeOutput(TemplateNodeType):
         # destination_settings is mapped in /pipeline_templates/dlt_code.txt
         self.destination_settings = re.sub(import_stmnt,'',data['dltCode'])
         self.destination_settings = self.destination_settings.replace('__current.PIPELINE_NAME', f"'{namespace}_at_{context.pipeline_name}'")
+        lines = self.destination_settings.splitlines()
+        
         no_transformation = True if self.context.transformation == None else False
+        code_indented = False
 
         if len(context.sql_destinations) > 0:
             if(self.destination_settings.__contains__('destination=dlt.destinations.bigquery')):
@@ -47,9 +50,11 @@ class DLTCodeOutput(TemplateNodeType):
                 self.table_format = 'table_format="native"'
 
             self.secret_manager_import = ',SecretManager'
-            if no_transformation and not(self.context.code_source) and not(self.context.bucket_source):
-                self.destination_settings = self.destination_settings.replace('\n','\n    ')
 
+            if no_transformation and not(self.context.code_source) and not(self.context.bucket_source):
+                self.destination_settings = lines[0] + '\n' + '\n'.join('    ' + line for line in lines[1:])
+                code_indented = True
+                
         self.ppline_dest_table = 'no_table_name'
 
         referenced_secrets = self.parse__secrets(data['namespace'])
@@ -63,6 +68,11 @@ class DLTCodeOutput(TemplateNodeType):
                     use_secrets = True
                 else:
                     n = '\n    ' if no_transformation else '\n'
+                context.pipeline_metadata.referenced_secrets = referenced_secrets
+
+                if n == '\n    ' and code_indented == False:
+                    self.destination_settings = lines[0] + '\n' + '\n'.join('    ' + line for line in lines[1:])
+                    
                 self.destination_settings = f"namespace = '{data['namespace']}'{n}secret_names = {referenced_secrets}{n}__secrets = SecretManager.referencedSecrets(namespace, secret_names){n}{self.destination_settings}"
                 
                 if use_secrets:

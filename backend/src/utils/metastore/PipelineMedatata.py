@@ -57,7 +57,8 @@ class PipelineMedatata:
             rows_to_insert = [{
                 'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'],
                 'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type'],
-                'source_config': details['source_config'], 'destination_config': details['destination_config']
+                'source_config': details['source_config'], 'destination_config': details['destination_config'], 
+                'referenced_secrets': str(details['referenced_secrets'])
             }]
 
             tbl.add(rows_to_insert)
@@ -113,6 +114,7 @@ class PipelineMedatata:
             new_fields = {
                 'destination_config': "cast(null as string)", #added in Mar/22/2026
                 'source_config': "cast(null as string)", #added in Mar/22/2026
+                'referenced_secrets': "cast(null as string)", #added in Mar/22/2026
             }
 
             for col, expr in new_fields.items():
