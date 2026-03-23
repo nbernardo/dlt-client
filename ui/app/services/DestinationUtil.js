@@ -116,12 +116,12 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
     let dbEngine, sourceType, isSourceSQL;
     if('destType' in (sourceDestDetails || {})){
         // By doing .match it extracts the dbengine type
-        dbEngine = sourceDestDetails.destType.match(/SQL_DEST|CODE_DEST\(([^)]+)\)/);
-        sourceType = sourceDestDetails.sourceType.match(/SQL_SOURCE\(([^)]+)\)/);
+        dbEngine = sourceDestDetails.destType.match(/(SQL_DEST|CODE_DEST)\(([^)]+)\)/);
+        sourceType = sourceDestDetails.sourceType.match(/(SQL_SOURCE|CODE_SOURCE)\(([^)]+)\)/);
         isSourceSQL = sourceDestDetails.sourceType.startsWith('SQL_SOURCE');
 
-        if(sourceType) sourceType = sourceType[1];
-		if(dbEngine) dbEngine = dbEngine[1];
+        if(sourceType) sourceType = sourceType[2];
+		if(dbEngine) dbEngine = dbEngine[2];
     }else
         dbEngine = 'mysql';
         
@@ -159,7 +159,7 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
         // MySQL, PostgreSQL, MariaDB: LIMIT
         let table = tableName.startsWith('.') ? tableName.slice(1) : tableName;
         if(isSourceSQL && sourceType !== DESTINATION_TYPE.MSSQL) table = table.split('.').slice(-1);
-        if(sourceType === DESTINATION_TYPE.MSSQL) table = table.replace('.','_');
+        if(sourceType === DESTINATION_TYPE.MSSQL && engine === DESTINATION_TYPE.DATABRICKS) table = table.replace('.','_');
             
         return `SELECT ${fieldsString}\nFROM ${table}\nLIMIT ${limit}`;
     }

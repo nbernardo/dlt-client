@@ -118,10 +118,6 @@ export class SqlEditor extends ViewComponent {
 		const key = parts[0] == '' ? this.pplineName : parts[0];
 		sourceAndDestType = PipelineService.pipelineSourcesAndSestinationsMap[key];
 
-		if(String(sourceAndDestType.referencedSecrets).startsWith('[')){
-			JSON.parse(sourceAndDestType.referencedSecrets.replace(/'/g, '"'))
-		}
-
 		if (!(duckdbIndex > 0)) {
 			// For SQL, BigQuery, and Databricks: databaseName is in format "ppline.schema.table"
 			// We need to strip the pipeline name prefix to get "schema.table"
