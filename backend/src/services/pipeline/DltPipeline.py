@@ -144,7 +144,7 @@ class DltPipeline:
         #  specific situation like will only print if the ppline has transformation or if it's
         #  ppline update, otherwise flag = True will print the log in any scenario
         #  flag = context.transformation is not None or context.action_type == 'UPDATE'
-        flag = True
+        flag, dataset_name = True, None
 
         logger = DltPipeline.get_pipeline_logger(context)
 
@@ -152,12 +152,16 @@ class DltPipeline:
             while True:
                 line = result.stdout.readline()
                 time.sleep(0.1)
-
+                
                 if line == '' or line.strip() == 'import pkg_resources' or line.strip().__contains__('import pkg_resources'): 
                     continue
                 if not line: break
                 line = line.strip()
                 
+                if(line.startswith('DATA=__dlt__destination__datasetname__:')):
+                    dataset_name = line.split(':')[1]
+                    break
+
                 is_transformation_step = (line.endswith('Transformation')\
                                            and line.startswith('dynamic-_cmp'))
                 
@@ -196,7 +200,7 @@ class DltPipeline:
             
         #result.kill() # Each process will be responsible to kill/exit ifself
         MetaStore.persist_pipeline_metadata(
-            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata)
+            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), dataset_name
         )
 
         if pipeline_exception == True:

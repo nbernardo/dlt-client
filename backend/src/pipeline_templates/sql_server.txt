@@ -93,14 +93,5 @@ def load_select_tables_from_db():
         }, exc_info=True)
         raise
 
-try:
-    load_select_tables_from_db()
-except Exception as e:
-    logger.error("SQL Server pipeline execution failed", extra={
-        'stage': 'pipeline_error',
-        'error_type': type(e).__name__,
-        'error_message': str(e),
-        'template_type': 'sql_server'
-    }, exc_info=True)
-    print(f'RUNTIME_ERROR:SQL Server pipeline execution failed: {e}', flush=True)
-    raise
+
+load_select_tables_from_db()

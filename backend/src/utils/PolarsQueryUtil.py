@@ -9,7 +9,8 @@ from services.workspace.SecretManager import SecretManager
 import traceback
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-
+import re
+from utils.pipeline.Enums import DestinationType
 
 class PolarsQueryUtil:
     """
@@ -17,7 +18,9 @@ class PolarsQueryUtil:
     """
 
     @staticmethod
-    def execute_query(query: str, namespace: str, connection_name: str, dest_type: str = 'sql'):
+    def execute_query(
+        query: str, namespace: str, 
+        connection_name: str, destination_details = {}):
         """
         Execute a SQL query using Polars and connectorx
         
@@ -31,6 +34,7 @@ class PolarsQueryUtil:
             dict: {'result': list of tuples, 'fields': comma-separated field names}
             or {'error': True, 'result': error message, 'code': error code}
         """
+        dest_type = destination_details.get('dest_type')
         try:
             if dest_type == 'duckdb':
                 return PolarsQueryUtil._query_duckdb(query, connection_name)
@@ -38,8 +42,8 @@ class PolarsQueryUtil:
                 return PolarsQueryUtil._query_sql_database(query, namespace, connection_name)
             elif dest_type == 's3':
                 return PolarsQueryUtil._query_s3(query, namespace, connection_name)
-            elif dest_type in ['bigquery', 'databricks']:
-                return PolarsQueryUtil._query_cloud_warehouse(query, namespace, connection_name, dest_type)
+            elif dest_type in DestinationType._value2member_map_:
+                return PolarsQueryUtil._query_cloud_warehouse(query, namespace, connection_name, destination_details)
             else:
                 return {
                     'error': True,
@@ -151,7 +155,6 @@ class PolarsQueryUtil:
             if 's3://' not in query.lower():
                 # Extract table/file name from query
                 # Query format: SELECT * FROM filename.csv
-                import re
                 from_match = re.search(r'from\s+([^\s,;]+)', query, re.IGNORECASE)
                 if from_match:
                     table_name = from_match.group(1).strip('`"\'')
@@ -191,13 +194,15 @@ class PolarsQueryUtil:
                 'code': 'err'
             }
     @staticmethod
-    def _query_cloud_warehouse(query: str, namespace: str, connection_name: str, dest_type: str):
+    def _query_cloud_warehouse(query: str, namespace: str, connection_name: str, destination_details: dict = {}):
         """Query cloud data warehouses (BigQuery, Databricks)"""
+
+        dest_type = destination_details.get('dest_type')
         try:
-            if dest_type == 'bigquery':
+            if dest_type == DestinationType.BIG_QUERY:
                 return PolarsQueryUtil._query_bigquery(query, namespace, connection_name)
-            elif dest_type == 'databricks':
-                return PolarsQueryUtil._query_databricks(query, namespace, connection_name)
+            elif dest_type == DestinationType.DATABRICKS:
+                return PolarsQueryUtil._query_databricks(query, namespace, connection_name, destination_details)
             else:
                 return {
                     'error': True,
@@ -287,21 +292,39 @@ class PolarsQueryUtil:
                 'code': 'err'
             }
     
+
     @staticmethod
-    def _query_databricks(query: str, namespace: str, connection_name: str):
+    def _parse_config(config_str, __secrets):
+        import ast
+
+        secret_mappings = re.findall(r'"(\w+)":\s*__secrets\.(\w+)', config_str)
+
+        # Replace all __secrets.* with placeholder strings, then parse
+        cleaned = re.sub(r'__secrets\.(\w+)', r'"__SECRET_\1__"', config_str)
+        dict_str = cleaned.split("=", 1)[1].strip()
+        config = ast.literal_eval(dict_str)
+
+        for dict_key, secret_key in secret_mappings:
+            config[dict_key] = getattr(__secrets, secret_key)
+            
+        return config
+
+
+    @staticmethod
+    def _query_databricks(query: str, namespace: str, connection_name: str, destination_details: dict = {}):
         """Query Databricks using the Databricks SQL connector"""
         try:
             from databricks import sql
+            __secrets = SecretManager.referencedSecrets(namespace, destination_details.get('referenced_secrets'))
+            config = PolarsQueryUtil._parse_config(destination_details.get('destination_config'), __secrets)
             
             print(f'Querying Databricks with connection: {connection_name}')
             
-            # Get Databricks credentials from Vault
-            secret = SecretManager.get_db_secret(namespace, connection_name, from_pipeline=True)
-            
+        
             # Required fields for Databricks connection
-            server_hostname = secret.get('server_hostname')
-            http_path = secret.get('http_path')
-            access_token = secret.get('access_token')
+            server_hostname = config.get('server_hostname')
+            http_path = config.get('http_path')
+            access_token = config.get('access_token')
             
             if not all([server_hostname, http_path, access_token]):
                 return {
@@ -311,8 +334,8 @@ class PolarsQueryUtil:
                 }
             
             # Optional: catalog and schema
-            catalog = secret.get('catalog', 'main')
-            schema = secret.get('schema', 'default')
+            catalog = config.get('catalog', 'main')
+            schema = destination_details.get('destinationDB')
             
             print(f'Connecting to Databricks: {server_hostname}')
             

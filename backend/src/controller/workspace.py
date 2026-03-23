@@ -18,6 +18,7 @@ from utils.SQLDatabase import SQLDatabase
 from utils.BucketUtil import BucketUtil
 from utils.BucketConnector import BucketConnector
 from utils.workspace_util import handle_conversasion_turn_limit
+from utils.pipeline.Enums import DestinationType
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -89,16 +90,27 @@ def run_sql_query():
     namespace = payload.get('namespace')
     connection_name = payload.get('connection_name')
     dest_type = payload.get('dest_type', 'duckdb')
+    referenced_secrets = payload.get('referencedSecrets', None)
+    destination_config = payload.get('destinationConfig', None)
+    destinationDB = payload.get('destinationDB', None)
     
+    destination_details = {
+        'dest_type': dest_type, 'referenced_secrets': referenced_secrets,
+        'destination_config': destination_config, 'destinationDB': destinationDB,
+    }
+
     # Check if database is in use (only for DuckDB destinations)
     if dest_type == 'duckdb' and database and DuckDBCache.get(database) != None:
         message = 'The database selected to query is in use by a pipeline JOB, please wait until it gets completed.'
         return { 'error': True, 'result': message }
     
+    # DestinationType._value2member_map_ is an Enum which holds destination specific types
+    other_valid_destinations = DestinationType._value2member_map_
+
     # Use Polars for non-DuckDB destinations or when connection info is provided
-    if dest_type != 'duckdb' and connection_name:
+    if dest_type != 'duckdb' and (connection_name or (dest_type in other_valid_destinations)):
         from utils.PolarsQueryUtil import PolarsQueryUtil
-        result = PolarsQueryUtil.execute_query(query, namespace, connection_name, dest_type)
+        result = PolarsQueryUtil.execute_query(query, namespace, connection_name, destination_details)
     else:
         # Use existing DuckDB query for backward compatibility
         result = Workspace.run_sql_query(database, query)

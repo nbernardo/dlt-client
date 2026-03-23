@@ -37,17 +37,19 @@ class PipelineMedatata:
 
 
     @staticmethod
-    def _get_duckdb_conn() -> duckdb.DuckDBPyConnection:
+    def _get_duckdb_conn(include_catalog = False) -> duckdb.DuckDBPyConnection:
         """Returns a DuckDB connection with a catalog view over the LanceDB files."""
         lance_path = f'{DuckdbUtil.workspacedb_path}/catalog.lance'
         con = duckdb.connect()
         con.execute("LOAD lance")
         con.execute(f"CREATE VIEW pipeline_metadata AS SELECT * FROM '{lance_path}/pipeline_metadata.lance'")
+        if(include_catalog):
+            con.execute(f"CREATE VIEW column_catalog AS SELECT dest_store, pipeline FROM '{lance_path}/column_catalog.lance'")
         return con
 
 
     @staticmethod
-    def persist_metadata(namespace = None, pipeline=None, details={}):
+    def persist_metadata(namespace = None, pipeline=None, details={}, dataset_name: str = ''):
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
 
         try:
@@ -58,7 +60,7 @@ class PipelineMedatata:
                 'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'],
                 'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type'],
                 'source_config': details['source_config'], 'destination_config': details['destination_config'], 
-                'referenced_secrets': str(details['referenced_secrets'])
+                'referenced_secrets': str(details['referenced_secrets']), 'dataset_name': dataset_name
             }]
 
             tbl.add(rows_to_insert)
@@ -98,9 +100,13 @@ class PipelineMedatata:
     
     @staticmethod
     def get_pipeline_source_destination_type(namespace):
-        return PipelineMedatata._get_duckdb_conn().execute("""
+        return PipelineMedatata._get_duckdb_conn(include_catalog=True).execute("""
                 SELECT JSON_GROUP_ARRAY(
-                    JSON_OBJECT('sourceType', source_type, 'destType', dest_type, 'pipeline', pipeline, 'sourceSecretName', source_secret_name, 'destSecretName', dest_secret_name)
+                    JSON_OBJECT(
+                        'sourceType', source_type, 'destType', dest_type, 'pipeline', pipeline, 'sourceSecretName', source_secret_name, 
+                        'destSecretName', dest_secret_name, 'destinationConfig', destination_config, 'referencedSecrets', referenced_secrets,
+                        'datasetName', dataset_name
+                    )
                 )
                 FROM pipeline_metadata WHERE namespace = ?""", [namespace]).fetchone()[0]
 
@@ -115,6 +121,7 @@ class PipelineMedatata:
                 'destination_config': "cast(null as string)", #added in Mar/22/2026
                 'source_config': "cast(null as string)", #added in Mar/22/2026
                 'referenced_secrets': "cast(null as string)", #added in Mar/22/2026
+                'dataset_name': "cast(null as string)", #added in Mar/22/2026
             }
 
             for col, expr in new_fields.items():
