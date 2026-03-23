@@ -13,6 +13,9 @@ export class PipelineService extends BaseService {
     static pipelineSourcesAndSestinationsMap = {};
     static sqlEditorDestType = null;
     static sqlEditorDestSecretName = null;
+    static pipelineReferencedSecrets = null;
+    static pipelineDestinationConfig = null;
+    static pipelineDestinationDB = null;
 
     async createOrUpdatePipeline(content = null, update = false, actionType = '') {
 
@@ -74,6 +77,34 @@ export class PipelineService extends BaseService {
         const onConfirm = async () => await confirm();
         const onCancel = async () => await cancel();
         return WorkSpaceController.get().showDialog(message, { type: 'confirm', title, onConfirm, onCancel })
+    }
+
+    /** @returns { { result, error } | undefined } */
+    static async runSQLQuery(query, database, connectionName = null, destType = 'duckdb') {
+        const payload = { 
+            query, 
+            database,
+            namespace: await UserService.getNamespace(),
+            connection_name: connectionName,
+            dest_type: destType,
+            referencedSecrets: PipelineService.pipelineReferencedSecrets,
+            destinationConfig: PipelineService.pipelineDestinationConfig,
+            destinationDB: PipelineService.pipelineDestinationDB,
+        };
+        const url = '/workcpace/sql_query';
+        const response = await $still.HTTPClient.post(url, JSON.stringify(payload), {
+            headers: { 'content-type': 'Application/json' }
+        });
+
+        const result = await response.json();
+
+        if (result.error){
+            if(result.code === 'err')
+                AppTemplate.toast.error('Error while querying the DB: ' + result.result, 10000);
+            AppTemplate.toast.warn('Exception while querying the DB: ' + result.result);
+            return { error: result.result };
+        }
+        return { ...result, error: null };
     }
 
 }

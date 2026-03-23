@@ -4,13 +4,20 @@
 
 import { PipelineService } from "./PipelineService.js";
 
+const DESTINATION_TYPE = {
+    DATABRICKS: 'databricks',
+    SQL: 'sql',
+    BIG_QUERY: 'bigquery',
+    MSSQL: 'mssql',
+}
+
 /**
  * Check if destination type is a non-DuckDB destination (SQL, BigQuery, Databricks)
  * @param {string} destType - The destination type
  * @returns {boolean} True if destination is SQL, BigQuery, or Databricks
  */
 export function isNonDuckDBDestination(destType) {
-    return destType === 'sql' || destType === 'bigquery' || destType === 'databricks';
+    return Object.values(DESTINATION_TYPE).includes(destType);
 }
 
 /**
@@ -106,10 +113,14 @@ export function adjustQueryForDialect(query, dbEngine) {
  */
 export function generateInitialQuery(tableName, fields, sourceDestDetails, limit = 100) {
     
-    let dbEngine;
+    let dbEngine, sourceType, isSourceSQL;
     if('destType' in (sourceDestDetails || {})){
         // By doing .match it extracts the dbengine type
-        dbEngine = sourceDestDetails.destType.match(/SQL_DEST\(([^)]+)\)/);
+        dbEngine = sourceDestDetails.destType.match(/SQL_DEST|CODE_DEST\(([^)]+)\)/);
+        sourceType = sourceDestDetails.sourceType.match(/SQL_SOURCE\(([^)]+)\)/);
+        isSourceSQL = sourceDestDetails.sourceType.startsWith('SQL_SOURCE');
+
+        if(sourceType) sourceType = sourceType[1];
 		if(dbEngine) dbEngine = dbEngine[1];
     }else
         dbEngine = 'mysql';
@@ -125,7 +136,18 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
     if(['postgresql','mssql','oracle','mysql'].includes(dbEngine) && sourceDestDetails !== undefined) {
         PipelineService.sqlEditorDestType = 'sql';
         PipelineService.sqlEditorDestSecretName = sourceDestDetails.destSecretName;
+    }else{
+        PipelineService.sqlEditorDestType = engine;
     }
+
+    if((sourceDestDetails || {}).referencedSecrets)
+        PipelineService.pipelineReferencedSecrets = JSON.parse(sourceDestDetails.referencedSecrets.replace(/'/g, '"'));
+
+    if((sourceDestDetails || {}).destinationConfig)
+        PipelineService.pipelineDestinationConfig = sourceDestDetails.destinationConfig;
+
+    if((sourceDestDetails || {}).datasetName)
+        PipelineService.pipelineDestinationDB = sourceDestDetails.datasetName;
     
     if (engine === 'mssql') {
         // SQL Server: SELECT TOP n
@@ -135,6 +157,10 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
         return `SELECT ${fieldsString}\nFROM ${tableName}\nFETCH FIRST ${limit} ROWS ONLY`;
     } else {
         // MySQL, PostgreSQL, MariaDB: LIMIT
-        return `SELECT ${fieldsString}\nFROM ${tableName}\nLIMIT ${limit}`;
+        let table = tableName.startsWith('.') ? tableName.slice(1) : tableName;
+        if(isSourceSQL && sourceType !== DESTINATION_TYPE.MSSQL) table = table.split('.').slice(-1);
+        if(sourceType === DESTINATION_TYPE.MSSQL) table = table.replace('.','_');
+            
+        return `SELECT ${fieldsString}\nFROM ${table}\nLIMIT ${limit}`;
     }
 }

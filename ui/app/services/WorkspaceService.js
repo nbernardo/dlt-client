@@ -357,31 +357,6 @@ export class WorkspaceService extends BaseService {
         return null;
     }
 
-    /** @returns { { result, fields, db_engine } | undefined } */
-    async runSQLQuery(query, database, connectionName = null, destType = 'duckdb') {
-        const payload = { 
-            query, 
-            database,
-            namespace: await UserService.getNamespace(),
-            connection_name: connectionName,
-            dest_type: destType
-        };
-        const url = '/workcpace/sql_query';
-        const response = await $still.HTTPClient.post(url, JSON.stringify(payload), {
-            headers: { 'content-type': 'Application/json' }
-        });
-
-        const result = await response.json();
-
-        if (result.error){
-            if(result.code === 'err')
-                AppTemplate.toast.error('Error while querying the DB: ' + result.result, 10000);
-            AppTemplate.toast.warn('Exception while querying the DB: ' + result.result);
-            return { error: result.result };
-        }
-        return { ...result, error: null };
-    }
-
     /** @returns { { result: { result, fields, actual_query, db_file } } } */
     static async createSecret(secret) {
 

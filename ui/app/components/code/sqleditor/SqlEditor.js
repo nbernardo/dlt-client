@@ -110,11 +110,17 @@ export class SqlEditor extends ViewComponent {
 	setupEditorQuery(databaseName){
 		// Handle table name extraction based on destination type
 		PipelineService.sqlEditorDestSecretName = null, PipelineService.sqlEditorDestType = null;
+		PipelineService.pipelineReferencedSecrets = null, PipelineService.pipelineDestinationConfig = null;
 		let selectedTable, sourceAndDestType;
 
 		const parts = databaseName.split('.');
 		const duckdbIndex = parts.indexOf('duckdb');
-		sourceAndDestType = PipelineService.pipelineSourcesAndSestinationsMap[parts[0]];
+		const key = parts[0] == '' ? this.pplineName : parts[0];
+		sourceAndDestType = PipelineService.pipelineSourcesAndSestinationsMap[key];
+
+		if(String(sourceAndDestType.referencedSecrets).startsWith('[')){
+			JSON.parse(sourceAndDestType.referencedSecrets.replace(/'/g, '"'))
+		}
 
 		if (!(duckdbIndex > 0)) {
 			// For SQL, BigQuery, and Databricks: databaseName is in format "ppline.schema.table"
@@ -178,7 +184,7 @@ export class SqlEditor extends ViewComponent {
 
 	async runSQLQuery(){
 		const newQuery = this.editor.getValue();
-		const { result, fields, error, db_engine } = await this.$parent.service.runSQLQuery(
+		const { result, fields, error, db_engine } = await PipelineService.runSQLQuery(
 			newQuery, 
 			this.database, 
 			PipelineService.sqlEditorDestSecretName || this.connectionName, 
