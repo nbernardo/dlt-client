@@ -110,6 +110,19 @@ class PipelineMedatata:
                 )
                 FROM pipeline_metadata WHERE namespace = ?""", [namespace]).fetchone()[0]
 
+    
+    @staticmethod
+    def get_pipeline_source_destination_meta(namespace):
+        return PipelineMedatata._get_duckdb_conn(include_catalog=True).execute("""
+                SELECT 
+                    json_group_object(pipeline, metadata_list) as final_json
+                FROM (
+                    SELECT pipeline, 
+                           list({'source_type': source_type, 'dest_type': dest_type, 'connection_name': dest_secret_name, 'dbname': dataset_name }) as metadata_list
+                    FROM pipeline_metadata WHERE namespace = ?
+                    GROUP BY pipeline
+                )""", [namespace]).fetchone()[0]
+
 
     @staticmethod
     def _migrate_pipeline_metadata(tbl):

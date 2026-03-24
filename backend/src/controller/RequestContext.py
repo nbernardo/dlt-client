@@ -154,12 +154,13 @@ class RequestContext:
         This emit Websocket success message for a
         specific pipeline execution step
         """
-        emit(
-            RequestContext.ppline_success,
-            {'success': data, 'sid': self.socket_sid, 'time': self.get_time() },
-            to=self.socket_sid,
-            namespace=RequestContext.namespace
-        )
+        if not self.success_emitted:
+            emit(
+                RequestContext.ppline_success,
+                {'success': data, 'sid': self.socket_sid, 'time': self.get_time() },
+                to=self.socket_sid,
+                namespace=RequestContext.namespace
+            )
         self.success_emitted = True
         socketio.sleep(0)
 

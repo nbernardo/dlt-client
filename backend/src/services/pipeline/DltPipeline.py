@@ -235,9 +235,11 @@ class DltPipeline:
 
         if(not(message.strip() == SUCCESS_RUN_MESSAGE)):
             if (error_messages != None or result.returncode == 1) and warning_status == False:
-                status = False
+                status = True if message == SUCCESS_RUN_MESSAGE else False
             else:
                 status = status if len(result.stderr.read()) > 0 else True
+
+        if status == True: context.emit_ppsuccess()
 
         return { 'status': status, 'message': message }
 

@@ -50,8 +50,18 @@ def list_pipelines(namespace, socket_id = None):
         ppelines = Workspace.list_pipeline_from_files(ppelines_path)
         return { **ppelines }
     else:
+        from utils.metastore.DataCatalog import DataCatalog
+        from utils.metastore.PipelineMedatata import PipelineMedatata
+        import json
+
+        metadata = PipelineMedatata.get_pipeline_source_destination_meta(namespace)
+        catalog = DataCatalog.get_namespace_fields_by_pipeline(namespace)
+
+        if catalog[0][0] != None: catalog = json.loads(catalog[0][0])
+        if metadata != None: metadata = json.loads(metadata)
+
         pipeline_schedules = Workspace.get_ppline_schedule(namespace)
-        ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules)
+        ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules, catalog, metadata, namespace)
         duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, namespace, ppelines, pipeline_schedules)
     
     errors_list = None
@@ -109,8 +119,8 @@ def run_sql_query():
 
     # Use Polars for non-DuckDB destinations or when connection info is provided
     if dest_type != 'duckdb' and (connection_name or (dest_type in other_valid_destinations)):
-        from utils.PolarsQueryUtil import PolarsQueryUtil
-        result = PolarsQueryUtil.execute_query(query, namespace, connection_name, destination_details)
+        from utils.DestinationQueryUtil import DestinationQueryUtil
+        result = DestinationQueryUtil.execute_query(query, namespace, connection_name, destination_details)
     else:
         # Use existing DuckDB query for backward compatibility
         result = Workspace.run_sql_query(database, query)

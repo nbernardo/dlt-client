@@ -250,10 +250,7 @@ class Workspace:
             
         Returns:
             dict: Mapping of table_name -> {schema, columns}
-        """
-        from utils.PolarsQueryUtil import PolarsQueryUtil
-        import asyncio
-        
+        """        
         metadata_map = {}
         
         if not connection_name:
@@ -265,70 +262,16 @@ class Workspace:
         if not clean_tables:
             return metadata_map
         
-        # Call appropriate async metadata method based on destination type
-        try:
-            if dest_type == 'sql':
-                metadata_result = asyncio.run(
-                    PolarsQueryUtil.get_sql_database_metadata_async(namespace, connection_name, clean_tables)
-                )
-            elif dest_type == 'bigquery':
-                metadata_result = asyncio.run(
-                    PolarsQueryUtil.get_bigquery_metadata_async(namespace, connection_name, clean_tables)
-                )
-            elif dest_type == 'databricks':
-                metadata_result = asyncio.run(
-                    PolarsQueryUtil.get_databricks_metadata_async(namespace, connection_name, clean_tables)
-                )
-            else:
-                metadata_result = {'error': True, 'tables': []}
-        except RuntimeError as e:
-            # If event loop is already running (e.g., in async context), fall back to sync
-            if 'already running' in str(e):
-                if dest_type == 'sql':
-                    metadata_result = PolarsQueryUtil.get_sql_database_metadata(namespace, connection_name, clean_tables)
-                elif dest_type == 'bigquery':
-                    metadata_result = PolarsQueryUtil.get_bigquery_metadata(namespace, connection_name, clean_tables)
-                elif dest_type == 'databricks':
-                    metadata_result = PolarsQueryUtil.get_databricks_metadata(namespace, connection_name, clean_tables)
-                else:
-                    metadata_result = {'error': True, 'tables': []}
-            else:
-                raise
-        
-        if not metadata_result.get('error'):
-            # Create a mapping of table_name -> {schema, columns, actual_table_name}
-            for item in metadata_result.get('tables', []):
-                actual_table = item['table']
-                schema = item['schema']
-                columns = item.get('columns', [])
-                
-                # Map the actual table name
-                metadata_map[actual_table] = {
-                    'schema': schema, 
-                    'columns': columns,
-                    'actual_table_name': actual_table
-                }
-                
-                # Also map variations (e.g., doctors_data.csv -> doctors_data_csv)
-                # This allows lookup by the original filename
-                if '_' in actual_table:
-                    parts = actual_table.rsplit('_', 1)
-                    if len(parts) == 2:
-                        original_with_dot = f'{parts[0]}.{parts[1]}'
-                        metadata_map[original_with_dot] = {
-                            'schema': schema, 
-                            'columns': columns,
-                            'actual_table_name': actual_table  # Store the actual DB table name
-                        }
-        
         return metadata_map
 
 
     @staticmethod
-    def list_pipeline_from_files(files_path, pipeline_schedules: dict = {}):
+    def list_pipeline_from_files(files_path, pipeline_schedules: dict = {}, metadata_by_pipeline = {}, metadata = {}, __namespace = None):
+        
+        from utils.pipeline.Enums import SQL_DB
 
-        if(not os.path.exists(files_path)):
-            return {}
+        [namespace, fields] = [(__namespace or '').replace('-','_'), []]
+        if(not os.path.exists(files_path)): return {}
                 
         file_list = os.listdir(files_path)
         result = { 'db_path': files_path } 
@@ -358,50 +301,35 @@ class Workspace:
             if ppline_name != None:
                 
                 tables_list = Workspace.get_tables_in_metadata(f'{files_path}/{_file}')
-                connection_info = Workspace.get_connection_from_pipeline(f'{files_path}/{_file}')
 
                 if 'error' in tables_list: 
                     continue
                 
+                pipeline_source_and_dest = metadata.get(ppline_name, {})
+                if(len(pipeline_source_and_dest) > 0): pipeline_source_and_dest = pipeline_source_and_dest[0]
+
+                source_type = extract_type(pipeline_source_and_dest.get('source_type', ''))
+                dest_type = extract_type(pipeline_source_and_dest.get('dest_type', ''))
+                dbname = pipeline_source_and_dest.get('dbname', '')
                 tables = tables_list['tables']
-                connection_name = connection_info.get('connection_name')
-                dest_type = connection_info.get('dest_type', 'sql')
-                
-                # Get namespace from files_path
-                namespace = files_path.split('/')[-2] if files_path.endswith('/') else files_path.split('/')[-1]
-                
-                # Fetch metadata based on destination type
-                metadata_map = Workspace.fetch_destination_metadata(dest_type, namespace, connection_name, tables)
+                connection_name = pipeline_source_and_dest.get('connection_name')
 
                 for table in tables:
 
                     table_name = table.strip().replace("'",'')
-
-                    if table_name == '':
-                        continue
+                    if table_name == '': continue
 
                     k = f'{ppline_name}-{table_name}'
                     
-                    # Get schema/database name and columns based on destination type
-                    dbname = ''
-                    fields = []
-                    actual_table_name = table_name  # Default to original name
-                    
-                    if table_name in metadata_map:
-                        metadata = metadata_map[table_name]
-                        dbname = metadata['schema']
-                        
-                        # Defensive: ensure dbname contains only schema name, not database.schema
-                        # This prevents three-part identifiers for SQL databases that only support two-part
-                        if dbname and '.' in dbname:
-                            # Extract schema from "database.schema" format
-                            parts = dbname.split('.')
-                            dbname = parts[-1]  # Take the last part (schema)
-                            print(f'WARNING: Schema contained database prefix, extracted schema: {dbname}')
-                        
-                        fields = metadata.get('columns', [])
-                        # Use the actual table name from metadata if available
-                        actual_table_name = metadata.get('actual_table_name', table_name)
+                    [actual_table_name, fields_map_table] = [table_name, '']
+
+                    if __namespace != None:
+                        if str(table_name).__contains__('.'):
+                            if source_type == SQL_DB.MSSQL: fields_map_table = table_name.replace('.','_')
+                            else: fields_map_table = table_name.split('.')[1]
+
+                        fields = metadata_by_pipeline.get(f'{namespace}_at_{ppline_name}',{}).get(fields_map_table, [])
+
 
                     if(k != prev_key):
                         if not ('data' in pipeline_schedules): pipeline_schedules['data'] = {}
@@ -525,56 +453,6 @@ class Workspace:
             return { 'tables': tables }
         except Exception as err:
             return { 'error': True, 'error_list': str(err) }
-
-    @staticmethod
-    def get_connection_from_pipeline(file = None):
-        """
-        Extract connection name from pipeline file
-        Returns connection_name and dest_type
-        """
-        try:
-            connection_name = None
-            dest_type = 'duckdb'  # default
-            
-            with open(file, mode='r', encoding='utf-8') as content:
-                lines = content.readlines()
-                
-                # First pass: determine destination type
-                for line in lines:
-                    # Check for BigQuery
-                    if 'dlt.destinations.bigquery' in line:
-                        dest_type = 'bigquery'
-                        break
-                        
-                    # Check for Databricks
-                    elif 'dlt.destinations.databricks' in line:
-                        dest_type = 'databricks'
-                        break
-                    
-                    # Check for DuckDB destination
-                    elif 'dlt.destinations.duckdb' in line:
-                        dest_type = 'duckdb'
-                        break
-                    
-                    # Check for SQLAlchemy (SQL databases)
-                    elif 'dlt.destinations.sqlalchemy' in line:
-                        dest_type = 'sql'
-                        break
-                
-                # Second pass: find connection name
-                for line in lines:
-                    # Look for: dbconnection_name = ['mysql_test']
-                    if 'dbconnection_name' in line and '=' in line:
-                        # Extract connection name from line like: dbconnection_name = ['mysql_test']
-                        conn_part = line.split('=')[1].strip()
-                        connection_name = conn_part.replace('[','').replace(']','').replace("'",'').replace('"','').strip()
-                        break
-            
-            return { 'connection_name': connection_name, 'dest_type': dest_type }
-            
-        except Exception as err:
-            print(f'Error extracting connection from pipeline: {str(err)}')
-            return { 'connection_name': None, 'dest_type': 'duckdb' }
 
 
     @staticmethod
@@ -803,3 +681,11 @@ class Workspace:
     @staticmethod
     def remove_code_file(file):
         os.remove(file)
+
+
+def extract_type(text):
+
+    _, sep, content = text.partition('(')
+    if not sep:
+        return text
+    return content.partition(')')[0]
