@@ -124,7 +124,7 @@ export class WorkspaceService extends BaseService {
                         metadataKey = `${pipelineName}.${database}.${tableDetail.dbname}.${tableDetail.table}`;
                     }
                     
-                    tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}`, tablePath});
+                    tables.push({ database, table: `${tableDetail.dbname}.${tableDetail.table}`.replace('..','.'), tablePath});
                     this.fieldsByTableMap[metadataKey] = tableDetail.fields;
                     // Also store with tablePath for backward compatibility
                     this.fieldsByTableMap[tablePath] = tableDetail.fields;

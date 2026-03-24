@@ -4,12 +4,27 @@
 
 import { PipelineService } from "./PipelineService.js";
 
-const DESTINATION_TYPE = {
+
+const CLOUD_WAREHOUSE_DEST = {
     DATABRICKS: 'databricks',
-    SQL: 'sql',
     BIG_QUERY: 'bigquery',
-    MSSQL: 'mssql',
 }
+
+const SQL_DB = {
+    PGSQL: 'postgresql',
+    MSSQL: 'mssql',
+    ORCLE: 'oracle',
+    MYSQL: 'mysql'
+}
+
+const DEST_TYPE = {
+    SQL: 'sql',
+    DUCKDB: 'duckdb',
+    ...SQL_DB,
+    ...CLOUD_WAREHOUSE_DEST
+}
+
+export const nonDuckDBSupport = Object.values({ ...CLOUD_WAREHOUSE_DEST, ...SQL_DB, SQL: 'sql' });
 
 /**
  * Check if destination type is a non-DuckDB destination (SQL, BigQuery, Databricks)
@@ -17,7 +32,7 @@ const DESTINATION_TYPE = {
  * @returns {boolean} True if destination is SQL, BigQuery, or Databricks
  */
 export function isNonDuckDBDestination(destType) {
-    return Object.values(DESTINATION_TYPE).includes(destType);
+    return Object.values(DEST_TYPE).includes(destType);
 }
 
 /**
@@ -55,7 +70,16 @@ export function constructTablePath(tableDetail, database = null, pipelineName) {
  * @returns {Array<string>} Array of supported destination types
  */
 export function getSupportedQueryDestinations() {
-    return ['duckdb', 'sql', 'bigquery', 'databricks'];
+    return [
+        DEST_TYPE.DUCKDB, 
+        DEST_TYPE.SQL, 
+        DEST_TYPE.BIG_QUERY, 
+        DEST_TYPE.DATABRICKS,
+        DEST_TYPE.MSSQL,
+        DEST_TYPE.MYSQL,
+        DEST_TYPE.PGSQL,
+        DEST_TYPE.ORCLE,
+    ];
 }
 
 /**
@@ -86,7 +110,7 @@ export function adjustQueryForDialect(query, dbEngine) {
             // Add TOP clause after SELECT
             query = query.replace(/SELECT\s+/i, `SELECT TOP ${limitValue} `);
         }
-    } else if (engine === 'oracle') {
+    } else if (engine === DEST_TYPE.ORCLE) {
         // Oracle uses FETCH FIRST n ROWS ONLY (Oracle 12c+) or ROWNUM (older versions)
         // Convert: SELECT * FROM table LIMIT 100
         // To: SELECT * FROM table FETCH FIRST 100 ROWS ONLY
@@ -123,18 +147,20 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
         if(sourceType) sourceType = sourceType[2];
 		if(dbEngine) dbEngine = dbEngine[2];
     }else
-        dbEngine = 'mysql';
+        dbEngine = SQL_DB.MYSQL;
         
-        
+    
+    const isPostGresOrSqlServer = [SQL_DB.PGSQL, SQL_DB.MSSQL].includes(dbEngine);
+    
     const fieldsString = fields && fields.length > 0 
-        ? fields.map(f => (['postgresql','mssql'].includes(dbEngine) || f.trim().indexOf(' ') > 0) ? `"${f}"` : f).join(', ') 
+        ? fields.map(f => (isPostGresOrSqlServer || f.trim().indexOf(' ') > 0) ? `"${f}"` : f).join(', ') 
         : '*';
-    tableName = ['postgresql','mssql'].includes(dbEngine) ? tableName.split('.').map(t => `"${t}"`).join('.') : tableName;
 
-    const engine = (dbEngine || 'mysql').toLowerCase();
+    tableName = isPostGresOrSqlServer ? tableName.split('.').map(t => `"${t}"`).join('.') : tableName;
+    const engine = (dbEngine || SQL_DB.MYSQL).toLowerCase();
 
-    if(['postgresql','mssql','oracle','mysql'].includes(dbEngine) && sourceDestDetails !== undefined) {
-        PipelineService.sqlEditorDestType = 'sql';
+    if(Object.values(SQL_DB).includes(dbEngine) && sourceDestDetails !== undefined) {
+        PipelineService.sqlEditorDestType = DEST_TYPE.SQL;
         PipelineService.sqlEditorDestSecretName = sourceDestDetails.destSecretName;
     }else{
         PipelineService.sqlEditorDestType = engine;
@@ -149,18 +175,31 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
     if((sourceDestDetails || {}).datasetName)
         PipelineService.pipelineDestinationDB = sourceDestDetails.datasetName;
     
-    if (engine === 'mssql') {
+    if (engine === DEST_TYPE.MSSQL) {
         // SQL Server: SELECT TOP n
         return `SELECT TOP ${limit} ${fieldsString}\nFROM ${tableName}`;
-    } else if (engine === 'oracle') {
+
+    } else if (engine === DEST_TYPE.ORCLE) {
+
         // Oracle: FETCH FIRST n ROWS ONLY
         return `SELECT ${fieldsString}\nFROM ${tableName}\nFETCH FIRST ${limit} ROWS ONLY`;
+
     } else {
+        
         // MySQL, PostgreSQL, MariaDB: LIMIT
+        const isCloudWarehouseDestination = Object.values(CLOUD_WAREHOUSE_DEST).includes(engine);
+
         let table = tableName.startsWith('.') ? tableName.slice(1) : tableName;
-        if(isSourceSQL && sourceType !== DESTINATION_TYPE.MSSQL) table = table.split('.').slice(-1);
-        if(sourceType === DESTINATION_TYPE.MSSQL && engine === DESTINATION_TYPE.DATABRICKS) table = table.replace('.','_');
-            
+
+        if(isSourceSQL && sourceType !== DEST_TYPE.MSSQL) 
+            table = table.split('.').slice(-1);
+
+        if(sourceType === DEST_TYPE.MSSQL && isCloudWarehouseDestination) 
+            table = table.replace('.','_');
+
+        if(engine === CLOUD_WAREHOUSE_DEST.BIG_QUERY)
+            table = String(sourceDestDetails.datasetName).concat(`.${table}`);
+        
         return `SELECT ${fieldsString}\nFROM ${table}\nLIMIT ${limit}`;
     }
 }

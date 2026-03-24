@@ -4,7 +4,7 @@ import { StillTreeView } from "../../../../@still/vendors/treeview/StillTreeView
 import { AppTemplate } from "../../../../config/app-template.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
-import { getSupportedQueryDestinations } from "../../../services/DestinationUtil.js";
+import { getSupportedQueryDestinations, nonDuckDBSupport } from "../../../services/DestinationUtil.js";
 import { FileList } from "../../filelist/FileList.js";
 import { FileUpload } from "../../fileupload/FileUpload.js";
 import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspace/icons/database.js";
@@ -139,7 +139,7 @@ export class LeftTabs extends ViewComponent {
 					// Construct the correct metadata key based on destination type
 					// CRITICAL: Include pipeline name to avoid conflicts when multiple pipelines have same table names
 					let tableKey;
-					if (tableData.dest === 'sql' || tableData.dest === 'bigquery' || tableData.dest === 'databricks') {
+					if (nonDuckDBSupport.includes(tableData.dest)) {
 						// For SQL, BigQuery, and Databricks destinations: use ppline.dbname.table format
 						tableKey = `${pipelineName}.${tableData.dbname}.${tableData.table}`;
 					} else {
@@ -217,7 +217,7 @@ export class LeftTabs extends ViewComponent {
 		// Construct the correct identifier based on destination type
 		// CRITICAL: Include pipeline name to avoid conflicts
 		let tableIdentifier;
-		if (tableData.dest === 'sql' || tableData.dest === 'bigquery' || tableData.dest === 'databricks') {
+		if (nonDuckDBSupport.includes(tableData.dest)) {
 			// For SQL, BigQuery, and Databricks destinations: use ppline.dbname.table format
 			tableIdentifier = `${pipelineName}.${tableData.dbname}.${tableData.table}`;
 		} else {
