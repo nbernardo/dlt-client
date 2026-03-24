@@ -62,7 +62,7 @@ export class WorkspaceService extends BaseService {
             typeName: 'none', name: 'SourceGroup', dropDownIcon: '<i class="fas fa-chevron-circle-right"></i>' 
         },
         { groupType: 'SourceGroup', icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
-        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
+        // { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/api-source.svg', label: 'Input - API', typeName: InputAPI.name },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },

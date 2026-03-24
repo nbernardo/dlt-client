@@ -188,17 +188,22 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
         
         // MySQL, PostgreSQL, MariaDB: LIMIT
         const isCloudWarehouseDestination = Object.values(CLOUD_WAREHOUSE_DEST).includes(engine);
+        const isPgsqlDestination = engine == DEST_TYPE.PGSQL;
 
         let table = tableName.startsWith('.') ? tableName.slice(1) : tableName;
 
         if(isSourceSQL && sourceType !== DEST_TYPE.MSSQL) 
             table = table.split('.').slice(-1);
 
-        if(sourceType === DEST_TYPE.MSSQL && isCloudWarehouseDestination) 
-            table = table.replace('.','_');
+        if(sourceType === DEST_TYPE.MSSQL){
+            const database = table.split('.')[0];
+            let tablePath = table.split('.').slice(1).join('_').replaceAll('"','');
 
-        if(engine === CLOUD_WAREHOUSE_DEST.BIG_QUERY)
-            table = String(sourceDestDetails.datasetName).concat(`.${table}`);
+            if(isPgsqlDestination) 
+                tablePath = `"${tablePath}"`;
+
+            table = `${database}.${tablePath}`;
+        } 
         
         return `SELECT ${fieldsString}\nFROM ${table}\nLIMIT ${limit}`;
     }

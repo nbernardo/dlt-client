@@ -179,7 +179,10 @@ export class SqlEditor extends ViewComponent {
 	setCode = (code) => this.editor.setValue(code);
 
 	async runSQLQuery(){
+
 		const newQuery = this.editor.getValue();
+		this.queryOutput.stAfterInit(null, true);
+
 		const { result, fields, error, db_engine } = await PipelineService.runSQLQuery(
 			newQuery, 
 			this.database, 
