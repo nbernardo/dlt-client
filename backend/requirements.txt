@@ -119,6 +119,7 @@ boto3
 s3transfer==0.14.0
 hvac
 kafka-python
+sqlalchemy
 dlt[sqlalchemy]
 oracledb
 polars
