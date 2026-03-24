@@ -28,6 +28,8 @@ export class Grid extends ViewComponent {
 
 	/** @Prop */ uniqueId = '_'+UUIDUtil.newId();
 
+	/** @Prop */ runningQuery = false;
+
 	async stBeforeInit(){
 		await Assets.import({ path: '/app/assets/css/grid.css' });
 	}
@@ -36,15 +38,24 @@ export class Grid extends ViewComponent {
 		this.fields = fields, this.data = data;
 	}
 
-	stAfterInit(error) {			
+	stAfterInit(error, loading) {			
 		this.mainContainer = document.querySelector('#'+this.uniqueId);
 		this.dataTable = this.mainContainer.querySelector('.dataTable');
+
+		if(loading){
+			this.mainContainer.querySelector(`tbody`).style.display = 'none';
+			return this.runningQuery = true;
+		}
+		
 		if(error){
 			const msg = JSON.stringify(error) === '{}' 
 				? '<tr><td colspan="150"><div class="sql-nodata">No data selected</div></td></tr>' : 
 				'<tr><td colspan="150"><div class="sql-error">'+error+'</div></td></tr>';
 			return this.mainContainer.querySelector(`tbody`).innerHTML = msg;
 		}
+		this.mainContainer.querySelector(`tbody`).style.display = '';
+		this.runningQuery = false;
+
 		this.loadGrid();
 		this.dataTableHandlingSetup();
 	}
@@ -141,7 +152,6 @@ export class Grid extends ViewComponent {
         const tableBody = this.data.map(row =>
             `<tr>${row.map(fieldVal => `<td class="right">${fieldVal}</td>`).join('')}</tr>`
         ).join('');
-		
 		this.mainContainer.querySelector('tbody').innerHTML = tableBody;
 
 	}

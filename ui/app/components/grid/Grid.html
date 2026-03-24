@@ -1,4 +1,4 @@
-<div class="grid-component-container" id="@uniqueId">
+<div class="grid-component-container run-query-result-container" id="@uniqueId">
 	<div class="tools-container">
 		<input type="text" class="search-box" placeholder="Search..." id="searchInput">
 	</div>
@@ -8,6 +8,10 @@
 				<tr class="header-fields"></tr>
 			</thead>
 			<tbody></tbody>
+			<tbody><st-loader (label)="Loading..." (showIf)="self.runningQuery" topPadding="10"></st-loader></tbody>
 		</table>
 	</div>
 </div>
+<style>
+	.run-query-result-container st-loader-cntr{ top: 20%; }
+</style>

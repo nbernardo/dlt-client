@@ -222,6 +222,8 @@ class Workspace:
                                 'db_size': db_size,
                                 'col_count': col_count,
                                 'fields': [{ 'name': col_name, 'type': col_type }],
+                                'dest': 'duckdb',
+                                'connection_name': None,
                                 'is_scheduled': curr_schedule != None,
                                 'is_scheduled_paused': curr_schedule['is_paused'] if curr_schedule != None else '',
                                 'short_settings': f'{curr_schedule['periodicity']} {curr_schedule['time']} {curr_schedule['type']}' if curr_schedule != None else '',
@@ -235,12 +237,41 @@ class Workspace:
 
         return result
 
+    @staticmethod
+    def fetch_destination_metadata(dest_type, namespace, connection_name, tables):
+        """
+        Fetch metadata (schema, columns) for destination tables
+        
+        Args:
+            dest_type: Type of destination ('sql', 'bigquery', 'databricks', etc.)
+            namespace: User namespace
+            connection_name: Connection name from pipeline
+            tables: List of table names
+            
+        Returns:
+            dict: Mapping of table_name -> {schema, columns}
+        """        
+        metadata_map = {}
+        
+        if not connection_name:
+            return metadata_map
+        
+        # Clean table names
+        clean_tables = [t.strip().replace("'",'').replace('"','') for t in tables if t.strip()]
+        
+        if not clean_tables:
+            return metadata_map
+        
+        return metadata_map
+
 
     @staticmethod
-    def list_pipeline_from_files(files_path, pipeline_schedules: dict = {}):
+    def list_pipeline_from_files(files_path, pipeline_schedules: dict = {}, metadata_by_pipeline = {}, metadata = {}, __namespace = None):
+        
+        from utils.pipeline.Enums import SQL_DB
 
-        if(not os.path.exists(files_path)):
-            return {}
+        [namespace, fields] = [(__namespace or '').replace('-','_'), []]
+        if(not os.path.exists(files_path)): return {}
                 
         file_list = os.listdir(files_path)
         result = { 'db_path': files_path } 
@@ -274,28 +305,44 @@ class Workspace:
                 if 'error' in tables_list: 
                     continue
                 
+                pipeline_source_and_dest = metadata.get(ppline_name, {})
+                if(len(pipeline_source_and_dest) > 0): pipeline_source_and_dest = pipeline_source_and_dest[0]
+
+                source_type = extract_type(pipeline_source_and_dest.get('source_type', ''))
+                dest_type = extract_type(pipeline_source_and_dest.get('dest_type', ''))
+                dbname = pipeline_source_and_dest.get('dbname', '')
                 tables = tables_list['tables']
+                connection_name = pipeline_source_and_dest.get('connection_name')
 
                 for table in tables:
 
                     table_name = table.strip().replace("'",'')
-
-                    if table_name == '':
-                        continue
+                    if table_name == '': continue
 
                     k = f'{ppline_name}-{table_name}'
+                    
+                    [actual_table_name, fields_map_table] = [table_name, '']
+
+                    if __namespace != None:
+                        if str(table_name).__contains__('.'):
+                            if source_type == SQL_DB.MSSQL: fields_map_table = table_name.replace('.','_')
+                            else: fields_map_table = table_name.split('.')[1]
+
+                        fields = metadata_by_pipeline.get(f'{namespace}_at_{ppline_name}',{}).get(fields_map_table, [])
+
 
                     if(k != prev_key):
                         if not ('data' in pipeline_schedules): pipeline_schedules['data'] = {}
                         curr_schedule = pipeline_schedules['data'].get(ppline_name)
                         result[ppline_name][table_name] = { 
-                            'ppline': '',
-                            'dbname': '',
-                            'table': table_name, 
+                            'ppline': ppline_name,
+                            'dbname': dbname,
+                            'table': actual_table_name,  # Use actual table name from database
                             'db_size': '',
-                            'col_count': '',
-                            'fields': [],
-                            'dest': 'sql',
+                            'col_count': len(fields) if fields else '',
+                            'fields': fields,
+                            'dest': dest_type,
+                            'connection_name': connection_name,
                             'is_scheduled': pipeline_schedules['data'].get(ppline_name, None) != None,
                             'is_scheduled_paused': curr_schedule.get('is_paused') if curr_schedule != None else '',
                             'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
@@ -418,7 +465,7 @@ class Workspace:
             fields = query.lower().split('from')[0].split('select',1)[1]
             return { 'result': result, 'fields': fields }
         
-        except duckdb.duckdb.BinderException as err:
+        except duckdb.BinderException as err:
             print(f'Error while running query: {query}')
             print(str(err))
             return { 'error': True, 'result': str(err), 'code': 'err' }
@@ -634,3 +681,11 @@ class Workspace:
     @staticmethod
     def remove_code_file(file):
         os.remove(file)
+
+
+def extract_type(text):
+
+    _, sep, content = text.partition('(')
+    if not sep:
+        return text
+    return content.partition(')')[0]

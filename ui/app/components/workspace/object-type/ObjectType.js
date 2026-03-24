@@ -53,6 +53,7 @@ export class ObjectType extends ViewComponent {
 				<label class="drop-down-icon">@dropDownIcon</label>
 			</span>
 		</div>
+		<style> .node-icon-and-name-wrapper label { font-size: .9em; } </style>
 	`;
 
 }

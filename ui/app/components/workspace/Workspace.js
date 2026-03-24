@@ -297,7 +297,7 @@ export class Workspace extends ViewComponent {
 			}
 
 			if (component.getName() === DLTCode.name || component.getName() === DLTCodeOutput.name) {
-				const /** @type { DLTCode } */ castedCmp = component;
+				const /** @type { DLTCode | DLTCodeOutput } */ castedCmp = component;
 				await castedCmp.getCode();
 				if(component.getName() === DLTCodeOutput.name) codeOutput = true;
 				if(component.getName() === DLTCode.name) codeInput = true;
@@ -626,7 +626,7 @@ export class Workspace extends ViewComponent {
 
 	showOrHideAgent = (flag = null) => this.openAgent = flag != null ? flag : !this.openAgent;
 
-	async expandDataTableView(tableId, databaseParam = null, dbfile = null, queryTable = null) {		
+	async expandDataTableView(tableId, databaseParam = null, dbfile = null, queryTable = null, tableMetadata = {}) {		
 		let { fields, data, query, database } = this.controller.getAIAgentGridExpand(tableId);
 		//let { fields, data, query, database } = mockData();
 		const parsedFields = (fields || '')?.replaceAll('\n', '')?.split(',')?.map(field => field.trim());
@@ -637,7 +637,13 @@ export class Workspace extends ViewComponent {
 			queryTable = query.toLowerCase().split(/ from |\nfrom /)[1].split(/\s|\n/)[0];
 
 		const gridInitData = { fields: parsedFields, data };
-		const editorInitData = { query, fields: parsedFields, data, database, databaseParam, dbfile, queryTable };
+		const editorInitData = { 
+			query, fields: parsedFields, data, database, databaseParam, dbfile, queryTable,
+			connectionName: tableMetadata.connection_name,
+			destType: tableMetadata.dest_type,
+			pplineName: tableMetadata.ppline,
+			selectedDatabase: databaseParam  // Pre-select the database dropdown with the clicked table
+		};
 		const { template: gridUI, component: gridComponent } = await Components.new('Grid', gridInitData, parentId);
 		const { template: editorUI, component: editorCmp } = await Components.new('SqlEditor', editorInitData, parentId);
 

@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, inspect, MetaData, Engine, Table, text
+from sqlalchemy import create_engine, inspect, MetaData, Table, text
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import NoInspectionAvailable
 from services.workspace.supper.SecretManagerType import SecretManagerType
@@ -171,7 +171,7 @@ class SQLDatabase:
             return { 'error': True, 'message': str(err) }
 
 
-    def get_connnection(namespace, dbengine, connection_name) -> Engine:
+    def get_connnection(namespace, dbengine, connection_name):
         db_conection = None
         if(dbengine == 'mysql'):
             db_conection, _ = SQLConnection.mysql_connect(namespace, connection_name, None)
@@ -250,7 +250,7 @@ class SQLDatabase:
 
 class SQLConnection:
 
-    def mysql_connect(namespace, connection_name, secret = None) -> Engine:
+    def mysql_connect(namespace, connection_name, secret = None):
 
         connection_key = f'{namespace}-{connection_name}'
 
@@ -269,7 +269,7 @@ class SQLConnection:
         return connection, database
 
 
-    def pgsql_connect(namespace, connection_name, secret = None) -> Engine:
+    def pgsql_connect(namespace, connection_name, secret = None):
 
         connection_key = f'{namespace}-{connection_name}'
         if connection_key in SQLDatabase.connections['postgresql']:
@@ -292,7 +292,7 @@ class SQLConnection:
         return connection, database
 
 
-    def oracle_connect(namespace, connection_name, secret = None) -> Engine:
+    def oracle_connect(namespace, connection_name, secret = None):
 
         connection_key = f'{namespace}-{connection_name}'
         if connection_key in SQLDatabase.connections['oracle']:
@@ -311,7 +311,7 @@ class SQLConnection:
     
 
 
-    def mssql_connect(namespace, connection_name, secret = None) -> Engine:
+    def mssql_connect(namespace, connection_name, secret = None):
 
         connection_key = f'{namespace}-{connection_name}'
         if connection_key in SQLDatabase.connections['mssql']:

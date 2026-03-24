@@ -54,6 +54,7 @@ class DLTCode(TemplateNodeType):
                 self.template_code = f"""\nnamespace = '{data['namespace']}'\nsecret_names = %referenced_secrets_list%\n__secrets = referencedSecrets(namespace, secret_names)\n{self.template_code}\n\n"""
 
             elif len(referenced_secrets) > 0:
+                context.pipeline_metadata.referenced_secrets = referenced_secrets
                 self.template_code = f"""\nnamespace = '{data['namespace']}'\nsecret_names = {referenced_secrets}\n__secrets = referencedSecrets(namespace, secret_names)\n{self.template_code}\n\n"""
 
         self.notify_completion_to_ui()

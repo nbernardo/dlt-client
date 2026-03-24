@@ -119,9 +119,11 @@ boto3
 s3transfer==0.14.0
 hvac
 kafka-python
+sqlalchemy
 dlt[sqlalchemy]
 oracledb
 polars
+connectorx
 pyodbc
 psycopg2-binary
 dlt[postgres]
@@ -132,3 +134,6 @@ dlt[bigquery]
 dlt[databricks]
 lancedb
 fastembed
+google-cloud-bigquery
+databricks-sql-connector==3.7.4
+polars[connectorx]

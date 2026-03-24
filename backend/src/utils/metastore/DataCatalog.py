@@ -119,14 +119,11 @@ class DataCatalog:
         con, tbl = None, None
         try:
 
-            tbl = DataCatalog._get_table(dbs_path)
-            con = DataCatalog._get_duckdb_conn(dbs_path)
+            [tbl, con] = [DataCatalog._get_table(dbs_path), DataCatalog._get_duckdb_conn(dbs_path)]
             
             existing = con.execute("""
                 SELECT
-                    table_name, original_column_name,
-                    data_type, column_version,
-                    is_deleted, column_name
+                    table_name, original_column_name, data_type, column_version, is_deleted, column_name
                 FROM column_catalog
                 WHERE pipeline = ?
                 QUALIFY ROW_NUMBER() OVER (
@@ -230,17 +227,27 @@ class DataCatalog:
 
     @staticmethod
     def get_destination(pipeline):
+        SENSITIVE_KEYS = {'password', 'api_key', 'access_token', 'private_key', 'key', 'access_key', 'secret', 'secret_key', 'token', 'client_secret'}
+
         creds = getattr(pipeline.destination.configuration, 'credentials', None) \
             or pipeline.destination.config_params
-        if hasattr(creds, 'password'): creds.password = '************'
+
+        for key in SENSITIVE_KEYS:
+            if hasattr(creds, key):
+                setattr(creds, key, '************')
+
         if isinstance(creds, dict):
-            destination_str = json.dumps({k: str(v) for k, v in creds.items() if k != 'password'})
+            destination_str = json.dumps({
+                k: '************' if k in SENSITIVE_KEYS else str(v)
+                for k, v in creds.items()
+            })
         else:
             destination_str = json.dumps({
-                k: str(getattr(creds, k)) for k in dir(creds)
-                if not k.startswith('_') and not callable(getattr(creds, k)) and k != 'password'
+                k: '************' if k in SENSITIVE_KEYS else str(getattr(creds, k))
+                for k in dir(creds) if not k.startswith('_') and not callable(getattr(creds, k))
             })
-        return re.sub(r':([^@]+)@', ':***@', destination_str)
+
+        return re.sub(r'(\b\w+://[^:]+:)[^@]+(@)', r'\1*****\2', destination_str)
 
 
     @staticmethod
@@ -251,3 +258,39 @@ class DataCatalog:
         tbl.cleanup_old_versions(older_than=timedelta(days=older_than_days))
         tbl.compact_files()
         print("✅ Catalog compacted")
+
+    
+    @staticmethod
+    def query_similarity_catalog(query):
+        
+        query_embedding = SemanticModel._get_embedding_model().embed(query)
+        query_vector = list(query_embedding)[0].tolist()
+
+        db = LanceConnectionFactory.get()
+        tbl = db.open_table('column_catalog')
+
+        results = (tbl.search(query_vector).limit(50).to_list())
+
+        return [r for r in results if r['_distance'] < 0.5]
+    
+
+    @staticmethod
+    def get_namespace_fields_by_pipeline(namespace):
+        result = DataCatalog._get_duckdb_conn().execute("""
+            SELECT 
+                json_group_object(pipeline, tables_json) as final_json
+            FROM (
+                SELECT 
+                    pipeline, 
+                    json_group_object(table_name, columns_list) as tables_json
+                FROM (
+                    SELECT 
+                        pipeline, table_name, list({'name': column_name, 'type': data_type}) as columns_list
+                    FROM column_catalog WHERE namespace = ?
+                    GROUP BY pipeline, table_name
+                )
+                GROUP BY pipeline
+            )
+        """, [namespace.replace('-','_')])
+
+        return result.fetchall()
