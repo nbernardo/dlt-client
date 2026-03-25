@@ -6,7 +6,7 @@ from fastembed import TextEmbedding
 def install_duckdb_extensions():
     print("Installing DuckDB lance extension...")
     con = duckdb.connect()
-    con.execute("INSTALL lance FROM community")
+    con.execute("INSTALL lance")
     con.close()
     print("✅ DuckDB lance extension installed")
 
