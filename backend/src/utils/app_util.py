@@ -5,7 +5,7 @@ from datetime import time, date, datetime
 def add_app_custom_handlers(app):
     """ 
         Set different Flask Application handlers 
-            e.g. Time responsev handler
+            e.g. Time response handler
     """
     app.json_provider_class = CustomJSONProvider
     app.json = CustomJSONProvider(app)
