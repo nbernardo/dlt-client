@@ -447,4 +447,8 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.showDataCatalog();
 		this.$parent.dataCatalogUIProxy.onPipelineChange(WorkspaceService.currentSelectedPpeline, true);
 	}
+
+	openDataViz(){
+		this.$parent.dataVizProxy.showPopup();
+	}
 }

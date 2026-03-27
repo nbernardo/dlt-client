@@ -147,9 +147,11 @@
 
 					<st-element component="PopupWindow" @delayed="1.5s" proxy="popupWindowProxy"></st-element>
 					
-					<st-element component="LogQueryDisplay" @delayed="2s" proxy="logQueryDisplayProxy"></st-element>
+					<st-element component="LogQueryDisplay" @delayed="1.8s" proxy="logQueryDisplayProxy"></st-element>
 
-					<st-element component="DataCatalogUI" @delayed="2.5s" proxy="dataCatalogUIProxy"></st-element>
+					<st-element component="DataCatalogUI" @delayed="2.2s" proxy="dataCatalogUIProxy"></st-element>
+
+					<st-element component="BIUserInterfaceComponent" @delayed="2.6s" proxy="dataVizProxy"></st-element>
 					
 					<div class="dynamicViewPlaceholder"></div>
 
@@ -159,27 +161,22 @@
 						ondragover="controller.allowDrop(event)">
 
 						<div style="position: absolute; right: 0;" class="clearAndSaveButton">
-							<div class="btn-clear clear-workspace-btn" style="margin-left: 89px; position: relative;"
-								onclick="component.resetWorkspace()">
+							<div class="btn-clear clear-workspace-btn" style="margin-left: 89px; position: relative;" onclick="component.resetWorkspace()">
 								<img src="app/assets/imgs/clean.png" style="width: 18px; float: left;" alt=""> &nbsp;Clear
 							</div>
-							<div class="btn-export save-pipeline-btn save-and-run-pipeline-btn" (showIf)="self.showSaveButton"
-								onclick="component.savePipeline()">
+							<div class="btn-export save-pipeline-btn save-and-run-pipeline-btn" (showIf)="self.showSaveButton" onclick="component.savePipeline()">
 								<i class="fa fa-play"></i> Run & Save
 							</div>
-							<div class="btn-export save-pipeline-btn" (showIf)="self.showSaveButton"
-								onclick="component.savePipeline('onlysave')">
+							<div class="btn-export save-pipeline-btn" (showIf)="self.showSaveButton" onclick="component.savePipeline('onlysave')">
 								<i class="fa fa-save"></i> Save
 							</div>
-							<div class="btn-export update-pipeline-btn" (showIf)="!self.showSaveButton"
-								onclick="component.updatePipeline()">
+							<div class="btn-export update-pipeline-btn" (showIf)="!self.showSaveButton" onclick="component.updatePipeline()">
 								<i class="fa fa-save"></i> Update
 							</div>
 						</div>
 
 						<div class="btn-lock">
-							<i id="lock" class="fas fa-lock"
-								onclick="component.editor.editor_mode='fixed'; controller.changeMode('lock');"></i>
+							<i id="lock" class="fas fa-lock" onclick="component.editor.editor_mode='fixed'; controller.changeMode('lock');"></i>
 							<i id="unlock" class="fas fa-lock-open"
 								onclick="component.editor.editor_mode='edit'; controller.changeMode('unlock');"
 								style="display:none;"></i>

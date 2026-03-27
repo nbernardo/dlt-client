@@ -129,6 +129,10 @@ export const stillRoutesMap = {
             DataCatalogUI: {
                 path: "app/components/data-catalog",
                 url: "/data-catalog-ui"
+            },
+            BIUserInterfaceComponent: {
+                path: "app/components/dataviz/bi",
+                url: "/biu-ser-interface"
             }
         },
         lazyInitial: {}

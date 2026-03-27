@@ -27,6 +27,7 @@ import { CatalogForm } from "../catalog/CatalogForm.js";
 import { expoandApiTestData } from "../catalog/util/CatalogUtil.js";
 import { LogQueryDisplay } from "../log/logquery/LogQueryDisplay.js";
 import { DataCatalogUI } from "../data-catalog/DataCatalogUI.js";
+import { BIUserInterfaceComponent } from "../dataviz/bi/BIUserInterfaceComponent.js";
 
 export class Workspace extends ViewComponent {
 
@@ -73,10 +74,7 @@ export class Workspace extends ViewComponent {
 	 * @type { UserService }*/
 	userService;
 
-	/** 
-	 * @Prop 
-	 * @type { EditorLanguageType }
-	 * */
+	/** @Prop @type { EditorLanguageType }  */
 	editorActiveLang = EditorLanguageType.PYTHON;
 
 	/** @Prop */
@@ -114,6 +112,9 @@ export class Workspace extends ViewComponent {
 
 	/** @Proxy @type { LeftTabs } */
 	leftMenuProxy;
+
+	/** @Proxy @type { BIUserInterfaceComponent } */
+	dataVizProxy;
 
 	/** @Prop */
 	isEditorOpened = false;
