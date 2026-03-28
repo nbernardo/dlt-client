@@ -1,8 +1,26 @@
+@if(this.runningOnOdoo)
+<style>
+	div:has(.this-is-the-bi-view) { width: 100%; }
+	.this-is-the-bi-view .popup-mov-window{ width: 100%; }
+	.this-is-the-bi-view .main { height: 92.5vh; padding: 15px; }
+	.this-is-the-bi-view .tableContainer { height: 76vh; }
+	.this-is-the-bi-view .empty-dashboard { height: 75vh; }
+	.this-is-the-bi-view .tab-sheet, .this-is-the-bi-view .tab-chart, .this-is-the-bi-view .tab-dashboard { padding-top: 8px; }
+</style>
+@endif
+
+@if(!this.runningOnOdoo)
+<style>
+	.this-is-the-bi-view .popup-mov-window{ width: 115%; }
+	.this-is-the-bi-view .chart-builder { height: 64vh; }
+	.this-is-the-bi-view .tableContainer { height: 59vh; }
+</style>
+@endif
 <div class="window-popup-mov-window this-is-the-bi-view" (showIf)="self.showWindowPopup">
 	<!-- <button onclick="component.openPopup()">Open Popup-mov-window</button> -->
 	<div id="container-@uniqueId" class="popup-windows-cmp-container">
 		<div id="@uniqueId" class="popup-mov-window data-catalog-ui-container" 
-			style="width: 115%; height: 95%; top: 50%; left: 41%;">
+			style="height: 95%; top: 50%; left: 41%;">
 			<span>
 				
 			</span>
@@ -15,14 +33,16 @@
 			<div class="resize-handle sw"></div>
 			<div class="resize-handle se"></div>
 
-			<div class="popup-mov-window-header-@uniqueId popup-mov-window-header">
-				<div class="popup-mov-window-title">Data Visualization and BI</div>
-				<div class="popup-mov-window-controls">
-					<button class="minimize" style="visibility: hidden;" onclick="component.toggleMinimize()">−</button>
-					<button class="maximize" style="visibility: hidden;" onclick="component.toggleMaximize()">□</button>
-					<button class="close" onclick="component.closePopup()">×</button>
+			<span (showIf)="!self.runningOnOdoo">
+				<div class="popup-mov-window-header-@uniqueId popup-mov-window-header">
+					<div class="popup-mov-window-title">Data Visualization and BI</div>
+					<div class="popup-mov-window-controls">
+						<button class="minimize" style="visibility: hidden;" onclick="component.toggleMinimize()">−</button>
+						<button class="maximize" style="visibility: hidden;" onclick="component.toggleMaximize()">□</button>
+						<button class="close" onclick="component.closePopup()">×</button>
+					</div>
 				</div>
-			</div>
+			</span>
 
 			<div class="popup-mov-window-content">
 				<div class="bi-user-interface-component-body">
@@ -84,14 +104,14 @@
 								<div class="stat-chip">Selected: <span id="selCount">0</span></div>
 								</div>
 							</div>
-							<div class="table-wrap tableContainer" style="height: 59vh;">
+							<div class="table-wrap tableContainer">
 								<div id="colInsertLine" class="col-insert-line" onclick="controller.insertColumnAtGap()"></div>
 								<table id="dataTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table>
 							</div>
 							</div>
 
 							<div class="content tab-chart">
-								<div class="chart-builder" style="height: 64vh;">
+								<div class="chart-builder">
 								<div class="chart-config">
 									<div>
 									<div class="config-section-title">Chart Type</div>
