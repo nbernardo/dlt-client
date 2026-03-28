@@ -27,14 +27,25 @@
 			<div class="popup-mov-window-content">
 				<div class="bi-user-interface-component-body">
 					<div class="shell">
-						<header class="topbar">
-							<div class="logo"><div class="logo-dot"></div>DataViz</div>
-							<div class="topbar-divider"></div>
-							<select class="pipeline-selector" onchange="controller.onPipelineChange(this.value)">
-							<option value="p1">pipeline_at_mssql_adventureworks</option>
-							<option value="p2">pipeline_at_oracle_hr</option>
-							<option value="p3">pipeline_at_postgres_sales</option>
-							</select>
+						<header class="topbar" style="display: flex;">
+							<div style="display: flex;">
+								<div class="logo"><div class="logo-dot"></div>DataViz</div>
+								<div class="topbar-divider"></div>
+								<select class="pipeline-selector" onchange="controller.onPipelineChange(this.value)">
+									<option value="p1">pipeline_at_mssql_adventureworks</option>
+									<option value="p2">pipeline_at_oracle_hr</option>
+									<option value="p3">pipeline_at_postgres_sales</option>
+								</select>
+							</div>
+							<div class="e2e-chat-container" id="chat_wrapper">
+								<textarea id="ai_input" class="e2e-chat-input" placeholder="Chat with e2e-Data..."></textarea>
+
+								<div id="ai_agent_ui" class="e2e-agent-ui e2e-hidden">
+									<span id="ai_question_label" style="color: #0056b3; font-weight: bold;"></span>
+									<div id="ai_pills" style="display: flex;"></div>
+									<button onclick="controller.resetToInputMode()" style="background:none; border:none; cursor:pointer; color:#999; margin-left:10px;">✕</button>
+								</div>
+							</div>
 							<div class="topbar-actions" style="width: 295px;">
 								<button class="btn btn-ghost" style="width: 290px;flex: 1.2;" onclick="controller.exportCSV()">↓ Export CSV</button>
 								<button class="btn btn-accent" id="btnPublish" style="width: 290px;flex: 2;" onclick="controller.openPublishModal()">
@@ -46,7 +57,7 @@
 						<aside class="sidebar">
 							<div class="sidebar-section">
 							<div class="sidebar-title">Tables</div>
-							<div id="tableList"></div>
+							<div class="tableList"></div>
 							</div>
 							<div class="sidebar-sep"></div>
 							<div class="sidebar-section">

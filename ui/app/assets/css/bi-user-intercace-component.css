@@ -158,3 +158,50 @@
   .bi-user-interface-component-body::-webkit-scrollbar { width: 6px; height: 6px; }
   .bi-user-interface-component-body::-webkit-scrollbar-track { background: transparent; }
   .bi-user-interface-component-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+
+.e2e-chat-container {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    padding: 4px 8px;
+    min-height: 40px;
+    transition: all 0.2s ease;
+}
+
+.e2e-chat-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 14px;
+    height: 32px;
+}
+
+.e2e-agent-ui {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.e2e-hidden {
+    display: none !important;
+}
+
+.e2e-btn-pill {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+.e2e-btn-pill:hover {
+    background: #e0e0e0;
+}

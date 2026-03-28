@@ -1,5 +1,6 @@
 import { Assets } from "../../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
+import { BIChatController } from "../../../controller/BIChatController.js";
 import { BIController } from "../../../controller/BIController.js";
 import { ModalWindowComponent } from "../../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../../popup-window/PopupUtil.js";
@@ -50,6 +51,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	 * @type { BIController }  */
 	controller;
 
+	/** @Prop @type { BIChatController } */ chatController;
+
 	async stOnRender(){
 		await Assets.import({ path: '/app/assets/css/bi-user-intercace-component.css' });
 	}
@@ -61,8 +64,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.setOnPopupResize();
 		this.util = new PopupUtil();
 		this.MOCK_DATA = this.genData();
-
 		this.controller.on('load', () => this.controller.obj = this);
+		this.chatController = new BIChatController(this.popup);
 		//this.init();
 		
   	}
@@ -79,7 +82,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		// This is generating a mock data
 		for (let i = 1; i <= 290; i++)
 			r.push({
-				BusinessEntityID: i,
+				'BusinessEntityID': i,
 				NationalIDNumber: String(Math.floor(Math.random() * 900000000 + 100000000)),
 				JobTitle: this.TITLES[i % this.TITLES.length] + " - " + this.DEPTS[i % this.DEPTS.length],
 				Department: this.DEPTS[i % this.DEPTS.length],
