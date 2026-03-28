@@ -1639,6 +1639,7 @@ export class Components {
         }
     }
 
+    static loneLoadConfig = async () =>  await Components.#loadConfig();
     static loadLoadtWorker() {
         if(!window.STILL_HOME_PREXIF || window.STILL_HOME_LOCAL){
             try {            
