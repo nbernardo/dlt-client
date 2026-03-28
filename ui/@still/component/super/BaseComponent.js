@@ -117,15 +117,21 @@ export class BaseComponent extends BehaviorComponent {
     static importScripts() { }
     static importAssets() { }
     parseEvents = (content) => {
+
         try{
+            const controllerType = this.$cmpStController;
+
             //This is for treeview component edge
             if(content?.content){
                 content.content = content.content
+                    ?.replace(/controller\./g,`$still.controller('${controllerType}').`)
                     ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
-                    ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+                    ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`);
                 return content;
             }
+            
             return content
+                ?.replace(/controller\./g,`$still.controller('${controllerType}').`)
                 ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
                 ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
         }catch(error){
@@ -1158,7 +1164,6 @@ export class BaseComponent extends BehaviorComponent {
                 }
                 
             }
-
 
             const re = Components.parseAnnottationRE();
 

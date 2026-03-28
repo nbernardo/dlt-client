@@ -1494,10 +1494,10 @@ export class Components {
 
     static parseAnnottationRE() {
         const injectOrProxyRE = /(\@Inject|\@Proxy|\@Prop|\@Controller){0,1}[\n \s \*]{0,}/;
-        const servicePathRE = /(\@Path){0,1}[\s\\/'A-Z-a-z0-9\.\@]{0,}[\n \s \*]{0,}/;
-        const commentRE = /(\@type){0,1}[\s \@ \{ \} \: \| \< \> \, A-Za-z0-9]{1,}[\* \s]{1,}\//;
+        const servicePathRE = /(\@Path){0,1}[\s\\/'A-Z-a-z0-9\.\_\@]{0,}[\n \s \*]{0,}/;
+        const commentRE = /(\@type){0,1}[\s \@ \{ \} \: \| \< \> \,\_ A-Za-z0-9]{1,}[\* \s]{1,}\//;
         const newLineRE = /[\n]{0,}/;
-        const fieldNameRE = /[\s A-Za-z0-9 \$ \# \(]{1,}/;
+        const fieldNameRE = /[\s A-Za-z0-9 \_ \$ \# \(]{1,}/;
         return injectOrProxyRE.source + servicePathRE.source + commentRE.source + newLineRE.source + fieldNameRE.source;
     }
 
