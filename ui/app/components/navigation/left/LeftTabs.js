@@ -449,6 +449,6 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	openDataViz(){
-		this.$parent.dataVizProxy.showPopup();
+		this.$parent.dataVizProxy.openPopup();
 	}
 }
