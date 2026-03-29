@@ -159,7 +159,7 @@ export class WorkspaceService extends BaseService {
                 headers: { 'Content-Type': 'application/json' }
             });
             const { db_path, pipeline_sources_and_destinations, ...tables } = await response.json();
-            PipelineService.pipelineSourcesAndSestinationsMap = JSON.parse(pipeline_sources_and_destinations)
+            PipelineService.pipelineSourcesAndSestinationsMap = (JSON.parse(pipeline_sources_and_destinations) || [])
                 .reduce((accum, curr) => {
                     accum[curr.pipeline] = { ...curr }
                     return accum

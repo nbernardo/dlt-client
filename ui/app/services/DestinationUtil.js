@@ -190,7 +190,7 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
 
         let table = tableName.startsWith('.') ? tableName.slice(1) : tableName;
 
-        if(sourceDestDetails.destType === 'DUCKDB_DEST'){
+        if(sourceDestDetails?.destType === 'DUCKDB_DEST'){
             table = tableName.split('.').slice(1).join('.');
         }else{
             if(isSourceSQL && sourceType !== DEST_TYPE.MSSQL) 
