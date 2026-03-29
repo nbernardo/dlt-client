@@ -186,24 +186,26 @@ export function generateInitialQuery(tableName, fields, sourceDestDetails, limit
 
     } else {
         
-        // MySQL, PostgreSQL, MariaDB: LIMIT
-        const isCloudWarehouseDestination = Object.values(CLOUD_WAREHOUSE_DEST).includes(engine);
         const isPgsqlDestination = engine == DEST_TYPE.PGSQL;
 
         let table = tableName.startsWith('.') ? tableName.slice(1) : tableName;
 
-        if(isSourceSQL && sourceType !== DEST_TYPE.MSSQL) 
-            table = table.split('.').slice(-1);
+        if(sourceDestDetails.destType === 'DUCKDB_DEST'){
+            table = tableName.split('.').slice(1).join('.');
+        }else{
+            if(isSourceSQL && sourceType !== DEST_TYPE.MSSQL) 
+                table = table.split('.').slice(-1);
 
-        if(sourceType === DEST_TYPE.MSSQL){
-            const database = table.split('.')[0];
-            let tablePath = table.split('.').slice(1).join('_').replaceAll('"','');
+            if(sourceType === DEST_TYPE.MSSQL){
+                const database = table.split('.')[0];
+                let tablePath = table.split('.').slice(1).join('_').replaceAll('"','');
 
-            if(isPgsqlDestination) 
-                tablePath = `"${tablePath}"`;
+                if(isPgsqlDestination) 
+                    tablePath = `"${tablePath}"`;
 
-            table = `${database}.${tablePath}`;
-        } 
+                table = `${database}.${tablePath}`;
+            }
+        }
         
         return `SELECT ${fieldsString}\nFROM ${table}\nLIMIT ${limit}`;
     }

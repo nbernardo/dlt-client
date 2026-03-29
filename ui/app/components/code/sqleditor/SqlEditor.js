@@ -118,7 +118,7 @@ export class SqlEditor extends ViewComponent {
 		const key = parts[0] == '' ? this.pplineName : parts[0];
 		sourceAndDestType = PipelineService.pipelineSourcesAndSestinationsMap[key];
 
-		if (!(duckdbIndex > 0)) {
+		if (!(duckdbIndex > 0) && sourceAndDestType?.destType !== 'DUCKDB_DEST') {
 			// For SQL, BigQuery, and Databricks: databaseName is in format "ppline.schema.table"
 			// We need to strip the pipeline name prefix to get "schema.table"
 			if (parts.length >= 3) {
@@ -153,7 +153,8 @@ export class SqlEditor extends ViewComponent {
 		}
 		
 		this.selectedTable = selectedTable;
-		const selectedTableFields = this.$parent.service.fieldsByTableMap[databaseName];
+		const fieldsListMap = this.$parent.service.fieldsByTableMap;
+		const selectedTableFields = fieldsListMap[sourceAndDestType?.destType === 'DUCKDB_DEST' ? selectedTable : databaseName];
 		const fieldsArray = selectedTableFields ? selectedTableFields.map(({ name }) => name) : [];
 		
 		if (Array.isArray(selectedTableFields))
