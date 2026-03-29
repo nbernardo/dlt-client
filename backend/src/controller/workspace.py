@@ -57,7 +57,10 @@ def list_pipelines(namespace, socket_id = None):
         metadata = PipelineMedatata.get_pipeline_source_destination_meta(namespace)
         catalog = DataCatalog.get_namespace_fields_by_pipeline(namespace)
 
-        if catalog[0][0] != None: catalog = json.loads(catalog[0][0])
+        if catalog != None:
+            if catalog[0][0] != None: catalog = json.loads(catalog[0][0])
+        else: catalog = {}
+
         if metadata != None: metadata = json.loads(metadata)
 
         pipeline_schedules = Workspace.get_ppline_schedule(namespace)
