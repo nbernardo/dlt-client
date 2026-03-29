@@ -461,8 +461,12 @@ class Workspace:
             cnx = DuckdbUtil.get_connection_for(f'{database}')
             cursor = cnx.cursor()
             result = cursor.execute(query).fetchall()
-
             fields = query.lower().split('from')[0].split('select',1)[1]
+            
+            if(fields.strip() == '*'):
+                fields = [field[0] for field in cursor.description]
+                fields = ','.join(fields)
+
             return { 'result': result, 'fields': fields }
         
         except duckdb.BinderException as err:
