@@ -37,9 +37,9 @@ class PipelineMedatata:
 
 
     @staticmethod
-    def _get_duckdb_conn(include_catalog = False) -> duckdb.DuckDBPyConnection:
+    def _get_duckdb_conn(include_catalog = False, db_path = None) -> duckdb.DuckDBPyConnection:
         """Returns a DuckDB connection with a catalog view over the LanceDB files."""
-        lance_path = f'{DuckdbUtil.workspacedb_path}/catalog.lance'
+        lance_path = f'{db_path if db_path != None else DuckdbUtil.workspacedb_path}/catalog.lance'
         con = duckdb.connect()
         con.execute("LOAD lance")
         con.execute(f"CREATE VIEW pipeline_metadata AS SELECT * FROM '{lance_path}/pipeline_metadata.lance'")
@@ -71,12 +71,13 @@ class PipelineMedatata:
 
 
     @staticmethod
-    def get_pipeline_metadata(pipeline: str):
+    def get_pipeline_metadata(pipeline: str, namespace: str = None, db_path: str = None):
         try:
-            con = PipelineMedatata._get_duckdb_conn()
+            con = PipelineMedatata._get_duckdb_conn(False, db_path)
+            more_filter = f"and namespace = '{namespace}'" if namespace != None else ''
             return con.execute(f"""
-                SELECT pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, source_type, dest_type
-                FROM pipeline_metadata WHERE pipeline = '{pipeline}'
+                SELECT pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, source_type, dest_type, dataset_name
+                FROM pipeline_metadata WHERE pipeline = '{pipeline}' {more_filter}
             """).fetchone()
 
         except Exception as err:

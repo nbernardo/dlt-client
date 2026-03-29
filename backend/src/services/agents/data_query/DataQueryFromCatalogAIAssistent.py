@@ -1,11 +1,16 @@
 import json
-import re
 from os import getenv as env
+import requests
+import json
+import time
+import duckdb
+
 from services.workspace.Workspace import Workspace
 from groq import Groq, RateLimitError, BadRequestError
-import traceback
 from services.agents.AbstractAgent import AbstractAgent
 from services.agents.data_query.prompts.data_query_with_catalog import CATALOG_AGENT_SYSTEM_PROMPT
+from utils.metastore.DataCatalog import DataCatalog
+from utils.metastore.PipelineMedatata import PipelineMedatata
 
 class DataQueryFromCatalogAIAssistent(AbstractAgent):
     
@@ -33,33 +38,89 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
         self.chat_turns = []
         
 
-    def check_catalog(self, user_prompt):
+    @staticmethod
+    def format_schema_for_llm(records, database):
+        grouped = {}
+        for r in records:
+            table = r.get('table_name', 'unknown_table')
+            column = f"- {r.get('column_name')} ({r.get('data_type', 'text')})"
+            grouped.setdefault(table, []).append(column)
 
-        client, model = self.client, self.model
+        output = []
+        for table, columns in grouped.items():
+            output.append(f"Table: {database}.{table}\nColumns:\n" + "\n".join(columns))
+        
+        tables_context = "\n\n".join(output)
 
-        try:
-            self.messages.append({"role": "user", "content": user_prompt})
-            response = client.chat.completions.create(
-                model=model,
-                messages=self.messages,
-                stream=False,
-                tools=[ToolsDefinition.QUERY_TOOLS[1]]
-            )
+        print(tables_context)
 
-            content = response.choices[0].message.content
-            from utils.metastore.DataCatalog import DataCatalog
-            results = DataCatalog.query_similarity_catalog([user_prompt])
+        return tables_context
 
-            if not results:
-                return {'answer': 'final', 'result': 'No matching columns found in the catalog.'}
 
-            content = response.choices[0].message.content
-            self.messages.append({'role': 'assistant', 'content': results})
-            return {'answer': 'final', 'result': content}
 
-        except (RateLimitError, BadRequestError, Exception) as e:
-            print(f"\nUnable to process request: {e}")
-            return {'answer': 'intermediate', 'result': "Could not process your request, let's try again, what's your ask?"}
+    def call_offline_model(user_prompt, namespace, pipeline, language="PT"):
+        """ 
+            Generates and execute the database query using local infered model
+                - This requires having a local mode runnig (e.g. qwen2.5-coder:3b)
+                    - As recommendation on dev environment the model can run through Ollama -> (https://docs.ollama.com/quickstart)
+                    - For production it's recommender to use vLLM -> (https://docs.vllm.ai/en/latest/getting_started/quickstart/)
+        """
+
+        start_time = time.time()
+
+        adjust_query = f"{user_prompt}. If not needed, don't fetch additional columns extept for table_name and column_name"
+        schema_context = DataCatalog.query_similarity_catalog(adjust_query)
+        db_file = json.loads(schema_context[0]['dest_store'])['credentials']
+
+        _, pipeline = schema_context[0]['pipeline'].split('_at_',1)
+        pipeline_metadata = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
+        schema_context = DataQueryFromCatalogAIAssistent.format_schema_for_llm(schema_context, pipeline_metadata[7])
+
+        end_time = time.time()
+
+        duration = end_time - start_time
+        print(f"Total time taken to get semantic model + pipeline metadata: {duration:.2f} seconds")
+
+        system_message = 'Você é um Analista de Dados.' if language == 'PT' else 'You are a Data Analyst.'        
+        complement = 'Rules:\n- Only output final SQL\n- No explanation\n- Use provided schema only'
+        complement += '\n- Match the columns name appropriately as per the table it relates\n- Be precise and minimal\n\n'
+
+        payload = {
+            #"model": "qwen2.5-coder:1.5b",
+            'model': 'qwen2.5-coder:3b', 'stream': True,
+            'system': f'{system_message} Output only the code.',
+            'prompt': f'Context: {schema_context}\n\nUser Request: {user_prompt}\n\n{complement}',
+        }
+
+        full_response = ""
+        start_time = time.time()
+
+        with requests.post("http://localhost:11434/api/generate", json=payload, stream=True) as response:
+            end_time = time.time()
+
+            duration = end_time - start_time
+            print(f"Total time taken to get model SQL query: {duration:.2f} seconds")
+
+            for line in response.iter_lines():
+                if line:
+                    chunk = json.loads(line.decode('utf-8'))
+                    token = chunk.get("response", "")
+                    print(token, end="", flush=True)
+                    
+                    full_response += token
+                    
+                    if chunk.get("done"): break
+
+        db = duckdb.connect(db_file)
+
+        full_response = full_response.replace('```sql','').replace('`','').strip()
+        result = db.sql(full_response)
+        response = result.fetchall()
+            
+        print('THIS IS THE FINAL QUERY')
+        print(response)
+        return full_response
+
         
 
     def execute_query(self, user_prompt):

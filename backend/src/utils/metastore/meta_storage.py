@@ -27,11 +27,6 @@ class MetaStore:
 
 
     @staticmethod
-    def get_pipeline_dest_source_metadata(pipeline: str):
-        return PipelineMedatata.get_pipeline_metadata(pipeline)
-
-
-    @staticmethod
     def get_pipeline_source_destination_type(namespace: str):
         return PipelineMedatata.get_pipeline_source_destination_type(namespace)
 
