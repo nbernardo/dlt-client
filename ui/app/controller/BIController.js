@@ -9,7 +9,7 @@ export class BIController extends BaseController {
 
     renderTableList() {
 		const tables = this.obj.MOCK_TABLES[this.obj.state.pipeline] || [];
-		this.obj.popup.querySelector("#tableList").innerHTML = tables
+		this.obj.popup.querySelector(".tableList").innerHTML = tables
 			.map((t) =>
 				this.obj.parseEvents(
                     `<div class="table-item ${t.name === this.obj.state.activeTable ? "active" : ""}" onclick="controller.loadTable('${t.name}')">
@@ -49,7 +49,7 @@ export class BIController extends BaseController {
                         </span>
                         <div class="th-actions">
                             <span class="freeze-btn ${state.frozenCols.has(c) ? 'frozen' : ''}" onclick="controller.toggleFreeze('${c}')" title="Freeze">❄</span>
-                            <span onclick="removeColumn('${c}')" style="color:var(--danger); cursor:pointer; margin-left:8px; font-weight:bold; font-size:14px;" title="Delete Column">×</span>
+                            <span onclick="controller.removeColumn('${c}')" style="color:var(--danger); cursor:pointer; margin-left:8px; font-weight:bold; font-size:14px;" title="Delete Column">×</span>
                         </div>
                     </div>
                 </th>`)).join('')}
@@ -121,21 +121,22 @@ export class BIController extends BaseController {
             const newRow = {};
             keys.forEach((key, idx) => {
                 newRow[key] = row[key];
-                if (idx === state.activeInsertIndex) {
+                if (idx === (state.activeInsertIndex - 1)) {
                     newRow[name] = "-";
                 }
             });
             return newRow;
         });
 
-        loadTable(state.activeTable);
+        this.loadTable(state.activeTable);
         this.showToast(`Column "${name}" inserted.`);
     }
 
     toggleFreeze(col) {
+        const { state } = this.obj;
         if (state.frozenCols.has(col)) state.frozenCols.delete(col);
         else state.frozenCols.add(col);
-        renderSheet();
+        this.renderSheet();
     }
 
     addColumn() {
@@ -144,7 +145,7 @@ export class BIController extends BaseController {
 
         this.obj.MOCK_DATA.forEach((row) => (row[name] = "-"));
 
-        this.loadTable(state.activeTable);
+        this.loadTable(this.obj.state.activeTable);
         
         this.showToast(`Column "${name}" added`);
     }
@@ -495,6 +496,46 @@ export class BIController extends BaseController {
         state.pendingChart = c;
         this.buildChart();
 
+    }
+
+    setAgentAskMode(question, options = []) {
+        const inputEl = this.obj.popup.querySelector('#ai_input');
+        const agentUi = this.obj.popup.querySelector('ai_agent_ui');
+        const labelEl = this.obj.popup.querySelector('ai_question_label');
+        const pillBox = this.obj.popup.querySelector('ai_pills');
+
+        // 1. Hide Input, Show Agent UI
+        inputEl.classList.add('e2e-hidden');
+        agentUi.classList.remove('e2e-hidden');
+
+        // 2. Set the Question
+        labelEl.innerText = question;
+
+        // 3. Render the choice pills (e.g., Column names from AdventureWorks)
+        pillBox.innerHTML = ''; 
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'e2e-btn-pill';
+            btn.innerText = opt;
+            btn.onclick = () => {
+                // Send the selection back as a new prompt
+                this.handleSendMessage(`Selected: ${opt}`);
+                this.resetToInputMode();
+            };
+            pillBox.appendChild(btn);
+        });
+    }
+
+    removeColumn(colName) {
+        if (!colName) return;
+        const { state } = this.obj;
+        if (confirm(`Permanent action: Are you sure you want to delete the column "${colName}"?`)) {
+            this.obj.MOCK_DATA.forEach(row => delete row[colName]);
+            if (state.sortCol === colName) state.sortCol = null;
+            if (state.frozenCols.has(colName)) state.frozenCols.delete(colName);
+            this.loadTable(state.activeTable);
+            this.showToast(`Column "${colName}" removed`);
+        }
     }
     
 }

@@ -71,8 +71,10 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.MOCK_DATA = this.genData();
 		this.controller.on('load', () => this.controller.obj = this);
 		this.chatController = new BIChatController(this.popup);
-		if(this.runningOnOdoo)
+		if(this.runningOnOdoo){
+			this.showPopup();
 			this.init();
+		}
   	}
 
   	showToast(msg, type='default') {
