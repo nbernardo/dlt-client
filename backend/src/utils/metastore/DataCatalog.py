@@ -20,6 +20,8 @@ CATALOG_SCHEMA = pa.schema([
     pa.field("column_name", pa.string()),
     pa.field("data_type", pa.string()),
     pa.field("ingested_at", pa.string()),
+    pa.field("column_version", pa.int32()),
+    pa.field("is_deleted", pa.int32()),
     # semantic-specific
     pa.field("semantic_concept", pa.string()),
     pa.field("confidence_score", pa.float32()),
@@ -96,7 +98,7 @@ class DataCatalog:
         """Persists column catalog to LanceDB. Concurrent writes via MVCC — This is called from the pipeline run itself"""
         pipeline_name = pipeline.pipeline_name
         now = datetime.now().isoformat()
-        namespace = pipeline_name.split('_at_')[0]
+        namespace, original_pipeline_name = pipeline_name.split('_at_', 1)
         dbs_path = None if dbs_path is None else f'{dbs_path}/dbs/files/'
         dest_name = DataCatalog.get_destination(pipeline)
         source_clean = table_source.replace('"', '')
@@ -120,7 +122,8 @@ class DataCatalog:
         try:
 
             [tbl, con] = [DataCatalog._get_table(dbs_path), DataCatalog._get_duckdb_conn(dbs_path)]
-            
+            SemanticModel.migrate(dbs_path)
+
             existing = con.execute("""
                 SELECT
                     table_name, original_column_name, data_type, column_version, is_deleted, column_name
@@ -178,12 +181,12 @@ class DataCatalog:
             if rows_to_insert:
                 new_rows = [r for r in rows_to_insert if r['column_version'] == 1 and r['is_deleted'] == 0]
                 rows_to_insert = SemanticModel.get_semantic_model(rows_to_insert, new_rows, dbs_path)
-                rows_to_insert = SemanticModel.get_embeddings(rows_to_insert)
+                rows_to_insert = SemanticModel.get_embeddings(rows_to_insert, original_pipeline_name)
+                print(f'Data catalog generate successfully for pipeline with transaction_id {getattr(pipeline._last_trace, 'transaction_id')}')
                 
                 tbl.add(rows_to_insert)
                 if tbl.version % 100 == 0:
                     DataCatalog.compact_catalog(dbs_path)
-
         except Exception as e:
             print(f"Catalog Evolution Update Failed: {str(e)}")
 
@@ -261,12 +264,12 @@ class DataCatalog:
 
     
     @staticmethod
-    def query_similarity_catalog(query):
+    def query_similarity_catalog(query, db_path = None):
         
         query_embedding = SemanticModel._get_embedding_model().embed(query)
         query_vector = list(query_embedding)[0].tolist()
 
-        db = LanceConnectionFactory.get()
+        db = LanceConnectionFactory.get(db_path)
         tbl = db.open_table('column_catalog')
 
         results = (tbl.search(query_vector).limit(50).to_list())
@@ -276,21 +279,23 @@ class DataCatalog:
 
     @staticmethod
     def get_namespace_fields_by_pipeline(namespace):
-        result = DataCatalog._get_duckdb_conn().execute("""
-            SELECT 
-                json_group_object(pipeline, tables_json) as final_json
-            FROM (
+        try:
+            result = DataCatalog._get_duckdb_conn().execute("""
                 SELECT 
-                    pipeline, 
-                    json_group_object(table_name, columns_list) as tables_json
+                    json_group_object(pipeline, tables_json) as final_json
                 FROM (
                     SELECT 
-                        pipeline, table_name, list({'name': column_name, 'type': data_type}) as columns_list
-                    FROM column_catalog WHERE namespace = ?
-                    GROUP BY pipeline, table_name
+                        pipeline, 
+                        json_group_object(table_name, columns_list) as tables_json
+                    FROM (
+                        SELECT 
+                            pipeline, table_name, list({'name': column_name, 'type': data_type}) as columns_list
+                        FROM column_catalog WHERE namespace = ?
+                        GROUP BY pipeline, table_name
+                    )
+                    GROUP BY pipeline
                 )
-                GROUP BY pipeline
-            )
-        """, [namespace.replace('-','_')])
+            """, [namespace.replace('-','_')])
 
-        return result.fetchall()
+            return result.fetchall()
+        except: return None

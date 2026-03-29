@@ -100,28 +100,32 @@ class PipelineMedatata:
     
     @staticmethod
     def get_pipeline_source_destination_type(namespace):
-        return PipelineMedatata._get_duckdb_conn(include_catalog=True).execute("""
-                SELECT JSON_GROUP_ARRAY(
-                    JSON_OBJECT(
-                        'sourceType', source_type, 'destType', dest_type, 'pipeline', pipeline, 'sourceSecretName', source_secret_name, 
-                        'destSecretName', dest_secret_name, 'destinationConfig', destination_config, 'referencedSecrets', referenced_secrets,
-                        'datasetName', dataset_name
+        try:
+            return PipelineMedatata._get_duckdb_conn(include_catalog=True).execute("""
+                    SELECT JSON_GROUP_ARRAY(
+                        JSON_OBJECT(
+                            'sourceType', source_type, 'destType', dest_type, 'pipeline', pipeline, 'sourceSecretName', source_secret_name, 
+                            'destSecretName', dest_secret_name, 'destinationConfig', destination_config, 'referencedSecrets', referenced_secrets,
+                            'datasetName', dataset_name
+                        )
                     )
-                )
-                FROM pipeline_metadata WHERE namespace = ?""", [namespace]).fetchone()[0]
+                    FROM pipeline_metadata WHERE namespace = ?""", [namespace]).fetchone()[0]
+        except: None
 
     
     @staticmethod
     def get_pipeline_source_destination_meta(namespace):
-        return PipelineMedatata._get_duckdb_conn(include_catalog=True).execute("""
-                SELECT 
-                    json_group_object(pipeline, metadata_list) as final_json
-                FROM (
-                    SELECT pipeline, 
-                           list({'source_type': source_type, 'dest_type': dest_type, 'connection_name': dest_secret_name, 'dbname': dataset_name }) as metadata_list
-                    FROM pipeline_metadata WHERE namespace = ?
-                    GROUP BY pipeline
-                )""", [namespace]).fetchone()[0]
+        try:
+            return PipelineMedatata._get_duckdb_conn(include_catalog=True).execute("""
+                    SELECT 
+                        json_group_object(pipeline, metadata_list) as final_json
+                    FROM (
+                        SELECT pipeline, 
+                            list({'source_type': source_type, 'dest_type': dest_type, 'connection_name': dest_secret_name, 'dbname': dataset_name }) as metadata_list
+                        FROM pipeline_metadata WHERE namespace = ?
+                        GROUP BY pipeline
+                    )""", [namespace]).fetchone()[0]
+        except: return None
 
 
     @staticmethod

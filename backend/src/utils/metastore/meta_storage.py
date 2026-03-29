@@ -17,7 +17,7 @@ class MetaStore:
         print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}', flush=True)
         print(load_info, flush=True) # Print pipeline completion details for main process and UI
         print('RUN_SUCCESSFULLY', flush=True) # Notify the main process about pipeline run completion
-
+        print(f'Analyzing/Generating the data catalog for pipeline with transaction_id {getattr(pipeline._last_trace, 'transaction_id')}')
         DataCatalog.persist_catalog(table_source, dbs_path, pipeline, load_info, table_source)
 
 
