@@ -256,12 +256,13 @@ def message_ai_agent(namespace):
 
         payload = request.get_json()
         message = payload['message']
+        agent_flow = payload['agentFlow']
 
         if(os.path.exists(namespace)):
             result = 'No agent was started since no data found in the Namespace.'
             return { 'error': False, 'result': { 'result': result } }
         
-        return send_message_to_agent_wit_groq(message, namespace)
+        return send_message_to_agent_with_local_or_groq(message, namespace, agent_flow=agent_flow)
     except Exception as error:
         print(f'AI Agent error while processing your request {str(error)}')
         print(error)
@@ -401,22 +402,27 @@ def send_message_to_agent(message, namespace, user_id = None):
     return { 'success': True, 'result': agent.cloud_mistral_call(message) }    
 
 
-def send_message_to_agent_wit_groq(message, namespace, user_id = None):
+def send_message_to_agent_with_local_or_groq(message, namespace, user_id = None, agent_flow = None):
+
+    from services.agents.Enums import AgentFlow
 
     user = user_id if user_id != None else namespace
-    agent = AgentFactory.get_data_agent(user)
+    if agent_flow == AgentFlow.ANALYTICS:
+        agent = AgentFactory.get_data_catalog_agent(user)
+        result = agent.call_offline_model(message, namespace)
+    else:
+        agent = AgentFactory.get_data_agent(user)
+        result = agent.cloud_groq_call(message)
 
     if(agent == None):
         return { 
-            'success': False, 
+            'success': False, 'started': False,
             'result': "No agent was initiated since you don't/didn't have data in the namespace. I can update myself if you ask.",
-            'started': False
         }
     
-
-    if(not os.path.exists(agent.db_path)):
+    if(not os.path.exists(agent.db_path) and agent_flow != AgentFlow.ANALYTICS):
         return { 'success': False, 'result': 'No data, pipeline found in your name space.' }
-    return { 'success': True, 'result': agent.cloud_groq_call(message) }
+    return { 'success': True, 'result': result }
 
 
 @workspace.route('/secret/<namespace>', methods=['POST'])

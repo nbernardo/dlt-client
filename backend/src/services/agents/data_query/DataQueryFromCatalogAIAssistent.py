@@ -4,8 +4,6 @@ import requests
 import json
 import time
 import duckdb
-
-from services.workspace.Workspace import Workspace
 from groq import Groq, RateLimitError, BadRequestError
 from services.agents.AbstractAgent import AbstractAgent
 from services.agents.data_query.prompts.data_query_with_catalog import CATALOG_AGENT_SYSTEM_PROMPT
@@ -16,8 +14,8 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
     
     agent_factory = None
 
-    def __init__(self, base_db_path, dbfile = ''):
-        
+    def __init__(self):
+        self.db_path = ''
         api_key = env('GROQ_API_KEY')
         self.model = "llama-3.3-70b-versatile"
         self.client = Groq(api_key=api_key)
@@ -27,10 +25,6 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
             DataQueryFromCatalogAIAssistent.agent_factory = AgentFactory
 
         self.DB_SCHEMA = '''The database contains %total_table% tables:'''
-        self.db_path = base_db_path if base_db_path.__contains__('/') else self.db_path
-        self.db = f'{self.db_path}/{dbfile}'
-
-        self.ini_tables = Workspace.list_duck_dbs_with_fields(self.db_path, None)
         self.messages = [{"role": "system", "content": CATALOG_AGENT_SYSTEM_PROMPT}]
 
         self.model = None
@@ -50,15 +44,11 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
         for table, columns in grouped.items():
             output.append(f"Table: {database}.{table}\nColumns:\n" + "\n".join(columns))
         
-        tables_context = "\n\n".join(output)
-
-        print(tables_context)
-
-        return tables_context
+        return "\n\n".join(output)
 
 
 
-    def call_offline_model(user_prompt, namespace, pipeline, language="PT"):
+    def call_offline_model(self, user_prompt, namespace, language="PT"):
         """ 
             Generates and execute the database query using local infered model
                 - This requires having a local mode runnig (e.g. qwen2.5-coder:3b)
@@ -76,9 +66,7 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
         pipeline_metadata = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
         schema_context = DataQueryFromCatalogAIAssistent.format_schema_for_llm(schema_context, pipeline_metadata[7])
 
-        end_time = time.time()
-
-        duration = end_time - start_time
+        duration = time.time() - start_time
         print(f"Total time taken to get semantic model + pipeline metadata: {duration:.2f} seconds")
 
         system_message = 'Você é um Analista de Dados.' if language == 'PT' else 'You are a Data Analyst.'        
@@ -92,13 +80,11 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
             'prompt': f'Context: {schema_context}\n\nUser Request: {user_prompt}\n\n{complement}',
         }
 
-        full_response = ""
-        start_time = time.time()
+        [full_response, start_time] = ["", time.time()]
 
         with requests.post("http://localhost:11434/api/generate", json=payload, stream=True) as response:
-            end_time = time.time()
 
-            duration = end_time - start_time
+            duration = time.time() - start_time
             print(f"Total time taken to get model SQL query: {duration:.2f} seconds")
 
             for line in response.iter_lines():
@@ -108,18 +94,19 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
                     print(token, end="", flush=True)
                     
                     full_response += token
-                    
                     if chunk.get("done"): break
 
         db = duckdb.connect(db_file)
 
-        full_response = full_response.replace('```sql','').replace('`','').strip()
-        result = db.sql(full_response)
-        response = result.fetchall()
-            
-        print('THIS IS THE FINAL QUERY')
-        print(response)
-        return full_response
+        result = db.sql(DataQueryFromCatalogAIAssistent._clean_query(full_response))
+        records = result.fetchall()
+        json_output = json.dumps(
+            list(
+                DataQueryFromCatalogAIAssistent._stream_as_json(getattr(result, 'columns'), records)
+            )
+        )
+
+        return { 'answer': 'final', 'result': json_output, 'analytics_query': True }
 
         
 
@@ -161,11 +148,9 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
             return {'answer': 'intermediate', 'result': "Could not process your request, let's try again, what's your ask?"}
         
 
-
     def user_request_routing(self, user_prompt):
 
         self.messages.append({"role": "user", "content": user_prompt})
-
         tool_calling = self.client.chat.completions.create(
             model=self.model,
             messages=self.messages,
@@ -184,16 +169,22 @@ class DataQueryFromCatalogAIAssistent(AbstractAgent):
 
             if function_name == 'execute_query':
                 return self.execute_query(user_prompt)
-            
             if function_name == 'check_catalog':
                 return self.check_catalog(user_prompt)
-        
         else:
             content = tool_calling.choices[0].message.content
             print("1. LLM decided not to call a function. Raw response:")
             print(content)
             return { 'answer': 'intermediate', 'result': content }
+        
 
+    @staticmethod
+    def _clean_query(query): return query.replace('```sql','').replace('`','').strip()
+
+
+    @staticmethod
+    def _stream_as_json(cols, recs):
+        for row in recs: yield dict(zip(cols, row))
 
 
 
