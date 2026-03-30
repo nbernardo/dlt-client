@@ -278,15 +278,21 @@ export class BaseComponent extends BehaviorComponent {
                 }
             }
         }
-
+        const objectPropBind = {};
         /** Inject/Bind the component state/properties to the referenced place */
         fields.forEach(field => {
-
-            const fieldRE = new RegExp(`@${field}`), finalRE = /\^/.source + fieldRE.source + /\$/;
             tmpltWthState = tmpltWthState.replaceAll(
-                `@${field}`,
-                (mt, pos) => {
-
+                `@${field}`, (mt, pos) => {
+                    let wasObjectPropAsignment = false;
+                    // Bellow lines collect any object propery binding in the template
+                    const isObjectProp = tmpltWthState.slice(pos + mt.length).match(/\.([A-Z]{1,})/i);
+                    if(isObjectProp !== null && isObjectProp?.length > 1){
+                        if(this[field] && this[field][isObjectProp[1]]){
+                            objectPropBind[`@${field}.${isObjectProp[1]}`] = this[field][`${isObjectProp[1]}`];
+                            return `@${field}`;
+                        }
+                    }
+                    
                     /** Extract next 40 chars to handle conflict */
                     const nextChar = tmpltWthState.slice(pos, pos + field.length + 41);
 
@@ -305,15 +311,16 @@ export class BaseComponent extends BehaviorComponent {
                         }
                         //this.#stateChangeSubsribers.push(`subrcibe-${clsName}-${field}`);
                         return `<state class="state-change-${clsName}-${field}">${data}</state>`;
-
-                    } else {
+                    } else 
                         return `@${field}`;
-                    }
                 }
             );
             tmpltWthState = this.getBoundInputForm(tmpltWthState, formsRef);
         });
-
+        /** This handle the replacemend of object propery binding in the template (e.g. Gender.MALE)  */
+        for(const [f, v] of Object.entries(objectPropBind))
+            tmpltWthState = tmpltWthState.replaceAll(f,v);
+        
         return tmpltWthState;
     }
 
