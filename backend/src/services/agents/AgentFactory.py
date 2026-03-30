@@ -27,7 +27,7 @@ def get_data_agent(user, namespace = None, namespace_folder = None) -> DataQuery
 
 def get_data_catalog_agent(user, namespace = None) -> DataQueryFromCatalogAIAssistent:
 
-    if(not(user in dataquery_agents_list)):
+    if(not(user in datacatalog_agents_list)):
         datacatalog_agents_list[user] = DataQueryFromCatalogAIAssistent()
         datacatalog_agents_list[user].namespace = namespace
 
