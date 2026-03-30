@@ -124,8 +124,9 @@ export class AIAgent extends ViewComponent {
 
 			event.preventDefault();
 			let { message, botResponse } = this.controller.agentPreRoute(event.target.value);
+			const isAnalyticsFlow = AIAgent.aiAgentFlow === this.FlowTypeEnum.ANALYTICS;
 			
-			if(botResponse != '' && botResponse != usingSecretPrompt && AIAgent.aiAgentFlow !== this.FlowTypeEnum.ANALYTICS){
+			if(botResponse != '' && botResponse != usingSecretPrompt && !isAnalyticsFlow){
 				botResponse = await this.botMessage(event);
 				if(botResponse.includes(aiStartOptions)) return;
 	
@@ -150,7 +151,7 @@ export class AIAgent extends ViewComponent {
 			}
 			
 			message = this.augmentAgentPerception(botResponse, message);
-			if(botResponse == '' || botResponse.includes(usingSecretPrompt)){
+			if(botResponse == '' || botResponse.includes(usingSecretPrompt) || isAnalyticsFlow){
 				this.createMessageBubble(event.target.value, 'user');
 				event.target.value = '';
 			}
@@ -170,6 +171,11 @@ export class AIAgent extends ViewComponent {
 			this.sentMessagesCount = this.sentMessagesCount.value + 1;
 
 			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
+
+			if(result?.analytics_query){
+				this.$parent.dataVizProxy.setData(JSON.parse(result?.result)).showPopup().init();
+				this.shrinkChatSize();
+			}
 			
 			if (success === false) response = errMessage;
 			else if(result?.result.indexOf('"1": {') > -1 && result?.result.indexOf('"2": {') > -1){

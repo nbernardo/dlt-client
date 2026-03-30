@@ -79,8 +79,8 @@ export class ModalWindowComponent extends ViewComponent {
     }
 
     showPopup = () => {
-        this.showWindowPopup = true;
-        this.popup.classList.remove('hidden');
+        this.showWindowPopup = true, this.popup.classList.remove('hidden');
+		return this;
     }
 
 }

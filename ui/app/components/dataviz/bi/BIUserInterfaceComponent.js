@@ -42,7 +42,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		frozenCols: new Set(), activeInsertIndex: -1
 	};
  	
-	/** @Prop */ MOCK_DATA = null;
+	/** @Prop */ gridDataSource = null;
 
 	/** 
 	 * @Controller
@@ -68,7 +68,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
 		this.util = new PopupUtil();
-		this.MOCK_DATA = this.genData();
+		//this.gridDataSource = this.genData();
 		this.controller.on('load', () => this.controller.obj = this);
 		this.chatController = new BIChatController(this.popup);
 		if(this.runningOnOdoo){
@@ -84,22 +84,27 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		setTimeout(() => t.classList.remove('show'), 2500);
   	}
 
+	setData = (dataSource) => {
+		this.gridDataSource = dataSource;
+		return this;
+	}
+
 	genData() {
-		const r = [];
-		// This is generating a mock data
-		for (let i = 1; i <= 290; i++)
-			r.push({
-				'BusinessEntityID': i,
-				NationalIDNumber: String(Math.floor(Math.random() * 900000000 + 100000000)),
-				JobTitle: this.TITLES[i % this.TITLES.length] + " - " + this.DEPTS[i % this.DEPTS.length],
-				Department: this.DEPTS[i % this.DEPTS.length],
-				HireDate: new Date(2005 + (i % 15), i % 12, (i % 28) + 1).toISOString().split("T")[0],
-				VacationHours: Math.floor(Math.random() * 99),
-				SickLeaveHours: Math.floor(Math.random() * 69),
-				SalariedFlag: i % 3 === 0 ? 0 : 1,
-				Gender: i % 2 === 0 ? "M" : "F",
-				MaritalStatus: i % 3 === 0 ? "S" : "M",
-			});
+		// const r = [];
+		// // This is generating a mock data
+		// for (let i = 1; i <= 290; i++)
+		// 	r.push({
+		// 		'BusinessEntityID': i,
+		// 		NationalIDNumber: String(Math.floor(Math.random() * 900000000 + 100000000)),
+		// 		JobTitle: this.TITLES[i % this.TITLES.length] + " - " + this.DEPTS[i % this.DEPTS.length],
+		// 		Department: this.DEPTS[i % this.DEPTS.length],
+		// 		HireDate: new Date(2005 + (i % 15), i % 12, (i % 28) + 1).toISOString().split("T")[0],
+		// 		VacationHours: Math.floor(Math.random() * 99),
+		// 		SickLeaveHours: Math.floor(Math.random() * 69),
+		// 		SalariedFlag: i % 3 === 0 ? 0 : 1,
+		// 		Gender: i % 2 === 0 ? "M" : "F",
+		// 		MaritalStatus: i % 3 === 0 ? "S" : "M",
+		// 	});
 		return r;
 	}
 

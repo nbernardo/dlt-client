@@ -23,7 +23,7 @@ export class BIController extends BaseController {
 
     loadTable(name) {
         this.obj.state.activeTable = name;
-        this.obj.state.filteredRows = [...this.obj.MOCK_DATA];
+        this.obj.state.filteredRows = [...this.obj.gridDataSource];
         this.obj.state.selectedRows.clear();
         this.renderTableList();
         this.renderSheet();
@@ -116,7 +116,7 @@ export class BIController extends BaseController {
         if (!name) return;
 
         // To preserve visual order in the object keys:
-        this.obj.MOCK_DATA = this.obj.MOCK_DATA.map(row => {
+        this.obj.gridDataSource = this.obj.gridDataSource.map(row => {
             const keys = Object.keys(row);
             const newRow = {};
             keys.forEach((key, idx) => {
@@ -143,7 +143,7 @@ export class BIController extends BaseController {
         const name = prompt("Enter new column name:");
         if (!name) return;
 
-        this.obj.MOCK_DATA.forEach((row) => (row[name] = "-"));
+        this.obj.gridDataSource.forEach((row) => (row[name] = "-"));
 
         this.loadTable(this.obj.state.activeTable);
         
@@ -155,7 +155,7 @@ export class BIController extends BaseController {
         const col = this.obj.popup.querySelectorAll('#colFilter').value;
         const lq = q.toLowerCase();
 
-        this.obj.state.filteredRows = this.obj.MOCK_DATA.filter((row) => {
+        this.obj.state.filteredRows = this.obj.gridDataSource.filter((row) => {
             if (!q) return true;
             if (col)
                 return String(row[col] ?? "").toLowerCase().includes(lq);
@@ -253,8 +253,8 @@ export class BIController extends BaseController {
 
     populateAxisSelects() {
 
-        const { MOCK_DATA } = this.obj;
-        const cols = MOCK_DATA.length ? Object.keys(MOCK_DATA[0]) : [];
+        const { gridDataSource } = this.obj;
+        const cols = gridDataSource.length ? Object.keys(gridDataSource[0]) : [];
         const opts = cols.map((c) => `<option value="${c}">${c}</option>`).join("");
 
         this.obj.popup.querySelector('#xAxisSelect').innerHTML = opts;
@@ -530,7 +530,7 @@ export class BIController extends BaseController {
         if (!colName) return;
         const { state } = this.obj;
         if (confirm(`Permanent action: Are you sure you want to delete the column "${colName}"?`)) {
-            this.obj.MOCK_DATA.forEach(row => delete row[colName]);
+            this.obj.gridDataSource.forEach(row => delete row[colName]);
             if (state.sortCol === colName) state.sortCol = null;
             if (state.frozenCols.has(colName)) state.frozenCols.delete(colName);
             this.loadTable(state.activeTable);
