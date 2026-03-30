@@ -7,6 +7,8 @@ import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
 import { agentOptions, aiStartOptions, BOT, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt, whatAboutData } from "./chatbotbrain/main.js";
 
+export const AgentFlowType = { GENERIC: 'generic', ANALYTICS: 'analitics' };
+
 export class AIAgent extends ViewComponent {
 
 	isPublic = true;
@@ -27,8 +29,12 @@ export class AIAgent extends ViewComponent {
     /** @Prop */ botInstance = null;
     /** @Prop */ lastMessageAnchor = null;
 
+    /** @Prop */ FlowTypeEnum = AgentFlowType;
+
 	/** @type { HTMLParagraphElement } */
 	static lastAgentParagraph;
+
+	static aiAgentFlow = null;
 
 	/** @Prop */
 	unloadNamespaceMsg = 'Could not load details about your namespace.';
@@ -56,7 +62,7 @@ export class AIAgent extends ViewComponent {
 		},0);
 	}
 
-	stOnRender({totalMessages, messageCountLimit}){		
+	stOnRender({totalMessages, messageCountLimit}){
 		if(totalMessages) this.sentMessagesCount = Number(totalMessages);
 		if(messageCountLimit) this.maxAllowedMessages = Number(messageCountLimit);
 
@@ -71,7 +77,7 @@ export class AIAgent extends ViewComponent {
 		this.outputContainer = document.getElementById(this.outputContainerId);
 		this.resizeHandle = document.querySelector('.ai-agent-height-resize');
 		this.resizeHandle.style.backgroundColor = '#047857'
-		this.setResizeHandling();
+		this.setResizeHandling(this);
 		await this.startNewAgent();
 
 		this.sentMessagesCount.onChange((val) => {
@@ -80,7 +86,6 @@ export class AIAgent extends ViewComponent {
 		})
 
 		this.$parent.service.aiAgentNamespaceDetails;
-
 	}
 
 	async startNewAgent(retry = false) {
@@ -120,7 +125,7 @@ export class AIAgent extends ViewComponent {
 			event.preventDefault();
 			let { message, botResponse } = this.controller.agentPreRoute(event.target.value);
 			
-			if(botResponse != '' && botResponse != usingSecretPrompt){
+			if(botResponse != '' && botResponse != usingSecretPrompt && AIAgent.aiAgentFlow !== this.FlowTypeEnum.ANALYTICS){
 				botResponse = await this.botMessage(event);
 				if(botResponse.includes(aiStartOptions)) return;
 	
@@ -177,9 +182,7 @@ export class AIAgent extends ViewComponent {
 
 			if (result.fields) {
 				const { db_file, fields, actual_query } = result;
-				dataTable = this.controller.parseDataToTable(
-					fields, response, this.$parent, actual_query, db_file
-				);
+				dataTable = this.controller.parseDataToTable(fields, response, this.$parent, actual_query, db_file);
 			} else {
 				if ((response || []).length === 0)
 					response = 'Your request was not processed, do you want to be clear about your it?';
@@ -197,7 +200,6 @@ export class AIAgent extends ViewComponent {
 	}
 
 	augmentAgentPerception(botAnswer, message){
-		
 		const useDbSchema = message.search(/db\s{0,}schema|schema/i);
 		const dataFlow = botAnswer.includes(agentOptions.dataQuery) || botAnswer.includes(whatAboutData);
 
@@ -210,10 +212,8 @@ export class AIAgent extends ViewComponent {
 
 		if(dataFlow && !(useDbSchema >= 0) && !msgHasBothPipelineAndDB)
 			message = 'Get from DB Schema\n' + message;
-
 		if(isChangingPipeline && notCreating)
 			message = `${message}, you'll update the bellow pipeline JSON and responde with the updated version\n:${this.controller.lastPipeline}`;
-		
 		if(isCreatingPipeline)
 			message = `${message}, you'll not use the previous pipeline but create a new o`;
 		
@@ -262,7 +262,7 @@ export class AIAgent extends ViewComponent {
 	}
 
 	async sendAIAgentMessage(message){
-		if(this.controller.getActiveFlow() === this.controller.flowPrefix.data)
+		if(this.controller.getActiveFlow() === this.controller.flowPrefix.data || AIAgent.aiAgentFlow === this.FlowTypeEnum.ANALYTICS)
 			return WorkspaceService.sendDataQueryAgentMessage(message);
 		if(this.controller.getActiveFlow() === this.controller.flowPrefix.pipeline)
 			return WorkspaceService.sendPipelineAgentMessage(message);
@@ -301,11 +301,9 @@ export class AIAgent extends ViewComponent {
 		}, 200);
 	}
 
-	setResizeHandling() {
-		const obj = this;
+	setResizeHandling = (obj) =>
 		this.resizeHandle.addEventListener('mousedown', (event) => obj.startDrag(event, obj));
-	}
-
+	
 	/** @param {AIAgent} obj  */
 	startDrag(e, obj) {
 		e.preventDefault();
@@ -316,21 +314,18 @@ export class AIAgent extends ViewComponent {
 
 		document.addEventListener('mousemove', (event) => obj.onDrag(event, obj));
 		document.addEventListener('mouseup', (event) => obj.stopDrag(event, obj));
-
 		obj.resizeHandle.style.cursor = 'ns-resize';
-		obj.resizeHandle.style.backgroundColor = '#047857'; // Darker color while dragging
+		obj.resizeHandle.style.backgroundColor = '#047857';
 	}
 
 	/** @param {AIAgent} obj  */
 	onDrag(e, obj) {
 		if (!obj.isDragging) return;
 
-		const deltaY = obj.startY - e.clientY;
+		const deltaY = obj.startY - e.clientY, MIN_HEIGHT = 400;
 		let newHeight = obj.startHeight + deltaY;
-		const MIN_HEIGHT = 400;
+
 		if (newHeight < MIN_HEIGHT) newHeight = MIN_HEIGHT;
-		// Comment to prevent resize for now
-		//obj.appContainer.style.height = `${newHeight}px`;
 	}
 
 	/** @param {AIAgent} obj  */
@@ -340,9 +335,7 @@ export class AIAgent extends ViewComponent {
 
 		document.removeEventListener('mousemove', () => obj.onDrag(obj));
 		document.removeEventListener('mouseup', () => obj.stopDrag(obj));
-
-		document.body.style.cursor = '';
-		obj.resizeHandle.style.backgroundColor = '#d1d5db';
+		document.body.style.cursor = '', obj.resizeHandle.style.backgroundColor = '#d1d5db';
 	}
 
 	hideAgentUI = () => this.$parent.showOrHideAgent();
@@ -354,10 +347,8 @@ export class AIAgent extends ViewComponent {
 		let message = event.target.value, complementMessage = '';
 		BOT.lastUserMessage = message;
 
-		if(this.dontFollowAgentFlag == dontFollow.transform 
-			&& this.$parent.checkActiveDiagram() === false){
+		if(this.dontFollowAgentFlag == dontFollow.transform  && this.$parent.checkActiveDiagram() === false)
 			complementMessage = ' no pipeline transformation'
-		}
 
 		this.createMessageBubble(message, 'user');
 
@@ -365,7 +356,6 @@ export class AIAgent extends ViewComponent {
 		if (!message) return;
 
 		console.log(`You: ${message}`);
-
 		const reply = await this.botInstance.reply("local-user", message+''+complementMessage);
 		console.log(`Bot: ${reply}`);
 
@@ -373,6 +363,14 @@ export class AIAgent extends ViewComponent {
 
 	}
 
-	shrinkChatSize = () => this.controller.shrinkChatSize()
+	shrinkChatSize = () => this.controller.shrinkChatSize();
+
+	selectAIFlow = (flowName, elm) => {
+		document.querySelectorAll('.ai-agent-wrapper .agent-flow-mode div').forEach(el => {
+			el.classList.add('unselected-ai-flow'), el.classList.remove('selected-ai-flow');
+		});
+		elm.classList.remove('unselected-ai-flow'), elm.classList.add('selected-ai-flow');
+		AIAgent.aiAgentFlow = flowName;
+	}
 
 }

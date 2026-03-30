@@ -1,4 +1,20 @@
+<style>
+	.agent-flow-mode{ position: absolute; margin-top: -34px; display: flex; gap: 10px; font-size: .7em; }
+	.agent-flow-mode div { background: #2c3e50; color: white; padding: .5em; border-top-right-radius: 6px; border-top-left-radius: 6px; display: flex; gap: 5px; cursor: pointer; }
+	.agent-flow-mode .unselected-ai-flow { background-color: lightgray; color: black; font-weight: bold; }
+	.agent-flow-mode .selected-ai-flow { background-color: #2c3e50; color: white; }
+</style>
 <div class="ai-agent-wrapper">
+	<div class="agent-flow-mode">
+		<div onclick="component.selectAIFlow('@FlowTypeEnum.GENERIC', this)" class="selected-ai-flow">
+			<img src="/app/assets/imgs/robot.png" width="16">
+			Generic Mode
+		</div>
+		<div onclick="component.selectAIFlow('${this.FlowTypeEnum.ANALYTICS}', this)" class="unselected-ai-flow">
+			<img src="/app/assets/imgs/line-chart.png" width="16">
+			Analytics Mode
+		</div>
+	</div>
 	<div class="app-container ai-app-container">
 		<div class="ai-agent-height-resize" style="margin-top: -16px;"></div>
 		<span style="display: flex;">
@@ -10,7 +26,7 @@
 			</div>
 			<h1 class="main-heading" style="margin-left: 10px;">
 				AI Agent
-				<span class="add-info">For you Data and Pipelines</span>
+				<span class="add-info">For your Data and Pipelines</span>
 			</h1>
 			<p class="description-text">
 				Type your query regarding your data and pipelines to get the results according <br>(e.g. <i>Show me all data from company.employee table which gender field is Male</i>)

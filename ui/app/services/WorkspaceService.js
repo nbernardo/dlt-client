@@ -18,6 +18,7 @@ import { Workspace } from "../components/workspace/Workspace.js";
 import { UserService } from "./UserService.js";
 import { constructTablePath } from "./DestinationUtil.js";
 import { PipelineService } from "./PipelineService.js";
+import { AIAgent } from "../components/agent/AIAgent.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -329,12 +330,12 @@ export class WorkspaceService extends BaseService {
 
     /** @returns { { result: { result } } } */
     static async sendDataQueryAgentMessage(message) {
-
+        const agentFlow = AIAgent.aiAgentFlow
         const namespace = StillAppSetup.config.get('anonymousLogin')
             ? UserUtil.email : await UserService.getNamespace();
 
         const url = '/workcpace/agent/' + namespace;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ message }), {
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ message, agentFlow }), {
             headers: { 'content-type': 'Application/json' }
         });
         if (response.ok && !response.error)
