@@ -548,7 +548,7 @@ export class BIController extends BaseController {
 
         if(elm?.title == this.obj.analyticsChatStateEnum.OPENED || unshrink){
             elm.title = this.obj.analyticsChatStateEnum.CLOSED, elm.innerHTML = '&ndash;';
-            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.width = '25%';
+            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.width = '35%';
             this.obj.popup.querySelector('.ai-analytics-chat-logs').style.height = '270px';
             this.obj.popup.querySelector('.ai-analytics-chat-logs').style.overflowY = 'scroll';
             if(hasFirstMessage) this.obj.popup.querySelector('.message-bubble').style.visibility = 'visible';
