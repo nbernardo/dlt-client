@@ -1,40 +1,31 @@
 import json
-from os import getenv as env
 import requests
 import json
 import time
 import duckdb
 from groq import Groq, RateLimitError, BadRequestError
 from services.agents.AbstractAgent import AbstractAgent
+from .CommonContent import CommonContent
 
 class DataQueryOfflineMode(AbstractAgent):
     
     agent_factory = None
 
-    def __init__(self):
-        ...
+    def __init__(self, language = 'PT'):
+        self.system_message = CommonContent.system_prompt(language)
         
 
-    def execute_query(self, user_prompt, schema_context, db_file, language = 'PT', exception_content = None, retry = 0):
-
-        system_message = 'Você é um Analista de Dados.' if language == 'PT' else 'You are a Data Analyst.'        
-        complement = 'Rules:\n- Only output final SQL\n- No explanation\n- Use provided schema only'
-        complement += '\n- Match the columns name appropriately as per the table it relates\n- Be precise and minimal\n\n'
-        complement += '\n- If the tables are prefixed (e.g. db.table_name) do not remove them in the final query'
-        complement += '\nDo not try to craft a query that do not make sense with the user request and the context. Rather ask clarification'
-        complement += '\nOnly ask clarification if Retry >2'
-
+    def execute_query(self, user_prompt, schema_context, db_file, exception_content = None, retry = 0):
+    
         ask_correction = ''
         if exception_content != None:
             ask_correction = f"You've generated the bellow wrong query, also follow the exception. "
             ask_correction = f"Please correct things according to table mapping\n\n{exception_content}"
 
-        no_query_generation_rule = "\nRules if note final SQL query:\nIf you need clarification ask prefixing with 'CLARIFY:' only if Retry is > 2."
-
         payload = {
             'model': 'qwen2.5-coder:3b', 'stream': True,
-            'system': f'Retry: {retry}\n{system_message} Output only the code. {no_query_generation_rule}',
-            'prompt': f'{ask_correction}Context: {schema_context}\n\nUser Request: {user_prompt}\n\n{complement}',
+            'system': f'Retry: {retry}\n{self.system_message} Output only the code. {CommonContent.no_query_generation_rule}',
+            'prompt': f'{ask_correction}Context: {schema_context}\n\nUser Request: {user_prompt}\n\n{CommonContent.complement}',
         }
 
         [full_response, start_time] = ["", time.time()]
@@ -74,25 +65,20 @@ class DataQueryOfflineMode(AbstractAgent):
 
             print(f'----------------------- Retrying request execution ({retry + 1}x) -----------------------')
             retry_payload = f'The failed query: {query}\n\nException from the failed query: {str(err)}'
-            self.execute_query(user_prompt, schema_context, db_file, 'PT', retry_payload, retry + 1)
+            self.execute_query(user_prompt, schema_context, db_file, retry_payload, retry + 1)
     
         return { 'answer': 'final', 'result': json_output, 'analytics_query': True, 'success': True }
         
 
 
-    def check_catalog(self, user_prompt, schema_context, language = 'PT'):
-
-        system_message = 'Você é um Analista de Dados.' if language == 'PT' else 'You are a Data Analyst.'        
-        complement = 'Rules:\n- Only output the explanation\n- Use provided schema only'
-        complement += '\n- If needed put the details in the explanation\n- Be precise and minimal\n\n'
+    def check_catalog(self, user_prompt, schema_context):
 
         payload = {
-            'model': 'qwen2.5-coder:1.5b',
+            'model': 'qwen2.5-coder:1.5b', 'stream': False,
             'messages': [
-                {'role': 'system', 'content': f'{system_message} Explain the following data schema clearly using markdown output'},
-                {'role': 'user', 'content': f'Schema: {schema_context}\n\nUser Request: {user_prompt}\n\n{complement}'}
+                {'role': 'system', 'content': f'{self.system_message} Explain the following data schema clearly using markdown output'},
+                {'role': 'user', 'content': f'Schema: {schema_context}\n\nUser Request: {user_prompt}\n\n{CommonContent.explain_complement}'}
             ],
-            'stream': False
         }
 
         start_time = time.time()
@@ -104,5 +90,3 @@ class DataQueryOfflineMode(AbstractAgent):
         
         response = "Couldn't process your request, can you please refine of make it more clear"
         return { 'answer': 'final', 'result': response, 'analytics_query': True, 'success': True }
-                
-
