@@ -19,6 +19,7 @@ from utils.BucketUtil import BucketUtil
 from utils.BucketConnector import BucketConnector
 from utils.workspace_util import handle_conversasion_turn_limit
 from utils.pipeline.Enums import DestinationType
+from services.agents.Enums import AgentFlow
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -267,8 +268,11 @@ def message_ai_agent(namespace):
         print(f'AI Agent error while processing your request {str(error)}')
         print(error)
         traceback.print_exc()
-        result = 'No medatata was loaded about your namespace.'\
-              if str(error).strip() == namespace else 'Could not load details about your namespace.'
+        if agent_flow == AgentFlow.ANALYTICS:
+            result = 'Was not able to run your request, seems not match your data, can you refine and make it more clear'
+        else:
+            result = 'No medatata was loaded about your namespace.'\
+                if str(error).strip() == namespace else 'Could not load details about your namespace.'
         return { 'error': True, 'result': { 'result': result } }
     
     
@@ -403,8 +407,6 @@ def send_message_to_agent(message, namespace, user_id = None):
 
 
 def send_message_to_agent_with_local_or_groq(message, namespace, user_id = None, agent_flow = None):
-
-    from services.agents.Enums import AgentFlow
 
     user = user_id if user_id != None else namespace
     if agent_flow == AgentFlow.ANALYTICS:
