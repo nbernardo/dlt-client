@@ -12,7 +12,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	isPublic = false;
 
-	/** @Prop */ showWindowPopup = false;
+	/** @Prop */ showWindowPopup = true;
 
 	/** @Prop */ uniqueId = '_'+UUIDUtil.newId();
 
@@ -22,7 +22,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
  	/** @Prop */ COLORS = BiUiUtil.chartColors;
 
- 	/** @Prop */ MOCK_TABLES = mockDataTables;
+ 	/** @Prop */ analyticsRessultTables = mockDataTables;
 
  	/** @Prop */ DEPTS = mockDepartments;
 	
@@ -44,6 +44,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
  	
 	/** @Prop */ gridDataSource = null;
 
+	/** @Prop */ analyticsChatStateEnum = { OPENED: 'Expanded', CLOSED: 'Minimized' };
+
 	/** 
 	 * @Controller
 	 * @Path controller/
@@ -51,6 +53,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	controller;
 
 	/** @Prop @type { BIChatController } */ chatController;
+
+	async stBeforeInit(){}
 
 	async stOnRender(){
 		let cssPathPrefix = '';
@@ -68,8 +72,11 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
 		this.util = new PopupUtil();
-		//this.gridDataSource = this.genData();
-		this.controller.on('load', () => this.controller.obj = this);
+		this.gridDataSource = []//this.genData();
+		this.controller.on('load', () => {
+			this.controller.obj = this;
+			setTimeout(this.controller.shrinkChatLogs(), 500);
+		});
 		this.chatController = new BIChatController(this.popup);
 		if(this.runningOnOdoo){
 			this.showPopup();

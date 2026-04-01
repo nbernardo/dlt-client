@@ -1,6 +1,10 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
+import { AIAgent } from "../components/agent/AIAgent.js";
 import { BIUserInterfaceComponent } from "../components/dataviz/bi/BIUserInterfaceComponent.js";
 import { BiUiUtil } from "../components/dataviz/bi/util.js";
+import { WorkspaceService } from "../services/WorkspaceService.js";
+import { AIUtil } from "../util/AIUtil.js";
+import { AIAgentController } from "./AIAgentController.js";
 
 export class BIController extends BaseController {
 
@@ -8,7 +12,7 @@ export class BIController extends BaseController {
     obj;
 
     renderTableList() {
-		const tables = this.obj.MOCK_TABLES[this.obj.state.pipeline] || [];
+		const tables = this.obj.analyticsRessultTables[this.obj.state.pipeline] || [];
 		this.obj.popup.querySelector(".tableList").innerHTML = tables
 			.map((t) =>
 				this.obj.parseEvents(
@@ -474,7 +478,7 @@ export class BIController extends BaseController {
 
 	onPipelineChange(val) {
 		this.obj.state.pipeline = val;
-		const tables = this.obj.MOCK_TABLES[val] || [];
+		const tables = this.obj.analyticsRessultTables[val] || [];
 		this.obj.state.activeTable = tables[0]?.name || "";
 		this.renderTableList();
 		this.loadTable(this.obj.state.activeTable);
@@ -537,5 +541,57 @@ export class BIController extends BaseController {
             this.showToast(`Column "${colName}" removed`);
         }
     }
+
+    shrinkChatLogs(elm, unshrink){
+        const hasFirstMessage = this.obj.popup.querySelector('.message-bubble')
+        if(hasFirstMessage) this.obj.popup.querySelector('.message-bubble').style.visibility = 'hidden';
+
+        if(elm?.title == this.obj.analyticsChatStateEnum.OPENED || unshrink){
+            elm.title = this.obj.analyticsChatStateEnum.CLOSED, elm.innerHTML = '&ndash;';
+            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.width = '25%';
+            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.height = '270px';
+            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.overflowY = 'scroll';
+            if(hasFirstMessage) this.obj.popup.querySelector('.message-bubble').style.visibility = 'visible';
+            
+        }else{
+            elm.title = this.obj.analyticsChatStateEnum.OPENED, elm.innerHTML = '&plus;';
+            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.width = '25px';
+            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.height = '25px';
+            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.overflow = 'hidden';
+            if(hasFirstMessage) this.obj.popup.querySelector('.message-bubble').style.visibility = 'hidden';
+        }
+    }
+
+    analyticsQuery = '';
+    async submitAIAnalyticsQuery(e){        
+        if(e.key === 'Enter'){
+
+            AIUtil.aiAgentFlow = AIUtil.AgentFlowType.ANALYTICS;
+            let mainContainer = this.obj.popup.querySelector('.ai-analytics-chat-logs'), content;
+            
+            this.createMessageBubble(this.analyticsQuery, 'user', mainContainer);
+            this.shrinkChatLogs(this.obj.popup.querySelector('.minimize-analytics-log'), true);
+
+            this.createMessageBubble(AIAgentController.loadingContent(), 'agent', mainContainer);
+
+            let { result, error } = await WorkspaceService.sendDataQueryAgentMessage(this.analyticsQuery);
+
+            if((result?.result || '').includes('CLARIFY:') || result?.answer == 'schema-clarification') content = result.result;
+            else if(result?.result == '[]') content = 'Your request didn\'t match any of existing data';
+            else content = error ? `${result?.result}` : 'Result rendered in the Data visualization'
+            
+            AIUtil.setAgentLastMessage(content, null, false, mainContainer);
+
+            this.obj.setData(error ? [] : JSON.parse(result?.result)).init();
+            AIUtil.aiAgentFlow = null;
+
+        }
+        this.analyticsQuery = e.target.value;
+    }
+
+	createMessageBubble(text, role, mainContainer) {
+		AIUtil.createMessageBubble(text, role, null, mainContainer);
+		AIUtil.scrollToBottom(false, mainContainer);
+	}
     
 }

@@ -3,6 +3,7 @@ import { Assets } from "../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AIAgentController } from "../../controller/AIAgentController.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { AIUtil } from "../../util/AIUtil.js";
 import { markdownToHtml } from "../../util/Markdown.js";
 import { Workspace } from "../workspace/Workspace.js";
 import { agentOptions, aiStartOptions, BOT, botSubRoutineCall, content as chatBotBrain, dontFollow, dontFollowAgentFlow, ifExistingFlowUseIt, unkwonRequest, usingSecretPrompt, whatAboutData } from "./chatbotbrain/main.js";
@@ -27,14 +28,8 @@ export class AIAgent extends ViewComponent {
     /** @Prop */ startedInstance = null;
     /** @Prop */ showLimitReachedWarn = null;
     /** @Prop */ botInstance = null;
-    /** @Prop */ lastMessageAnchor = null;
 
-    /** @Prop */ FlowTypeEnum = AgentFlowType;
-
-	/** @type { HTMLParagraphElement } */
-	static lastAgentParagraph;
-
-	static aiAgentFlow = null;
+    /** @Prop */ FlowTypeEnum = AIUtil.AgentFlowType;
 
 	/** @Prop */
 	unloadNamespaceMsg = 'Could not load details about your namespace.';
@@ -124,7 +119,7 @@ export class AIAgent extends ViewComponent {
 
 			event.preventDefault();
 			let { message, botResponse } = this.controller.agentPreRoute(event.target.value);
-			const isAnalyticsFlow = AIAgent.aiAgentFlow === this.FlowTypeEnum.ANALYTICS;
+			const isAnalyticsFlow = AIUtil.aiAgentFlow === this.FlowTypeEnum.ANALYTICS;
 			
 			if(botResponse != '' && botResponse != usingSecretPrompt && !isAnalyticsFlow){
 				botResponse = await this.botMessage(event);
@@ -144,7 +139,7 @@ export class AIAgent extends ViewComponent {
 	
 				if(useSecretPrompt){ /** continue */ }
 				else if((cannotContinue && isFlowNotSet) || botFunctionCall){
-					const content = botFunctionCall ? this.controller.loadingContent() : botResponse;
+					const content = botFunctionCall ? AIAgentController.loadingContent() : botResponse;
 					if(!(stickToPrevFlow && this.controller.getActiveFlow() != null))
 						return this.createMessageBubble(content, 'agent', 'DLT Workspace');
 				}
@@ -167,7 +162,7 @@ export class AIAgent extends ViewComponent {
 				}
 			}
 
-			this.createMessageBubble(this.controller.loadingContent(), 'agent');
+			this.createMessageBubble(AIAgentController.loadingContent(), 'agent');
 			this.sentMessagesCount = this.sentMessagesCount.value + 1;
 
 			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
@@ -196,7 +191,7 @@ export class AIAgent extends ViewComponent {
 					// Auto-reconnect to the chats
 					this.$parent.leftMenuProxy.startAIAssistant(true);
 					response += `\nHowever I've updated myself, let's try again, what's your ask?`
-					setTimeout(() => this.scrollToBottom());
+					setTimeout(() => AIUtil.scrollToBottom(false, this.outputContainer));
 				}
 			}
 
@@ -254,57 +249,20 @@ export class AIAgent extends ViewComponent {
 		return {}
 	}
 
-	setAgentLastMessage(response, dataTable = null, anchor = false){
-		this.lastMessageAnchor = null;
-		AIAgent.lastAgentParagraph.classList.add('bubble-message-paragraph');
-		let finalContent = dataTable === null ? markdownToHtml(response) : dataTable;
-		if(anchor){
-			this.lastMessageAnchor = 'lastMessageAnchor'+UUIDUtil.newId();
-		}
-		finalContent = `<h2 id="${this.lastMessageAnchor}"></h2>${finalContent}`;
-		AIAgent.lastAgentParagraph.innerHTML = finalContent;
-
-		if(this.lastMessageAnchor !== null) this.scrollToBottom(true);
-	}
-
+	setAgentLastMessage = (response, dataTable = null, anchor = false) =>
+		AIUtil.setAgentLastMessage(response, dataTable, anchor, this.outputContainer)
+	
 	async sendAIAgentMessage(message){
-		if(this.controller.getActiveFlow() === this.controller.flowPrefix.data || AIAgent.aiAgentFlow === this.FlowTypeEnum.ANALYTICS)
+		if(this.controller.getActiveFlow() === this.controller.flowPrefix.data || AIUtil.aiAgentFlow === this.FlowTypeEnum.ANALYTICS)
 			return WorkspaceService.sendDataQueryAgentMessage(message);
 		if(this.controller.getActiveFlow() === this.controller.flowPrefix.pipeline)
 			return WorkspaceService.sendPipelineAgentMessage(message);
 	}
 
 	createMessageBubble(text, role, alternateRole = null) {
-		const row = document.createElement('div');
-		row.className = role === 'user' ? 'user-message-row' : 'agent-message-row';
-
-		const bubble = document.createElement('div');
-		bubble.className = `message-bubble ${role}-message-bubble`;
-
-		const senderLabel = document.createElement('div');
-		senderLabel.className = 'sender-label';
-		senderLabel.textContent = role === 'user' ? 'You' : (alternateRole || 'Agent');
-		bubble.appendChild(senderLabel);
-
-		const textP = document.createElement('p');
-		textP.innerHTML = text;
-
-		if (role === 'agent') AIAgent.lastAgentParagraph = textP;
-		if (role === 'user') textP.classList.add('bubble-message-paragraph');
-
-		bubble.appendChild(textP);
-		row.appendChild(bubble);
+		const row = AIUtil.createMessageBubble(text, role, alternateRole);
 		this.outputContainer.appendChild(row);
-		this.scrollToBottom(false);
-	}
-
-	scrollToBottom(ancor = false) {
-		setTimeout(() => {
-			const element = document.getElementById(this.lastMessageAnchor);
-			if(ancor && element)
-				element.scrollIntoView({behavior: 'smooth', block: 'start'}); 
-			else this.outputContainer.scrollTop = this.outputContainer.scrollHeight;
-		}, 200);
+		AIUtil.scrollToBottom(false, this.outputContainer);
 	}
 
 	setResizeHandling = (obj) =>
@@ -376,7 +334,7 @@ export class AIAgent extends ViewComponent {
 			el.classList.add('unselected-ai-flow'), el.classList.remove('selected-ai-flow');
 		});
 		elm.classList.remove('unselected-ai-flow'), elm.classList.add('selected-ai-flow');
-		AIAgent.aiAgentFlow = flowName;
+		AIUtil.aiAgentFlow = flowName;
 	}
 
 }

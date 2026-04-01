@@ -226,7 +226,7 @@ export class AIAgentController extends BaseController {
 		document.getElementById('ai-chat-user-input').focus();
 	}
 
-	loadingContent() {
+	static loadingContent() {
 		return `
 			<div class="mini-loader-container">
 				<div class="mini-loader-dot" style="background: black;"></div>

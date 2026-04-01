@@ -49,8 +49,8 @@
 					<div class="shell">
 						<header class="topbar" style="display: flex;">
 							<div style="display: flex;">
-								<div class="logo"><div class="logo-dot"></div>DataViz</div>
-								<div class="topbar-divider"></div>
+								<!-- <div class="logo"><div class="logo-dot"></div>DataViz</div>
+								<div class="topbar-divider"></div> -->
 								<select class="pipeline-selector" onchange="controller.onPipelineChange(this.value)">
 									<option value="p1">pipeline_at_mssql_adventureworks</option>
 									<option value="p2">pipeline_at_oracle_hr</option>
@@ -58,8 +58,15 @@
 								</select>
 							</div>
 							<div class="e2e-chat-container" id="chat_wrapper">
-								<textarea id="ai_input" class="e2e-chat-input" placeholder="Chat with e2e-Data..."></textarea>
-
+								<textarea 
+									onkeyup="controller.submitAIAnalyticsQuery(event)"
+									id="ai_input" 
+									class="e2e-chat-input" 
+									style="padding-right: 46%; height: 46px;" 
+									placeholder="Tell me what do you want to fetch..."></textarea>
+								<div class="ai-analytics-chat-logs" style="width: 26px; height: 26px;">
+									<div class="minimize-analytics-log" title="@analyticsChatStateEnum.OPENED" onclick="controller.shrinkChatLogs(this)"> &plus; </div>
+								</div>
 								<div id="ai_agent_ui" class="e2e-agent-ui e2e-hidden">
 									<span id="ai_question_label" style="color: #0056b3; font-weight: bold;"></span>
 									<div id="ai_pills" style="display: flex;"></div>
@@ -192,3 +199,33 @@
 		</div>
 	</div>
 </div>
+<style>
+	.ai-analytics-chat-logs{ 
+		
+		position: absolute; right: 23.7em; top: 9px; border-radius: 3px; padding: 3px !important; 
+        background-color: #2c3e50; padding: 1rem;  border-radius: 0.5rem; display: flex; flex-direction: column;
+        border: 1px solid #d1d5db; overflow: hidden; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+
+		.minimize-analytics-log{
+			width: 18px; height: 18px; position: fixed; right: 335px; margin-top: 0px; border-radius: 15px; 
+			cursor: pointer; background: #059669; color: white; display: flex; justify-content: center;
+		}
+
+		.message-bubble {
+			margin: 6px; max-width: 85%; padding: 10px .5rem; border-radius: 1rem;
+			font-family: sans-serif; font-size: 0.80rem; display: flex; gap: 10px;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+			p { line-height: normal; }
+		}
+
+		.user-message-bubble .sender-label { color: #d1fae5; font-weight: bold; }
+		.agent-message-bubble .sender-label { color: #4b5563; font-weight: bold; }
+		.agent-message-bubble { background-color: #e5e7eb; color: #1f2937; border-bottom-left-radius: 0.25rem !important; }
+		.user-message-bubble { background-color: #059669;  color: white; border-bottom-right-radius: 0.25rem; margin-top: 5px; margin-left: auto; margin-right: 16px; }
+		.mini-loader-dot { width: 18px; height: 8px; }
+		.mini-loader-container { width: 30px; margin-top: 1px; }
+		.no-success { color: #a22020; }
+		.yes-success { color: #027002; }
+
+	}
+</style>
