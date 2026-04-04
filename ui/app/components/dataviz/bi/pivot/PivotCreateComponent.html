@@ -87,7 +87,7 @@
         <strong style="font-size: 13px;">New Calculated Field</strong>
         <input type="text" id="calc-name" placeholder="Name" style="width: 100%; margin: 10px 0 5px;">
         <input type="text" id="calc-formula" placeholder="Salary + Bonus" style="width: 100%; margin-bottom: 10px;">
-        <button onclick="addCalculatedField()" class="action-btn" style="width: 100%;">Add Field</button>
+        <button onclick="controller.addCalculatedField()" class="action-btn" style="width: 100%;">Add Field</button>
     </div>
 
     <aside class="sidebar">
@@ -111,7 +111,7 @@
 
         <div id="lab-controls" style="display: flex; flex-direction: column; gap: 20px;">
             <div class="toolbar">
-                <div class="search-container">🔍 <input type="text" id="global-search" class="search-input" placeholder="Search rows..." oninput="handleSearch(this.value)"></div>
+                <div class="search-container">🔍 <input type="text" id="global-search" class="search-input" placeholder="Search rows..." oninput="controller.handleSearch(this.value)"></div>
                 <label class="heatmap-toggle">
                     <input type="checkbox" id="heatmap-check" onchange="controller.renderAll()"> Heatmap
                 </label>

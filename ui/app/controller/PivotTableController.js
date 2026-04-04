@@ -116,8 +116,8 @@ export class PivotTableController extends BaseController {
         this.obj.dataset.forEach(item => {
             if ([...sel.rows, ...sel.cols].some(f => !fltrs[f]?.includes(item[f]))) return;
             
-            if (this.obj.searchQuery) {
-                const matchFound = sel.rows.some(f => String(item[f]).toLowerCase().includes(this.obj.searchQuery));
+            if (this.searchQuery) {
+                const matchFound = sel.rows.some(f => String(item[f]).toLowerCase().includes(this.searchQuery));
                 if (!matchFound) return;
                 let pathArr = [];
                 sel.rows.forEach(f => {
@@ -251,8 +251,8 @@ export class PivotTableController extends BaseController {
             `);
             canvas.appendChild(tile);
 
-            const { dataset, searchQuery, calculatedFields } = this.obj;
-            this.obj.dashWorker.postMessage({ dataset, cfg, searchQuery, calculatedFields, tileIndex: i });
+            const { dataset, calculatedFields } = this.obj;
+            this.obj.dashWorker.postMessage({ dataset, cfg, searchQuery: this.searchQuery, calculatedFields, tileIndex: i });
         });
     }
 
@@ -267,6 +267,57 @@ export class PivotTableController extends BaseController {
             this.obj.dashboardTiles.push(this.savedConfigs[idx]);
             this.renderDashboard();
         }
+    }
+
+    addCalculatedField() {
+        const n = this.obj.container.querySelector('#calc-name').value; const f = this.obj.container.querySelector('#calc-formula').value;
+        if (n && f) { this.obj.calculatedFields.push({ name: n, formula: f }); this.obj.container.querySelector('#calc-modal').style.display='none'; this.initSidebar(); }
+    }
+
+    initSidebar() {
+
+		const { filters, dataset } = this.obj;
+        const fieldList = this.obj.container.querySelector('#source-fields');
+        fieldList.innerHTML = '';
+        
+        [...this.obj.baseFields, ...this.obj.calculatedFields.map(cf => cf.name)].forEach(f => {
+            const div = document.createElement('div');
+            div.className = 'field-item' + (this.obj.calculatedFields.find(c => c.name === f) ? ' calc-field' : '');
+            div.textContent = f; 
+            div.draggable = true;
+            div.style.marginBottom = "8px";
+            div.ondragstart = (e) => { 
+                e.dataTransfer.setData("type", "field"); 
+                e.dataTransfer.setData("text", f); 
+            };
+            fieldList.appendChild(div);
+            if (filters[f] === undefined) filters[f] = [...new Set(dataset.map(item => item[f]))];
+        });
+
+        // Saved pivots section remains the same...
+        const savedList = this.obj.container.querySelector('#saved-pivots');
+        savedList.innerHTML = '';
+        this.obj.savedConfigs.forEach((cfg, idx) => {
+            const div = document.createElement('div');
+            div.className = 'field-item saved-config';
+            div.textContent = cfg.name; div.draggable = true;
+            div.ondragstart = (e) => { e.dataTransfer.setData("type", "config"); e.dataTransfer.setData("index", idx); };
+            savedList.appendChild(div);
+        });
+
+        setTimeout(() => this.checkScroll(fieldList), 100);
+    }
+
+    searchTimer = null;
+    searchQuery = "";
+
+    handleSearch(v) {
+        clearTimeout(this.searchTimer);
+        this.searchTimer = setTimeout(() => {
+            this.searchQuery = v.toLowerCase(); 
+            if (!this.searchQuery) this.obj.expandedPaths.clear(); 
+            this.renderAll();
+        }, 250);
     }
 
 }

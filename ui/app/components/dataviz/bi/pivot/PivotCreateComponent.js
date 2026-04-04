@@ -39,10 +39,7 @@ export class PivotCreateComponent extends ViewComponent {
     /** @Prop */ savedConfigs = []; 
     /** @Prop */ dashboardTiles = []; 
     /** @Prop */ expandedPaths = new Set();
-    /** @Prop */ searchQuery = "";
     /** @Prop */ modes = ['sum', 'avg', 'count', 'max'];
-
-	/** @Prop */ searchTimer = null;
 
 	/** @Prop @type { HTMLElement } */container;
 
@@ -59,7 +56,7 @@ export class PivotCreateComponent extends ViewComponent {
 			this.dashWorker = new Worker(URL.createObjectURL(blob));
 			this.container = document.getElementsByClassName('bi-pivot-ui-container')[0];
 			this.getData();
-			this.initSidebar();
+			this.controller.initSidebar();
 			this.controller.renderAll();
 		});
 	}
@@ -76,7 +73,7 @@ export class PivotCreateComponent extends ViewComponent {
 			this.dataset.push({ 
 				'__rowId': i + 1,
 				'Dept': dept, 
-				'Level': this.level, 
+				'Level': level, 
 				'Region': this.regions[i % this.regions.length],
 				'Gender': this.genders[i % this.genders.length],
 				'Contract': this.contractTypes[i % this.contractTypes.length],
@@ -105,41 +102,6 @@ export class PivotCreateComponent extends ViewComponent {
 		}
 
 	}
-
-    initSidebar() {
-
-		const { filters, dataset } = this;
-        const fieldList = this.container.querySelector('#source-fields');
-        fieldList.innerHTML = '';
-        
-        [...this.baseFields, ...this.calculatedFields.map(cf => cf.name)].forEach(f => {
-            const div = document.createElement('div');
-            div.className = 'field-item' + (this.calculatedFields.find(c => c.name === f) ? ' calc-field' : '');
-            div.textContent = f; 
-            div.draggable = true;
-            div.style.marginBottom = "8px";
-            div.ondragstart = (e) => { 
-                e.dataTransfer.setData("type", "field"); 
-                e.dataTransfer.setData("text", f); 
-            };
-            fieldList.appendChild(div);
-            if (filters[f] === undefined) filters[f] = [...new Set(dataset.map(item => item[f]))];
-        });
-
-        // Saved pivots section remains the same...
-        const savedList = this.container.querySelector('#saved-pivots');
-        savedList.innerHTML = '';
-        this.savedConfigs.forEach((cfg, idx) => {
-            const div = document.createElement('div');
-            div.className = 'field-item saved-config';
-            div.textContent = cfg.name; div.draggable = true;
-            div.ondragstart = (e) => { e.dataTransfer.setData("type", "config"); e.dataTransfer.setData("index", idx); };
-            savedList.appendChild(div);
-        });
-
-        // Initial check for the arrow
-        setTimeout(() => this.controller.checkScroll(fieldList), 100);
-    }
 
     toggleFilterValue(v) {
 		const { filters, activeFilterField } = this;
@@ -175,7 +137,7 @@ export class PivotCreateComponent extends ViewComponent {
                 heatmap: document.getElementById('heatmap-check').checked,
                 showAllRows: document.getElementById('show-all-rows-check').checked
             });
-            this.initSidebar();
+            this.controller.initSidebar();
         }
     }
 
@@ -203,11 +165,6 @@ export class PivotCreateComponent extends ViewComponent {
 		};
 	}
 
-    addCalculatedField() {
-        const n = this.container.querySelector('#calc-name').value; const f = this.container.querySelector('#calc-formula').value;
-        if (n && f) { this.calculatedFields.push({ name: n, formula: f }); this.container.querySelector('#calc-modal').style.display='none'; this.initSidebar(); }
-    }
-
     evalFormula(item, formula) {
         let f = formula; this.baseFields.forEach(k => f = f.replace(new RegExp(k, 'g'), item[k] || 0));
         try { return eval(f); } catch { return 0; }
@@ -216,15 +173,6 @@ export class PivotCreateComponent extends ViewComponent {
     closeAllModals() { 
         this.container.querySelector('#calc-modal').style.display='none'; 
         this.container.querySelector('#filter-modal').style.display='none';
-    }
-
-    handleSearch(v) {
-        clearTimeout(this.searchTimer);
-        this.searchTimer = setTimeout(() => {
-            searchQuery = v.toLowerCase(); 
-            if (!searchQuery) this.expandedPaths.clear(); 
-            this.renderAll();
-        }, 250);
     }
 
     exportToCSV() {
@@ -266,8 +214,7 @@ export class PivotCreateComponent extends ViewComponent {
     clearWorkspace() {
         if (confirm("Are you sure you want to clear the current layout?")) {
             this.selection = { rows: [], cols: [], vals: [] };
-            this.expandedPaths.clear();
-            this.searchQuery = "";
+            this.expandedPaths.clear(), this.controller.searchQuery = "";
             this.container.querySelector('#global-search').value = "";
             this.container.querySelector('#show-all-rows-check').checked = false;
             this.baseFields.forEach(f => {
@@ -276,7 +223,6 @@ export class PivotCreateComponent extends ViewComponent {
             this.renderAll();
         }
     }
-
 }
 
 
@@ -298,14 +244,13 @@ function dataHandlingWorker() {
 				dataset.forEach(item => {
 
 					let skip = false;
-					for (let f in filterSets) {
+					for (let f in filterSets) 
 						if (!filterSets[f].has(item[f])) { skip = true; break; }
-					}
+					
 					if (skip) return;
 					
-					if (searchQuery) {
+					if (searchQuery) 
 						if (!sel.rows.some(f => String(item[f]).toLowerCase().includes(searchQuery))) return;
-					}
 	
 					const cKey = sel.cols.length > 0 ? sel.cols.map(f => item[f]).join(' | ') : "Value";
 					allCols.add(cKey);
@@ -324,8 +269,7 @@ function dataHandlingWorker() {
 							}
 	
 							const nVal = Number(val) || 0;
-							node.values[k].sum += nVal; 
-							node.values[k].count += 1;
+							node.values[k].sum += nVal, node.values[k].count += 1;
 							node.values[k].max = Math.max(node.values[k].max, nVal);
 						});
 					};
