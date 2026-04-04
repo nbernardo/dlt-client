@@ -2,18 +2,27 @@
 <style>
 	div:has(.this-is-the-bi-view) { width: 100%; }
 	.this-is-the-bi-view .popup-mov-window{ width: 100%; }
-	.this-is-the-bi-view .main { height: 92.5vh; padding: 15px; }
+	.this-is-the-bi-view .main { height: 92.5vh; padding: 15px; margin-top: 10px; }
 	.this-is-the-bi-view .tableContainer { height: 76vh; }
 	.this-is-the-bi-view .empty-dashboard { height: 75vh; }
 	.this-is-the-bi-view .tab-sheet, .this-is-the-bi-view .tab-chart, .this-is-the-bi-view .tab-dashboard { padding-top: 8px; }
+	.this-is-the-bi-view { .topbar { height: 67px; } .sidebar { height: 90.8vh; margin-top: 14px; } }
+	.minimize-analytics-log { right: 20px; margin-top: -49px; }
+
+	/** Dot Mini Loader */
+	.mini-loader-container { width: 13px; height: 13px; display: flex; align-items: center; justify-content: center; gap: 2px; }
+	.mini-loader-dot { width: 3px; height: 3px; border-radius: 50%; background-color: attr(dot-color, #E5E7EB); animation: pulse-dot 1.5s infinite ease-in-out both; }
+	.mini-loader-dot:nth-child(1) { animation-delay: -0.32s; }
+	.mini-loader-dot:nth-child(2) { animation-delay: -0.16s; }
+	@keyframes pulse-dot { 0%, 100% { transform: scale(0.6); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } }
+
 </style>
 @endif
 
 @if(!this.runningOnOdoo)
 <style>
-	.this-is-the-bi-view .popup-mov-window{ width: 115%; }
-	.this-is-the-bi-view .chart-builder { height: 64vh; }
-	.this-is-the-bi-view .tableContainer { height: 59vh; }
+	.minimize-analytics-log { right: 13px; margin-top: 2px; }
+	.this-is-the-bi-view {  .popup-mov-window{ width: 115%; } .chart-builder { height: 64vh; }  .tableContainer { height: 59vh; } }
 </style>
 @endif
 <div class="window-popup-mov-window this-is-the-bi-view" (showIf)="self.showWindowPopup">
@@ -59,6 +68,7 @@
 								</select>
 							</div>
 							<div class="e2e-chat-container" id="chat_wrapper">
+								<div class="minimize-analytics-log" title="@analyticsChatStateEnum.OPENED" onclick="controller.shrinkChatLogs(this)"> &plus; </div>
 								<textarea 
 									onkeyup="controller.submitAIAnalyticsQuery(event)"
 									id="ai_input" 
@@ -66,7 +76,6 @@
 									style="padding-right: 43%; height: 46px;" 
 									placeholder="Tell me what do you want to fetch..."></textarea>
 								<div class="ai-analytics-chat-logs" style="width: 26px; height: 26px;">
-									<div class="minimize-analytics-log" title="@analyticsChatStateEnum.OPENED" onclick="controller.shrinkChatLogs(this)"> &plus; </div>
 								</div>
 								<div id="ai_agent_ui" class="e2e-agent-ui e2e-hidden">
 									<span id="ai_question_label" style="color: #0056b3; font-weight: bold;"></span>
@@ -92,6 +101,7 @@
 							<nav class="tabs">
 								<div class="tab active" onclick="controller.switchTab('sheet',this)">Spreadsheet</div>
 								<div class="tab" onclick="controller.switchTab('chart',this)">Chart Builder</div>
+								<div class="tab" onclick="controller.switchTab('pivot',this)">Pivot</div>
 								<div class="tab" onclick="controller.switchTab('dashboard',this)">Dashboard</div>
 								<span>
 									<button class="btn btn-accent" id="btnPublish" style="width: 171px; flex: 2; position: absolute; right: 32px; margin-top: -14px;" onclick="controller.openPublishModal()">
@@ -101,17 +111,17 @@
 							</nav>
 
 							<div class="content active tab-sheet">
-							<div class="sheet-toolbar">
-								<div class="search-wrap"><input class="search-input" id="searchInput" placeholder="Search..." oninput="controller.filterRows(this.value)"></div>
-								<select class="field-select" style="width:auto" id="colFilter" onchange="controller.filterRows(document.getElementById('searchInput').value)"><option value="">All columns</option></select>
-								<button class="btn btn-ghost" onclick="controller.addColumn()" style="width: 87px;">+ Add Col</button>
-								<div class="topbar-actions" style="width: 301px;padding-left: 8px;">
-									<button class="btn btn-ghost" style="width: 290px;flex: 1.2;" onclick="controller.exportCSV()">↓ Export CSV</button>
-								</div>
-								<div class="stats-row">
-								<div class="stat-chip">Rows: <span id="rowCount">0</span></div>
-								<div class="stat-chip">Cols: <span id="colCount">0</span></div>
-								<div class="stat-chip">Selected: <span id="selCount">0</span></div>
+								<div class="sheet-toolbar">
+									<div class="search-wrap"><input class="search-input" id="searchInput" placeholder="Search..." oninput="controller.filterRows(this.value)"></div>
+									<select class="field-select" style="width:auto" id="colFilter" onchange="controller.filterRows(document.getElementById('searchInput').value)"><option value="">All columns</option></select>
+									<button class="btn btn-ghost" onclick="controller.addColumn()" style="width: 87px;">+ Add Col</button>
+									<div class="topbar-actions" style="width: 301px;padding-left: 8px;">
+										<button class="btn btn-ghost" style="width: 290px;flex: 1.2;" onclick="controller.exportCSV()">↓ Export CSV</button>
+									</div>
+									<div class="stats-row">
+									<div class="stat-chip">Rows: <span id="rowCount">0</span></div>
+									<div class="stat-chip">Cols: <span id="colCount">0</span></div>
+									<div class="stat-chip">Selected: <span id="selCount">0</span></div>
 								</div>
 							</div>
 							<div class="table-wrap tableContainer">
@@ -122,62 +132,66 @@
 
 							<div class="content tab-chart">
 								<div class="chart-builder">
-								<div class="chart-config">
-									<div>
-									<div class="config-section-title">Chart Type</div>
-									<div class="chart-type-grid chartTypeGrid"></div>
-									</div>
-									<div>
-									<div class="config-section-title">Data</div>
-									<label class="field-label">X Axis / Labels</label>
-									<select class="field-select" id="xAxisSelect"></select>
-									<label class="field-label" style="margin-top:10px;">Y Axis / Values</label>
-									<select class="field-select" id="yAxisSelect"></select>
-									<label class="field-label" style="margin-top:10px;">Aggregation</label>
-									<select class="field-select" id="aggSelect">
-										<option value="none">None (raw values)</option>
-										<option value="count">Count</option>
-										<option value="sum">Sum</option>
-										<option value="avg">Average</option>
-										<option value="max">Max</option>
-										<option value="min">Min</option>
-									</select>
-									</div>
-								</div>
-								<div class="chart-preview">
-									<div class="chart-preview-header">
+									<div class="chart-config">
 										<div>
-											<div class="chart-preview-title" id="previewTitle">Chart Preview</div>
+											<div class="config-section-title">Chart Type</div>
+											<div class="chart-type-grid chartTypeGrid"></div>
+										</div>
+										<div>
+											<div class="config-section-title">Data</div>
+											<label class="field-label">X Axis / Labels</label>
+											<select class="field-select" id="xAxisSelect"></select>
+											<label class="field-label" style="margin-top:10px;">Y Axis / Values</label>
+											<select class="field-select" id="yAxisSelect"></select>
+											<label class="field-label" style="margin-top:10px;">Aggregation</label>
+											<select class="field-select" id="aggSelect">
+												<option value="none">None (raw values)</option>
+												<option value="count">Count</option>
+												<option value="sum">Sum</option>
+												<option value="avg">Average</option>
+												<option value="max">Max</option>
+												<option value="min">Min</option>
+											</select>
+										</div>
+									</div>
+									<div class="chart-preview">
+										<div class="chart-preview-header">
 											<div>
-												<div class="chart-style-config-wrapper" style="display: flex; gap: 10px;">
-													<div>
-														<label class="field-label">Chart Title</label>
-														<input class="chart-title-input chartTitleInput" placeholder="Chart title..." value="My Chart">
-													</div>
-													<div>
-														<label class="field-label">Color</label>
-														<div class="color-row" id="colorRow"></div>
+												<div class="chart-preview-title" id="previewTitle">Chart Preview</div>
+												<div>
+													<div class="chart-style-config-wrapper" style="display: flex; gap: 10px;">
+														<div>
+															<label class="field-label">Chart Title</label>
+															<input class="chart-title-input chartTitleInput" placeholder="Chart title..." value="My Chart">
+														</div>
+														<div>
+															<label class="field-label">Color</label>
+															<div class="color-row" id="colorRow"></div>
+														</div>
 													</div>
 												</div>
 											</div>
+											<div style="display: flex; gap: 6px;">
+												<button class="btn btn-ghost" style="width: 90px;" onclick="controller.buildChart()">↺ Preview</button>
+												<!-- <button class="btn btn-primary" style="width: 95px" onclick="controller.buildChart()">Build Chart</button> -->
+												<button class="btn btn-ghost" style="width: 95px" onclick="controller.saveChart()">Save Chart</button>
+											</div>
 										</div>
-										<div style="display: flex; gap: 6px;">
-											<button class="btn btn-ghost" style="width: 90px;" onclick="controller.buildChart()">↺ Preview</button>
-											<!-- <button class="btn btn-primary" style="width: 95px" onclick="controller.buildChart()">Build Chart</button> -->
-											<button class="btn btn-ghost" style="width: 95px" onclick="controller.saveChart()">Save Chart</button>
-										</div>
+										<div class="chart-canvas-wrap"><canvas id="chartCanvas"></canvas></div>
 									</div>
-									<div class="chart-canvas-wrap"><canvas id="chartCanvas"></canvas></div>
-								</div>
 								</div>
 							</div>
 
-							<div class="content tab-dashboard">
-							<div class="dashboard-toolbar">
-								<select class="field-select dashSelect" style="width:220px;" onchange="loadDashboard(this.value)"></select>
-								<button class="btn btn-ghost" style="width: 135px;" onclick="controller.newDashboard()">+ New Dashboard</button>
+							<div class="content tab-pivot">
+								<st-element component="PivotCreateComponent" @delayed="2.1s"></st-element>
 							</div>
-							<div class="dashboard-grid dashGrid"></div>
+
+							<div class="content tab-dashboard">
+								<div class="dashboard-toolbar">
+									<select class="field-select dashSelect" style="width:220px;" onchange="loadDashboard(this.value)"></select>
+									<button class="btn btn-ghost" style="width: 135px;" onclick="controller.newDashboard()">+ New Dashboard</button>
+								</div>
+								<div class="dashboard-grid dashGrid"></div>
 							</div>
 						</main>
 					</div>
@@ -203,16 +217,15 @@
 	</div>
 </div>
 <style>
+	.minimize-analytics-log{
+    	width: 22px; height: 22px; margin-top: 0px; border-radius: 15px; cursor: pointer; position: fixed; border: 1px solid;
+    	background: #059669; color: white; display: flex; justify-content: center; align-items: center; z-index: 1;
+	}
 	.ai-analytics-chat-logs{ 
 		
 		position: absolute; right: 1.7em; top: 9px; border-radius: 3px; padding: 3px !important; 
         background-color: #2c3e50; padding: 1rem;  border-radius: 0.5rem; display: flex; flex-direction: column;
         border: 1px solid #d1d5db; overflow: hidden; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-
-		.minimize-analytics-log{
-			width: 18px; height: 18px; position: fixed; right: 335px; margin-top: 0px; border-radius: 15px; 
-			cursor: pointer; background: #059669; color: white; display: flex; justify-content: center; right: 27px;
-		}
 
 		.message-bubble {
 			margin: 6px; max-width: 85%; padding: 10px .5rem; border-radius: 1rem;

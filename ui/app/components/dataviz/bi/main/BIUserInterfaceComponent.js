@@ -1,18 +1,19 @@
-import { Assets } from "../../../../@still/util/componentUtil.js";
-import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
-import { BIChatController } from "../../../controller/BIChatController.js";
-import { BIController } from "../../../controller/BIController.js";
-import { ModalWindowComponent } from "../../abstract/ModalWindowComponent.js";
-import { PopupUtil } from "../../popup-window/PopupUtil.js";
-import { mockDataTables, mockDepartments, mockTitles } from "./mock.js";
-import { BiUiUtil } from "./util.js";
+import { Assets } from "../../../../../@still/util/componentUtil.js";
+import { UUIDUtil } from "../../../../../@still/util/UUIDUtil.js";
+import { StillAppSetup } from "../../../../../config/app-setup.js";
+import { BIChatController } from "../../../../controller/BIChatController.js";
+import { BIController } from "../../../../controller/BIController.js";
+import { ModalWindowComponent } from "../../../abstract/ModalWindowComponent.js";
+import { PopupUtil } from "../../../popup-window/PopupUtil.js";
+import { mockDataTables, mockDepartments, mockTitles } from "../mock.js";
+import { BiUiUtil } from "../util.js";
 
 
 export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	isPublic = false;
 
-	/** @Prop */ showWindowPopup = true;
+	/** @Prop */ showWindowPopup = false;
 
 	/** @Prop */ uniqueId = '_'+UUIDUtil.newId();
 
@@ -54,7 +55,9 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	/** @Prop @type { BIChatController } */ chatController;
 
-	async stBeforeInit(){}
+	async stBeforeInit(){
+		this.runningOnOdoo = StillAppSetup.config.get('runningOnOdoo');
+	}
 
 	async stOnRender(){
 		let cssPathPrefix = '';
