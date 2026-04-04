@@ -1,15 +1,16 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
-import { AIAgent } from "../components/agent/AIAgent.js";
-import { BIUserInterfaceComponent } from "../components/dataviz/bi/BIUserInterfaceComponent.js";
+import { HTTPHeaders } from "../../@still/helper/http.js";
+import { StillAppSetup } from "../../config/app-setup.js";
+import { BIUserInterfaceComponent } from "../components/dataviz/bi/main/BIUserInterfaceComponent.js";
 import { BiUiUtil } from "../components/dataviz/bi/util.js";
-import { WorkspaceService } from "../services/WorkspaceService.js";
 import { AIUtil } from "../util/AIUtil.js";
-import { AIAgentController } from "./AIAgentController.js";
 
 export class BIController extends BaseController {
 
     /** @type { BIUserInterfaceComponent } */
     obj;
+
+    wasUiPreviousInited = false;
 
     renderTableList() {
 		const tables = this.obj.analyticsRessultTables[this.obj.state.pipeline] || [];
@@ -361,34 +362,36 @@ export class BIController extends BaseController {
 	handleDragStart = (e, index) => e.dataTransfer.setData('chartIdx', index);
 
     initDragAndDrop() {
-        const { state } = this.obj;
-        const grid = this.obj.popup.querySelector('.dashGrid');
-        const self = this;
-        
-        grid.addEventListener('dragover', e => { 
-            e.preventDefault(); 
-            grid.classList.add('drag-over'); 
-        });
-        
-        grid.addEventListener('dragleave', () => { 
-            grid.classList.remove('drag-over'); 
-        });
-        
-        grid.addEventListener('drop', e => {
-            e.preventDefault();
-            grid.classList.remove('drag-over');
+        if(this.wasUiPreviousInited === false){
+            this.wasUiPreviousInited = true;
+            const { state } = this.obj;
+            const grid = this.obj.popup.querySelector('.dashGrid');
             
-            const idx = e.dataTransfer.getData('chartIdx');
-            if (idx !== "") {
-                const chartData = state.savedCharts[parseInt(idx)];
-                if (chartData) {
-                    if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
-                    state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
-                    this.loadDashboard(state.activeDash);
-                    this.showToast(`Added ${chartData.title} to dashboard`);
+            grid.addEventListener('dragover', e => { 
+                e.preventDefault(); 
+                grid.classList.add('drag-over'); 
+            });
+            
+            grid.addEventListener('dragleave', () => { 
+                grid.classList.remove('drag-over');
+            });
+            
+            grid.addEventListener('drop', e => {
+                e.preventDefault();
+                grid.classList.remove('drag-over');
+                
+                const idx = e.dataTransfer.getData('chartIdx');
+                if (idx !== "") {
+                    const chartData = state.savedCharts[parseInt(idx)];
+                    if (chartData) {
+                        if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
+                        state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
+                        this.loadDashboard(state.activeDash);
+                        this.showToast(`Added ${chartData.title} to dashboard`);
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     loadDashboard(name) {
@@ -554,7 +557,8 @@ export class BIController extends BaseController {
             if(hasFirstMessage) this.obj.popup.querySelector('.message-bubble').style.visibility = 'visible';
             
         }else{
-            elm.title = this.obj.analyticsChatStateEnum.OPENED, elm.innerHTML = '&plus;';
+            if(elm?.title)
+                elm.title = this.obj.analyticsChatStateEnum.OPENED, elm.innerHTML = '&plus;';
             this.obj.popup.querySelector('.ai-analytics-chat-logs').style.width = '25px';
             this.obj.popup.querySelector('.ai-analytics-chat-logs').style.height = '25px';
             this.obj.popup.querySelector('.ai-analytics-chat-logs').style.overflow = 'hidden';
@@ -572,9 +576,9 @@ export class BIController extends BaseController {
             this.createMessageBubble(this.analyticsQuery, 'user', mainContainer);
             this.shrinkChatLogs(this.obj.popup.querySelector('.minimize-analytics-log'), true);
 
-            this.createMessageBubble(AIAgentController.loadingContent(), 'agent', mainContainer);
+            this.createMessageBubble(AIUtil.loadingContent(), 'agent', mainContainer);
 
-            let { result, error } = await WorkspaceService.sendDataQueryAgentMessage(this.analyticsQuery);
+            let { result, error } = await this.sendDataQueryAgentMessage(this.analyticsQuery);
 
             if((result?.result || '').includes('CLARIFY:') || result?.answer == 'schema-clarification') content = result.result;
             else if(result?.result == '[]') content = 'Your request didn\'t match any of existing data';
@@ -593,5 +597,22 @@ export class BIController extends BaseController {
 		AIUtil.createMessageBubble(text, role, null, mainContainer);
 		AIUtil.scrollToBottom(false, mainContainer);
 	}
+
+    /** @returns { { result: { result } } } */
+    async sendDataQueryAgentMessage(message) {
+        let agentFlow = AIUtil.aiAgentFlow, namespace = StillAppSetup.config.get('clientNamespace');
+
+        if(!this.obj.runningOnOdoo){
+            const { UserUtil } = await import('../components/auth/UserUtil.js');
+            const { UserService } = await  import('../services/UserService.js');
+            namespace = StillAppSetup.config.get('anonymousLogin') ? UserUtil.email : await UserService.getNamespace();
+        }
+
+        const url = '/workcpace/agent/' + namespace;
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ message, agentFlow }), HTTPHeaders.JSON);
+        if (response.ok && !response.error)
+            return await response.json();
+        return null;
+    }
     
 }

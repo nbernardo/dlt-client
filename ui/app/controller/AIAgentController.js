@@ -226,16 +226,6 @@ export class AIAgentController extends BaseController {
 		document.getElementById('ai-chat-user-input').focus();
 	}
 
-	static loadingContent() {
-		return `
-			<div class="mini-loader-container">
-				<div class="mini-loader-dot" style="background: black;"></div>
-				<div class="mini-loader-dot" style="background: black;"></div>
-				<div class="mini-loader-dot" style="background: black;"></div>
-			</div>
-		`;
-	}
-
     /** @param {AIAgent} self */
     async handleBotFunctionCall(self, content = ''){
         if(content.includes('showSerets'))

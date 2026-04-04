@@ -330,21 +330,6 @@ export class WorkspaceService extends BaseService {
     }
 
     /** @returns { { result: { result } } } */
-    static async sendDataQueryAgentMessage(message) {
-        const agentFlow = AIUtil.aiAgentFlow
-        const namespace = StillAppSetup.config.get('anonymousLogin')
-            ? UserUtil.email : await UserService.getNamespace();
-
-        const url = '/workcpace/agent/' + namespace;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ message, agentFlow }), {
-            headers: { 'content-type': 'Application/json' }
-        });
-        if (response.ok && !response.error)
-            return await response.json();
-        return null;
-    }
-
-    /** @returns { { result: { result } } } */
     static async sendPipelineAgentMessage(message) {
 
         const namespace = StillAppSetup.config.get('anonymousLogin')

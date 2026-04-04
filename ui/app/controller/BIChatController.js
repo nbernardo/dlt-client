@@ -16,15 +16,6 @@ export class BIChatController {
             resetBtn.onclick = () => this.showInputMode();
         }
 
-        this.input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const prompt = this.input.value.trim();
-                if (prompt) {
-                    this.handleUserPrompt(prompt);
-                }
-            }
-        });
     }
 
     async handleUserPrompt(text) {

@@ -49,7 +49,17 @@ export const AIUtil = {
         if(AIUtil.aiResponseMessageAnchor !== null) scrollToBottom(anchor, messagesContainer);
     },
 
-    scrollToBottom: (anchor, obj) => scrollToBottom(anchor, obj)
+    scrollToBottom: (anchor, obj) => scrollToBottom(anchor, obj),
+
+    loadingContent: () => {
+		return `
+			<div class="mini-loader-container">
+				<div class="mini-loader-dot" style="background: black;"></div>
+				<div class="mini-loader-dot" style="background: black;"></div>
+				<div class="mini-loader-dot" style="background: black;"></div>
+			</div>
+		`;
+	}
 }
 
 

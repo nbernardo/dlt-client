@@ -139,7 +139,7 @@ export class AIAgent extends ViewComponent {
 	
 				if(useSecretPrompt){ /** continue */ }
 				else if((cannotContinue && isFlowNotSet) || botFunctionCall){
-					const content = botFunctionCall ? AIAgentController.loadingContent() : botResponse;
+					const content = botFunctionCall ? AIUtil.loadingContent() : botResponse;
 					if(!(stickToPrevFlow && this.controller.getActiveFlow() != null))
 						return this.createMessageBubble(content, 'agent', 'DLT Workspace');
 				}
@@ -162,7 +162,7 @@ export class AIAgent extends ViewComponent {
 				}
 			}
 
-			this.createMessageBubble(AIAgentController.loadingContent(), 'agent');
+			this.createMessageBubble(AIUtil.loadingContent(), 'agent');
 			this.sentMessagesCount = this.sentMessagesCount.value + 1;
 
 			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);

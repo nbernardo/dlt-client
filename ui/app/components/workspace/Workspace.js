@@ -27,7 +27,7 @@ import { CatalogForm } from "../catalog/CatalogForm.js";
 import { expoandApiTestData } from "../catalog/util/CatalogUtil.js";
 import { LogQueryDisplay } from "../log/logquery/LogQueryDisplay.js";
 import { DataCatalogUI } from "../data-catalog/DataCatalogUI.js";
-import { BIUserInterfaceComponent } from "../dataviz/bi/BIUserInterfaceComponent.js";
+import { BIUserInterfaceComponent } from "../dataviz/bi/main/BIUserInterfaceComponent.js";
 
 export class Workspace extends ViewComponent {
 

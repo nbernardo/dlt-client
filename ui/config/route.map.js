@@ -131,8 +131,12 @@ export const stillRoutesMap = {
                 url: "/data-catalog-ui"
             },
             BIUserInterfaceComponent: {
-                path: "app/components/dataviz/bi",
+                path: "app/components/dataviz/bi/main",
                 url: "/biu-ser-interface"
+            },
+            PivotCreateComponent: {
+                path: "app/components/dataviz/bi/pivot",
+                url: "/pivot-create"
             }
         },
         lazyInitial: {}
