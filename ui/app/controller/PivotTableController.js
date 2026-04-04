@@ -29,10 +29,10 @@ export class PivotTableController extends BaseController {
     clearDrag(e) { e.currentTarget.classList.remove('drag-over'); }
 
     renderAll() {
-        const container = this.obj.container.querySelector('#table-canvas');
+        const container = this.obj.$parent.popup.querySelector('#table-canvas');
         const showAllRows = this.obj.container.querySelector('#show-all-rows-check').checked;
 		const { selection, filters, parseEvents } = this.obj;
-        
+
         ['rows', 'cols', 'vals'].forEach(id => {
             const z = this.obj.container.querySelector('#'+id);
             z.innerHTML = `<div class="zone-title">${id}</div>`;
@@ -230,8 +230,8 @@ export class PivotTableController extends BaseController {
         this.obj.expandedPaths.has(p) ? this.obj.expandedPaths.delete(p) : this.obj.expandedPaths.add(p); this.renderAll(); this.renderDashboard(); 
     }
 
-    renderDashboard() {
-        const canvas = this.obj.container.querySelector('#dashboard-canvas');
+    renderDashboard(container) {
+        const canvas = container || this.obj.container.querySelector('#dashboard-canvas');
         canvas.innerHTML = '';
 
         this.obj.dashboardTiles.forEach((cfg, i) => {
@@ -257,15 +257,15 @@ export class PivotTableController extends BaseController {
     }
 
     onDashboardDelete(i){
-        this.obj.dashboardTiles.splice(i,1);renderDashboard()
+        this.obj.dashboardTiles.splice(i,1); this.renderDashboard()
     }
 
-    handleDashDrop(e) {
+    handleDashDrop(e, container) {
         e.preventDefault(); e.currentTarget.classList.remove('drag-over');
         if (e.dataTransfer.getData("type") === "config") {
-            const idx = e.dataTransfer.getData("index");
-            this.obj.dashboardTiles.push(this.savedConfigs[idx]);
-            this.renderDashboard();
+            const idx = e.dataTransfer.getData("pivotIndex");
+            this.obj.dashboardTiles.push(this.obj.savedConfigs[idx]);
+            this.renderDashboard(container);
         }
     }
 
@@ -295,13 +295,13 @@ export class PivotTableController extends BaseController {
         });
 
         // Saved pivots section remains the same...
-        const savedList = this.obj.container.querySelector('#saved-pivots');
+        const savedList = this.obj.$parent.popup.querySelector('.saved-pivots');
         savedList.innerHTML = '';
         this.obj.savedConfigs.forEach((cfg, idx) => {
             const div = document.createElement('div');
-            div.className = 'field-item saved-config';
+            div.className = 'table-item active'//'field-item saved-config';
             div.textContent = cfg.name; div.draggable = true;
-            div.ondragstart = (e) => { e.dataTransfer.setData("type", "config"); e.dataTransfer.setData("index", idx); };
+            div.ondragstart = (e) => { e.dataTransfer.setData("type", "config"); e.dataTransfer.setData("pivotIndex", idx); };
             savedList.appendChild(div);
         });
 
@@ -318,6 +318,20 @@ export class PivotTableController extends BaseController {
             if (!this.searchQuery) this.obj.expandedPaths.clear(); 
             this.renderAll();
         }, 250);
+    }
+
+    saveConfiguration() {
+		const { selection, filters } = this.obj;
+        const heatmap = this.obj.container.querySelector('#heatmap-check').checked;
+        const showAllRows = this.obj.container.querySelector('#show-all-rows-check').checked;
+        if (!selection.rows.length || !selection.vals.length) return alert("Empty Layout");
+        const name = prompt("Name your layout:");
+        if (name) {
+            this.obj.savedConfigs.push({
+                name, heatmap, showAllRows, selection: JSON.parse(JSON.stringify(selection)), filters: JSON.parse(JSON.stringify(filters))
+            });
+            this.initSidebar();
+        }
     }
 
 }

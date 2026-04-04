@@ -1,6 +1,7 @@
 import { sleepForSec } from "../../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../../@still/component/super/ViewComponent.js";
 import { PivotTableController } from "../../../../controller/PivotTableController.js";
+import { BIUserInterfaceComponent } from "../main/BIUserInterfaceComponent.js";
 
 export class PivotCreateComponent extends ViewComponent {
 
@@ -48,16 +49,18 @@ export class PivotCreateComponent extends ViewComponent {
 	 * @Path controller/
 	 * @type { PivotTableController } */ controller;
 
+	/** @type { BIUserInterfaceComponent } */ $parent;
+
 	stAfterInit(){
 		this.controller.on('load', async () => {
 			this.controller.obj = this;
 			await sleepForSec(500);
-			const blob = new Blob([dataHandlingWorker()], { type: 'application/javascript' });
-			this.dashWorker = new Worker(URL.createObjectURL(blob));
+			this.dashWorker =  new Worker('/app/components/dataviz/bi/pivot/worker.js');
 			this.container = document.getElementsByClassName('bi-pivot-ui-container')[0];
 			this.getData();
 			this.controller.initSidebar();
 			this.controller.renderAll();
+			this.setWorkerListiner();
 		});
 	}
 
@@ -123,22 +126,6 @@ export class PivotCreateComponent extends ViewComponent {
         this.container.querySelector('#table-canvas').style.display = tab === 'dash' ? 'none' : 'block';
         this.container.querySelector('#dashboard-canvas').style.display = tab === 'dash' ? 'flex' : 'none';
         if(tab === 'dash') this.renderDashboard();
-    }
-
-    saveConfiguration() {
-		const { selection, filters } = this;
-        if (!selection.rows.length || !selection.vals.length) return alert("Empty Layout");
-        const name = prompt("Name your layout:");
-        if (name) {
-            this.savedConfigs.push({
-                name,
-                selection: JSON.parse(JSON.stringify(selection)),
-                filters: JSON.parse(JSON.stringify(filters)),
-                heatmap: document.getElementById('heatmap-check').checked,
-                showAllRows: document.getElementById('show-all-rows-check').checked
-            });
-            this.controller.initSidebar();
-        }
     }
 
 	setWorkerListiner(){
@@ -223,70 +210,4 @@ export class PivotCreateComponent extends ViewComponent {
             this.renderAll();
         }
     }
-}
-
-
-
-function dataHandlingWorker() {
-
-	return `
-			self.onmessage = function(e) {
-				const { dataset, cfg, searchQuery, calculatedFields, tileIndex } = e.data;
-				const { selection: sel, filters: fltrs, showAllRows } = cfg;
-				
-				const root = { children: {}, values: {}, label: 'Grand Total', depth: -1 };
-				const allCols = new Set();
-				const effectiveRows = showAllRows ? [...sel.rows, '__rowId'] : sel.rows;
-	
-				const filterSets = {};
-				for (let f in fltrs) filterSets[f] = new Set(fltrs[f]);
-	
-				dataset.forEach(item => {
-
-					let skip = false;
-					for (let f in filterSets) 
-						if (!filterSets[f].has(item[f])) { skip = true; break; }
-					
-					if (skip) return;
-					
-					if (searchQuery) 
-						if (!sel.rows.some(f => String(item[f]).toLowerCase().includes(searchQuery))) return;
-	
-					const cKey = sel.cols.length > 0 ? sel.cols.map(f => item[f]).join(' | ') : "Value";
-					allCols.add(cKey);
-	
-					const update = (node, key) => {
-						sel.vals.forEach(v => {
-							const k = \`\${key}_\${v.field}\`;
-							if (!node.values[k]) node.values[k] = { sum: 0, count: 0, max: -Infinity };
-							
-							let val = item[v.field];
-							const calc = calculatedFields.find(c => c.name === v.field);
-							if (calc) {
-								let f = calc.formula;
-								for (let prop in item) { f = f.replace(new RegExp(prop, 'g'), item[prop] || 0); }
-								try { val = eval(f); } catch { val = 0; }
-							}
-	
-							const nVal = Number(val) || 0;
-							node.values[k].sum += nVal, node.values[k].count += 1;
-							node.values[k].max = Math.max(node.values[k].max, nVal);
-						});
-					};
-	
-					update(root, cKey);  update(root, 'TOTAL');
-					
-					let curr = root;
-					effectiveRows.forEach((f, i) => {
-						const val = item[f];
-						if (!curr.children[val]) curr.children[val] = { children: {}, values: {}, depth: i };
-						curr = curr.children[val]; 
-						update(curr, cKey); 
-						update(curr, 'TOTAL');
-					});
-				});
-	
-				self.postMessage({ root, cols: Array.from(allCols).sort(), tileIndex,  cfg });
-			};
-		`;
 }

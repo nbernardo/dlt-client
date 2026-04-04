@@ -10,9 +10,6 @@
   
 		@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   
-		/* Position tiles relatively so overlay fits inside */
-		.dash-tile { position: relative; }
-  
 		.scroll-indicator { display: none; text-align: center; padding: 5px; color: var(--primary); font-size: 18px; font-weight: bold; background: linear-gradient(transparent, white); position: absolute; bottom: 0; width: 100%; pointer-events: none; animation: bounce 2s infinite; }
   
 		  @keyframes bounce {
@@ -31,7 +28,7 @@
 		  
 		  .field-item { background: #fff; padding: 10px; border-radius: 6px; cursor: grab; border: 1px solid var(--border); font-size: 13px; font-weight: 500; }
 		  .field-item.calc-field { border-left: 4px solid var(--success); background: #f0fdf4; }
-		  .field-item.saved-config { border-left: 4px solid var(--primary); background: #eff6ff; cursor: grab; position: relative; }
+		  
   
 		  /* Workspace */
 		  .workspace { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; position: relative; }
@@ -70,8 +67,6 @@
 		  .total-col { background: #f8fafc; font-weight: 700; border-left: 2px solid var(--border); }
   
 		  #dashboard-canvas {  display: none;  flex-wrap: wrap;  gap: 20px;  overflow-y: auto;  flex: 1;  padding: 20px;  border: 3px dashed #cbd5e1;  border-radius: 10px; align-content: flex-start; }
-		  
-		  .dash-tile {  background: white;  border: 1px solid var(--border);  border-radius: 10px;  padding: 15px;  display: flex;  flex-direction: column;  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);  resize: both;  overflow: hidden;  min-width: 350px;  min-height: 250px;  width: 500px;  height: 400px; }
 		  #filter-modal, #calc-modal { position: absolute; background: white; border: 1px solid var(--border); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 8px; padding: 12px; z-index: 1000; display: none; min-width: 170px; }
 	}
 </style>
@@ -97,10 +92,10 @@
             <div id="source-fields" style="max-height: 400px; overflow-y: auto;" onscroll="controller.checkScroll(this)"></div>
             <div id="field-scroll-arrow" class="scroll-indicator">↓</div>
         </div>
-        <div class="sidebar-section">
+        <!-- <div class="sidebar-section">
             <h3>Saved Pivot Layouts</h3>
             <div id="saved-pivots"></div>
-        </div>
+        </div> -->
     </aside>
 
     <main class="workspace">
@@ -118,7 +113,7 @@
                 <label class="heatmap-toggle">
                     <input type="checkbox" id="show-all-rows-check" onchange="controller.renderAll()"> Raw Records
                 </label>
-                <button class="action-btn save" onclick="saveConfiguration()">💾 Save Layout</button>
+                <button class="action-btn save" onclick="controller.saveConfiguration()">💾 Save Layout</button>
                 <button class="action-btn" style="background: #64748b;" onclick="exportToCSV()">📤 Export CSV</button>
                 <button class="action-btn" style="background: #ef4444;" onclick="clearWorkspace()">🧹 Clear All</button>
             </div>

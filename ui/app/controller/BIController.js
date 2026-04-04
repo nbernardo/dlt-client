@@ -378,6 +378,10 @@ export class BIController extends BaseController {
             
             grid.addEventListener('drop', e => {
                 e.preventDefault();
+                
+                if(e.dataTransfer.getData("pivotIndex"))
+                    return this.obj.pivotTableProxy.controller.handleDashDrop(e, grid);
+                
                 grid.classList.remove('drag-over');
                 
                 const idx = e.dataTransfer.getData('chartIdx');
@@ -396,11 +400,11 @@ export class BIController extends BaseController {
 
     loadDashboard(name) {
         this.obj.state.activeDash = name;
+        const grid = this.obj.popup.querySelector('.dashGrid');
+        const items = this.obj.state.dashboards[name] || [];
 
         this.obj.popup.querySelector('.dashSelect').value = name;
-        const grid = this.obj.popup.querySelector('.dashGrid');
 
-        const items = this.obj.state.dashboards[name] || [];
         
         if (items.length === 0) {
             grid.innerHTML = `<div class="empty-dashboard">

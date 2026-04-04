@@ -94,6 +94,8 @@
 							<div class="sidebar-section">
 							<div class="sidebar-title">Saved Charts</div>
 							<div class="chartList"></div>
+							<div class="sidebar-title">Saved Pivots</div>
+							<div class="saved-pivots"></div>
 							</div>
 						</aside>
 
@@ -183,7 +185,7 @@
 							</div>
 
 							<div class="content tab-pivot">
-								<st-element component="PivotCreateComponent" @delayed="2.1s"></st-element>
+								<st-element component="PivotCreateComponent" proxy="pivotTableProxy" @delayed="2.1s"></st-element>
 							</div>
 
 							<div class="content tab-dashboard">

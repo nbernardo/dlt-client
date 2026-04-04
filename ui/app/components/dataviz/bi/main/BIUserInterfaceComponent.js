@@ -6,6 +6,7 @@ import { BIController } from "../../../../controller/BIController.js";
 import { ModalWindowComponent } from "../../../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../../../popup-window/PopupUtil.js";
 import { mockDataTables, mockDepartments, mockTitles } from "../mock.js";
+import { PivotCreateComponent } from "../pivot/PivotCreateComponent.js";
 import { BiUiUtil } from "../util.js";
 
 
@@ -45,6 +46,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
  	
 	/** @Prop */ gridDataSource = null;
 
+	/** @Proxy @type { PivotCreateComponent } */ pivotTableProxy = null;
+
 	/** @Prop */ analyticsChatStateEnum = { OPENED: 'Expanded', CLOSED: 'Minimized' };
 
 	/** 
@@ -75,7 +78,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
 		this.util = new PopupUtil();
-		this.gridDataSource = []//this.genData();
+		this.gridDataSource = [];
 		this.controller.on('load', () => {
 			this.controller.obj = this;
 			setTimeout(this.controller.shrinkChatLogs(), 500);
@@ -97,25 +100,6 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	setData = (dataSource) => {
 		this.gridDataSource = dataSource;
 		return this;
-	}
-
-	genData() {
-		// const r = [];
-		// // This is generating a mock data
-		// for (let i = 1; i <= 290; i++)
-		// 	r.push({
-		// 		'BusinessEntityID': i,
-		// 		NationalIDNumber: String(Math.floor(Math.random() * 900000000 + 100000000)),
-		// 		JobTitle: this.TITLES[i % this.TITLES.length] + " - " + this.DEPTS[i % this.DEPTS.length],
-		// 		Department: this.DEPTS[i % this.DEPTS.length],
-		// 		HireDate: new Date(2005 + (i % 15), i % 12, (i % 28) + 1).toISOString().split("T")[0],
-		// 		VacationHours: Math.floor(Math.random() * 99),
-		// 		SickLeaveHours: Math.floor(Math.random() * 69),
-		// 		SalariedFlag: i % 3 === 0 ? 0 : 1,
-		// 		Gender: i % 2 === 0 ? "M" : "F",
-		// 		MaritalStatus: i % 3 === 0 ? "S" : "M",
-		// 	});
-		return r;
 	}
 
 	init() {
