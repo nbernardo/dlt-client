@@ -10,14 +10,6 @@
   
 		@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   
-		.scroll-indicator { display: none; text-align: center; padding: 5px; color: var(--primary); font-size: 18px; font-weight: bold; background: linear-gradient(transparent, white); position: absolute; bottom: 0; width: 100%; pointer-events: none; animation: bounce 2s infinite; }
-  
-		  @keyframes bounce {
-			  0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-			  40% {transform: translateY(-5px);}
-			  60% {transform: translateY(-3px);}
-		  }
-  
 		  .sidebar-section { position: relative; }
 		  body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; color: #1e293b; }
 		  
@@ -25,25 +17,16 @@
 		  .sidebar { width: 240px; background: white; border-right: 1px solid var(--border); padding: 20px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
 		  .sidebar-section { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 		  .sidebar h3 { margin: 0; font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; font-weight: 800; }
-		  
-		  .field-item { background: #fff; padding: 10px; border-radius: 6px; cursor: grab; border: 1px solid var(--border); font-size: 13px; font-weight: 500; }
-		  .field-item.calc-field { border-left: 4px solid var(--success); background: #f0fdf4; }
-		  
   
 		  /* Workspace */
-		  .workspace { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 20px; overflow: hidden; position: relative; }
-		  
-		  /* Tab Bar */
-		  .tab-bar { display: flex; gap: 5px; margin-bottom: -10px; z-index: 5; }
-		  .tab-btn { padding: 8px 16px; border: 1px solid var(--border); border-bottom: none; background: #e2e8f0; cursor: pointer; border-radius: 8px 8px 0 0; font-size: 12px; font-weight: 600; color: #64748b; }
-		  .tab-btn.active { background: white; color: var(--primary); border-top: 2px solid var(--primary); }
-  
+		  .workspace { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow: hidden; position: relative; }
+		    
 		  /* Toolbar */
 		  .toolbar { display: flex; align-items: center; gap: 15px; }
 		  .search-container { flex: 1; display: flex; align-items: center; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; gap: 10px; }
 		  .search-input { border: none; outline: none; flex: 1; font-size: 14px; }
 		  .heatmap-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; white-space: nowrap; }
-		  .action-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
+		  .action-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; }
 		  .action-btn.save { background: var(--success); }
   
 		  .drop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
@@ -85,25 +68,7 @@
         <button onclick="controller.addCalculatedField()" class="action-btn" style="width: 100%;">Add Field</button>
     </div>
 
-    <aside class="sidebar">
-        <div class="sidebar-section">
-            <h3>Dataset Fields</h3>
-            <button onclick="event.stopPropagation(); document.getElementById('calc-modal').style.display='block'" style="width:100%; padding:8px; cursor:pointer;">+ Add Formula</button>
-            <div id="source-fields" style="max-height: 400px; overflow-y: auto;" onscroll="controller.checkScroll(this)"></div>
-            <div id="field-scroll-arrow" class="scroll-indicator">↓</div>
-        </div>
-        <!-- <div class="sidebar-section">
-            <h3>Saved Pivot Layouts</h3>
-            <div id="saved-pivots"></div>
-        </div> -->
-    </aside>
-
     <main class="workspace">
-        <div class="tab-bar">
-            <button id="tab-lab" class="tab-btn active" onclick="switchTab('lab')">Pivot Lab</button>
-            <button id="tab-dash" class="tab-btn" onclick="switchTab('dash')">Dashboard Canvas</button>
-        </div>
-
         <div id="lab-controls" style="display: flex; flex-direction: column; gap: 20px;">
             <div class="toolbar">
                 <div class="search-container">🔍 <input type="text" id="global-search" class="search-input" placeholder="Search rows..." oninput="controller.handleSearch(this.value)"></div>
@@ -113,9 +78,9 @@
                 <label class="heatmap-toggle">
                     <input type="checkbox" id="show-all-rows-check" onchange="controller.renderAll()"> Raw Records
                 </label>
-                <button class="action-btn save" onclick="controller.saveConfiguration()">💾 Save Layout</button>
-                <button class="action-btn" style="background: #64748b;" onclick="exportToCSV()">📤 Export CSV</button>
-                <button class="action-btn" style="background: #ef4444;" onclick="clearWorkspace()">🧹 Clear All</button>
+                <button class="action-btn save" onclick="controller.saveConfiguration()"><i class="fa fa-save"></i> Save Pivot table</button>
+                <button class="action-btn" style="background: #9fa3a9;" onclick="component.exportToCSV()">↓ Export CSV</button>
+                <button class="action-btn" style="background: #ef4444;" onclick="component.clearWorkspace()">Reset</button>
             </div>
             <div class="drop-grid">
                 <div class="zone" id="rows" ondrop="controller.handleDrop(event)" ondragover="controller.allowDrop(event)" ondragleave="controller.clearDrag(event)"><div class="zone-title">Rows</div></div>

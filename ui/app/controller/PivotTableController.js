@@ -9,16 +9,6 @@ export class PivotTableController extends BaseController {
     static totalSavePivot = 0;
     static currentPivotId;
 
-    checkScroll(el) {
-        const arrow = this.obj.container.querySelector('#field-scroll-arrow');
-        const isScrollable = el.scrollHeight > el.clientHeight;
-        const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 10;
-
-        if (isScrollable && !isAtBottom) arrow.style.display = 'block';
-        else arrow.style.display = 'none';
-        
-    }
-
     allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
     
     handleDrop(e) {
@@ -43,7 +33,7 @@ export class PivotTableController extends BaseController {
                 const chip = document.createElement('div'); chip.className = 'chip';
                 const fName = id === 'vals' ? item.field : item;
                 if (id === 'vals') {
-                    chip.innerHTML = parseEvents(`${fName} <select class="agg-select" onchange="controller.onAggregationTypeChange(${idx})">${this.obj.modes.map(m=>`<option value="${m}" ${item.mode===m?'selected':''}>${m.toUpperCase()}</option>`).join('')}</select>`);
+                    chip.innerHTML = parseEvents(`${fName} <select class="agg-select" onchange="controller.onAggregationTypeChange(${idx}, this.value)">${this.obj.modes.map(m=>`<option value="${m}" ${item.mode===m?'selected':''}>${m.toUpperCase()}</option>`).join('')}</select>`);
                 } else {
                     chip.innerHTML = parseEvents(`${fName} <span style="cursor:pointer;opacity:0.8;" onclick="controller.openFilter(event, '${fName}')">Y</span>`);
                 }
@@ -96,8 +86,8 @@ export class PivotTableController extends BaseController {
         `).join('');
     }
 
-    onAggregationTypeChange(idx){
-        this.obj.selection.vals[idx].mode = this.value; renderAll()
+    onAggregationTypeChange(idx, value){
+        this.obj.selection.vals[idx].mode = value; this.renderAll()
     }
 
     updateTableDOM(container, htmlString) {
@@ -281,7 +271,7 @@ export class PivotTableController extends BaseController {
     initSidebar() {
 
 		const { filters, dataset } = this.obj;
-        const fieldList = this.obj.container.querySelector('#source-fields');
+        const fieldList = this.obj.$parent.popup.querySelector('#source-fields');
         fieldList.innerHTML = '';
         
         [...this.obj.baseFields, ...this.obj.calculatedFields.map(cf => cf.name)].forEach(f => {
@@ -310,7 +300,7 @@ export class PivotTableController extends BaseController {
             }
         });
 
-        setTimeout(() => this.checkScroll(fieldList), 100);
+        setTimeout(() => this.obj.$parent.controller.checkScroll(fieldList), 100);
     }
 
     searchTimer = null;

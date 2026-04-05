@@ -175,10 +175,10 @@ export class PivotCreateComponent extends ViewComponent {
             let row = [`"${label.split('|').pop()}"`];
             cols.forEach(c => selection.vals.forEach(v => {
                 const k = `${c}_${v.field}`;
-                row.push(Math.round(this.getVal(node.values[k], v.mode)));
+                row.push(Math.round(this.controller.getVal(node.values[k], v.mode)));
             }));
             selection.vals.forEach(v => {
-                row.push(Math.round(getVal(node.values[`TOTAL_${v.field}`], v.mode)));
+                row.push(Math.round(this.controller.getVal(node.values[`TOTAL_${v.field}`], v.mode)));
             });
             csv.push(row.join(","));
             Object.keys(node.children).sort().forEach(k => {
@@ -207,7 +207,7 @@ export class PivotCreateComponent extends ViewComponent {
             this.baseFields.forEach(f => {
                 this.filters[f] = [...new Set(this.dataset.map(item => item[f]))];
             });
-            this.renderAll();
+            this.controller.renderAll();
         }
     }
 }

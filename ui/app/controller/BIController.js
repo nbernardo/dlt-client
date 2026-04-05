@@ -224,6 +224,9 @@ export class BIController extends BaseController {
 		this.obj.popup.querySelectorAll(".content").forEach((c) => c.classList.remove('active'));
 		this.obj.popup.querySelector(`.tab-${id}`).classList.add('active');
 
+        if(id == 'pivot') this.obj.showTablesList = false;
+        else this.obj.showTablesList = true;
+
 	}
 
     showToast = (msg) => BiUiUtil.showToast(this.obj.popup.querySelector('#toast'), msg);
@@ -383,11 +386,7 @@ export class BIController extends BaseController {
                 const idx = e.dataTransfer.getData('chartIdx');
 
                 if (idx !== '' || pvtIndex !== '') {                    
-                    const chartData = this.obj.state.savedCharts[(idx || pvtIndex)];
-                    console.log(`THIS IS THE STATE: `, chartData);
-                    console.log(`THIS IS THE STATE 1: `, this.obj.state.savedCharts);
-                    console.log(`AND THE SET IS: `, BIController.dashboardAddedCharts);
-                    
+                    const chartData = this.obj.state.savedCharts[(idx || pvtIndex)];                    
                     if (chartData) {
                         this.saveDashboardTile(chartData);
                         this.loadDashboard(this.obj.state.activeDash, pvtIndex, e);
@@ -403,7 +402,6 @@ export class BIController extends BaseController {
         if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
         state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
     }
-
 
 
     static dashboardAddedCharts = new Set();
@@ -627,6 +625,16 @@ export class BIController extends BaseController {
         if (response.ok && !response.error)
             return await response.json();
         return null;
+    }
+
+    checkScroll(el) {
+        const arrow = this.obj.popup.querySelector('#field-scroll-arrow');
+        const isScrollable = el.scrollHeight > el.clientHeight;
+        const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 10;
+
+        if (isScrollable && !isAtBottom) arrow.style.display = 'block';
+        else arrow.style.display = 'none';
+        
     }
     
 }

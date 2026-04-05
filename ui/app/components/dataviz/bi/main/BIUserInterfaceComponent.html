@@ -87,8 +87,20 @@
 
 						<aside class="sidebar">
 							<div class="sidebar-section">
-							<div class="sidebar-title">Tables</div>
-							<div class="tableList"></div>
+							<span (showIf)="self.showTablesList">
+								<div class="sidebar-title">Tables</div>
+								<div class="tableList"></div>
+							</span>
+							<span (showIf)="!self.showTablesList">
+								<aside class="sidebar" style="padding: 0;">
+									<div class="sidebar-section" style="padding: 0 !important;">
+										<h3>Dataset Fields</h3>
+										<button onclick="event.stopPropagation(); document.getElementById('calc-modal').style.display='block'" style="width:100%; padding:8px; cursor:pointer; cursor: pointer; margin: 3px auto;">+ Add Formula</button>
+										<div id="source-fields" style="max-height: 200px; overflow-y: auto; padding-top: 6px;" onscroll="controller.checkScroll(this)"></div>
+										<div id="field-scroll-arrow" class="scroll-indicator">↓</div>
+									</div>
+								</aside>
+							</span>
 							</div>
 							<div class="sidebar-sep"></div>
 							<div class="sidebar-section">
@@ -118,7 +130,7 @@
 									<select class="field-select" style="width:auto" id="colFilter" onchange="controller.filterRows(document.getElementById('searchInput').value)"><option value="">All columns</option></select>
 									<button class="btn btn-ghost" onclick="controller.addColumn()" style="width: 87px;">+ Add Col</button>
 									<div class="topbar-actions" style="width: 301px;padding-left: 8px;">
-										<button class="btn btn-ghost" style="width: 290px;flex: 1.2;" onclick="controller.exportCSV()">↓ Export CSV</button>
+										<button class="btn btn-ghost" style="width: 110px;" onclick="controller.exportCSV()">↓ Export CSV</button>
 									</div>
 									<div class="stats-row">
 									<div class="stat-chip">Rows: <span id="rowCount">0</span></div>
@@ -190,7 +202,7 @@
 
 							<div class="content tab-dashboard">
 								<div class="dashboard-toolbar">
-									<select class="field-select dashSelect" style="width:220px;" onchange="loadDashboard(this.value)"></select>
+									<select class="field-select dashSelect" style="width:220px;" onchange="controller.loadDashboard(this.value)"></select>
 									<button class="btn btn-ghost" style="width: 135px;" onclick="controller.newDashboard()">+ New Dashboard</button>
 								</div>
 								<div class="dashboard-grid dashGrid"></div>
