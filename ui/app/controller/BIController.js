@@ -13,7 +13,7 @@ export class BIController extends BaseController {
     wasUiPreviousInited = false;
 
     renderTableList() {
-		const tables = this.obj.analyticsRessultTables[this.obj.state.pipeline] || [];
+		const tables = this.obj?.analyticsRessultTables[this.obj.state.pipeline] || [];
 		this.obj.popup.querySelector(".tableList").innerHTML = tables
 			.map((t) =>
 				this.obj.parseEvents(
@@ -338,59 +338,59 @@ export class BIController extends BaseController {
 
     saveChart() {
         if (!this.obj.state.pendingChart) return showToast("Build a chart first!");
-        this.obj.state.savedCharts.push({...this.obj.state.pendingChart});
+        this.obj.state.savedCharts['chart-'+this.obj.state.pendingChart.id] = { ...this.obj.state.pendingChart };
         this.renderSavedCharts();
         this.showToast("Chart saved to library");
     }
-
+        
     renderSavedCharts() {
-
         const list = this.obj.popup.querySelector('.chartList');
 
-        if (!this.obj.state.savedCharts.length) {
-            list.innerHTML = '<div style="padding:10px; color:var(--muted2); font-size:11px;">No saved charts</div>';
-            return;
-        }
+        if (!Object.keys(this.obj.state.savedCharts).length) 
+            return list.innerHTML = '<div style="padding:10px; color:var(--muted2); font-size:11px;">No saved charts</div>';
 
-        list.innerHTML = this.obj.state.savedCharts.map((c, i) => this.obj.parseEvents(`
-            <div class="chart-thumb" draggable="true" onclick="controller.loadSavedChart(${c.id})" ondragstart="controller.handleDragStart(event, ${i})">
+        const saveCharts = this.obj.state.savedCharts;
+
+        list.innerHTML = Object.values(saveCharts).filter(c => c.type != 'pivotTable').map((c, i) => this.obj.parseEvents(`
+            <div class="chart-thumb" draggable="true" onclick="controller.loadSavedChart(${c.id})" ondragstart="controller.handleDragStart(event, 'chart-${c.id}')">
                 ${c.title} <span class="chart-type-badge">${c.type}</span>
             </div>`)
         ).join('');
     }
 
-	handleDragStart = (e, index) => e.dataTransfer.setData('chartIdx', index);
+    static currentChartId = null;
+	handleDragStart = (e, index) => {
+        e.dataTransfer.setData('chartIdx', index);
+        BIController.currentChartId = index;
+    }
 
     initDragAndDrop() {
         if(this.wasUiPreviousInited === false){
             this.wasUiPreviousInited = true;
-            const { state } = this.obj;
             const grid = this.obj.popup.querySelector('.dashGrid');
             
             grid.addEventListener('dragover', e => { 
-                e.preventDefault(); 
-                grid.classList.add('drag-over'); 
+                e.preventDefault();  grid.classList.add('drag-over'); 
             });
             
-            grid.addEventListener('dragleave', () => { 
-                grid.classList.remove('drag-over');
-            });
+            grid.addEventListener('dragleave', () => grid.classList.remove('drag-over'));
             
             grid.addEventListener('drop', e => {
                 e.preventDefault();
                 
-                if(e.dataTransfer.getData("pivotIndex"))
-                    return this.obj.pivotTableProxy.controller.handleDashDrop(e, grid);
-                
                 grid.classList.remove('drag-over');
-                
+                const pvtIndex = e.dataTransfer.getData("pivotIndex");
                 const idx = e.dataTransfer.getData('chartIdx');
-                if (idx !== "") {
-                    const chartData = state.savedCharts[parseInt(idx)];
+
+                if (idx !== '' || pvtIndex !== '') {                    
+                    const chartData = this.obj.state.savedCharts[(idx || pvtIndex)];
+                    console.log(`THIS IS THE STATE: `, chartData);
+                    console.log(`THIS IS THE STATE 1: `, this.obj.state.savedCharts);
+                    console.log(`AND THE SET IS: `, BIController.dashboardAddedCharts);
+                    
                     if (chartData) {
-                        if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
-                        state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
-                        this.loadDashboard(state.activeDash);
+                        this.saveDashboardTile(chartData);
+                        this.loadDashboard(this.obj.state.activeDash, pvtIndex, e);
                         this.showToast(`Added ${chartData.title} to dashboard`);
                     }
                 }
@@ -398,56 +398,66 @@ export class BIController extends BaseController {
         }
     }
 
-    loadDashboard(name) {
+    saveDashboardTile(chartData){
+        const { state } = this.obj;
+        if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
+        state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
+    }
+
+
+
+    static dashboardAddedCharts = new Set();
+    loadDashboard(name, isPivot, event) {
         this.obj.state.activeDash = name;
-        const grid = this.obj.popup.querySelector('.dashGrid');
-        const items = this.obj.state.dashboards[name] || [];
-
-        this.obj.popup.querySelector('.dashSelect').value = name;
-
+        const grid = this.obj.popup.querySelector('.dashGrid'), tileWrapper = document.createElement('span');
         
-        if (items.length === 0) {
-            grid.innerHTML = `<div class="empty-dashboard">
-                <div class="empty-icon">📊</div>
-                <div>Drag charts from the sidebar to populate this dashboard</div>
-            </div>`;
-            return;
+        grid.classList.remove('empty-dashboard');
+        grid.querySelectorAll('.dash-empty').forEach(el => el.remove());
+
+        if(isPivot){
+            const pivotId = this.obj.pivotTableProxy.controller.handleDashDrop(event, grid);
+            return BIController.dashboardAddedCharts.add(pivotId);
         }
 
-        grid.innerHTML = items.map((c, i) => this.obj.parseEvents(`
+        const items = (this.obj.state.dashboards[name] || []).filter(c => c?.type != 'pivotTable' && !BIController.dashboardAddedCharts.has(c.id));
+        this.obj.popup.querySelector('.dashSelect').value = name;
+
+        if ((this.obj.state.dashboards[name] || []).length === 0) {
+            grid.classList.add('empty-dashboard');
+            return grid.innerHTML = `<div class="empty-icon dash-empty">📊</div><div class="dash-empty">Drag charts from the sidebar to populate this dashboard</div>`;
+        }
+
+        tileWrapper.id = `graphWrapper_${Date.now()}`
+        tileWrapper.innerHTML = items.map((c, i) => this.obj.parseEvents(`
             <div class="dashboard-card">
                 <div class="dashboard-card-header">
                     <div class="dashboard-card-title">${c.title}</div>
-                    <button class="icon-btn" onclick="controller.removeFromDash(${i})">×</button>
+                    <button class="icon-btn" onclick="controller.removeFromDash('${c.id}','${tileWrapper.id}')">×</button>
                 </div>
-                <div class="dashboard-card-body">
-                    <canvas id="dashCanvas-${i}" class="dashboard-card-canvas"></canvas>
-                </div>
+                <div class="dashboard-card-body"><canvas id="dashCanvas-${c.id}" class="dashboard-card-canvas"></canvas></div>
             </div>`)
         ).join('');
+        grid.append(tileWrapper);
 
-        // Initialize small charts in cards
         items.forEach((c, i) => {
-            const ctx = document.getElementById(`dashCanvas-${i}`).getContext('2d');
+            const ctx = document.getElementById(`dashCanvas-${c.id}`).getContext('2d');
             new Chart(ctx, {
                 type: c.config.cjsType,
                 data: {
                     labels: c.config.labels,
-                    datasets: [{
-                        data: c.config.values,
-                        backgroundColor: c.config.color + 'cc',
-                        borderColor: c.config.color,
-                        borderWidth: 1
-                    }]
+                    datasets: [{ data: c.config.values, backgroundColor: c.config.color + 'cc', borderColor: c.config.color, borderWidth: 1 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
+            BIController.dashboardAddedCharts.add(c.id);
         });
     }
 
-	removeFromDash(index) {
-		this.obj.state.dashboards[this.obj.state.activeDash].splice(index, 1);
-		this.loadDashboard(this.obj.state.activeDash);
+	removeFromDash(index, wrapperId) {
+        const elmToRemoveIdx = this.obj.state.dashboards[this.obj.state.activeDash].findIndex(elm => elm.id == index)
+		this.obj.state.dashboards[this.obj.state.activeDash].splice(elmToRemoveIdx, 1);
+        document.getElementById(wrapperId).remove();
+        BIController.dashboardAddedCharts.delete(Number(index));
 	}
 
     renderDashboardSelect() {

@@ -6,6 +6,9 @@ export class PivotTableController extends BaseController {
     /** @type { PivotCreateComponent } */
     obj;
 
+    static totalSavePivot = 0;
+    static currentPivotId;
+
     checkScroll(el) {
         const arrow = this.obj.container.querySelector('#field-scroll-arrow');
         const isScrollable = el.scrollHeight > el.clientHeight;
@@ -185,9 +188,8 @@ export class PivotTableController extends BaseController {
             tr += (isGrand ? 'Grand Total' : cleanLabel) + `</td>`;
 
             cols.forEach(c => sel.vals.forEach(v => {
-                const k = `${c}_${v.field}`;
+                let k = `${c}_${v.field}`, style = "";
                 const val = this.getVal(node.values[k], v.mode);
-                let style = "";
                 if (heatmapOn && stats[k]?.max !== stats[k]?.min) {
                     const pct = (val - stats[k].min) / (stats[k].max - stats[k].min);
                     style = `style="background: rgba(37, 99, 235, ${pct * 0.35})"`;
@@ -230,42 +232,44 @@ export class PivotTableController extends BaseController {
         this.obj.expandedPaths.has(p) ? this.obj.expandedPaths.delete(p) : this.obj.expandedPaths.add(p); this.renderAll(); this.renderDashboard(); 
     }
 
-    renderDashboard(container) {
-        const canvas = container || this.obj.container.querySelector('#dashboard-canvas');
-        canvas.innerHTML = '';
-
-        this.obj.dashboardTiles.forEach((cfg, i) => {
-            const tile = document.createElement('div'); 
-            tile.className = 'dash-tile';
-            tile.innerHTML = this.obj.parseEvents(`
-                <div id="loader-${i}" class="loading-overlay">
-                    <div class="spinner"></div>
-                    <div style="font-size: 11px; font-weight: 600; color: #64748b;">Processing 50,000 Rows...</div>
-                </div>
-
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-shrink:0;">
-                    <h4 style="margin:0;">${cfg.name}</h4>
-                    <button onclick="controller.onDashboardDelete(${i})" style="cursor:pointer;border:none;background:none;font-size:16px;">🗑️</button>
-                </div>
-                <div style="overflow:auto; flex:1; width:100%; border-top:1px solid #eee; padding-top:10px;" id="tile-${i}"></div>
-            `);
-            canvas.appendChild(tile);
-
-            const { dataset, calculatedFields } = this.obj;
-            this.obj.dashWorker.postMessage({ dataset, cfg, searchQuery: this.searchQuery, calculatedFields, tileIndex: i });
-        });
+    renderDashboard(container, pivotTile) {
+        const pivot = this.renderPivotOnDashboard(pivotTile, PivotTableController.currentPivotId);
+        container.appendChild(pivot.tile);
+        pivot.runDataLoad();
     }
 
-    onDashboardDelete(i){
-        this.obj.dashboardTiles.splice(i,1); this.renderDashboard()
+    renderPivotOnDashboard(cfg, i) {
+        const tile = document.createElement('div'); 
+        tile.className = 'dash-tile', tile.id = `pivotWrap_${Date.now()}`;
+        tile.innerHTML = this.obj.parseEvents(`
+            <div id="loader-${i}" class="loading-overlay">
+                <div class="spinner"></div>
+                <div style="font-size: 11px; font-weight: 600; color: #64748b;">Processing 50,000 Rows...</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; flex-shrink:0;padding: 0 8px;">
+                <h4 style="margin:0;">${cfg.name}</h4>
+                <button onclick="controller.onDashboardPivotDelete('${cfg.id}','${tile.id}')" style="cursor:pointer;border:none;background:none;font-size:16px;font-size: 22px;margin-top: -10px;">&Cross;</button>
+            </div>
+            <div style="overflow:auto; flex:1; width:100%; border-top:1px solid #eee; padding-top:0px;" id="tile-${i}"></div>
+        `);
+
+        const { dataset, calculatedFields } = this.obj;
+        return { 
+            tile, 
+            runDataLoad: () => this.obj.dashWorker.postMessage({ dataset, cfg, searchQuery: this.searchQuery, calculatedFields, tileIndex: i }) 
+        };
     }
+
+    onDashboardPivotDelete = (id, wrapId) =>
+        this.obj.$parent.controller.removeFromDash(id, wrapId);
 
     handleDashDrop(e, container) {
         e.preventDefault(); e.currentTarget.classList.remove('drag-over');
         if (e.dataTransfer.getData("type") === "config") {
             const idx = e.dataTransfer.getData("pivotIndex");
-            this.obj.dashboardTiles.push(this.obj.savedConfigs[idx]);
-            this.renderDashboard(container);
+            this.obj.$parent.controller.saveDashboardTile(this.obj.$parent.state.savedCharts[idx]);
+            this.renderDashboard(container, this.obj.$parent.state.savedCharts[idx]);
+            return idx;
         }
     }
 
@@ -283,26 +287,27 @@ export class PivotTableController extends BaseController {
         [...this.obj.baseFields, ...this.obj.calculatedFields.map(cf => cf.name)].forEach(f => {
             const div = document.createElement('div');
             div.className = 'field-item' + (this.obj.calculatedFields.find(c => c.name === f) ? ' calc-field' : '');
-            div.textContent = f; 
-            div.draggable = true;
-            div.style.marginBottom = "8px";
+            div.textContent = f; div.draggable = true; div.style.marginBottom = "8px";
             div.ondragstart = (e) => { 
-                e.dataTransfer.setData("type", "field"); 
-                e.dataTransfer.setData("text", f); 
+                e.dataTransfer.setData("type", "field"); e.dataTransfer.setData("text", f); 
             };
             fieldList.appendChild(div);
             if (filters[f] === undefined) filters[f] = [...new Set(dataset.map(item => item[f]))];
         });
 
-        // Saved pivots section remains the same...
         const savedList = this.obj.$parent.popup.querySelector('.saved-pivots');
         savedList.innerHTML = '';
-        this.obj.savedConfigs.forEach((cfg, idx) => {
-            const div = document.createElement('div');
-            div.className = 'table-item active'//'field-item saved-config';
-            div.textContent = cfg.name; div.draggable = true;
-            div.ondragstart = (e) => { e.dataTransfer.setData("type", "config"); e.dataTransfer.setData("pivotIndex", idx); };
-            savedList.appendChild(div);
+
+        Object.values(this.obj.$parent.state.savedCharts).forEach((cfg) => {
+            if(cfg?.type == 'pivotTable'){
+                const div = document.createElement('div');
+                div.className = 'table-item active'; div.textContent = cfg.name; div.draggable = true;
+                div.ondragstart = (e) => { 
+                    PivotTableController.currentPivotId = 'pivot-'+cfg.id;
+                    e.dataTransfer.setData("type", "config"), e.dataTransfer.setData("pivotIndex", 'pivot-'+cfg.id); 
+                };
+                savedList.appendChild(div);
+            }
         });
 
         setTimeout(() => this.checkScroll(fieldList), 100);
@@ -327,9 +332,11 @@ export class PivotTableController extends BaseController {
         if (!selection.rows.length || !selection.vals.length) return alert("Empty Layout");
         const name = prompt("Name your layout:");
         if (name) {
-            this.obj.savedConfigs.push({
-                name, heatmap, showAllRows, selection: JSON.parse(JSON.stringify(selection)), filters: JSON.parse(JSON.stringify(filters))
-            });
+            this.obj.$parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot] = {
+                name, heatmap, showAllRows, selection: JSON.parse(JSON.stringify(selection)), filters: JSON.parse(JSON.stringify(filters)), 
+                type: 'pivotTable', id: PivotTableController.totalSavePivot
+            }
+            PivotTableController.totalSavePivot++;
             this.initSidebar();
         }
     }
