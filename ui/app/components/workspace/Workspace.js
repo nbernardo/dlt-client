@@ -320,10 +320,8 @@ export class Workspace extends ViewComponent {
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
 		let data = this.editor.export();
 		data = { 
-			...data, 
-			user: await UserService.getNamespace(), 
-			startNode, activeGrid, pplineLbl: this.activeGrid.value, 
-			socketSid: this.socketData.sid,
+			...data,  user: await UserService.getNamespace(), analyticOptimized: WorkSpaceController.isCurrentPipelineOptimized,
+			startNode, activeGrid, pplineLbl: this.activeGrid.value,  socketSid: this.socketData.sid,
 			...this.controller.pipelineCreateMetadata()
 		};
 		
@@ -536,8 +534,7 @@ export class Workspace extends ViewComponent {
 				self.controller.shouldDisableNodeFormInputs = false;
 			}
 			await self.controller.processImportingNodes(result, asTemplate);
-			AppTemplate.hideLoading();
-			self.wasDiagramSaved = false;
+			AppTemplate.hideLoading(), self.wasDiagramSaved = false;
 
 			if(fromReview){
 				self.isAnyDiagramActive = false;
@@ -546,7 +543,8 @@ export class Workspace extends ViewComponent {
 				document.getElementById('pplineNamePlaceHolder').contentEditable = true;
 				self.showSaveButton = true;
 				document.querySelector('.clear-workspace-btn').style.right = '96px';
-			}			
+			}
+			self.controller.unmarkOptimizedPipeline();
 		}
 		await openDiagram();
 	}

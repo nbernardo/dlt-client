@@ -75,6 +75,7 @@ export class WorkSpaceController extends BaseController {
     static typeOfImportSource = null;
     static importtablesFieldMap = null;
     static importDataSource = null;
+    static isCurrentPipelineOptimized = null;
 
     importingPipelineSourceDetails = null;
 
@@ -124,19 +125,17 @@ export class WorkSpaceController extends BaseController {
     }
 
     resetEdges() {
-        this.edgeTypeAdded = {};
-        this.formReferences.clear();
-        this.validationErrors = [];
-        this.idCounter = 0;
-        this.cmpIdToNodeIdMap = {};
-        this.pplineStatus = {};
-        this.editor.nodeId = 1;
-        this.pipelineDestinationTrace = { sql: {}, duckdb: {} }
-        this.nodeIdToComponentIdMap = {}
-        this.drawnNodeList = [];
-        this.drawnNodes = 0;
-        this.importingPipelineSourceDetails = null;
-        this.isTemplating = false;
+        this.edgeTypeAdded = {}, this.formReferences.clear(), this.validationErrors = [];
+        this.idCounter = 0, this.cmpIdToNodeIdMap = {}, this.pplineStatus = {};
+        this.editor.nodeId = 1, this.pipelineDestinationTrace = { sql: {}, duckdb: {} }
+        this.nodeIdToComponentIdMap = {}, this.drawnNodeList = [], this.drawnNodes = 0;
+        this.importingPipelineSourceDetails = null, this.isTemplating = false;
+        this.unmarkOptimizedPipeline();
+    }
+
+    unmarkOptimizedPipeline = () => {
+        document.querySelector('.analyticsOptimizedPipeline').checked = false;
+        WorkSpaceController.isCurrentPipelineOptimized = false;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */
@@ -987,5 +986,7 @@ export class WorkSpaceController extends BaseController {
                 mainContainer.querySelector('.statusicon').style.width = '56px';
         }
     }
+
+    markAnalyticsOptimizedPipeline = (value) => WorkSpaceController.isCurrentPipelineOptimized = value;
 
 }

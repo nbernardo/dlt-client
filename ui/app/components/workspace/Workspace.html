@@ -74,6 +74,12 @@
 									@activeGrid
 								</div>
 							</li>
+							<li>
+								<div style="display: flex; align-items: center; font-size: 12px;">
+									<input type="checkbox" class="analyticsOptimizedPipeline" onclick="controller.markAnalyticsOptimizedPipeline(this.checked)">
+									&nbsp;Analytics Optimized
+								</div>
+							</li>
 							<span (showIf)="self.isAnyDiagramActive">
 								<li style="border: none;" class="pipeline-context-drop-menu">
 									<div
