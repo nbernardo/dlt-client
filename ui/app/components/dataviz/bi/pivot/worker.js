@@ -1,5 +1,4 @@
 self.onmessage = function(e) {
-    console.log(`I WAS CALLED: `);
     
     const { dataset, cfg, searchQuery, calculatedFields, tileIndex } = e.data;
     const { selection: sel, filters: fltrs, showAllRows } = cfg;
