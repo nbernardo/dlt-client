@@ -94,7 +94,7 @@ class DataCatalog:
 
 
     @staticmethod
-    def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info=None, table_to_schema_map={}):
+    def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info=None, table_to_schema_map={}, add={}):
         """Persists column catalog to LanceDB. Concurrent writes via MVCC — This is called from the pipeline run itself"""
         pipeline_name = pipeline.pipeline_name
         now = datetime.now().isoformat()
@@ -103,6 +103,8 @@ class DataCatalog:
         dest_name = DataCatalog.get_destination(pipeline)
         source_clean = table_source.replace('"', '')
         pipeline_run_id = str(getattr(pipeline._last_trace, 'transaction_id', ''))
+        
+        [rels, meta, ddls] = [add['rels'], add['meta'], add['ddls']]
 
         all_updates = []
         for table_name, table_meta in pipeline.default_schema.tables.items():
@@ -120,29 +122,17 @@ class DataCatalog:
 
         con, tbl = None, None
         try:
-
             [tbl, con] = [DataCatalog._get_table(dbs_path), DataCatalog._get_duckdb_conn(dbs_path)]
+            [db_map, rows_to_insert] = [{}, []]
+
             SemanticModel.migrate(dbs_path)
+            existing = DataCatalog.get_existing_catalog(con, pipeline_name)
 
-            existing = con.execute("""
-                SELECT
-                    table_name, original_column_name, data_type, column_version, is_deleted, column_name
-                FROM column_catalog
-                WHERE pipeline = ?
-                QUALIFY ROW_NUMBER() OVER (
-                    PARTITION BY table_name, original_column_name
-                    ORDER BY column_version DESC
-                ) = 1
-            """, (pipeline_name,)).fetchall()
-
-            db_map = {}
             for row in existing:
                 table, orig_col, dtype, version, deleted, col_name = row
                 db_map.setdefault(table, {})[orig_col] = {
                     "data_type": dtype, "column_version": version, "is_deleted": deleted, "column_name": col_name,
                 }
-
-            rows_to_insert = []
 
             for table_name, active_dlt_cols, orig_table_name in all_updates:
                 table_state = db_map.get(table_name, {})
@@ -156,31 +146,28 @@ class DataCatalog:
 
                     if not last_state:
                         rows_to_insert.append(DataCatalog._build_catalog_row(
-                            pipeline_run_id, namespace, orig_table_name, table_name,
-                            source_clean, dest_name, pipeline_name, now,
-                            orig_name, orig_name, new_type, 1, 0
+                            pipeline_run_id, namespace, orig_table_name, table_name, source_clean, 
+                            dest_name, pipeline_name, now, orig_name, orig_name, new_type, 1, 0
                         ))
                     else:
                         if last_state["data_type"] != new_type or last_state["is_deleted"]:
                             rows_to_insert.append(DataCatalog._build_catalog_row(
-                                pipeline_run_id, namespace, orig_table_name, table_name,
-                                source_clean, dest_name, pipeline_name, now,
-                                orig_name, orig_name, new_type,
-                                int(last_state["column_version"]) + 1, 0
+                                pipeline_run_id, namespace, orig_table_name, table_name, source_clean, dest_name, 
+                                pipeline_name, now, orig_name, orig_name, new_type, int(last_state["column_version"]) + 1, 0
                             ))
 
                 for orig_name, last_state in table_state.items():
                     if orig_name not in processed_orig_names and not last_state["is_deleted"]:
                         rows_to_insert.append(DataCatalog._build_catalog_row(
-                            pipeline_run_id, namespace, orig_table_name, table_name,
-                            source_clean, dest_name, pipeline_name, now,
-                            orig_name, last_state["column_name"], last_state["data_type"],
-                            int(last_state["column_version"]) + 1, 1
+                            pipeline_run_id, namespace, orig_table_name, table_name, source_clean, dest_name, pipeline_name, now,
+                            orig_name, last_state["column_name"], last_state["data_type"], int(last_state["column_version"]) + 1, 1
                         ))
 
             if rows_to_insert:
                 new_rows = [r for r in rows_to_insert if r['column_version'] == 1 and r['is_deleted'] == 0]
+                # Generates the semantic model
                 rows_to_insert = SemanticModel.get_semantic_model(rows_to_insert, new_rows, dbs_path)
+                # Generates the embedings
                 rows_to_insert = SemanticModel.get_embeddings(rows_to_insert, original_pipeline_name)
                 print(f'Data catalog generate successfully for pipeline with transaction_id {getattr(pipeline._last_trace, 'transaction_id')}')
                 
@@ -192,7 +179,20 @@ class DataCatalog:
 
         finally:
             if con: con.close()
-            sys.exit(0) # Gracefully terminates the sub-process
+
+
+    @staticmethod
+    def get_existing_catalog(con, pipeline_name):
+        return con.execute("""
+                SELECT
+                    table_name, original_column_name, data_type, column_version, is_deleted, column_name
+                FROM column_catalog
+                WHERE pipeline = ?
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY table_name, original_column_name
+                    ORDER BY column_version DESC
+                ) = 1
+            """, (pipeline_name,)).fetchall()
 
 
     @staticmethod
@@ -268,12 +268,10 @@ class DataCatalog:
         
         query_embedding = SemanticModel._get_embedding_model().embed(query)
         query_vector = list(query_embedding)[0].tolist()
-
         db = LanceConnectionFactory.get(db_path)
         tbl = db.open_table('column_catalog')
 
         results = (tbl.search(query_vector).limit(50).to_list())
-
         return [r for r in results if r['_distance'] < 0.5]
     
 
@@ -281,19 +279,14 @@ class DataCatalog:
     def get_namespace_fields_by_pipeline(namespace):
         try:
             result = DataCatalog._get_duckdb_conn().execute("""
-                SELECT 
-                    json_group_object(pipeline, tables_json) as final_json
+                SELECT  json_group_object(pipeline, tables_json) as final_json
                 FROM (
-                    SELECT 
-                        pipeline, 
-                        json_group_object(table_name, columns_list) as tables_json
+                    SELECT pipeline, json_group_object(table_name, columns_list) as tables_json
                     FROM (
-                        SELECT 
-                            pipeline, table_name, list({'name': column_name, 'type': data_type}) as columns_list
+                        SELECT pipeline, table_name, list({'name': column_name, 'type': data_type}) as columns_list
                         FROM column_catalog WHERE namespace = ?
                         GROUP BY pipeline, table_name
-                    )
-                    GROUP BY pipeline
+                    ) GROUP BY pipeline
                 )
             """, [namespace.replace('-','_')])
 

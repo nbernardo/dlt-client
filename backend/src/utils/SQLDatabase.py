@@ -389,7 +389,47 @@ class SQLConnection:
         )
 
 
-def normalize_table_names(secrets, tables, primary_keys=None):
+def generate_join_query(target_tables: dict = {}, relationships = {}, schema_metadata = {}, db_name = ''):
+    if not target_tables: return ""
+
+    select_parts = []
+    for table in target_tables.keys():
+        for col in schema_metadata.get(table, []):
+            select_parts.append(f"{table}.{col} AS {table}_{col}")
+    
+    select_clause = "SELECT\n  " + ",\n  ".join(select_parts)
+    
+    primary_table = list(target_tables.keys())[0]
+    query = f"{select_clause}\nFROM {primary_table}"
+    joined_tables, seen_rels = {primary_table}, set()
+    tables_list = target_tables.keys()
+
+    added = True
+    while added:
+        added = False
+        for table in tables_list:
+            if table not in relationships: continue
+            for rel in relationships[table]:
+                ref_table = rel['referred_table']
+                # Only join if it's in our target list and not a self-join
+                if ref_table == table or ref_table not in tables_list: continue
+                
+                rel_key = tuple(sorted([table, ref_table]) + sorted(rel['columns'] + rel['referred_columns']))
+                if rel_key in seen_rels: continue
+
+                on_clause = " AND ".join([f"{table}.{l} = {ref_table}.{r}" for l, r in zip(rel['columns'], rel['referred_columns'])])
+
+                if (table in joined_tables and ref_table not in joined_tables) or \
+                   (ref_table in joined_tables and table not in joined_tables):
+                    join_target = ref_table if table in joined_tables else table
+                    query += f"\nFULL OUTER JOIN {join_target} ON {on_clause}"
+                    joined_tables.add(join_target)
+                    seen_rels.add(rel_key)
+                    added = True
+    return query
+
+
+def _normalize_table_names_backward(secrets, tables, primary_keys=None):
     dbengine  = secrets['dbengine']
     actual_tables = tables
     actual_pks    = primary_keys
@@ -411,6 +451,59 @@ def normalize_table_names(secrets, tables, primary_keys=None):
     return actual_tables, actual_pks
 
 
+def normalize_table_names(secrets, tables, primary_keys=None, db_name = {}):
+    dbengine = secrets.get('dbengine', 'postgres')
+    connection_url = secrets.get('connection_url')
+    schema = secrets.get('schema', 'public')
+    
+    # To keep backword compatibility
+    # TODO: Migrate all scenario to the new implementation 
+    #       to support big_query generation
+    if dbengine != 'postgresql':
+        return _normalize_table_names_backward(secrets, tables, primary_keys)
+
+    engine = create_engine(connection_url)
+    inspector = inspect(engine)
+    available = inspector.get_table_names(schema=schema)
+
+    if dbengine == 'oracle':
+        actual_tables = [t.lower() if any(a.islower() for a in available) else t.upper() for t in tables]
+    else:
+        actual_tables = {
+            t.lower().split('.')[1] if t.lower().__contains__('.') else t.lower(): t.lower()   for t in tables
+        }
+
+    actual_pks = primary_keys if primary_keys else []
+    [relationships, schema_metadata, ddls] = [{}, {}, {}]
+
+    for table in actual_tables.keys():
+        if table in available:
+            [cols, column_defs] = [inspector.get_columns(table, schema=schema), []]
+            schema_metadata[table] = [c['name'] for c in cols]
+
+            for c in cols:
+                null_str = 'NOT NULL' if not c.get('nullable') else ''
+                column_defs.append(f"  {c['name']} {str(c['type'])} {null_str}".strip())
+
+            fks = inspector.get_foreign_keys(table, schema=schema)
+            relationships[table] = [
+                { 'columns': fk['constrained_columns'], 'referred_table': fk['referred_table'], 'referred_columns': fk['referred_columns']  }
+                for fk in fks
+            ]
+            
+            for fk in fks:
+                l_cols = ', '.join(fk['constrained_columns'])
+                r_table = fk['referred_table']
+                r_cols = ', '.join(fk['referred_columns'])
+                column_defs.append(f'  FOREIGN KEY ({l_cols}) REFERENCES {r_table} ({r_cols})')
+
+            ddls[table] = f"CREATE TABLE {table} (\n" + ",\n".join(column_defs) + "\n);"
+
+    final_big_query = generate_join_query(actual_tables, relationships, schema_metadata, db_name)
+
+    return tables, actual_pks, relationships, schema_metadata, ddls, final_big_query
+
+
 def converts_field_type(table, pk):
     columns_config = {}
     
@@ -423,4 +516,7 @@ def converts_field_type(table, pk):
     if columns_config:
         table.apply_hints(columns=columns_config)
     
+    table.apply_hints(schema_contract={"tables": "evolve", "columns": "evolve"})
+    table = table.apply_hints(additional_table_hints={"x-dlt-materialize-schema": True})
+
     return table

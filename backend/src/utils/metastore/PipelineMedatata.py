@@ -60,7 +60,7 @@ class PipelineMedatata:
                 'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'],
                 'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type'],
                 'source_config': details['source_config'], 'destination_config': details['destination_config'], 
-                'referenced_secrets': str(details['referenced_secrets']), 'dataset_name': dataset_name
+                'referenced_secrets': str(details['referenced_secrets']), 'dataset_name': dataset_name, 'big_query': ''
             }]
 
             tbl.add(rows_to_insert)
@@ -140,6 +140,8 @@ class PipelineMedatata:
                 'source_config': "cast(null as string)", #added in Mar/22/2026
                 'referenced_secrets': "cast(null as string)", #added in Mar/22/2026
                 'dataset_name': "cast(null as string)", #added in Mar/22/2026
+                'big_query': "cast(null as string)", #added in Apr/05/2026
+                'short_query': "cast(null as string)", #added in Apr/05/2026
             }
 
             for col, expr in new_fields.items():

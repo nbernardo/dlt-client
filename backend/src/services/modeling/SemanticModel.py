@@ -74,7 +74,7 @@ class SemanticModel:
     def _match_rules(columns: list[dict], rules=None) -> tuple[list[dict], list[dict]]:
         """Splits columns into rule-matched and unmatched.
             Returns:
-                matched   — list of dicts with semantic_concept, confidence_score, source='rule'
+                matched — list of dicts with semantic_concept, confidence_score, source='rule'
                 unmatched — list of original column dicts to send to LLM
         """
         rules = rules or DEFAULT_RULES

@@ -51,6 +51,7 @@ valid_imports = [
     'from src.utils.metastore.meta_storage.MetaStore import crate_or_update_catalog_from_file',
     'import traceback',
     'import re',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
