@@ -3,7 +3,6 @@ import { HTTPHeaders } from "../../@still/helper/http.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { BIUserInterfaceComponent } from "../components/dataviz/bi/main/BIUserInterfaceComponent.js";
 import { BiUiUtil } from "../components/dataviz/bi/util.js";
-import { PipelineService } from "../services/PipelineService.js";
 import { AIUtil } from "../util/AIUtil.js";
 
 export class BIController extends BaseController {
@@ -11,7 +10,17 @@ export class BIController extends BaseController {
     /** @type { BIUserInterfaceComponent } */
     obj;
 
+    static instance = null;
+
     wasUiPreviousInited = false;
+
+    constructor(){
+        super();
+        BIController.instance = this;
+    }
+
+    /** @returns { BIController } */
+    static getObj = () => BIController.instance;
 
     renderTableList() {
 		const tables = BIController.currentTableList || [];
@@ -44,7 +53,7 @@ export class BIController extends BaseController {
                 colsDetails = (BIController.currentTableList.filter(tbl => tbl.name == table)[0]?.cols || []);
                 columns.push(...colsDetails.map(itm => `${table}_${itm.column_name}`));
             }
-            
+
             const result = await this.sendAnalyticsRequest(columns.join(','));
             this.obj.setData((result.result || [])).init();
             this.renderSheet();
@@ -302,7 +311,7 @@ export class BIController extends BaseController {
         
         this.obj.popup.querySelector('#previewTitle').textContent = title;
         
-        let labels, values;
+        let labels, values = [];
         if (agg === 'none') {
             const slice = state.filteredRows.slice(0, 50);
             labels = slice.map(r => String(r[xCol] ?? ''));
@@ -352,7 +361,11 @@ export class BIController extends BaseController {
             id: Date.now(), 
             title, 
             type: state.chartType, 
-            config: { labels, values, color: state.chartColor, yLabel: yCol, cjsType: ctDef.cjsType } 
+            config: { labels, values, color: state.chartColor, yLabel: yCol, cjsType: ctDef.cjsType },
+            viewingTables: [...this.viewingTables],
+            xCol, 
+            yCol,
+            agg
         };
     }
 
@@ -370,6 +383,9 @@ export class BIController extends BaseController {
             return list.innerHTML = '<div style="padding:10px; color:var(--muted2); font-size:11px;">No saved charts</div>';
 
         const saveCharts = this.obj.state.savedCharts;
+
+        console.log(`THE CHARDS ARE: `, Object.values(saveCharts));
+        
 
         list.innerHTML = Object.values(saveCharts).filter(c => c.type != 'pivotTable').map((c, i) => this.obj.parseEvents(`
             <div class="chart-thumb" draggable="true" onclick="controller.loadSavedChart(${c.id})" ondragstart="controller.handleDragStart(event, 'chart-${c.id}')">
@@ -512,7 +528,7 @@ export class BIController extends BaseController {
 
 	async onPipelineChange(val) {
         this.obj.state.pipeline = val;
-        let tablesByContext = await PipelineService.getDomainPipelineFields(val);
+        let tablesByContext = await BIController.getDomainPipelineFields(val);
         BIController.currentTableList = Object.entries(tablesByContext).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));
         this.obj.state.activeTable = BIController.currentTableList[0].name;
         this.renderTableList();
@@ -523,16 +539,23 @@ export class BIController extends BaseController {
 
         const { state } = this.obj;
 
-        const c = state.savedCharts.find((x) => x.id === id);
+        const c = Object.values(state.savedCharts).find((x) => x.id === id);
         if (!c) return;
 
         this.switchTab("chart", document.querySelectorAll(".tab")[1]);
         this.obj.popup.querySelector('.chartTitleInput').value = c.title;
         state.chartType = c.type;
         state.chartColor = c.config.color;
+        
+        const { xCol, yCol, agg } = c;
+        this.obj.popup.querySelector('#xAxisSelect').value = xCol;
+        this.obj.popup.querySelector('#yAxisSelect').value = yCol;
+        this.obj.popup.querySelector('#aggSelect').value = agg;
+
         this.renderChartTypeGrid();
         this.renderColorRow();
         state.pendingChart = c;
+
         this.buildChart();
 
     }
@@ -632,7 +655,7 @@ export class BIController extends BaseController {
 
     /** @returns { { result: { result } } } */
     async sendDataQueryAgentMessage(message) {
-        const agentFlow = AIUtil.aiAgentFlow, namespace = await this.getNamespace();
+        const agentFlow = AIUtil.aiAgentFlow, namespace = await BIController.getNamespace();
         const url = '/workcpace/agent/' + namespace;
 
         const response = await $still.HTTPClient.post(url, JSON.stringify({ message, agentFlow }), HTTPHeaders.JSON);
@@ -643,7 +666,7 @@ export class BIController extends BaseController {
 
     /** @returns { { result: { result } } } */
     async sendAnalyticsRequest(fields) {
-        let namespace = await this.getNamespace();
+        let namespace = await BIController.getNamespace();
         
         const url = `/workspace/analytics/${namespace}/${this.obj.state.pipeline}`;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ fields }), HTTPHeaders.JSON);
@@ -662,9 +685,9 @@ export class BIController extends BaseController {
         
     }
 
-    async getNamespace(){
+    static async getNamespace(){
         let namespace = StillAppSetup.config.get('clientNamespace');
-        if(!this.obj.runningOnOdoo){
+        if(!StillAppSetup.config.get('runningOnOdoo')){
             const { UserUtil } = await import('../components/auth/UserUtil.js');
             const { UserService } = await  import('../services/UserService.js');
             namespace = StillAppSetup.config.get('anonymousLogin') ? UserUtil.email : await UserService.getNamespace();
@@ -679,6 +702,26 @@ export class BIController extends BaseController {
                 <div style="margin-left:10px; font-weight:bold; color:var(--spinner-top);">Recalculating 50k rows...</div>
             </div>
         `;
+    }
+
+    static async getDomainPipelines() {
+        const namespace = await BIController.getNamespace();
+        const url = '/ppline/domains/' + namespace;
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok)
+            return await response.json();
+        return [];
+    }
+
+    static async getDomainPipelineFields(pipeline) {
+        const namespace = await BIController.getNamespace();
+        const url = `/ppline/domains/catalog/${namespace}/${pipeline.split('.')[1]}`;
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok){
+            const result = await response.json();
+            return JSON.parse(result.result);
+        }
+        return [];
     }
     
 }

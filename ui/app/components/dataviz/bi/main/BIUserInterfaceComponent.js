@@ -3,7 +3,6 @@ import { UUIDUtil } from "../../../../../@still/util/UUIDUtil.js";
 import { StillAppSetup } from "../../../../../config/app-setup.js";
 import { BIChatController } from "../../../../controller/BIChatController.js";
 import { BIController } from "../../../../controller/BIController.js";
-import { PipelineService } from "../../../../services/PipelineService.js";
 import { ModalWindowComponent } from "../../../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../../../popup-window/PopupUtil.js";
 import { mockDataTables, mockDepartments, mockTitles } from "../mock.js";
@@ -66,7 +65,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	async stBeforeInit(){
 		this.runningOnOdoo = StillAppSetup.config.get('runningOnOdoo');
 		setTimeout(async () => {
-			let result = await PipelineService.getDomainPipelines();
+			let result = await BIController.getDomainPipelines();
 			
 			if(result?.error === false)
 				this.domainPipelinesList = result.result.map(([pp, dbName]) => ({ name: this.toCamel(pp).trim(), pipeline: `${dbName}.${pp}` }));

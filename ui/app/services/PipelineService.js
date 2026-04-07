@@ -107,24 +107,4 @@ export class PipelineService extends BaseService {
         return { ...result, error: null };
     }
 
-    static async getDomainPipelines() {
-        const namespace = await UserService.getNamespace();
-        const url = '/ppline/domains/' + namespace;
-        const response = await $still.HTTPClient.get(url);
-        if (response.ok)
-            return await response.json();
-        return [];
-    }
-
-    static async getDomainPipelineFields(pipeline) {
-        const namespace = await UserService.getNamespace();
-        const url = `/ppline/domains/catalog/${namespace}/${pipeline.split('.')[1]}`;
-        const response = await $still.HTTPClient.get(url);
-        if (response.ok){
-            const result = await response.json();
-            return JSON.parse(result.result);
-        }
-        return [];
-    }
-
 }
