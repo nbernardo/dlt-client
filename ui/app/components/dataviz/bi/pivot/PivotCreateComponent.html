@@ -3,7 +3,7 @@
 		--primary: #2563eb; --bg: #f8fafc; --border: #e2e8f0; --success: #10b981;
 		/* Loading Overlay Styles */
 		#table-canvas { position: relative; min-height: 200px; }
-		  
+
 		@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   
 		  .sidebar-section { position: relative; }
@@ -23,7 +23,6 @@
 		  .search-input { border: none; outline: none; flex: 1; font-size: 14px; }
 		  .heatmap-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; white-space: nowrap; }
 		  .action-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; }
-		  .action-btn.save { background: var(--success); }
   
 		  .drop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 		  .zone { background: white; border: 2px dashed #cbd5e1; border-radius: 10px; padding: 12px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
@@ -74,7 +73,7 @@
                 <label class="heatmap-toggle">
                     <input type="checkbox" id="show-all-rows-check" onchange="controller.renderAll()"> Raw Records
                 </label>
-                <button class="action-btn save" onclick="controller.saveConfiguration()"><i class="fa fa-save"></i> Save Pivot table</button>
+                <button class="action-btn success-save-button" onclick="controller.saveConfiguration()"><i class="fa fa-save"></i> Save Pivot table</button>
                 <button class="action-btn" style="background: #9fa3a9;" onclick="component.exportToCSV()">↓ Export CSV</button>
                 <button class="action-btn" style="background: #ef4444;" onclick="component.clearWorkspace()">Reset</button>
             </div>

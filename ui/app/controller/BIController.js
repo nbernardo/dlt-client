@@ -1,8 +1,8 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
-import { HTTPHeaders } from "../../@still/helper/http.js";
-import { StillAppSetup } from "../../config/app-setup.js";
+import { AppTemplate } from "../../config/app-template.js";
 import { BIUserInterfaceComponent } from "../components/dataviz/bi/main/BIUserInterfaceComponent.js";
 import { BiUiUtil } from "../components/dataviz/bi/util.js";
+import { BIService } from "../services/BIService.js";
 import { AIUtil } from "../util/AIUtil.js";
 
 export class BIController extends BaseController {
@@ -244,6 +244,11 @@ export class BIController extends BaseController {
 	switchTab(id, el) {
         
         if(id === 'sheet') this.obj.init();
+        if(id === 'dashboard') this.obj.showDashboardActions = true;
+        else {
+            this.obj.showDashboardActions = false;
+            this.obj.showDashboardActions = false;
+        }
 
 		this.obj.popup.querySelectorAll(".tab").forEach((t) => t.classList.remove('active'));
 		el.classList.add("active");
@@ -371,9 +376,16 @@ export class BIController extends BaseController {
 
     saveChart() {
         if (!this.obj.state.pendingChart) return showToast("Build a chart first!");
-        this.obj.state.savedCharts['chart-'+this.obj.state.pendingChart.id] = { ...this.obj.state.pendingChart };
-        this.renderSavedCharts();
-        this.showToast("Chart saved to library");
+        if(this.saveChartConfig()){
+            this.obj.state.savedCharts['chart-'+this.obj.state.pendingChart.id] = { ...this.obj.state.pendingChart, fromDB: true };
+
+            this.renderSavedCharts();
+            this.showToast("Chart saved to library");
+            AppTemplate.toast.success('Chart saved to library');
+        }else{
+            AppTemplate.toast.error('Error while saving Chart')
+            this.showToast("Error while saving Chart");
+        }
     }
         
     renderSavedCharts() {
@@ -546,7 +558,7 @@ export class BIController extends BaseController {
         this.obj.popup.querySelector('.chartTitleInput').value = c.title;
         state.chartType = c.type;
         state.chartColor = c.config.color;
-        
+
         const { xCol, yCol, agg } = c;
         this.obj.popup.querySelector('#xAxisSelect').value = xCol;
         this.obj.popup.querySelector('#yAxisSelect').value = yCol;
@@ -654,26 +666,13 @@ export class BIController extends BaseController {
 	}
 
     /** @returns { { result: { result } } } */
-    async sendDataQueryAgentMessage(message) {
-        const agentFlow = AIUtil.aiAgentFlow, namespace = await BIController.getNamespace();
-        const url = '/workcpace/agent/' + namespace;
-
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ message, agentFlow }), HTTPHeaders.JSON);
-        if (response.ok && !response.error)
-            return await response.json();
-        return null;
-    }
+    sendDataQueryAgentMessage = async(message) => BIService.sendDataQueryAgentMessage(message);
 
     /** @returns { { result: { result } } } */
-    async sendAnalyticsRequest(fields) {
-        let namespace = await BIController.getNamespace();
-        
-        const url = `/workspace/analytics/${namespace}/${this.obj.state.pipeline}`;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ fields }), HTTPHeaders.JSON);
-        if (response.ok && !response.error)
-            return await response.json();
-        return null;
-    }
+    sendAnalyticsRequest = async (fields) => BIService.sendAnalyticsRequest(fields, this.obj.state.pipeline);
+
+    static getDomainPipelines = async () => BIService.getDomainPipelines();
+    static getDomainPipelineFields = async (pipeline) => BIService.getDomainPipelineFields(pipeline)
 
     checkScroll(el) {
         const arrow = this.obj.popup.querySelector('#field-scroll-arrow');
@@ -682,17 +681,6 @@ export class BIController extends BaseController {
 
         if (isScrollable && !isAtBottom) arrow.style.display = 'block';
         else arrow.style.display = 'none';
-        
-    }
-
-    static async getNamespace(){
-        let namespace = StillAppSetup.config.get('clientNamespace');
-        if(!StillAppSetup.config.get('runningOnOdoo')){
-            const { UserUtil } = await import('../components/auth/UserUtil.js');
-            const { UserService } = await  import('../services/UserService.js');
-            namespace = StillAppSetup.config.get('anonymousLogin') ? UserUtil.email : await UserService.getNamespace();
-        }
-        return namespace;
     }
 
     dataProcessLoading(){
@@ -704,24 +692,11 @@ export class BIController extends BaseController {
         `;
     }
 
-    static async getDomainPipelines() {
-        const namespace = await BIController.getNamespace();
-        const url = '/ppline/domains/' + namespace;
-        const response = await $still.HTTPClient.get(url);
-        if (response.ok)
-            return await response.json();
-        return [];
+    async saveChartConfig() {
+        const pipeline = this.obj.state.pipeline.split('.')[1];
+        const configs = JSON.parse(JSON.stringify(this.obj.state.pendingChart));
+        configs.config.values = [];
+        return await BIService.saveChartConfig(JSON.stringify(configs), pipeline, configs?.title);
     }
 
-    static async getDomainPipelineFields(pipeline) {
-        const namespace = await BIController.getNamespace();
-        const url = `/ppline/domains/catalog/${namespace}/${pipeline.split('.')[1]}`;
-        const response = await $still.HTTPClient.get(url);
-        if (response.ok){
-            const result = await response.json();
-            return JSON.parse(result.result);
-        }
-        return [];
-    }
-    
 }

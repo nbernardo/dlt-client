@@ -34,17 +34,19 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	/**  @Prop  */ showTablesList = true;
 
+	/**  @Prop  */ showDashboardActions = false;
+
 	domainPipelinesList = [];
 
  	/** @Prop */
 	state = {
-		pipeline:'p1', activeTable:'HumanResources_Employee',
+		pipeline:null, activeTable:null,
 		filteredRows:[], selectedRows:new Set(),
 		sortCol:null, sortDir:'asc',
 		chartType:'bar', chartColor: BiUiUtil.chartColors[0],
 		chartInstance:null, savedCharts: {},
-		dashboards:{'Main Dashboard':[],'Sales Overview':[]},
-		activeDash:'Main Dashboard', pendingChart:null,
+		dashboards:{'Main Dashboard':[]},
+		activeDash: 'Main Dashboard', pendingChart:null,
 		frozenCols: new Set(), activeInsertIndex: -1
 	};
  	
@@ -67,8 +69,13 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		setTimeout(async () => {
 			let result = await BIController.getDomainPipelines();
 			
-			if(result?.error === false)
-				this.domainPipelinesList = result.result.map(([pp, dbName]) => ({ name: this.toCamel(pp).trim(), pipeline: `${dbName}.${pp}` }));
+			if(result?.error === false && result?.result){
+				for(let chart of result?.result.charts){
+					chart = JSON.parse(chart);
+					this.state.savedCharts[`chart-${chart.id}`] = chart;
+				}
+				this.domainPipelinesList = result?.result?.pipelines?.map(([pp, dbName]) => ({ name: this.toCamel(pp).trim(), pipeline: `${dbName}.${pp}` }));
+			}
 			
 		}, 0);
 	}
