@@ -631,15 +631,3 @@ def update_pipeline_pause(namespace, pipeline, status):
         return { 'error': False, 'result': { 'result': 'Pipeline job paused' } }
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }
-
-
-@pipeline.route('/ppline/domains/<namespace>', methods=['GET'])
-def get_domain_pipelines(namespace):
-    from utils.metastore.PipelineMedatata import PipelineMedatata
-    return { 'result': PipelineMedatata.get_domain_pipelines(namespace), 'error': False }
-
-
-@pipeline.route('/ppline/domains/catalog/<namespace>/<pipeline>', methods=['GET'])
-def get_domain_pipeline_fields(namespace, pipeline):
-    from utils.metastore.DataCatalog import DataCatalog
-    return { 'result': DataCatalog.get_fields_by_pipeline(pipeline, namespace), 'error': False }
