@@ -43,17 +43,10 @@ export class PivotTableController extends BaseController {
         });
 
         if (!selection.rows.length || !selection.vals.length) { 
-            container.innerHTML = '<div class="empty-msg">Drag fields here to start.</div>'; 
-            return; 
+            return container.innerHTML = '<div class="empty-msg">Drag fields here to start.</div>'; 
         }
 
-        container.innerHTML = `
-            <div class="lab-loader">
-                <div class="spinner"></div>
-                <div style="margin-left:10px; font-weight:bold; color:var(--primary);">Recalculating 50k rows...</div>
-            </div>
-            ${container.innerHTML} 
-        `;
+        container.innerHTML = `${this.obj.$parent.controller.dataProcessLoading()}${container.innerHTML}`;
 
         requestAnimationFrame(() => {
             setTimeout(() => {
@@ -233,7 +226,7 @@ export class PivotTableController extends BaseController {
         tile.className = 'dash-tile', tile.id = `pivotWrap_${Date.now()}`;
         tile.innerHTML = this.obj.parseEvents(`
             <div id="loader-${i}" class="loading-overlay">
-                <div class="spinner"></div>
+                <div class="analytics-dataload-spinner"></div>
                 <div style="font-size: 11px; font-weight: 600; color: #64748b;">Processing 50,000 Rows...</div>
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; flex-shrink:0;padding: 0 8px;">

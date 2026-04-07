@@ -3,6 +3,7 @@ import { HTTPHeaders } from "../../@still/helper/http.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 import { BIUserInterfaceComponent } from "../components/dataviz/bi/main/BIUserInterfaceComponent.js";
 import { BiUiUtil } from "../components/dataviz/bi/util.js";
+import { PipelineService } from "../services/PipelineService.js";
 import { AIUtil } from "../util/AIUtil.js";
 
 export class BIController extends BaseController {
@@ -13,26 +14,42 @@ export class BIController extends BaseController {
     wasUiPreviousInited = false;
 
     renderTableList() {
-		const tables = this.obj?.analyticsRessultTables[this.obj.state.pipeline] || [];
+		const tables = BIController.currentTableList || [];
 		this.obj.popup.querySelector(".tableList").innerHTML = tables
 			.map((t) =>
 				this.obj.parseEvents(
-                    `<div class="table-item ${t.name === this.obj.state.activeTable ? "active" : ""}" onclick="controller.loadTable('${t.name}')">
-                        <div class="table-icon">T</div>${t.name.replace(/_/g, " ")}
-                        <span class="table-rows">${t.rows.toLocaleString()}</span>
+                    `<div class="table-item active">
+                        <div class="table-icon"><input type="checkbox" onclick="controller.loadTable('${t.name}',true, this.checked)"></div>${t?.name?.replace(/_/g, " ")}
+                        <span class="table-rows">${t?.totalCols}</span>
                     </div>`
                 )
 			)
 			.join("");
 	}
 
-    loadTable(name) {
+    viewingTables = new Set();
+    async loadTable(name, runAnalytics) {
         this.obj.state.activeTable = name;
         this.obj.state.filteredRows = [...this.obj.gridDataSource];
         this.obj.state.selectedRows.clear();
-        this.renderTableList();
-        this.renderSheet();
         this.populateAxisSelects();
+        
+        if(runAnalytics){
+            if(this.viewingTables.has(name)) this.viewingTables.delete(name);
+            else this.viewingTables.add(name);
+
+            let colsDetails, columns = [];
+            this.obj.popup.querySelector('#tableBody').innerHTML = `<tr><td>${this.dataProcessLoading()}</td></tr>`;
+            for(const table of [...this.viewingTables]){
+                colsDetails = (BIController.currentTableList.filter(tbl => tbl.name == table)[0]?.cols || []);
+                columns.push(...colsDetails.map(itm => `${table}_${itm.column_name}`));
+            }
+            
+            const result = await this.sendAnalyticsRequest(columns.join(','));
+            this.obj.setData((result.result || [])).init();
+            this.renderSheet();
+        }
+        
     }
 
     renderSheet(){
@@ -491,12 +508,15 @@ export class BIController extends BaseController {
         }
     }
 
-	onPipelineChange(val) {
-		this.obj.state.pipeline = val;
-		const tables = this.obj.analyticsRessultTables[val] || [];
-		this.obj.state.activeTable = tables[0]?.name || "";
-		this.renderTableList();
-		this.loadTable(this.obj.state.activeTable);
+    static currentTableList = [];
+
+	async onPipelineChange(val) {
+        this.obj.state.pipeline = val;
+        let tablesByContext = await PipelineService.getDomainPipelineFields(val);
+        BIController.currentTableList = Object.entries(tablesByContext).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));
+        this.obj.state.activeTable = BIController.currentTableList[0].name;
+        this.renderTableList();
+        this.viewingTables.clear();
 	}
 
     loadSavedChart(id) {
@@ -612,16 +632,21 @@ export class BIController extends BaseController {
 
     /** @returns { { result: { result } } } */
     async sendDataQueryAgentMessage(message) {
-        let agentFlow = AIUtil.aiAgentFlow, namespace = StillAppSetup.config.get('clientNamespace');
-
-        if(!this.obj.runningOnOdoo){
-            const { UserUtil } = await import('../components/auth/UserUtil.js');
-            const { UserService } = await  import('../services/UserService.js');
-            namespace = StillAppSetup.config.get('anonymousLogin') ? UserUtil.email : await UserService.getNamespace();
-        }
-
+        const agentFlow = AIUtil.aiAgentFlow, namespace = await this.getNamespace();
         const url = '/workcpace/agent/' + namespace;
+
         const response = await $still.HTTPClient.post(url, JSON.stringify({ message, agentFlow }), HTTPHeaders.JSON);
+        if (response.ok && !response.error)
+            return await response.json();
+        return null;
+    }
+
+    /** @returns { { result: { result } } } */
+    async sendAnalyticsRequest(fields) {
+        let namespace = await this.getNamespace();
+        
+        const url = `/workspace/analytics/${namespace}/${this.obj.state.pipeline}`;
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ fields }), HTTPHeaders.JSON);
         if (response.ok && !response.error)
             return await response.json();
         return null;
@@ -635,6 +660,25 @@ export class BIController extends BaseController {
         if (isScrollable && !isAtBottom) arrow.style.display = 'block';
         else arrow.style.display = 'none';
         
+    }
+
+    async getNamespace(){
+        let namespace = StillAppSetup.config.get('clientNamespace');
+        if(!this.obj.runningOnOdoo){
+            const { UserUtil } = await import('../components/auth/UserUtil.js');
+            const { UserService } = await  import('../services/UserService.js');
+            namespace = StillAppSetup.config.get('anonymousLogin') ? UserUtil.email : await UserService.getNamespace();
+        }
+        return namespace;
+    }
+
+    dataProcessLoading(){
+        return `
+            <div class="lab-loader">
+                <div class="analytics-dataload-spinner"></div>
+                <div style="margin-left:10px; font-weight:bold; color:var(--spinner-top);">Recalculating 50k rows...</div>
+            </div>
+        `;
     }
     
 }

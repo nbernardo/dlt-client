@@ -61,11 +61,9 @@
 							<div style="display: flex; flex-direction: column; gap: 7px;">
 								<!-- <div class="logo"><div class="logo-dot"></div>DataViz</div>
 								<div class="topbar-divider"></div> -->
-								<div>Domain: </div>
-								<select class="pipeline-selector" onchange="controller.onPipelineChange(this.value)">
-									<option value="p1">pipeline_at_mssql_adventureworks</option>
-									<option value="p2">pipeline_at_oracle_hr</option>
-									<option value="p3">pipeline_at_postgres_sales</option>
+								<div style="font-weight: bold; font-size: 12px;">Context: </div>
+								<select class="pipeline-selector" (forEach)="domainPipelinesList" onchange="controller.onPipelineChange(this.value)">
+									<option each="item" value="{item.pipeline}">{item.name}</option>
 								</select>
 							</div>
 							<div class="e2e-chat-container" id="chat_wrapper">
@@ -119,7 +117,7 @@
 								<div class="tab" onclick="controller.switchTab('pivot',this)">Pivot</div>
 								<div class="tab" onclick="controller.switchTab('dashboard',this)">Dashboard</div>
 								<span>
-									<button class="btn btn-accent" id="btnPublish" style="width: 171px; flex: 2; position: absolute; right: 32px; margin-top: -14px;" onclick="controller.openPublishModal()">
+									<button class="btn btn-accent" id="btnPublish" style="width: 182px; flex: 2; position: absolute; right: 32px; margin-top: -14px;" onclick="controller.openPublishModal()">
 										<div class="publish-dot"></div>Publish to Dashboard
 									</button>
 								</span>
@@ -129,9 +127,9 @@
 								<div class="sheet-toolbar">
 									<div class="search-wrap"><input class="search-input" id="searchInput" placeholder="Search..." oninput="controller.filterRows(this.value)"></div>
 									<select class="field-select" style="width:auto" id="colFilter" onchange="controller.filterRows(document.getElementById('searchInput').value)"><option value="">All columns</option></select>
-									<button class="btn btn-ghost" onclick="controller.addColumn()" style="width: 87px;">+ Add Col</button>
+									<button class="btn btn-ghost" onclick="controller.addColumn()" style="width: 94px;">+ Add Col</button>
 									<div class="topbar-actions" style="width: 301px;padding-left: 8px;">
-										<button class="btn btn-ghost" style="width: 110px;" onclick="controller.exportCSV()">↓ Export CSV</button>
+										<button class="btn btn-ghost" style="width: 115px;" onclick="controller.exportCSV()">↓ Export CSV</button>
 									</div>
 									<div class="stats-row">
 									<div class="stat-chip">Rows: <span id="rowCount">0</span></div>
