@@ -274,7 +274,28 @@ def message_ai_agent(namespace):
             result = 'No medatata was loaded about your namespace.'\
                 if str(error).strip() == namespace else 'Could not load details about your namespace.'
         return { 'error': True, 'result': { 'result': result } }
-    
+
+
+@workspace.route('/workspace/analytics/<namespace>/<table>', methods=['POST'])
+def run_analytics(namespace, table):
+
+    try:
+        from utils.duckdb_util import DuckdbUtil
+        import platform
+
+        payload = request.get_json()
+        fields = payload['fields']
+        
+        sep = '/' if platform.system() != 'Windows' else '\\\\'
+        database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{table.split('.')[1]}.duckdb'
+
+        return { 'error': True, 'result': DuckdbUtil.run_analytics_query(database_path, fields, table) }
+        
+    except Exception as error:
+        result = f'Erro while running analytics query. {str(error)}'
+        print(result)
+        return { 'error': True, 'result': { 'result': result } }
+
     
 @workspace.route('/workcpace/agent/<namespace>/<username>', methods=['POST'])
 def message_ai_agent_with_username(namespace, username):

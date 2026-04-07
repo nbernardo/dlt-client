@@ -32,5 +32,5 @@ class MetaStore:
 
 
     @staticmethod
-    def persist_pipeline_metadata(namespace: str, pipeline: str, details: dict, dataset_name: str):
-        return PipelineMedatata.persist_metadata(namespace, pipeline, details, dataset_name)
+    def persist_pipeline_metadata(namespace: str, pipeline: str, details: dict, dataset_name: str, short_query: str):
+        return PipelineMedatata.persist_metadata(namespace, pipeline, details, dataset_name, short_query)

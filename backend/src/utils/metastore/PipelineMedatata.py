@@ -49,7 +49,7 @@ class PipelineMedatata:
 
 
     @staticmethod
-    def persist_metadata(namespace = None, pipeline=None, details={}, dataset_name: str = ''):
+    def persist_metadata(namespace = None, pipeline=None, details={}, dataset_name: str = '', short_query: str = ''):
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
 
         try:
@@ -59,8 +59,8 @@ class PipelineMedatata:
             rows_to_insert = [{
                 'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'],
                 'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type'],
-                'source_config': details['source_config'], 'destination_config': details['destination_config'], 
-                'referenced_secrets': str(details['referenced_secrets']), 'dataset_name': dataset_name, 'big_query': ''
+                'source_config': details['source_config'], 'destination_config': details['destination_config'], 'short_query': short_query,
+                'referenced_secrets': str(details['referenced_secrets']), 'dataset_name': dataset_name, 'domain_pipeline': details['domain_pipeline'],
             }]
 
             tbl.add(rows_to_insert)
@@ -77,13 +77,29 @@ class PipelineMedatata:
             more_filter = f"and namespace = '{namespace}'" if namespace != None else ''
             return con.execute(f"""
                 SELECT pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, source_type, dest_type, dataset_name
-                FROM pipeline_metadata WHERE pipeline = '{pipeline}' {more_filter}
-            """).fetchone()
+                FROM pipeline_metadata WHERE pipeline = ? {more_filter}
+            """, [pipeline]).fetchone()
 
         except Exception as err:
             if str(err).__contains__('Extension'):
                 print(f'ERROR: Duckdb missing Extension - The lancedb extension for Duckdb is not installed: {err}')
-                print(f'Please install this extentions according to the documentation on https://duckdb.org/community_extensions/extensions/lance')
+                print(f'Please install this extentions according to the documentation on https://duckdb.org/docs/current/core_extensions/lance')
+                return []
+            else:
+                print(f'Error while loading catalog: {err}')
+            return err
+
+
+    @staticmethod
+    def get_domain_pipelines(namespace: str = None, db_path: str = None):
+        try:
+            con = PipelineMedatata._get_duckdb_conn(False, db_path)
+            return con.execute(f'SELECT pipeline, dataset_name FROM pipeline_metadata WHERE domain_pipeline = true AND namespace = ?', [namespace]).fetchall()
+
+        except Exception as err:
+            if str(err).__contains__('Extension'):
+                print(f'ERROR: Duckdb missing Extension - The lancedb extension for Duckdb is not installed: {err}')
+                print(f'Please install this extentions according to the documentation on https://duckdb.org/docs/current/core_extensions/lance')
                 return []
             else:
                 print(f'Error while loading catalog: {err}')
@@ -142,6 +158,7 @@ class PipelineMedatata:
                 'dataset_name': "cast(null as string)", #added in Mar/22/2026
                 'big_query': "cast(null as string)", #added in Apr/05/2026
                 'short_query': "cast(null as string)", #added in Apr/05/2026
+                'domain_pipeline': "cast(null as string)", #added in Apr/05/2026
             }
 
             for col, expr in new_fields.items():

@@ -5,9 +5,7 @@ from sys import path
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper
 
-# Initialize pipeline logger
 logger = PipelineLogger()
-
 logger.info("Starting SQL database pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db'})
 
 from src.services.workspace.Workspace import Workspace
@@ -46,7 +44,11 @@ def load_select_tables_from_db():
     
     logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(original_tables)})
     tables, pks, rels, meta, ddls, big_query = normalize_table_names(secret, original_tables, original_tables_pk)
-    additionals = { 'rels': rels, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query, 'db_name': %output_dest_name%, 'tbls': tables }
+    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'perf_optmzd': '%perf_optmzd%' }
+    additionals = { **additionals, 'rels': rels, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query }
+
+    short_query = Helper.short_query(big_query)
+    print(f'SHORT_QUERY=__e2e_short_query_:{short_query}')
 
     # Bellow mapping: schema = SqlDBComponent.schema
     schema = %schema%

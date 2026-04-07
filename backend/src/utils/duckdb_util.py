@@ -217,6 +217,7 @@ class DuckdbUtil:
     def del_connection_for(db_filename) -> DuckDBPyConnection:
         del DuckdbUtil.db_connections[db_filename]
 
+
     @staticmethod
     def initialize_logging_tables():
         """
@@ -230,6 +231,21 @@ class DuckdbUtil:
             print(f"Error initializing logging tables: {e}")
             # Don't raise the exception to prevent application startup failure
             # Logging should be optional and not break the main application
+
+
+    @staticmethod
+    def run_analytics_query(db_path, fields, table):
+        try:
+            schema, table = table.split('.')
+            from utils.pipeline.PipelinesHelper import PipelineHelper
+            cnx = duckdb.connect(db_path)
+            cursor = cnx.cursor()
+            query = f'SELECT {fields} FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}'
+            result = cursor.sql(query).fetch_arrow_table()
+
+            return result.to_pylist()
+        except Exception as e:
+            print(f"Error while running analytics: {e}")
 
 
 

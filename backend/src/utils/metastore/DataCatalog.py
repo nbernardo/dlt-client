@@ -104,7 +104,7 @@ class DataCatalog:
         source_clean = table_source.replace('"', '')
         pipeline_run_id = str(getattr(pipeline._last_trace, 'transaction_id', ''))
         
-        [rels, meta, ddls] = [add['rels'], add['meta'], add['ddls']]
+        [rels, meta, ddls, perf_optmzd] = [add['rels'], add['meta'], add['ddls'], add.get('perf_optmzd', False)]
 
         all_updates = []
         for table_name, table_meta in pipeline.default_schema.tables.items():
@@ -179,6 +179,7 @@ class DataCatalog:
 
         finally:
             if con: con.close()
+            if perf_optmzd != 'yes': sys.exit(0)
 
 
     @staticmethod
@@ -292,3 +293,33 @@ class DataCatalog:
 
             return result.fetchall()
         except: return None
+    
+
+    @staticmethod
+    def get_fields_by_pipeline(pipeline_name, namespace):
+        try:
+            result = DataCatalog._get_duckdb_conn().execute("""
+                SELECT 
+                    json_group_object(table_name, columns_array) as final_json
+                FROM (
+                    SELECT 
+                        table_name, 
+                        json_group_array(
+                            json_object(
+                                'original_column_name', original_column_name,
+                                'column_name', column_name,
+                                'data_type', data_type,
+                                'semantic_concept', semantic_concept,
+                                'confidence_score', confidence_score,
+                                'description', description
+                            )
+                        ) as columns_array
+                    FROM column_catalog WHERE pipeline = ?
+                    GROUP BY table_name
+                );
+            """, [namespace.replace('-','_')+'_at_'+pipeline_name])
+            result = result.fetchall()
+            return result
+        except Exception as err:
+            print(f'Error on fetching pipeline catalog: {str(err)}')
+            return None

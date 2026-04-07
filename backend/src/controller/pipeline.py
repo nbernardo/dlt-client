@@ -24,13 +24,14 @@ def create():
     """ This is pipeline creation request handler """
     
     payload = request.get_json()
-    
+
     pipeline_name, pipeline_lbl = set_pipeline_name(payload)
     context = RequestContext(pipeline_name, payload['socketSid'])
     context.action_type = 'UPDATE' if request.method == 'PUT' else None
     context.is_code_destination = payload['codeOutput']
     context.is_duck_destination = payload['duckOutput']
     context.pipeline_action = payload.get('actionType', None)
+    context.pipeline_metadata.domain_pipeline = payload['analyticOptimized']
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -353,6 +354,7 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('__current.PIPELINE_NAME', f"'{pipeline_name}'")
     template = template.replace('%User_folder%', payload['user'])
     template = template.replace('%namespace%', f"'{payload['user']}'")
+    template = template.replace('%perf_optmzd%', 'yes' if context.pipeline_metadata.domain_pipeline else 'no')
     # %table_format% replace might be preceeded by the DLTCodeOutput node type which
     # means that if this was stated at the node level, this one won't take any effect 
     template = template.replace('%table_format%', '')
@@ -630,3 +632,14 @@ def update_pipeline_pause(namespace, pipeline, status):
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }
 
+
+@pipeline.route('/ppline/domains/<namespace>', methods=['GET'])
+def get_domain_pipelines(namespace):
+    from utils.metastore.PipelineMedatata import PipelineMedatata
+    return { 'result': PipelineMedatata.get_domain_pipelines(namespace), 'error': False }
+
+
+@pipeline.route('/ppline/domains/catalog/<namespace>/<pipeline>', methods=['GET'])
+def get_domain_pipeline_fields(namespace, pipeline):
+    from utils.metastore.DataCatalog import DataCatalog
+    return { 'result': DataCatalog.get_fields_by_pipeline(pipeline, namespace), 'error': False }

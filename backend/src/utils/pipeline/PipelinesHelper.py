@@ -1,6 +1,7 @@
 from utils.logging.pipeline_logger_config import PipelineLogger as PL
 from polars.dataframe import DataFrame
-from dlt.common.schema.schema import Schema 
+from utils.metastore.PipelineMedatata import PipelineMedatata
+import sys
 
 PipelineLogger = PL
 
@@ -57,22 +58,28 @@ class PipelineHelper:
         info=None, 
         additionals={}
     ):
-
         dest = additionals['dest']
-        big_query = additionals['big_query']
+        big_query = additionals.get('big_query', '')
         db_name = additionals['db_name']
         meta = additionals['meta']
         tbls = additionals['tbls']
-        table_name = pipeline.pipeline_name.split('_at_', 1)[1]
-        MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals)
-        PipelineHelper._create_analytics_storage(dest, big_query, table_name, db_name, meta, tbls)
+        perf_optmzd = additionals.get('perf_optmzd', False)
+        
+        try:
+            MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals)
+
+            if perf_optmzd == 'yes':
+                table_name = pipeline.pipeline_name.split('_at_', 1)[1]
+                PipelineHelper._create_analytics_storage(dest, big_query, table_name, db_name, meta, tbls)
+
+        finally:
+            sys.exit(0) # Gracefully terminates the sub-process
 
 
     @staticmethod
     def _create_analytics_storage(db_path, ready_query, domain_table, db_name, meta, tbls):
         import threading
         import duckdb
-        import sys
 
         def run_transform(db_path, domain_table, big_query, done_event):
             try:
@@ -94,7 +101,7 @@ class PipelineHelper:
 
                     con.execute("SET threads TO 4;")
                     con.execute("SET max_memory TO '4GB';")                    
-                    con.execute(f"CREATE OR REPLACE TABLE {domain_table} AS {big_query}")
+                    con.execute(f"CREATE OR REPLACE TABLE {PipelineHelper.prefix_and_suffix_table(domain_table)} AS {big_query}")
 
                     for view_name in created_ghosts:
                         con.execute(f"DROP VIEW {view_name}")
@@ -114,8 +121,12 @@ class PipelineHelper:
 
         t.join()
         print('BI Table Created (Balanced Mode).')
-        sys.exit(0) # Gracefully terminates the sub-process
 
 
 
+    def short_query(big_query):
+        return f'SELECT * FROM {big_query.split('FROM ')[1].replace('\n',' ')}' if big_query.__contains__('FROM ') else ''
+    
 
+    def prefix_and_suffix_table(table_name):
+        return f'_e2e_domain_{table_name}_data_'
