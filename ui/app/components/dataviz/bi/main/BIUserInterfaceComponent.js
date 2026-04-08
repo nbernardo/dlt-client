@@ -39,16 +39,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	domainPipelinesList = [];
 
  	/** @Prop */
-	state = {
-		pipeline:null, activeTable:null,
-		filteredRows:[], selectedRows:new Set(),
-		sortCol:null, sortDir:'asc',
-		chartType:'bar', chartColor: BiUiUtil.chartColors[0],
-		chartInstance:null, savedCharts: {},
-		dashboards:{'Main Dashboard':[]},
-		activeDash: 'Main Dashboard', pendingChart:null,
-		frozenCols: new Set(), activeInsertIndex: -1
-	};
+	state = new State();
  	
 	/** @Prop */ gridDataSource = null;
 
@@ -149,5 +140,28 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	// TODO: Move to a kind of string util
 	toCamel = (str) => String(str).replace(/(^|_)([a-z0-9])/g, (_1, _2, group2) => ' '+group2.toUpperCase());;
+
+}
+
+
+class State {
+
+	pipeline = null; 
+	activeTable = null; 
+	filteredRows = []; 
+	selectedRows = new Set();
+	sortCol = null; 
+	sortDir = 'asc'; 
+	chartType = 'bar'; 
+	chartColor = BiUiUtil.chartColors[0];
+	chartInstance = null; 
+	savedCharts = {}; 
+	frozenCols = new Set(); 
+	activeInsertIndex = -1;
+	dashboards = {'Main Dashboard': [] }; 
+	activeDash = 'Main Dashboard'; 
+	pendingChart = null;
+	/** @type {Array<Set>} */ 
+	chartsByDashboard = {}
 
 }

@@ -316,7 +316,7 @@ export class BIController extends BaseController {
 
     }
 
-    buildChart() {
+    buildChart(chart) {
 
         const { state, CHART_TYPES } = this.obj;
         const xCol = this.obj.popup.querySelector('#xAxisSelect').value;
@@ -377,8 +377,11 @@ export class BIController extends BaseController {
             }
         });
 
+        // Reassign the values in the chart which config are fetch form Database
+        if(chart) chart.config.values = values;
+
         state.pendingChart = { 
-            id: Date.now(), 
+            id: String(Math.random()).slice(2) + Date.now() + String(Math.random()).slice(2) + 'n', 
             title, 
             type: state.chartType, 
             config: { labels, values, color: state.chartColor, yLabel: yCol, cjsType: ctDef.cjsType },
@@ -407,12 +410,12 @@ export class BIController extends BaseController {
     renderSavedCharts() {
         const list = this.obj.popup.querySelector('.chartList');
 
-        if (!Object.keys(this.obj.state.savedCharts).length) 
+        if (!Object.keys(this.obj.state.savedCharts).length)
             return list.innerHTML = '<div style="padding:10px; color:var(--muted2); font-size:11px;">No saved charts</div>';
 
         const saveCharts = this.obj.state.savedCharts;       
         list.innerHTML = Object.values(saveCharts).filter(c => c.type != 'pivotTable').map((c, i) => this.obj.parseEvents(`
-            <div class="chart-thumb" draggable="true" onclick="controller.loadSavedChart(${c.id})" ondragstart="controller.handleDragStart(event, 'chart-${c.id}')">
+            <div class="chart-thumb" draggable="true" onclick="controller.loadSavedChart(${String(c.id)})" ondragstart="controller.handleDragStart(event, 'chart-${c.id}')">
                 ${c.title} <span class="chart-type-badge">${c.type}</span>
             </div>`)
         ).join('');
@@ -463,6 +466,9 @@ export class BIController extends BaseController {
 
     static dashboardAddedCharts = new Set();
     loadDashboard(name, isPivot, event, isDashboardChange = false) {
+
+        if(!this.obj.state.chartsByDashboard[name]) this.obj.state.chartsByDashboard[name] = new Set();
+        
         this.obj.state.activeDash = name;
         const grid = this.obj.popup.querySelector('.dashGrid');
         let items;
@@ -475,8 +481,9 @@ export class BIController extends BaseController {
             return BIController.dashboardAddedCharts.add(pivotId);
         }
 
-        const isChartAdded = (id) => BIController.dashboardAddedCharts.has(id);
+        const isChartAdded = (id) => this.obj.state.chartsByDashboard[name].has(id);
         if(isDashboardChange){
+            grid.innerHTML = '';
             items = (this.obj.state.dashboards[name] || []).filter(c => c?.type != 'pivotTable');
         }else{
             items = (this.obj.state.dashboards[name] || []).filter(c => c?.type != 'pivotTable' && !isChartAdded(c?.id));
@@ -504,11 +511,12 @@ export class BIController extends BaseController {
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
-            BIController.dashboardAddedCharts.add(c.id);
+            this.obj.state.chartsByDashboard[name].add(c.id);
         });
+        
     }
 
-    addChartToDashBoard(grid, charts){
+    addChartToDashBoard(grid, chart){
 
         const chartContent = (title, cId, wrapperId) => `
             <div class="dashboard-card">
@@ -521,16 +529,17 @@ export class BIController extends BaseController {
 
         const tileWrapper = document.createElement('span');
         tileWrapper.id = `graphWrapper_${Date.now()}`;
-        tileWrapper.innerHTML = this.obj.parseEvents(chartContent(charts.title, charts.id, tileWrapper.id));
+        tileWrapper.innerHTML = this.obj.parseEvents(chartContent(chart.title, chart.id, tileWrapper.id));
         grid.append(tileWrapper);
-
+     
     }
 
 	removeFromDash(index, wrapperId) {
         const elmToRemoveIdx = this.obj.state.dashboards[this.obj.state.activeDash].findIndex(elm => elm.id == index)
 		this.obj.state.dashboards[this.obj.state.activeDash].splice(elmToRemoveIdx, 1);
         document.getElementById(wrapperId).remove();
-        BIController.dashboardAddedCharts.delete(Number(index));
+        BIController.dashboardAddedCharts.delete(index);
+        this.obj.state.chartsByDashboard[this.obj.state.activeDash].delete(index);
 	}
 
     renderDashboardSelect() {
@@ -580,8 +589,10 @@ export class BIController extends BaseController {
     async loadSavedChart(id) {
 
         const { state } = this.obj;
-
-        const c = Object.values(state.savedCharts).find((x) => x.id === id);
+        
+        console.log('THE SAVED CHARTS ARE: ', state.savedCharts);
+        
+        const c = state.savedCharts['chart-'+id+'n'];
         if (!c) return;
 
         this.switchTab("chart", document.querySelectorAll(".tab")[1]);
@@ -608,13 +619,13 @@ export class BIController extends BaseController {
         this.renderColorRow();
         state.pendingChart = c;
 
-        this.buildChart();
+        this.buildChart(c);
 
     }
 
     showChartDataFetchLoading(){
         const container = this.obj.popup.querySelector('.chart-canvas-wrap');
-        container.innerHTML = this.dataProcessLoading();
+        container.innerHTML = this.dataProcessLoading('Feching chart data');
         return { hideLoading: () => container.innerHTML = `<canvas id="chartCanvas"></canvas>` };
     }
 
@@ -729,11 +740,11 @@ export class BIController extends BaseController {
         else arrow.style.display = 'none';
     }
 
-    dataProcessLoading(){
+    dataProcessLoading(message){
         return `
             <div class="lab-loader">
                 <div class="analytics-dataload-spinner"></div>
-                <div style="margin-left:10px; font-weight:bold; color:var(--spinner-top);">Recalculating rows...</div>
+                <div style="margin-left:10px; font-weight:bold; color:var(--spinner-top);">${message || 'Recalculating rows'}...</div>
             </div>
         `;
     }
@@ -742,7 +753,22 @@ export class BIController extends BaseController {
         const pipeline = this.obj.state.pipeline.split('.')[1];
         const configs = JSON.parse(JSON.stringify(this.obj.state.pendingChart));
         configs.config.values = [];
-        return await BIService.saveChartConfig(JSON.stringify(configs), pipeline, configs?.title, configs?.dataSource);
+        return await BIService.saveChartConfig(JSON.stringify(configs), pipeline, configs?.title, configs?.dataSource, configs?.id);
+    }
+
+    async saveDashboardConfig() {
+
+        const name = this.obj.state.activeDash;
+        const charts = [...this.obj.state.chartsByDashboard[this.obj.state.activeDash]];
+        const result = await BIService.saveDashboardConfig(JSON.stringify(charts), name, 0);
+
+        if(result){
+            this.showToast("Dashboard saved to library");
+            AppTemplate.toast.success('Dashboard saved to library');
+        }else{
+            AppTemplate.toast.error('Error while saving Dashboard')
+            this.showToast("Error while saving Dashboard");
+        }
     }
 
 }
