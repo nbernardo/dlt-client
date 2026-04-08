@@ -1,3 +1,4 @@
+import { sleepForSec } from "../../@still/component/manager/timer.js";
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { BIUserInterfaceComponent } from "../components/dataviz/bi/main/BIUserInterfaceComponent.js";
@@ -54,11 +55,15 @@ export class BIController extends BaseController {
                 columns.push(...colsDetails.map(itm => `${table}_${itm.column_name}`));
             }
 
-            const result = await this.sendAnalyticsRequest(columns.join(','));
-            this.obj.setData((result.result || [])).init();
-            this.renderSheet();
+            await this.runAnaluticsAndRenderSheet(columns.join(','))
         }
         
+    }
+
+    async runAnaluticsAndRenderSheet(fields, pipeline){
+        const result = await this.sendAnalyticsRequest(fields, pipeline);
+        this.obj.setData((result.result || [])).init();
+        this.renderSheet();
     }
 
     renderSheet(){
@@ -255,8 +260,16 @@ export class BIController extends BaseController {
 		this.obj.popup.querySelectorAll(".content").forEach((c) => c.classList.remove('active'));
 		this.obj.popup.querySelector(`.tab-${id}`).classList.add('active');
 
-        if(id == 'pivot') this.obj.showTablesList = false;
-        else this.obj.showTablesList = true;
+        if(id == 'chart') return;
+
+        if(id == 'pivot'){
+            this.obj.showTablesList = false;
+            this.obj.showTablesList = false;
+        }
+        else {
+            this.obj.showTablesList = true;
+            this.obj.showTablesList = true;
+        }
 
 	}
 
@@ -349,7 +362,9 @@ export class BIController extends BaseController {
                 datasets: [{
                     label: yCol,
                     data: values,
-                    backgroundColor: state.chartColor + 'cc',
+                    backgroundColor: values.map((_, i) => `hsla(${(i * 137.5) % 360}, 70%, 55%, 0.8)`),
+                    borderColor: values.map((_, i) => `hsl(${(i * 137.5) % 360}, 70%, 45%, 1)`),
+                    //backgroundColor: state.chartColor + 'cc',
                     borderColor: state.chartColor,
                     borderWidth: 1
                 }]
@@ -368,9 +383,10 @@ export class BIController extends BaseController {
             type: state.chartType, 
             config: { labels, values, color: state.chartColor, yLabel: yCol, cjsType: ctDef.cjsType },
             viewingTables: [...this.viewingTables],
+            dataSource: this.obj.state.pipeline,
             xCol, 
             yCol,
-            agg
+            agg,
         };
     }
 
@@ -394,11 +410,7 @@ export class BIController extends BaseController {
         if (!Object.keys(this.obj.state.savedCharts).length) 
             return list.innerHTML = '<div style="padding:10px; color:var(--muted2); font-size:11px;">No saved charts</div>';
 
-        const saveCharts = this.obj.state.savedCharts;
-
-        console.log(`THE CHARDS ARE: `, Object.values(saveCharts));
-        
-
+        const saveCharts = this.obj.state.savedCharts;       
         list.innerHTML = Object.values(saveCharts).filter(c => c.type != 'pivotTable').map((c, i) => this.obj.parseEvents(`
             <div class="chart-thumb" draggable="true" onclick="controller.loadSavedChart(${c.id})" ondragstart="controller.handleDragStart(event, 'chart-${c.id}')">
                 ${c.title} <span class="chart-type-badge">${c.type}</span>
@@ -450,9 +462,10 @@ export class BIController extends BaseController {
 
 
     static dashboardAddedCharts = new Set();
-    loadDashboard(name, isPivot, event) {
+    loadDashboard(name, isPivot, event, isDashboardChange = false) {
         this.obj.state.activeDash = name;
-        const grid = this.obj.popup.querySelector('.dashGrid'), tileWrapper = document.createElement('span');
+        const grid = this.obj.popup.querySelector('.dashGrid');
+        let items;
         
         grid.classList.remove('empty-dashboard');
         grid.querySelectorAll('.dash-empty').forEach(el => el.remove());
@@ -462,7 +475,13 @@ export class BIController extends BaseController {
             return BIController.dashboardAddedCharts.add(pivotId);
         }
 
-        const items = (this.obj.state.dashboards[name] || []).filter(c => c?.type != 'pivotTable' && !BIController.dashboardAddedCharts.has(c.id));
+        const isChartAdded = (id) => BIController.dashboardAddedCharts.has(id);
+        if(isDashboardChange){
+            items = (this.obj.state.dashboards[name] || []).filter(c => c?.type != 'pivotTable');
+        }else{
+            items = (this.obj.state.dashboards[name] || []).filter(c => c?.type != 'pivotTable' && !isChartAdded(c?.id));
+        }
+
         this.obj.popup.querySelector('.dashSelect').value = name;
 
         if ((this.obj.state.dashboards[name] || []).length === 0) {
@@ -470,18 +489,11 @@ export class BIController extends BaseController {
             return grid.innerHTML = `<div class="empty-icon dash-empty">📊</div><div class="dash-empty">Drag charts from the sidebar to populate this dashboard</div>`;
         }
 
-        tileWrapper.id = `graphWrapper_${Date.now()}`
-        tileWrapper.innerHTML = items.map((c, i) => this.obj.parseEvents(`
-            <div class="dashboard-card">
-                <div class="dashboard-card-header">
-                    <div class="dashboard-card-title">${c.title}</div>
-                    <button class="icon-btn" onclick="controller.removeFromDash('${c.id}','${tileWrapper.id}')">×</button>
-                </div>
-                <div class="dashboard-card-body"><canvas id="dashCanvas-${c.id}" class="dashboard-card-canvas"></canvas></div>
-            </div>`)
-        ).join('');
-        grid.append(tileWrapper);
-
+        if(items.length > 1){
+            for(const itm of items) this.addChartToDashBoard(grid, itm);
+        } else 
+            this.addChartToDashBoard(grid, items[0]);
+        
         items.forEach((c, i) => {
             const ctx = document.getElementById(`dashCanvas-${c.id}`).getContext('2d');
             new Chart(ctx, {
@@ -494,6 +506,24 @@ export class BIController extends BaseController {
             });
             BIController.dashboardAddedCharts.add(c.id);
         });
+    }
+
+    addChartToDashBoard(grid, charts){
+
+        const chartContent = (title, cId, wrapperId) => `
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <div class="dashboard-card-title">${title}</div>
+                    <button class="icon-btn" onclick="controller.removeFromDash('${cId}','${wrapperId}')">×</button>
+                </div>
+                <div class="dashboard-card-body"><canvas id="dashCanvas-${cId}" class="dashboard-card-canvas"></canvas></div>
+            </div>`;
+
+        const tileWrapper = document.createElement('span');
+        tileWrapper.id = `graphWrapper_${Date.now()}`;
+        tileWrapper.innerHTML = this.obj.parseEvents(chartContent(charts.title, charts.id, tileWrapper.id));
+        grid.append(tileWrapper);
+
     }
 
 	removeFromDash(index, wrapperId) {
@@ -547,7 +577,7 @@ export class BIController extends BaseController {
         this.viewingTables.clear();
 	}
 
-    loadSavedChart(id) {
+    async loadSavedChart(id) {
 
         const { state } = this.obj;
 
@@ -559,7 +589,17 @@ export class BIController extends BaseController {
         state.chartType = c.type;
         state.chartColor = c.config.color;
 
-        const { xCol, yCol, agg } = c;
+        const { xCol, yCol, agg, imported, viewingTables, dataSource } = c;
+
+        if(imported){
+            const loader = this.showChartDataFetchLoading();
+            const fields = viewingTables.map(tbl => `^${tbl}`).join('|');
+            await this.runAnaluticsAndRenderSheet(`COLUMNS('${fields}')`, dataSource);
+            await sleepForSec(1000);
+            delete c.imported;
+            loader.hideLoading();
+        }
+
         this.obj.popup.querySelector('#xAxisSelect').value = xCol;
         this.obj.popup.querySelector('#yAxisSelect').value = yCol;
         this.obj.popup.querySelector('#aggSelect').value = agg;
@@ -570,6 +610,12 @@ export class BIController extends BaseController {
 
         this.buildChart();
 
+    }
+
+    showChartDataFetchLoading(){
+        const container = this.obj.popup.querySelector('.chart-canvas-wrap');
+        container.innerHTML = this.dataProcessLoading();
+        return { hideLoading: () => container.innerHTML = `<canvas id="chartCanvas"></canvas>` };
     }
 
     setAgentAskMode(question, options = []) {
@@ -669,7 +715,7 @@ export class BIController extends BaseController {
     sendDataQueryAgentMessage = async(message) => BIService.sendDataQueryAgentMessage(message);
 
     /** @returns { { result: { result } } } */
-    sendAnalyticsRequest = async (fields) => BIService.sendAnalyticsRequest(fields, this.obj.state.pipeline);
+    sendAnalyticsRequest = async (fields, pipeline) => BIService.sendAnalyticsRequest(fields, pipeline || this.obj.state.pipeline);
 
     static getDomainPipelines = async () => BIService.getDomainPipelines();
     static getDomainPipelineFields = async (pipeline) => BIService.getDomainPipelineFields(pipeline)
@@ -687,7 +733,7 @@ export class BIController extends BaseController {
         return `
             <div class="lab-loader">
                 <div class="analytics-dataload-spinner"></div>
-                <div style="margin-left:10px; font-weight:bold; color:var(--spinner-top);">Recalculating 50k rows...</div>
+                <div style="margin-left:10px; font-weight:bold; color:var(--spinner-top);">Recalculating rows...</div>
             </div>
         `;
     }
@@ -696,7 +742,7 @@ export class BIController extends BaseController {
         const pipeline = this.obj.state.pipeline.split('.')[1];
         const configs = JSON.parse(JSON.stringify(this.obj.state.pendingChart));
         configs.config.values = [];
-        return await BIService.saveChartConfig(JSON.stringify(configs), pipeline, configs?.title);
+        return await BIService.saveChartConfig(JSON.stringify(configs), pipeline, configs?.title, configs?.dataSource);
     }
 
 }

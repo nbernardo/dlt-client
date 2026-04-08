@@ -72,8 +72,9 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 			if(result?.error === false && result?.result){
 				for(let chart of result?.result.charts){
 					chart = JSON.parse(chart);
-					this.state.savedCharts[`chart-${chart.id}`] = chart;
+					this.state.savedCharts[`chart-${chart.id}`] = { ...chart, imported: true };
 				}
+
 				this.domainPipelinesList = result?.result?.pipelines?.map(([pp, dbName]) => ({ name: this.toCamel(pp).trim(), pipeline: `${dbName}.${pp}` }));
 			}
 			

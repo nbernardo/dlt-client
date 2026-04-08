@@ -7,11 +7,11 @@ import { AIUtil } from "../util/AIUtil.js";
 
 export class BIService extends BaseService {
 
-    static async saveChartConfig(config, pipeline, title){
+    static async saveChartConfig(config, pipeline, title, dataSource){
 
         const namespace = await BIService.getNamespace();
         const url = `/analytics/chart/${namespace}`;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ config, context: pipeline, title }), HTTPHeaders.JSON);
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ config, context: pipeline, title, dataSource }), HTTPHeaders.JSON);
         if (response.ok){
             const result = await response.json();
             return true;
@@ -70,6 +70,5 @@ export class BIService extends BaseService {
             return await response.json();
         return null;
     }
-
 
 }
