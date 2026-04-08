@@ -7,7 +7,7 @@ bi_controller = Blueprint('bi_controller', __name__)
 def get_data_catalog(namespace):
     payload = request.get_json()
     return BIService.save_config(
-        namespace, payload.get('config'), payload.get('context'), payload.get('title')
+        namespace, payload.get('config'), payload.get('context'), payload.get('title'), payload.get('dataSource')
     )
 
 

@@ -4,8 +4,8 @@ from utils.metastore.meta_storage import MetaStore
 class BIService:
 
     @staticmethod
-    def save_config(namespace, config_details, context, chart_name):
-        return MetaStore.save_analytics_chart(namespace, config_details, context, chart_name)    
+    def save_config(namespace, config_details, context, chart_name, data_source):
+        return MetaStore.save_analytics_chart(namespace, config_details, context, chart_name, data_source)    
     
     
     @staticmethod

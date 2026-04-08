@@ -37,9 +37,9 @@ class MetaStore:
         return PipelineMedatata.persist_metadata(namespace, pipeline, details, dataset_name, short_query)
 
     @staticmethod
-    def save_analytics_chart(namespace, config_details, context, chart_name):
+    def save_analytics_chart(namespace, config_details, context, chart_name, data_source):
         try:
-            ChartConfig.persist_config(namespace, config_details, context, chart_name)
+            ChartConfig.persist_config(namespace, config_details, context, chart_name, data_source)
             return { 'error': False, 'result': {} }
         except Exception as e:
             print(f'Error on saving chart configs {str(e)}')

@@ -9,6 +9,7 @@ PIPELINE_METADATA_SCHEMA = pa.schema([
     pa.field('config_details', pa.string()),
     pa.field('chart_name', pa.string()),
     pa.field('namespace', pa.string()),
+    pa.field('data_source', pa.string()),
     #This is the pipeline name from which the chart got generated
     pa.field('context', pa.string()),
     pa.field('created_at', pa.string()),
@@ -47,7 +48,7 @@ class ChartConfig:
 
 
     @staticmethod
-    def persist_config(namespace = None, config_details=None, context = None, chart_name = None):
+    def persist_config(namespace = None, config_details=None, context = None, chart_name = None, data_source = None):
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
 
         now = datetime.now().isoformat()
@@ -56,7 +57,12 @@ class ChartConfig:
             tbl = ChartConfig._get_table()
             ChartConfig._migrate(tbl)
 
-            rows_to_insert = [{ 'config_details': config_details, 'namespace': namespace, 'created_at': now, 'context': context, 'chart_name': chart_name }]
+            rows_to_insert = [
+                { 
+                    'config_details': config_details, 'namespace': namespace, 'created_at': now, 
+                    'context': context, 'chart_name': chart_name, 'data_source': data_source 
+                }
+            ]
             tbl.add(rows_to_insert)
 
             if tbl.version % 100 == 0: ChartConfig.compact_metadata()
@@ -72,7 +78,8 @@ class ChartConfig:
             more_filter = f"and chart_name = '{chart_name}'" if chart_name != None else ''
             return con.execute(f'SELECT config_details FROM chart_config WHERE namespace = ? {more_filter}', [namespace]).fetchall()
 
-        except Exception as err:
+        except (Exception, IOError) as err:
+            if(str(err).lower().__contains__('not found')): return []
             if str(err).__contains__('Extension'):
                 print(f'ERROR: Duckdb missing Extension - The lancedb extension for Duckdb is not installed: {err}')
                 print(f'Please install this extentions according to the documentation on https://duckdb.org/docs/current/core_extensions/lance')
