@@ -1,13 +1,18 @@
-from utils.metastore.BI.ChartConfig import ChartConfig
+from utils.metastore.BI.DashboardConfig import DashboardConfig
 from utils.metastore.meta_storage import MetaStore
 
 class BIService:
 
     @staticmethod
-    def save_config(namespace, config_details, context, chart_name, data_source):
-        return MetaStore.save_analytics_chart(namespace, config_details, context, chart_name, data_source)    
+    def save_dashboard(namespace = None, charts_list=None, dashboard_name = None, dashboard_id = None):
+        return MetaStore.save_dashboard(namespace, charts_list, dashboard_name, dashboard_id)    
     
     
     @staticmethod
-    def get_configs(namespace, chart_name = None):
-        return MetaStore.chart_config_store().get_configs(namespace, chart_name)
+    def save_chart(namespace, config_details, context, chart_name, data_source, chart_id):
+        return MetaStore.save_analytics_chart(namespace, config_details, context, chart_name, data_source, chart_id)    
+    
+    
+    @staticmethod
+    def get_chart_configs(namespace, chart_name = None):
+        return MetaStore.chart_config_store().get_chart_configs(namespace, chart_name)

@@ -1,7 +1,7 @@
 from utils.db.lancedb import LanceConnectionFactory
 from utils.metastore.DataCatalog import DataCatalog
 from utils.metastore.PipelineMedatata import PipelineMedatata
-from utils.metastore.BI.ChartConfig import ChartConfig
+from utils.metastore.BI.DashboardConfig import DashboardConfig
 
 class MetaStore:
     """ Centralize the access to all metastore capabilities (e.g. DataCatalog) """
@@ -36,15 +36,26 @@ class MetaStore:
     def persist_pipeline_metadata(namespace: str, pipeline: str, details: dict, dataset_name: str, short_query: str):
         return PipelineMedatata.persist_metadata(namespace, pipeline, details, dataset_name, short_query)
 
+
     @staticmethod
-    def save_analytics_chart(namespace, config_details, context, chart_name, data_source):
+    def save_analytics_chart(namespace, config_details, context, chart_name, data_source, chart_id):
         try:
-            ChartConfig.persist_config(namespace, config_details, context, chart_name, data_source)
+            DashboardConfig.persist_chart_config(namespace, config_details, context, chart_name, data_source, chart_id)
             return { 'error': False, 'result': {} }
         except Exception as e:
             print(f'Error on saving chart configs {str(e)}')
             return { 'error': True, 'result': f'Error on saving chart configs {str(e)}' }
+
+
+    @staticmethod
+    def save_dashboard(namespace = None, charts_list=None, dashboard_name = None, dashboard_id = None):
+        try:
+            DashboardConfig.persist_dashboard_config(namespace, charts_list, dashboard_name, dashboard_id)
+            return { 'error': False, 'result': {} }
+        except Exception as e:
+            print(f'Error on saving dashboard configs {str(e)}')
+            return { 'error': True, 'result': f'Error on saving dashboard configs {str(e)}' }
         
     
     @staticmethod
-    def chart_config_store() -> ChartConfig: return ChartConfig
+    def chart_config_store() -> DashboardConfig: return DashboardConfig
