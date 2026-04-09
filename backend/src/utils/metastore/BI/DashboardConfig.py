@@ -61,12 +61,14 @@ class DashboardConfig:
 
 
     @staticmethod
-    def _get_duckdb_conn() -> duckdb.DuckDBPyConnection:
+    def _get_duckdb_conn(both = False) -> duckdb.DuckDBPyConnection:
         """Returns a DuckDB connection with a catalog view over the LanceDB files."""
         lance_path = DuckdbUtil.workspacedb_path
         con = duckdb.connect()
         con.execute("LOAD lance")
         con.execute(f"CREATE VIEW chart_config AS SELECT * FROM '{lance_path}/catalog.lance/chart_config.lance'")
+        if(both):
+            con.execute(f"CREATE VIEW dashboard_config AS SELECT * FROM '{lance_path}/catalog.lance/dashboard_config.lance'")
         return con
 
 
@@ -113,6 +115,38 @@ class DashboardConfig:
 
         except Exception as e:
             print(f"Chart config save Failed: {str(e)}")
+
+
+    @staticmethod
+    def get_dashboard_configs(namespace: str = None):
+        try:
+            con = DashboardConfig._get_duckdb_conn(both=True)
+            return con.execute(f'''
+                SELECT 
+                    json_object(
+                        'dashboard_name', d.dashboard_name,
+                        'charts', json_group_array(
+                            json_object('id', c.chart_id, 'config', c.config_details, 'name', c.chart_name)
+                        )
+                    ) as dashboard_with_charts
+                FROM (
+                    SELECT  *,  unnest(from_json(charts_list, '["VARCHAR"]')) as chartid 
+                    FROM dashboard_config
+                ) d
+                JOIN chart_config c ON d.chartid = c.chart_id
+                WHERE d.namespace = ?
+                GROUP BY d.dashboard_id, d.dashboard_name, d.namespace;
+            ''', [namespace]).fetchall()
+
+        except (Exception, IOError) as err:
+            if(str(err).lower().__contains__('not found')): return []
+            if str(err).__contains__('Extension'):
+                print(f'ERROR: Duckdb missing Extension - The lancedb extension for Duckdb is not installed: {err}')
+                print(f'Please install this extentions according to the documentation on https://duckdb.org/docs/current/core_extensions/lance')
+                return []
+            else:
+                print(f'Error while loading catalog: {err}')
+            return err
 
 
     @staticmethod

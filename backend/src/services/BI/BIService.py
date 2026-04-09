@@ -15,4 +15,9 @@ class BIService:
     
     @staticmethod
     def get_chart_configs(namespace, chart_name = None):
-        return MetaStore.chart_config_store().get_chart_configs(namespace, chart_name)
+        return MetaStore.chart_config_store().get_chart_configs(namespace, chart_name)  
+    
+      
+    @staticmethod
+    def get_dashboard_configs(namespace):
+        return MetaStore.chart_config_store().get_dashboard_configs(namespace)

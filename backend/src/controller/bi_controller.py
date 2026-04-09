@@ -24,7 +24,8 @@ def get_domain_pipelines(namespace):
     return { 
         'result': {
             'pipelines': PipelineMedatata.get_domain_pipelines(namespace),
-            'charts': BIService.get_chart_configs(namespace)
+            'charts': BIService.get_chart_configs(namespace),
+            'dashboards': BIService.get_dashboard_configs(namespace)
         }, 
         'error': False 
     }
