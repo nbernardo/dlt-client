@@ -117,12 +117,12 @@
 								<div class="tab" onclick="controller.switchTab('pivot',this)">Pivot</div>
 								<div class="tab" onclick="controller.switchTab('dashboard',this)">Dashboard</div>
 								<span (showIf)="self.showDashboardActions">
-									<span style="display: flex; display: flex; position: absolute; right: 32px; gap: 7px; width: 380px; margin-top: -14px;">									
+									<span style="display: flex; display: flex; position: absolute; right: 32px; gap: 7px; width: 380px; margin-top: -14px; justify-content: flex-end;">									
+										<button class="btn btn-accent" style="justify-content: center; width: 250px; display: none;" id="btnPublish"  onclick="controller.openPublishModal()">
+											<div class="publish-dot"></div>Publish Dashboard
+										</button>
 										<button class="btn btn-accent" style="background: var(--success-save-button); justify-content: center; border: none; width: 230px;" id="btnPublish"  onclick="controller.saveDashboardConfig()">
 											<i class="fa fa-save"></i>Save Dashboard
-										</button>
-										<button class="btn btn-accent" style="justify-content: center; width: 250px;" id="btnPublish"  onclick="controller.openPublishModal()">
-											<div class="publish-dot"></div>Publish Dashboard
 										</button>
 									</span>
 								</span>
@@ -182,7 +182,7 @@
 															<label class="field-label">Chart Title</label>
 															<input class="chart-title-input chartTitleInput" placeholder="Chart title..." value="My Chart">
 														</div>
-														<div>
+														<div style="display: none;">
 															<label class="field-label">Color</label>
 															<div class="color-row" id="colorRow"></div>
 														</div>
@@ -206,7 +206,9 @@
 
 							<div class="content tab-dashboard">
 								<div class="dashboard-toolbar">
-									<select class="field-select dashSelect" style="width:220px;" onchange="controller.loadDashboard(this.value, null, null, true)"></select>
+									<select (forEach)="dashboardList" style="width: 250px;"  onchange="controller.loadDashboard(this.value, null, null, true)">
+										<option each="item" value="{item.dashboard_name}">{item.dashboard_name}</option>
+									</select>
 									<button class="btn btn-ghost" style="width: 135px;" onclick="controller.newDashboard()">+ New Dashboard</button>
 								</div>
 								<div class="dashboard-grid dashGrid"></div>

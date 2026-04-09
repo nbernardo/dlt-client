@@ -168,7 +168,7 @@ export class AIAgent extends ViewComponent {
 			const { result, error: errMessage, success } = await this.sendAIAgentMessage(message);
 
 			if(result?.analytics_query){
-				this.$parent.dataVizProxy.setData(JSON.parse(result?.result)).showPopup().init();
+				await this.$parent.dataVizProxy.setData(JSON.parse(result?.result)).showPopup().init();
 				this.shrinkChatSize();
 			}
 			

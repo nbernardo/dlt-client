@@ -8,7 +8,6 @@ import { AIUtil } from "../util/AIUtil.js";
 export class BIService extends BaseService {
 
     static async saveDashboardConfig(charts, name, id){
-        
         const namespace = await BIService.getNamespace();
         const url = `/analytics/dashboard/${namespace}`;
         const response = await $still.HTTPClient.post(
@@ -47,7 +46,7 @@ export class BIService extends BaseService {
         return namespace;
     }
 
-    static async getDomainPipelines() {
+    static async getDashboardDetails() {
         const namespace = await BIService.getNamespace();
         const url = '/analytics/ppline/domains/' + namespace;
         const response = await $still.HTTPClient.get(url);

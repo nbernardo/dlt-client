@@ -11,27 +11,7 @@ export class PivotCreateComponent extends ViewComponent {
 
     /** @Prop */ dataset = [];
     
-    /** @Prop */ depts = ["Sales", "Engineering", "HR", "Marketing", "Finance", "Legal", "Ops", "CS"];
-    /** @Prop */ regions = ["North America", "EMEA", "APAC", "LATAM"];
-    /** @Prop */ levels = ["Junior", "Mid-Level", "Senior", "Lead", "Principal", "Director"];
-    /** @Prop */ genders = ["F", "M", "Non-Binary", "Other"];
-    /** @Prop */ contractTypes = ["Full-Time", "Part-Time", "Contractor", "Freelance"];
-    /** @Prop */ officeTypes = ["Remote", "Hybrid", "Onsite"];
-    
-    /** @Prop */ projStatus = ["Active", "On Hold", "Completed", "Backlog"];
-    /** @Prop */ payTerms = ["Net 30", "Net 60", "Due on Receipt"];
-    /** @Prop */ laptopTypes = ["MacBook Pro", "Dell XPS", "ThinkPad", "HP Elite"];
-    /** @Prop */ shiftTypes = ["Day", "Night", "Flexible"];
-    /** @Prop */ certs = ["None", "AWS Certified", "PMP", "Azure Dev"];
-    /** @Prop */ performance = ["Exceeds", "Meets", "Below", "N/A"];
-
-	/** @Prop */ baseFields = [
-        'Dept', 'Level', 'Region', 'Gender', 'Contract', 'Office', 
-        'ProjStatus', 'PayTerms', 'Laptop', 'Shift', 'Cert', 'PerfRating',
-        'Rating', 'Years', 'Salary', 'Bonus', 'Overhead', 'Efficiency%', 
-        'Util%', 'TeamSize', 'Commute_KM', 'Tax_Est', 'Insurance', 
-        '401k_Contrib', 'Equity_Units', 'Satisfaction'
-    ];
+	/** @Prop */ baseFields = [];
 
     /** @Prop */ selection = { rows: [], cols: [], vals: [] };
     /** @Prop */ filters = {};
@@ -58,51 +38,40 @@ export class PivotCreateComponent extends ViewComponent {
 			this.dashWorker =  new Worker('/app/components/dataviz/bi/pivot/worker.js');
 			this.container = document.getElementsByClassName('bi-pivot-ui-container')[0];
 			this.getData();
-			this.controller.initSidebar();
 			this.controller.renderAll();
 			this.setWorkerListiner();
 		});
 	}
 
+    setData = (data) => {
+        if(data[0]) this.baseFields = Object.keys(data[0]);
+        this.dataset = data;
+        this.controller.initSidebar();
+    }
+
 	getData(){
 
+        /*
 		for (let i = 0; i < 50000; i++) {
-			const level = this.levels[i % this.levels.length];
-			const dept = this.depts[i % this.depts.length];
-			const levelMultiplier = (this.levels.indexOf(level) + 1) * 22000;
-			const randomVariation = Math.floor(Math.random() * 15000);
-			const salary = 35000 + levelMultiplier + randomVariation;			
-
-			this.dataset.push({ 
-				'__rowId': i + 1,
-				'Dept': dept, 
-				'Level': level, 
-				'Region': this.regions[i % this.regions.length],
-				'Gender': this.genders[i % this.genders.length],
-				'Contract': this.contractTypes[i % this.contractTypes.length],
-				'Office': this.officeTypes[i % this.officeTypes.length],
-				'ProjStatus': this.projStatus[i % this.projStatus.length],
-				'PayTerms': this.payTerms[i % this.payTerms.length],
-				'Laptop': this.laptopTypes[i % this.laptopTypes.length],
-				'Shift': this.shiftTypes[i % this.shiftTypes.length],
-				'Cert': this.certs[i % this.certs.length],
-				'PerfRating': this.performance[i % this.performance.length],
-				'Rating': Math.floor(Math.random() * 5) + 1,
-				'Years': Math.floor(Math.random() * 20) + 1,
-				'Salary': salary, 
-				'Bonus': Math.floor(salary * (Math.random() * 0.18)),
-				'Overhead': Math.floor(Math.random() * 5000) + 2000,
-				'Efficiency%': 60 + Math.floor(Math.random() * 40),
-				'Util%': 50 + Math.floor(Math.random() * 50),
-				'TeamSize': 2 + Math.floor(Math.random() * 12),
-				'Commute_KM': this.officeTypes[i % 3] === "Remote" ? 0 : Math.floor(Math.random() * 45),
-				'Tax_Est': Math.floor(salary * 0.22),
-				'Insurance': 450 + Math.floor(Math.random() * 300),
-				'401k_Contrib': Math.floor(salary * 0.05),
-				'Equity_Units': (this.levels.indexOf(level) > 3) ? 1000 + Math.floor(Math.random() * 5000) : 0,
-				'Satisfaction': Math.floor(Math.random() * 10) + 1
-			});
+			// this.dataset.push({ 
+			// 	'__rowId': i + 1, 'Dept': dept,   	'Level': level, 'Region': this.regions[i % this.regions.length],
+			// 	'Gender': this.genders[i % this.genders.length], 'Contract': this.contractTypes[i % this.contractTypes.length],
+			// 	'Office': this.officeTypes[i % this.officeTypes.length], 'ProjStatus': this.projStatus[i % this.projStatus.length],
+			// 	'PayTerms': this.payTerms[i % this.payTerms.length], 'Laptop': this.laptopTypes[i % this.laptopTypes.length],
+			// 	'Shift': this.shiftTypes[i % this.shiftTypes.length], 'Cert': this.certs[i % this.certs.length],
+			// 	'PerfRating': this.performance[i % this.performance.length], 'Rating': Math.floor(Math.random() * 5) + 1,
+			// 	'Years': Math.floor(Math.random() * 20) + 1, 'Salary': salary, 
+			// 	'Bonus': Math.floor(salary * (Math.random() * 0.18)), 'Overhead': Math.floor(Math.random() * 5000) + 2000,
+			// 	'Efficiency%': 60 + Math.floor(Math.random() * 40), 'Util%': 50 + Math.floor(Math.random() * 50),
+			// 	'TeamSize': 2 + Math.floor(Math.random() * 12), 'Insurance': 450 + Math.floor(Math.random() * 300),
+			// 	'Commute_KM': this.officeTypes[i % 3] === "Remote" ? 0 : Math.floor(Math.random() * 45),
+			// 	'Tax_Est': Math.floor(salary * 0.22), '401k_Contrib': Math.floor(salary * 0.05),
+			// 	'Equity_Units': (this.levels.indexOf(level) > 3) ? 1000 + Math.floor(Math.random() * 5000) : 0,
+			// 	'Satisfaction': Math.floor(Math.random() * 10) + 1
+			// });
 		}
+        this.setData(this.dataset)
+         */
 
 	}
 

@@ -36,6 +36,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	/**  @Prop  */ showDashboardActions = false;
 
+	dashboardList = [{ dashboard_name: 'Main Dashboard' }];
+
 	domainPipelinesList = [];
 
  	/** @Prop */
@@ -57,19 +59,43 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	async stBeforeInit(){
 		this.runningOnOdoo = StillAppSetup.config.get('runningOnOdoo');
-		setTimeout(async () => {
-			let result = await BIController.getDomainPipelines();
+		//setTimeout(async () => {
+			let result = await BIController.getDashboardDetails();
 			
 			if(result?.error === false && result?.result){
 				for(let chart of result?.result.charts){
 					chart = JSON.parse(chart);
 					this.state.savedCharts[`chart-${chart.id}`] = { ...chart, imported: true };
 				}
+				
+				if(result?.result?.dashboards.length) {
+					this.dashboardList = [];
+					this.state.dashboards = [];
+				}
 
+				for(const dashboard of result?.result?.dashboards){
+					const { charts, dashboard_name } = JSON.parse(dashboard);
+					let dataSources = { datasource: new Set(), tables: new Set() };
+					this.state.dashboards[dashboard_name] = charts.map(chart => {
+						const config = JSON.parse(chart.config);
+						
+						dataSources.datasource.add(config.dataSource);
+						for(const tbl of config.viewingTables) dataSources.tables.add(tbl);
+
+						return { ...chart, title: chart.name, config: config.config };
+					});
+					this.dashboardList.push({ dashboard_name });
+
+					dataSources = { datasource: [...dataSources.datasource], tables: [...dataSources.tables] };
+
+					//When reading the dashboard which is saved, the first 2 positions of its array
+					// are reserved for the flag imported and the dataSource details respectively  
+					this.state.dashboards[dashboard_name] = ['imported', dataSources, ...this.state.dashboards[dashboard_name]]
+				}
 				this.domainPipelinesList = result?.result?.pipelines?.map(([pp, dbName]) => ({ name: this.toCamel(pp).trim(), pipeline: `${dbName}.${pp}` }));
 			}
 			
-		}, 0);
+		//}, 0);
 	}
 
 	async stOnRender(){
@@ -83,7 +109,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		await Assets.import({ path: `${cssPathPrefix}/app/assets/css/bi-user-intercace-component.css` });		
 	}
 
-  	async stAfterInit(){
+  	async stAfterInit(){		
 		this.popup = document.getElementById(this.uniqueId);
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
@@ -92,13 +118,13 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.controller.on('load', () => {
 			this.controller.obj = this;
 			setTimeout(this.controller.shrinkChatLogs(), 500);
-			setTimeout(this.setData(this.genData()).init(), 500);
+			setTimeout(async () => this.setData(await this.genData()).init(), 500);
 		});
 		
 		this.chatController = new BIChatController(this.popup);
 		if(this.runningOnOdoo){
 			this.showPopup();
-			this.init();
+			await this.init();
 		}
   	}
 	// Mock data for testing
@@ -118,10 +144,11 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	setData = (dataSource) => {
 		this.gridDataSource = dataSource;
+		this.pivotTableProxy.setData(dataSource);
 		return this;
 	}
 
-	init() {
+	async init() {
 		//this.controller.renderTableList();
 		this.controller.renderChartTypeGrid();
 		this.controller.renderColorRow();
@@ -129,12 +156,12 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.controller.renderDashboardSelect();
 		this.controller.renderSavedCharts();
 		this.controller.initDragAndDrop();
-		this.controller.loadDashboard(this.state.activeDash);
+		await this.controller.loadDashboard(this.state.activeDash);
 		this.controller.initInsertLogic();
 	}
 
-	openPopup(){
-		this.init();
+	async openPopup(){
+		await this.init();
 		this.showPopup();
 	}
 

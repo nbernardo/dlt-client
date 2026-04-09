@@ -62,8 +62,9 @@ export class BIController extends BaseController {
 
     async runAnaluticsAndRenderSheet(fields, pipeline){
         const result = await this.sendAnalyticsRequest(fields, pipeline);
-        this.obj.setData((result.result || [])).init();
+        await this.obj.setData((result.result || [])).init();
         this.renderSheet();
+        return result.result;
     }
 
     renderSheet(){
@@ -246,9 +247,9 @@ export class BIController extends BaseController {
         this.showToast("CSV exported");
     }
 
-	switchTab(id, el) {
+	async switchTab(id, el) {
         
-        if(id === 'sheet') this.obj.init();
+        if(id === 'sheet') await this.obj.init();
         if(id === 'dashboard') this.obj.showDashboardActions = true;
         else {
             this.obj.showDashboardActions = false;
@@ -427,7 +428,7 @@ export class BIController extends BaseController {
         BIController.currentChartId = index;
     }
 
-    initDragAndDrop() {
+    async initDragAndDrop() {
         if(this.wasUiPreviousInited === false){
             this.wasUiPreviousInited = true;
             const grid = this.obj.popup.querySelector('.dashGrid');
@@ -465,11 +466,13 @@ export class BIController extends BaseController {
 
 
     static dashboardAddedCharts = new Set();
-    loadDashboard(name, isPivot, event, isDashboardChange = false) {
+    async loadDashboard(name, isPivot, event, isDashboardChange = false) {
 
-        if(!this.obj.state.chartsByDashboard[name]) this.obj.state.chartsByDashboard[name] = new Set();
+        if(this.obj.state.activeDash == name) return;
         
         this.obj.state.activeDash = name;
+        if(!this.obj.state.chartsByDashboard[name]) this.obj.state.chartsByDashboard[name] = new Set();
+        
         const grid = this.obj.popup.querySelector('.dashGrid');
         let items;
         
@@ -482,16 +485,28 @@ export class BIController extends BaseController {
         }
 
         const isChartAdded = (id) => this.obj.state.chartsByDashboard[name].has(id);
+        const { charts, dataSources, importedDash } = this.extractDashboardDetailes(name);
+        
         if(isDashboardChange){
+            
             grid.innerHTML = '';
-            items = (this.obj.state.dashboards[name] || []).filter(c => c?.type != 'pivotTable');
+            if(importedDash){
+                
+                const fields = this.genDuckDBFieldNames(dataSources.tables);
+                let data = await this.runAnaluticsAndRenderSheet(fields, dataSources.datasource);
+
+                items = (charts || []).filter(c => c?.type != 'pivotTable').map(chart => {
+                    chart.config.values = data.map(fields => fields[chart.config.yLabel]);
+                    return chart;
+                });
+            }else
+                items = (charts || []).filter(c => c?.type != 'pivotTable');
+
         }else{
-            items = (this.obj.state.dashboards[name] || []).filter(c => c?.type != 'pivotTable' && !isChartAdded(c?.id));
+            items = (charts || []).filter(c => c?.type != 'pivotTable' && !isChartAdded(c?.id));
         }
 
-        this.obj.popup.querySelector('.dashSelect').value = name;
-
-        if ((this.obj.state.dashboards[name] || []).length === 0) {
+        if ((charts || []).length === 0) {
             grid.classList.add('empty-dashboard');
             return grid.innerHTML = `<div class="empty-icon dash-empty">📊</div><div class="dash-empty">Drag charts from the sidebar to populate this dashboard</div>`;
         }
@@ -502,6 +517,12 @@ export class BIController extends BaseController {
             this.addChartToDashBoard(grid, items[0]);
         
         items.forEach((c, i) => {
+
+            if(importedDash){
+                const existingChart = Chart.getChart(`dashCanvas-${c.id}`);
+                if(existingChart) existingChart.destroy();
+            }
+
             const ctx = document.getElementById(`dashCanvas-${c.id}`).getContext('2d');
             new Chart(ctx, {
                 type: c.config.cjsType,
@@ -512,8 +533,22 @@ export class BIController extends BaseController {
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
             this.obj.state.chartsByDashboard[name].add(c.id);
-        });
+        });        
+    }
+
+    extractDashboardDetailes(name){
+
+        const dashboard = this.obj.state.dashboards[name];
         
+        let [importedDash, dataSources, charts] = [false, {}, dashboard];
+        if((dashboard || []).length){
+            if(dashboard[0] == 'imported'){
+                [importedDash, dataSources, charts] = [true, dashboard[1], dashboard.slice(2)];
+                this.obj.state.dashboards[name] = dashboard.slice(2);
+                return { importedDash, dataSources, charts }
+            }
+        }
+        return { importedDash, dataSources, charts };
     }
 
     addChartToDashBoard(grid, chart){
@@ -542,13 +577,6 @@ export class BIController extends BaseController {
         this.obj.state.chartsByDashboard[this.obj.state.activeDash].delete(index);
 	}
 
-    renderDashboardSelect() {
-        const names = Object.keys(this.obj.state.dashboards);
-        const html = names.map(n => `<option value="${n}">${n}</option>`).join('');
-        this.obj.popup.querySelector('.dashSelect').innerHTML = html;
-        this.obj.popup.querySelector('.publishDashSelect').innerHTML = html;
-    }
-
     openPublishModal() { this.obj.popup.querySelector('#publishModal').classList.add('open'); }
     closePublishModal() { this.obj.popup.querySelector('#publishModal').classList.remove('open'); }
 
@@ -561,17 +589,17 @@ export class BIController extends BaseController {
         if (!state.dashboards[dashName]) state.dashboards[dashName] = [];
 
         state.dashboards[dashName].push({...state.pendingChart, instanceId: Date.now()});
-        this.renderDashboardSelect();
         this.closePublishModal();
         this.showToast(`Published to ${dashName}`);
     }
 
-    newDashboard() {
+    async newDashboard() {
         const name = prompt("Dashboard Name:");
         if (name) {
+            const dashboardList = this.obj.dashboardList.value;
+            this.obj.dashboardList = [ ...(Array.isArray(dashboardList) ? dashboardList : []), { dashboard_name: name }];
             this.obj.state.dashboards[name] = [];
-            this.renderDashboardSelect();
-            this.loadDashboard(name);
+            await this.loadDashboard(name);
         }
     }
 
@@ -604,8 +632,8 @@ export class BIController extends BaseController {
 
         if(imported){
             const loader = this.showChartDataFetchLoading();
-            const fields = viewingTables.map(tbl => `^${tbl}`).join('|');
-            await this.runAnaluticsAndRenderSheet(`COLUMNS('${fields}')`, dataSource);
+            const fields = this.genDuckDBFieldNames(viewingTables);
+            await this.runAnaluticsAndRenderSheet(fields, dataSource);
             await sleepForSec(1000);
             delete c.imported;
             loader.hideLoading();
@@ -622,6 +650,8 @@ export class BIController extends BaseController {
         this.buildChart(c);
 
     }
+
+    genDuckDBFieldNames = (tables) => `COLUMNS('${tables.map(tbl => `^${tbl}`).join('|')}')`;
 
     showChartDataFetchLoading(){
         const container = this.obj.popup.querySelector('.chart-canvas-wrap');
@@ -710,7 +740,7 @@ export class BIController extends BaseController {
             
             AIUtil.setAgentLastMessage(content, null, false, mainContainer);
 
-            this.obj.setData(error ? [] : JSON.parse(result?.result)).init();
+            await this.obj.setData(error ? [] : JSON.parse(result?.result)).init();
             AIUtil.aiAgentFlow = null;
 
         }
@@ -728,7 +758,7 @@ export class BIController extends BaseController {
     /** @returns { { result: { result } } } */
     sendAnalyticsRequest = async (fields, pipeline) => BIService.sendAnalyticsRequest(fields, pipeline || this.obj.state.pipeline);
 
-    static getDomainPipelines = async () => BIService.getDomainPipelines();
+    static getDashboardDetails = async () => BIService.getDashboardDetails();
     static getDomainPipelineFields = async (pipeline) => BIService.getDomainPipelineFields(pipeline)
 
     checkScroll(el) {
