@@ -130,7 +130,7 @@
   .bi-user-interface-component-body .chart-preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
   .bi-user-interface-component-body .chart-preview-title { font-size: 14px; font-weight: 600; color: var(--text); }
   .bi-user-interface-component-body .chart-canvas-wrap { flex: 1; position: relative; max-height: 300px; }
-  .bi-user-interface-component-body .dashboard-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .bi-user-interface-component-body .dashboard-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; select { width: 250px; } }
   .bi-user-interface-component-body .dashboard-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; min-height: 200px; padding: 10px; border-radius: var(--radius); transition: background 0.2s; }
   .bi-user-interface-component-body .dashboard-grid.drag-over { background: rgba(79, 110, 247, 0.05); outline: 2px dashed var(--accent2); }
   .bi-user-interface-component-body .dashboard-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); transition: box-shadow 0.15s; position: relative; }

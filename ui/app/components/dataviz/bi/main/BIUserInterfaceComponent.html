@@ -205,7 +205,7 @@
 							</div>
 
 							<div class="content tab-dashboard">
-								<div class="dashboard-toolbar">
+								<div class="dashboard-toolbar bi-dashboard-list">
 									<select (forEach)="dashboardList" style="width: 250px;"  onchange="controller.loadDashboard(this.value, null, null, true)">
 										<option each="item" value="{item.dashboard_name}">{item.dashboard_name}</option>
 									</select>

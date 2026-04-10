@@ -428,6 +428,7 @@ export class BIController extends BaseController {
         BIController.currentChartId = index;
     }
 
+    isDraggingDashboardObject = false;
     async initDragAndDrop() {
         if(this.wasUiPreviousInited === false){
             this.wasUiPreviousInited = true;
@@ -435,6 +436,7 @@ export class BIController extends BaseController {
             
             grid.addEventListener('dragover', e => { 
                 e.preventDefault();  grid.classList.add('drag-over'); 
+                this.isDraggingDashboardObject = true;
             });
             
             grid.addEventListener('dragleave', () => grid.classList.remove('drag-over'));
@@ -459,64 +461,48 @@ export class BIController extends BaseController {
     }
 
     saveDashboardTile(chartData){
-        const { state } = this.obj;
-        if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
-        state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
+        const { state } = this.obj; 
+        if(chartData.saved !== true){
+            if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
+            chartData.selection.datasource = this.obj.state.pipeline;
+            state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
+            chartData.saved = true;
+        }
     }
 
 
     static dashboardAddedCharts = new Set();
     async loadDashboard(name, isPivot, event, isDashboardChange = false) {
 
-        if(this.obj.state.activeDash == name) return;
-        
-        this.obj.state.activeDash = name;
+        if(this.obj.state.activeDash == name && !this.isDraggingDashboardObject) return;
         if(!this.obj.state.chartsByDashboard[name]) this.obj.state.chartsByDashboard[name] = new Set();
         
-        const grid = this.obj.popup.querySelector('.dashGrid');
-        let items;
+        this.obj.state.activeDash = name;
+        let items, grid = this.obj.popup.querySelector('.dashGrid');
         
         grid.classList.remove('empty-dashboard');
         grid.querySelectorAll('.dash-empty').forEach(el => el.remove());
 
-        if(isPivot){
-            const pivotId = this.obj.pivotTableProxy.controller.handleDashDrop(event, grid);
-            return BIController.dashboardAddedCharts.add(pivotId);
-        }
-
-        const isChartAdded = (id) => this.obj.state.chartsByDashboard[name].has(id);
         const { charts, dataSources, importedDash } = this.extractDashboardDetailes(name);
-        
-        if(isDashboardChange){
-            
-            grid.innerHTML = '';
-            if(importedDash){
-                
-                const fields = this.genDuckDBFieldNames(dataSources.tables);
-                let data = await this.runAnaluticsAndRenderSheet(fields, dataSources.datasource);
-
-                items = (charts || []).filter(c => c?.type != 'pivotTable').map(chart => {
-                    chart.config.values = data.map(fields => fields[chart.config.yLabel]);
-                    return chart;
-                });
-            }else
-                items = (charts || []).filter(c => c?.type != 'pivotTable');
-
-        }else{
-            items = (charts || []).filter(c => c?.type != 'pivotTable' && !isChartAdded(c?.id));
-        }
 
         if ((charts || []).length === 0) {
             grid.classList.add('empty-dashboard');
             return grid.innerHTML = `<div class="empty-icon dash-empty">📊</div><div class="dash-empty">Drag charts from the sidebar to populate this dashboard</div>`;
         }
 
+        items = await this.extractCharts(grid, charts, name, dataSources, isDashboardChange, importedDash);
+
+        if(isPivot)
+            return this.addPivotToDashboard(event, grid, name);
+    
         if(items.length > 1){
-            for(const itm of items) this.addChartToDashBoard(grid, itm);
+            for(const itm of items) this.addChartToDashBoard(grid, itm, name, event);
         } else 
-            this.addChartToDashBoard(grid, items[0]);
+            this.addChartToDashBoard(grid, items[0], name, event);
         
         items.forEach((c, i) => {
+
+            if(c.type == 'pivotTable') return;
 
             if(importedDash){
                 const existingChart = Chart.getChart(`dashCanvas-${c.id}`);
@@ -533,8 +519,41 @@ export class BIController extends BaseController {
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
             this.obj.state.chartsByDashboard[name].add(c.id);
-        });        
+        });
+        this.isDraggingDashboardObject = false;       
     }
+
+    addPivotToDashboard(event, grid, name, chart){
+        const pivotId = this.obj.pivotTableProxy.controller.handleDashDrop(event, grid, chart);
+        this.obj.state.chartsByDashboard[name].add('pivot-'+pivotId);
+        return BIController.dashboardAddedCharts.add(pivotId);
+    }
+
+    async extractCharts(grid, charts, name, dataSources, isDashboardChange, importedDash){
+
+        const isChartAdded = (id) => this.obj.state.chartsByDashboard[name].has(id);
+
+        if(isDashboardChange){
+            
+            grid.innerHTML = '';
+            if(importedDash){
+                
+                const fields = this.genDuckDBFieldNames(dataSources.tables);
+                let data = await this.runAnaluticsAndRenderSheet(fields, dataSources.datasource);
+
+                return (charts || []).map(chart => {
+                    chart.config.values = data.map(fields => fields[chart.config.yLabel]);
+                    return chart;
+                });
+            }else
+                return (charts || []);
+
+        }else{
+            return (charts || []).filter(c => !isChartAdded(c?.id));
+        }
+
+    }
+
 
     extractDashboardDetailes(name){
 
@@ -551,8 +570,11 @@ export class BIController extends BaseController {
         return { importedDash, dataSources, charts };
     }
 
-    addChartToDashBoard(grid, chart){
+    addChartToDashBoard(grid, chart, name, event){
 
+        if(chart.type === 'pivotTable')
+            return this.addPivotToDashboard(event, grid, name, chart);
+        
         const chartContent = (title, cId, wrapperId) => `
             <div class="dashboard-card">
                 <div class="dashboard-card-header">
@@ -598,6 +620,8 @@ export class BIController extends BaseController {
         if (name) {
             const dashboardList = this.obj.dashboardList.value;
             this.obj.dashboardList = [ ...(Array.isArray(dashboardList) ? dashboardList : []), { dashboard_name: name }];
+            //Set the UI selected dashboard as the newly created
+            setTimeout(() => document.querySelector('.bi-dashboard-list select').value = name, 200);
             this.obj.state.dashboards[name] = [];
             await this.loadDashboard(name);
         }
@@ -779,10 +803,10 @@ export class BIController extends BaseController {
         `;
     }
 
-    async saveChartConfig() {
+    async saveChartConfig(configsFromPivot) {
         const pipeline = this.obj.state.pipeline.split('.')[1];
-        const configs = JSON.parse(JSON.stringify(this.obj.state.pendingChart));
-        configs.config.values = [];
+        const configs = configsFromPivot || JSON.parse(JSON.stringify(this.obj.state.pendingChart)) || {};
+        if(!configsFromPivot) configs.config.values = [];
         return await BIService.saveChartConfig(JSON.stringify(configs), pipeline, configs?.title, configs?.dataSource, configs?.id);
     }
 

@@ -144,7 +144,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	setData = (dataSource) => {
 		this.gridDataSource = dataSource;
-		this.pivotTableProxy.setData(dataSource);
+		if(this.pivotTableProxy) this.pivotTableProxy.setData(dataSource);
 		return this;
 	}
 
@@ -153,7 +153,6 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.controller.renderChartTypeGrid();
 		this.controller.renderColorRow();
 		this.controller.loadTable(this.state.activeTable);
-		this.controller.renderDashboardSelect();
 		this.controller.renderSavedCharts();
 		this.controller.initDragAndDrop();
 		await this.controller.loadDashboard(this.state.activeDash);
@@ -163,6 +162,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	async openPopup(){
 		await this.init();
 		this.showPopup();
+		this.pivotTableProxy.controller.initSidebar();
 	}
 
 	// TODO: Move to a kind of string util

@@ -6,7 +6,7 @@ export class PivotTableController extends BaseController {
     /** @type { PivotCreateComponent } */
     obj;
 
-    static totalSavePivot = 0;
+    static totalSavePivot = Date.now() + Math.random().toString().slice(2);
     static currentPivotId;
 
     allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
@@ -119,7 +119,8 @@ export class PivotTableController extends BaseController {
                     const k = `${key}_${v.field}`;
                     if (!node.values[k]) node.values[k] = { sum: 0, count: 0, max: -Infinity };
                     const calc = this.obj.calculatedFields.find(c => c.name === v.field);
-                    const val = calc ? this.obj.evalFormula(item, calc.formula) : item[v.field];
+                    let val = calc ? this.obj.evalFormula(item, calc.formula) : item[v.field];
+                    val = Number(isNaN(val) ? 0 : val);
                     node.values[k].sum += val; node.values[k].count += 1;
                     node.values[k].max = Math.max(node.values[k].max, val);
                 });
@@ -246,14 +247,29 @@ export class PivotTableController extends BaseController {
     onDashboardPivotDelete = (id, wrapId) =>
         this.obj.$parent.controller.removeFromDash(id, wrapId);
 
-    handleDashDrop(e, container) {
-        e.preventDefault(); e.currentTarget.classList.remove('drag-over');
-        if (e.dataTransfer.getData("type") === "config") {
-            const idx = e.dataTransfer.getData("pivotIndex");
-            this.obj.$parent.controller.saveDashboardTile(this.obj.$parent.state.savedCharts[idx]);
-            this.renderDashboard(container, this.obj.$parent.state.savedCharts[idx]);
+    handleDashDrop(e, container, chart) {
+        let configType, idx, chartInstance;
+        if(e){
+            e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+            configType = e.dataTransfer.getData("type");
+            idx = e.dataTransfer.getData("pivotIndex");
+            chartInstance = this.obj.$parent.state.savedCharts[idx];
+        }else if(chart){
+            configType = 'config';
+            chartInstance = chart;
+            idx = chart.id;
+        }
+
+        if (configType === 'config') {
+            
+            // In case the Pivot is being rendered from saved condifuration 
+            // then it want save memoize again, hence the validation
+            if(!chart) this.obj.$parent.controller.saveDashboardTile(chartInstance);
+
+            this.renderDashboard(container, chartInstance);
             return idx;
         }
+
     }
 
     addCalculatedField() {
@@ -309,19 +325,31 @@ export class PivotTableController extends BaseController {
     }
 
     saveConfiguration() {
-		const { selection, filters } = this.obj;
+		let { selection, filters } = this.obj;
         const heatmap = this.obj.container.querySelector('#heatmap-check').checked;
         const showAllRows = this.obj.container.querySelector('#show-all-rows-check').checked;
         if (!selection.rows.length || !selection.vals.length) return alert("Empty Layout");
         const name = prompt("Name your layout:");
+        const parent = this.obj.$parent;
         if (name) {
-            this.obj.$parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot] = {
-                name, heatmap, showAllRows, selection: JSON.parse(JSON.stringify(selection)), filters: JSON.parse(JSON.stringify(filters)), 
-                type: 'pivotTable', id: PivotTableController.totalSavePivot
+            // When saving the pivot table config, it cleans all the existing 
+            // fields (from the datasource) value to empty array
+            filters = Object.keys(JSON.parse(JSON.stringify(filters))).map(field => ({ [field]: [] }));
+            
+            // Creates a copy of the data not to mess with 
+            // the data being displayed in the Pivot
+            selection = JSON.parse(JSON.stringify(selection));
+
+            parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot] = {
+                name, heatmap, showAllRows, selection, filters, 
+                type: 'pivotTable', id: PivotTableController.totalSavePivot, viewingTables: [...parent.controller.viewingTables],
+                dataSource: parent.state.pipeline, title: name
             }
-            PivotTableController.totalSavePivot++;
+
+            parent.controller.saveChartConfig(parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot]);
+            PivotTableController.totalSavePivot = Date.now() + Math.random().toString().slice(2);
             this.initSidebar();
-        }
+        }        
     }
 
 }
