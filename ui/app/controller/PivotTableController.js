@@ -324,21 +324,21 @@ export class PivotTableController extends BaseController {
         }, 250);
     }
 
-    saveConfiguration() {
-		let { selection, filters } = this.obj;
+    async saveConfiguration() {
+		let { selection: originalSelection, filters: originalFilters } = this.obj;
         const heatmap = this.obj.container.querySelector('#heatmap-check').checked;
         const showAllRows = this.obj.container.querySelector('#show-all-rows-check').checked;
-        if (!selection.rows.length || !selection.vals.length) return alert("Empty Layout");
+        if (!originalSelection.rows.length || !originalSelection.vals.length) return alert("Empty Layout");
         const name = prompt("Name your layout:");
         const parent = this.obj.$parent;
         if (name) {
             // When saving the pivot table config, it cleans all the existing 
             // fields (from the datasource) value to empty array
-            filters = Object.keys(JSON.parse(JSON.stringify(filters))).map(field => ({ [field]: [] }));
+            const filters = Object.keys(JSON.parse(JSON.stringify(originalFilters))).map(field => ({ [field]: [] }));
             
             // Creates a copy of the data not to mess with 
             // the data being displayed in the Pivot
-            selection = JSON.parse(JSON.stringify(selection));
+            const selection = JSON.parse(JSON.stringify(originalSelection));
 
             parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot] = {
                 name, heatmap, showAllRows, selection, filters, 
@@ -346,7 +346,12 @@ export class PivotTableController extends BaseController {
                 dataSource: parent.state.pipeline, title: name
             }
 
-            parent.controller.saveChartConfig(parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot]);
+            await parent.controller.saveChartConfig(parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot]);
+            
+            // Reinstate the original filters and selections for the frontend cached Pivot
+            parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot].filters = originalFilters;
+            parent.state.savedCharts['pivot-'+PivotTableController.totalSavePivot].selection = originalSelection;
+
             PivotTableController.totalSavePivot = Date.now() + Math.random().toString().slice(2);
             this.initSidebar();
         }        

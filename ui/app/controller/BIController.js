@@ -464,7 +464,7 @@ export class BIController extends BaseController {
         const { state } = this.obj; 
         if(chartData.saved !== true){
             if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
-            chartData.selection.datasource = this.obj.state.pipeline;
+            if(chartData.selection) chartData.selection.datasource = this.obj.state.pipeline;
             state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
             chartData.saved = true;
         }
@@ -502,7 +502,7 @@ export class BIController extends BaseController {
         
         items.forEach((c, i) => {
 
-            if(c.type == 'pivotTable') return;
+            if(c.type == 'pivotTable' || c.id?.startsWith('pivot-')) return;
 
             if(importedDash){
                 const existingChart = Chart.getChart(`dashCanvas-${c.id}`);
@@ -524,8 +524,8 @@ export class BIController extends BaseController {
     }
 
     addPivotToDashboard(event, grid, name, chart){
-        const pivotId = this.obj.pivotTableProxy.controller.handleDashDrop(event, grid, chart);
-        this.obj.state.chartsByDashboard[name].add('pivot-'+pivotId);
+        const pivotId = this.obj.pivotTableProxy.controller.handleDashDrop(event, grid, chart);        
+        this.obj.state.chartsByDashboard[name].add(pivotId);
         return BIController.dashboardAddedCharts.add(pivotId);
     }
 
@@ -542,7 +542,8 @@ export class BIController extends BaseController {
                 let data = await this.runAnaluticsAndRenderSheet(fields, dataSources.datasource);
 
                 return (charts || []).map(chart => {
-                    chart.config.values = data.map(fields => fields[chart.config.yLabel]);
+                    if(chart.config)
+                        chart.config.values = data.map(fields => fields[chart?.config?.yLabel]);
                     return chart;
                 });
             }else
@@ -807,13 +808,14 @@ export class BIController extends BaseController {
         const pipeline = this.obj.state.pipeline.split('.')[1];
         const configs = configsFromPivot || JSON.parse(JSON.stringify(this.obj.state.pendingChart)) || {};
         if(!configsFromPivot) configs.config.values = [];
-        return await BIService.saveChartConfig(JSON.stringify(configs), pipeline, configs?.title, configs?.dataSource, configs?.id);
+        const chartId = configs?.type == 'pivotTable' ? `pivot-${configs?.id}` :  configs?.id
+        return await BIService.saveChartConfig(JSON.stringify(configs), pipeline, configs?.title, configs?.dataSource, chartId);
     }
 
     async saveDashboardConfig() {
 
         const name = this.obj.state.activeDash;
-        const charts = [...this.obj.state.chartsByDashboard[this.obj.state.activeDash]];
+        const charts = [...this.obj.state.chartsByDashboard[this.obj.state.activeDash]].filter(chart => chart != null);
         const result = await BIService.saveDashboardConfig(JSON.stringify(charts), name, 0);
 
         if(result){

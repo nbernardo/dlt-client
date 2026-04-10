@@ -65,7 +65,10 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 			if(result?.error === false && result?.result){
 				for(let chart of result?.result.charts){
 					chart = JSON.parse(chart);
-					this.state.savedCharts[`chart-${chart.id}`] = { ...chart, imported: true };
+					if(chart.type === 'pivotTable')
+						this.state.savedCharts[`pivot-${chart.id}`] = { ...chart, imported: true };
+					else 
+						this.state.savedCharts[`chart-${chart.id}`] = { ...chart, imported: true };
 				}
 				
 				if(result?.result?.dashboards.length) {
