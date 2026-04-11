@@ -1,5 +1,6 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { PivotCreateComponent } from "../components/dataviz/bi/pivot/PivotCreateComponent.js";
+import { BIService } from "../services/BIService.js";
 
 export class PivotTableController extends BaseController {
 
@@ -216,13 +217,13 @@ export class PivotTableController extends BaseController {
         this.obj.expandedPaths.has(p) ? this.obj.expandedPaths.delete(p) : this.obj.expandedPaths.add(p); this.renderAll(); this.renderDashboard(); 
     }
 
-    renderDashboard(container, pivotTile) {
-        const pivot = this.renderPivotOnDashboard(pivotTile, PivotTableController.currentPivotId);
+    renderDashboard(container, pivotTile, isFetchFromDB) {
+        const pivot = this.renderPivotOnDashboard(pivotTile, PivotTableController.currentPivotId, isFetchFromDB);
         container.appendChild(pivot.tile);
         pivot.runDataLoad();
     }
 
-    renderPivotOnDashboard(cfg, i) {
+    renderPivotOnDashboard(cfg, i, isFetchFromDB) {
         const tile = document.createElement('div'); 
         tile.className = 'dash-tile', tile.id = `pivotWrap_${Date.now()}`;
         tile.innerHTML = this.obj.parseEvents(`
@@ -237,17 +238,20 @@ export class PivotTableController extends BaseController {
             <div style="overflow:auto; flex:1; width:100%; border-top:1px solid #eee; padding-top:0px;" id="tile-${i}"></div>
         `);
 
-        const { dataset, calculatedFields } = this.obj;
+        let { dataset, calculatedFields } = this.obj;
+        //if(isFetchFromDB) dataset = BIService.getDashboardDataFromPointer(cfg.dataPointer);
         return { 
             tile, 
-            runDataLoad: () => this.obj.dashWorker.postMessage({ dataset, cfg, searchQuery: this.searchQuery, calculatedFields, tileIndex: i }) 
+            runDataLoad: () => this.obj.dashWorker.postMessage( 
+                { dataset, cfg, searchQuery: this.searchQuery, calculatedFields, tileIndex: i, isFetchFromDB }
+            )
         };
     }
 
     onDashboardPivotDelete = (id, wrapId) =>
         this.obj.$parent.controller.removeFromDash(id, wrapId);
 
-    handleDashDrop(e, container, chart) {
+    handleDashDrop(e, container, chart, isFetchFromDB) {
         let configType, idx, chartInstance;
         if(e){
             e.preventDefault(); e.currentTarget.classList.remove('drag-over');
@@ -266,7 +270,7 @@ export class PivotTableController extends BaseController {
             // then it want save memoize again, hence the validation
             if(!chart) this.obj.$parent.controller.saveDashboardTile(chartInstance);
 
-            this.renderDashboard(container, chartInstance);
+            this.renderDashboard(container, chartInstance, isFetchFromDB);
             return idx;
         }
 

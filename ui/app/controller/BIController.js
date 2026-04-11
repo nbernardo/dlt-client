@@ -490,7 +490,9 @@ export class BIController extends BaseController {
             return grid.innerHTML = `<div class="empty-icon dash-empty">📊</div><div class="dash-empty">Drag charts from the sidebar to populate this dashboard</div>`;
         }
 
-        items = await this.extractCharts(grid, charts, name, dataSources, isDashboardChange, importedDash);
+        // This will extract the charts/pivot tables. 
+        // And in case it's needed, it'll fetch the data from the Backend
+        items = await this.extractChartsAndData(grid, charts, name, dataSources, isDashboardChange, importedDash);
 
         if(isPivot)
             return this.addPivotToDashboard(event, grid, name);
@@ -523,13 +525,13 @@ export class BIController extends BaseController {
         this.isDraggingDashboardObject = false;       
     }
 
-    addPivotToDashboard(event, grid, name, chart){
-        const pivotId = this.obj.pivotTableProxy.controller.handleDashDrop(event, grid, chart);        
+    addPivotToDashboard(event, grid, name, chart, isFetchFromDB){
+        const pivotId = this.obj.pivotTableProxy.controller.handleDashDrop(event, grid, chart, isFetchFromDB);        
         this.obj.state.chartsByDashboard[name].add(pivotId);
         return BIController.dashboardAddedCharts.add(pivotId);
     }
 
-    async extractCharts(grid, charts, name, dataSources, isDashboardChange, importedDash){
+    async extractChartsAndData(grid, charts, name, dataSources, isDashboardChange, importedDash){
 
         const isChartAdded = (id) => this.obj.state.chartsByDashboard[name].has(id);
 
@@ -540,8 +542,11 @@ export class BIController extends BaseController {
                 
                 const fields = this.genDuckDBFieldNames(dataSources.tables);
                 let data = await this.runAnaluticsAndRenderSheet(fields, dataSources.datasource);
+                const dataPointerID = BIService.setDashboardDataPointer(data);
+                BIService.assigneDataSourcePerTable(dataSources.tables, name, dataPointerID);
 
                 return (charts || []).map(chart => {
+                    chart.dataPointer = dataPointerID;
                     if(chart.config)
                         chart.config.values = data.map(fields => fields[chart?.config?.yLabel]);
                     return chart;
@@ -572,9 +577,11 @@ export class BIController extends BaseController {
     }
 
     addChartToDashBoard(grid, chart, name, event){
-
-        if(chart.type === 'pivotTable')
-            return this.addPivotToDashboard(event, grid, name, chart);
+        
+        if(chart.type === 'pivotTable' || String(chart.id).startsWith('pivot-')){
+            const isFetchFromDB = 'dataPointer' in chart;
+            return this.addPivotToDashboard(event, grid, name, chart, isFetchFromDB);
+        }
         
         const chartContent = (title, cId, wrapperId) => `
             <div class="dashboard-card">

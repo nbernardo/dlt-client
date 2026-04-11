@@ -7,6 +7,22 @@ import { AIUtil } from "../util/AIUtil.js";
 
 export class BIService extends BaseService {
 
+    static dashboardData = {};
+    static dashboardDataPointer = {};
+
+    static setDashboardDataPointer(data){
+        const pointerId = Date.now() + Math.random().toString().slice(2);
+        BIService.dashboardData[pointerId] = data;
+        return pointerId;
+    }
+
+    static getDashboardDataFromPointer = (pointerId) => BIService.dashboardData[pointerId];
+
+    static assigneDataSourcePerTable(tables, dashboardName, pointerId){
+        for(const table of tables)
+            BIService.dashboardDataPointer[`${dashboardName}.${table}`] = pointerId;
+    }
+
     static async saveDashboardConfig(charts, name, id){
         const namespace = await BIService.getNamespace();
         const url = `/analytics/dashboard/${namespace}`;
@@ -18,6 +34,7 @@ export class BIService extends BaseService {
             const result = await response.json();
             return true;
         }
+
         return false;
     }
 

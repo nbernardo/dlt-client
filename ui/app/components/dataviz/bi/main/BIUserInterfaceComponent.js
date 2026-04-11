@@ -85,7 +85,15 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 						dataSources.datasource.add(config.dataSource);
 						for(const tbl of config.viewingTables) dataSources.tables.add(tbl);
 
-						return { ...chart, title: chart.name, config: config.config };
+						chart = { ...chart, title: chart.name, config: config.config || config };
+
+						// In case it's pivot table it won'r have config.config
+						if(!config.config){
+							chart = { ...chart, ...chart.config };
+							delete chart.config;
+						}
+
+						return { ...chart, title: chart.name, config: config.config || config };
 					});
 					this.dashboardList.push({ dashboard_name });
 

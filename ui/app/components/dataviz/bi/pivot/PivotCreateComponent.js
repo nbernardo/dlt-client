@@ -100,24 +100,40 @@ export class PivotCreateComponent extends ViewComponent {
 	setWorkerListiner(){
 		const self = this;
 		this.dashWorker.onmessage = function(e) {
-			const { root, cols, tileIndex, cfg } = e.data;
-			const targetDiv = document.getElementById(`tile-${tileIndex}`);
-			const loader = document.getElementById(`loader-${tileIndex}`);
-			
-			if (targetDiv) {
+			const { root, cols, tileIndex, cfg, type, progress } = e.data;
 
-				const htmlString = self.controller.getTableHTML(root, cols, cfg.selection, cfg.heatmap);
-				self.controller.updateTableDOM(targetDiv, htmlString);
-				
-				if (loader) {
-					loader.style.transition = "opacity 0.3s ease";
-					loader.style.opacity = "0";
+            if (type === 'PROGRESS') {
+                console.log(`REGISTERING PROGRESS: `, progress);
+                
+                // Update your UI element here
+                //const progressBar = document.getElementById('pivot-progress-bar');
+                //const progressText = document.getElementById('pivot-progress-text');
+                
+                //if (progressBar) progressBar.style.width = `${progress}%`;
+                //if (progressText) progressText.textContent = `Processing: ${progress}%`;
 
-					setTimeout(() => {
-						if (loader.parentNode) loader.remove();
-					}, 300);
-				}
-			}
+            }else{
+
+                const targetDiv = document.getElementById(`tile-${tileIndex}`);
+                const loader = document.getElementById(`loader-${tileIndex}`);
+                
+                if (targetDiv) {
+    
+                    const htmlString = self.controller.getTableHTML(root, cols, cfg.selection, cfg.heatmap);
+                    self.controller.updateTableDOM(targetDiv, htmlString);
+                    
+                    if (loader) {
+                        loader.style.transition = "opacity 0.3s ease";
+                        loader.style.opacity = "0";
+    
+                        setTimeout(() => {
+                            if (loader.parentNode) loader.remove();
+                        }, 300);
+                    }
+                }
+
+            }
+
 		};
 	}
 
