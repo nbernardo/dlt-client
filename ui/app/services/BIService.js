@@ -9,6 +9,7 @@ export class BIService extends BaseService {
 
     static dashboardData = {};
     static dashboardDataPointer = {};
+    static pivotBaseFields = [];
 
     static setDashboardDataPointer(data){
         const pointerId = Date.now() + Math.random().toString().slice(2);

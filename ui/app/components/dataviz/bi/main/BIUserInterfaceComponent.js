@@ -6,6 +6,7 @@ import { BIController } from "../../../../controller/BIController.js";
 import { ModalWindowComponent } from "../../../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../../../popup-window/PopupUtil.js";
 import { mockDataTables, mockDepartments, mockTitles } from "../mock.js";
+import { FilterUtil } from "../pivot/filterUtil.js";
 import { PivotCreateComponent } from "../pivot/PivotCreateComponent.js";
 import { BiUiUtil } from "../util.js";
 
@@ -35,6 +36,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	/**  @Prop  */ showTablesList = true;
 
 	/**  @Prop  */ showDashboardActions = false;
+
+	/** @Prop @type { FilterUtil } */ filterUtil;
 
 	dashboardList = [{ dashboard_name: 'Main Dashboard' }];
 
@@ -125,6 +128,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
 		this.util = new PopupUtil();
+		this.filterUtil = new FilterUtil(this);
 
 		this.controller.on('load', () => {
 			this.controller.obj = this;
@@ -156,6 +160,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	setData = (dataSource) => {
 		this.gridDataSource = dataSource;
 		if(this.pivotTableProxy) this.pivotTableProxy.setData(dataSource);
+		this.filterUtil.dataset = dataSource;
 		return this;
 	}
 

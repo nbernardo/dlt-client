@@ -7,6 +7,8 @@ export class PivotTableController extends BaseController {
     /** @type { PivotCreateComponent } */
     obj;
 
+    customGlobalFilters = {};
+
     static totalSavePivot = Date.now() + Math.random().toString().slice(2);
     static currentPivotId;
 
@@ -23,8 +25,8 @@ export class PivotTableController extends BaseController {
     clearDrag(e) { e.currentTarget.classList.remove('drag-over'); }
 
     renderAll() {
-        const container = this.obj.$parent.popup.querySelector('#table-canvas');
-        const showAllRows = this.obj.container.querySelector('#show-all-rows-check').checked;
+        const container = this.obj.$parent.popup.querySelector('#table-canvas');        
+        const showAllRows = this.obj.container.querySelector('#show-all-rows-check')?.checked;
 		const { selection, filters, parseEvents } = this.obj;
 
         ['rows', 'cols', 'vals'].forEach(id => {
@@ -64,12 +66,24 @@ export class PivotTableController extends BaseController {
     openFilter(e, f) {
         e.stopPropagation();
         this.obj.activeFilterField = f;
+        
         const modal = this.obj.container.querySelector('#filter-modal');
-        const list = this.obj.container.querySelector('#modal-list');
-        const rect = e.target.getBoundingClientRect();
+        const parentContainer = document.getElementById('global-filter-drawer').parentNode;
+
+        modal.style.position = 'absolute';
         modal.style.display = 'block';
-        modal.style.top = (rect.bottom + window.scrollY) + 'px';
-        modal.style.left = rect.left + 'px';
+        modal.style.zIndex = '1002';
+
+        if (isGlobal) {
+            modal.style.top = '60px';
+            modal.style.left = '285px';
+        } else {
+            const containerRect = parentContainer.getBoundingClientRect();
+            const targetRect = e.target.getBoundingClientRect();
+            
+            modal.style.top = (targetRect.bottom - containerRect.top) + 'px';
+            modal.style.left = (targetRect.left - containerRect.left) + 'px';
+        }
         this.obj.container.querySelector('#modal-title').textContent = `Filter: ${f}`;
         const uniqueVals = [...new Set(this.obj.dataset.map(item => item[f]))];
         list.innerHTML = uniqueVals.map(v => `
@@ -287,7 +301,7 @@ export class PivotTableController extends BaseController {
         const fieldList = this.obj.$parent.popup.querySelector('#source-fields');
         fieldList.innerHTML = '';
         
-        [...this.obj.baseFields, ...this.obj.calculatedFields.map(cf => cf.name)].forEach(f => {
+        [...BIService.pivotBaseFields, ...this.obj.calculatedFields.map(cf => cf.name)].forEach(f => {
             const div = document.createElement('div');
             div.className = 'field-item' + (this.obj.calculatedFields.find(c => c.name === f) ? ' calc-field' : '');
             div.textContent = f; div.draggable = true; div.style.marginBottom = "8px";

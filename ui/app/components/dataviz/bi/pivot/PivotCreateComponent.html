@@ -45,16 +45,10 @@
 		  .total-col { background: #f8fafc; font-weight: 700; border-left: 2px solid var(--border); }
   
 		  #dashboard-canvas {  display: none;  flex-wrap: wrap;  gap: 20px;  overflow-y: auto;  flex: 1;  padding: 20px;  border: 3px dashed #cbd5e1;  border-radius: 10px; align-content: flex-start; }
-		  #filter-modal, #calc-modal { position: absolute; background: white; border: 1px solid var(--border); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 8px; padding: 12px; z-index: 1000; display: none; min-width: 170px; }
 	}
 </style>
 
 <div class="bi-pivot-ui-container">
-    <div id="filter-modal" onclick="event.stopPropagation()">
-        <strong id="modal-title" style="font-size: 11px;">Filter</strong>
-        <div id="modal-list" style="max-height: 200px; overflow-y: auto; margin: 10px 0;"></div>
-        <button onclick="closeFilter()" style="width: 100%; cursor: pointer;">Apply</button>
-    </div>
 
     <div id="calc-modal" style="width: 220px; top: 50%; left: 50%; transform: translate(-50%, -50%);" onclick="event.stopPropagation()">
         <strong style="font-size: 13px;">New Calculated Field</strong>

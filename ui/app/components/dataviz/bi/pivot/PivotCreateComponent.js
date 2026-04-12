@@ -1,7 +1,9 @@
 import { sleepForSec } from "../../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../../@still/component/super/ViewComponent.js";
 import { PivotTableController } from "../../../../controller/PivotTableController.js";
+import { BIService } from "../../../../services/BIService.js";
 import { BIUserInterfaceComponent } from "../main/BIUserInterfaceComponent.js";
+import { FilterUtil } from "./filterUtil.js";
 
 export class PivotCreateComponent extends ViewComponent {
 
@@ -44,9 +46,10 @@ export class PivotCreateComponent extends ViewComponent {
 	}
 
     setData = (data) => {
-        if(data[0]) this.baseFields = Object.keys(data[0]);
+        if(data[0]) BIService.pivotBaseFields = Object.keys(data[0]);
         this.dataset = data;
         this.controller.initSidebar();
+        this.$parent.filterUtil.initDrawerPicker();
     }
 
 	getData(){
@@ -138,7 +141,7 @@ export class PivotCreateComponent extends ViewComponent {
 	}
 
     evalFormula(item, formula) {
-        let f = formula; this.baseFields.forEach(k => f = f.replace(new RegExp(k, 'g'), item[k] || 0));
+        let f = formula; BIService.pivotBaseFields.forEach(k => f = f.replace(new RegExp(k, 'g'), item[k] || 0));
         try { return eval(f); } catch { return 0; }
     }
 
@@ -189,7 +192,7 @@ export class PivotCreateComponent extends ViewComponent {
             this.expandedPaths.clear(), this.controller.searchQuery = "";
             this.container.querySelector('#global-search').value = "";
             this.container.querySelector('#show-all-rows-check').checked = false;
-            this.baseFields.forEach(f => {
+            BIService.pivotBaseFields.forEach(f => {
                 this.filters[f] = [...new Set(this.dataset.map(item => item[f]))];
             });
             this.controller.renderAll();

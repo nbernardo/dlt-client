@@ -834,4 +834,11 @@ export class BIController extends BaseController {
         }
     }
 
+    toggleFilterDrawer(){ this.obj.filterUtil.toggleFilterDrawer(); }
+	addCustomGlobalFilter = (field) => this.obj.filterUtil.addCustomGlobalFilter(field);
+
+    openFilter = (e, f, isGlobal = false) => this.obj.filterUtil.openFilter(e, f, isGlobal);
+
+    removeGlobalFilter = (field) => this.obj.filterUtil.removeGlobalFilter(field);
+
 }
