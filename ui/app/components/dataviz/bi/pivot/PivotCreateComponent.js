@@ -3,7 +3,6 @@ import { ViewComponent } from "../../../../../@still/component/super/ViewCompone
 import { PivotTableController } from "../../../../controller/PivotTableController.js";
 import { BIService } from "../../../../services/BIService.js";
 import { BIUserInterfaceComponent } from "../main/BIUserInterfaceComponent.js";
-import { FilterUtil } from "./filterUtil.js";
 
 export class PivotCreateComponent extends ViewComponent {
 
@@ -105,6 +104,8 @@ export class PivotCreateComponent extends ViewComponent {
 		this.dashWorker.onmessage = function(e) {
 			const { root, cols, tileIndex, cfg, type, progress } = e.data;
 
+            console.log(`WILL GOD WITH NEW DATA: `, { root, cols, tileIndex, cfg, type, progress });
+            
             if (type === 'PROGRESS') {
                 console.log(`REGISTERING PROGRESS: `, progress);
                 

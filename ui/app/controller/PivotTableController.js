@@ -1,6 +1,7 @@
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { PivotCreateComponent } from "../components/dataviz/bi/pivot/PivotCreateComponent.js";
 import { BIService } from "../services/BIService.js";
+import { BIController } from "./BIController.js";
 
 export class PivotTableController extends BaseController {
 
@@ -24,7 +25,7 @@ export class PivotTableController extends BaseController {
 
     clearDrag(e) { e.currentTarget.classList.remove('drag-over'); }
 
-    renderAll() {
+    renderAll(customGlobalFilters = {}) {
         const container = this.obj.$parent.popup.querySelector('#table-canvas');        
         const showAllRows = this.obj.container.querySelector('#show-all-rows-check')?.checked;
 		const { selection, filters, parseEvents } = this.obj;
@@ -53,7 +54,7 @@ export class PivotTableController extends BaseController {
 
         requestAnimationFrame(() => {
             setTimeout(() => {
-                const { root, cols } = this.buildTree(selection, filters, showAllRows);
+                const { root, cols } = this.buildTree(selection, filters, showAllRows, customGlobalFilters);
                 const heatmapCheck = this.obj.container.querySelector('#heatmap-check').checked;
                 const htmlString = this.getTableHTML(root, cols, selection, heatmapCheck);
                 this.updateTableDOM(container, htmlString); 
@@ -107,14 +108,25 @@ export class PivotTableController extends BaseController {
         container.appendChild(fragment);
     }
 
-    buildTree(sel, fltrs, showAllRows = false) {
-
+    buildTree(sel, fltrs, showAllRows = false, customGlobalFilters = {}) {
         const root = { children: {}, values: {}, label: 'Grand Total', depth: -1 };
         const allCols = new Set();
         
         const effectiveRows = showAllRows ? [...sel.rows, '__rowId'] : sel.rows;
+        const globalFilterKeys = Object.keys(customGlobalFilters);
 
         this.obj.dataset.forEach(item => {
+
+            // 1. Global Filter Check
+            for (let i = 0; i < globalFilterKeys.length; i++) {
+                const f = globalFilterKeys[i];
+                const allowedValues = customGlobalFilters[f];
+                
+                if (allowedValues && allowedValues.length > 0) {
+                    if (!allowedValues.includes(item[f])) return;
+                }
+            }
+
             if ([...sel.rows, ...sel.cols].some(f => !fltrs[f]?.includes(item[f]))) return;
             
             if (this.searchQuery) {
@@ -129,6 +141,7 @@ export class PivotTableController extends BaseController {
 
             const cKey = sel.cols.length > 0 ? sel.cols.map(f => item[f]).join(' | ') : "Value";
             allCols.add(cKey);
+
             const update = (node, key) => {
                 sel.vals.forEach(v => {
                     const k = `${key}_${v.field}`;
@@ -136,25 +149,34 @@ export class PivotTableController extends BaseController {
                     const calc = this.obj.calculatedFields.find(c => c.name === v.field);
                     let val = calc ? this.obj.evalFormula(item, calc.formula) : item[v.field];
                     val = Number(isNaN(val) ? 0 : val);
-                    node.values[k].sum += val; node.values[k].count += 1;
+                    node.values[k].sum += val; 
+                    node.values[k].count += 1;
                     node.values[k].max = Math.max(node.values[k].max, val);
                 });
             };
-            update(root, cKey); update(root, 'TOTAL');
+
+            update(root, cKey); 
+            update(root, 'TOTAL');
+
             let curr = root;
             effectiveRows.forEach((f, i) => {
-                const val = item[f];
-                if (!curr.children[val]) curr.children[val] = { children: {}, values: {}, depth: i };
-                curr = curr.children[val]; update(curr, cKey); update(curr, 'TOTAL');
+                const rowVal = item[f];
+                if (!curr.children[rowVal]) 
+                    curr.children[rowVal] = { children: {}, values: {}, depth: i };
+                curr = curr.children[rowVal]; 
+                update(curr, cKey); 
+                update(curr, 'TOTAL');
             });
         });
+
         return { root, cols: Array.from(allCols).sort() };
     }
 
     getTableHTML(root, cols, sel, heatmapOn) {
         const buffer = [];
         const stats = {};
-
+        console.log(`THIS IS THE SELS: `, sel);
+        
         if (heatmapOn) {
             const scan = (n) => {
                 cols.forEach(c => sel.vals.forEach(v => {
@@ -231,13 +253,23 @@ export class PivotTableController extends BaseController {
         this.obj.expandedPaths.has(p) ? this.obj.expandedPaths.delete(p) : this.obj.expandedPaths.add(p); this.renderAll(); this.renderDashboard(); 
     }
 
-    renderDashboard(container, pivotTile, isFetchFromDB) {
+    renderDashboard(container, pivotTile, isFetchFromDB, customGlobalFilters) {
+
+        if([container, pivotTile, isFetchFromDB].filter(itm => itm != null).length === 0){
+            Object.values(this.obj.$parent.state.savedCharts).forEach((cfg) => {
+                const pivot = this.renderPivotOnDashboard(cfg, cfg.id, false, customGlobalFilters);
+                BIController.getDashboardGrid().appendChild(pivot.tile)
+                pivot.runDataLoad();
+            });
+            return;
+        }
+
         const pivot = this.renderPivotOnDashboard(pivotTile, PivotTableController.currentPivotId, isFetchFromDB);
         container.appendChild(pivot.tile);
         pivot.runDataLoad();
     }
 
-    renderPivotOnDashboard(cfg, i, isFetchFromDB) {
+    renderPivotOnDashboard(cfg, i, isFetchFromDB, customGlobalFilters) {
         const tile = document.createElement('div'); 
         tile.className = 'dash-tile', tile.id = `pivotWrap_${Date.now()}`;
         tile.innerHTML = this.obj.parseEvents(`
@@ -257,7 +289,7 @@ export class PivotTableController extends BaseController {
         return { 
             tile, 
             runDataLoad: () => this.obj.dashWorker.postMessage( 
-                { dataset, cfg, searchQuery: this.searchQuery, calculatedFields, tileIndex: i, isFetchFromDB }
+                { dataset, cfg, searchQuery: this.searchQuery, calculatedFields, tileIndex: i, isFetchFromDB, globalFilters: customGlobalFilters }
             )
         };
     }

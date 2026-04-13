@@ -15,6 +15,8 @@ export class FilterUtil {
 
     dataset = [];
 
+    filters = {};
+
     /** @returns { HTMLElement } */
     $ = (id) => this.biUiObj.popup.querySelector(id)
 
@@ -53,9 +55,6 @@ export class FilterUtil {
         const summaryContainer = this.$('#active-filters-summary');
         const badgeContainer = this.$('#summary-badges');
         
-        console.log(`TO SHOOW THIS: `, { list, summaryContainer, badgeContainer });
-        
-
         if (!list || !summaryContainer || !badgeContainer) return;
 
         list.innerHTML = '';
@@ -87,7 +86,7 @@ export class FilterUtil {
                     </span>
                 `).join('');
                 
-                // The event (e.g. controller.openFilter) is being parsed against the BIController
+                // The events (e.g. controller.openFilter) are being parsed against the BIController
                 div.innerHTML = this.biUiObj.parseEvents(`
                     <div class="filter-card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                         <strong style="font-size:12px;">${field}</strong>
@@ -125,9 +124,9 @@ export class FilterUtil {
 
     applyGlobalFilters() {
         this.toggleFilterDrawer(false);
-        this.biUiObj.pivotTableProxy.controller.renderAll(); 
+        this.biUiObj.pivotTableProxy.controller.renderAll(this.customGlobalFilters); 
         //if(this.$('#tab-dash').classList.contains('active')) 
-        //    this.biUiObj.controller.renderDashboard();
+            this.biUiObj.pivotTableProxy.controller.renderDashboard(null, null, null, this.customGlobalFilters);
     }
 
     openFilter(e, f, isGlobal = false) {
@@ -153,12 +152,14 @@ export class FilterUtil {
         }
 
         const uniqueVals = [...new Set(this.dataset.map(item => item[f]))];
-        list.innerHTML = uniqueVals.map(v => `
+        // controller.toggleFilterValueBehavior if implemented in the BIController, 
+        // which mirrors toggleFilterValueBehavior from FilterUtil
+        list.innerHTML = uniqueVals.map(v => this.biUiObj.parseEvents(`
             <label style="display:block; font-size:12px; margin-bottom:4px; cursor:pointer;">
                 <input type="checkbox" ${targetSource[f].includes(v) ? 'checked' : ''} 
-                    onchange="toggleFilterValueBehavior('${v}', ${isGlobal})"> ${v}
+                    onchange="controller.toggleFilterValueBehavior('${v}', ${isGlobal})"> ${v}
             </label>
-        `).join('');
+        `)).join('');
 
         modal.querySelector('button').onclick = () => {
             modal.style.display = 'none';
@@ -170,5 +171,11 @@ export class FilterUtil {
         };
     }
 
+    toggleFilterValueBehavior(v, isGlobal) {
+        const target = isGlobal ? this.customGlobalFilters[this.activeFilterField] : this.filters[this.activeFilterField];
+        const idx = target.indexOf(v);
+        if (idx > -1) target.splice(idx, 1);
+        else target.push(v);
+    }
 
 }

@@ -470,6 +470,9 @@ export class BIController extends BaseController {
         }
     }
 
+    /** @returns { HTMLElement } */
+    static getDashboardGrid = () => BIController.get().obj.popup.querySelector('.dashGrid');
+
 
     static dashboardAddedCharts = new Set();
     async loadDashboard(name, isPivot, event, isDashboardChange = false) {
@@ -840,5 +843,9 @@ export class BIController extends BaseController {
     openFilter = (e, f, isGlobal = false) => this.obj.filterUtil.openFilter(e, f, isGlobal);
 
     removeGlobalFilter = (field) => this.obj.filterUtil.removeGlobalFilter(field);
+
+    toggleFilterValueBehavior = (v) => this.obj.filterUtil.toggleFilterValueBehavior(v, true);
+
+    applyGlobalFilters = (v) => this.obj.filterUtil.applyGlobalFilters();
 
 }
