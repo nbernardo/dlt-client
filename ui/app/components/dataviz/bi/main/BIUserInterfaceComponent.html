@@ -131,7 +131,10 @@
 						<aside class="sidebar">
 							<div class="sidebar-section">
 							<span (showIf)="self.showTablesList">
-								<div class="sidebar-title">Tables</div>
+								<div class="sidebar-title" style="display: flex; justify-content: space-between; align-items: center;">
+									<div>Tables</div>
+									<button onclick="controller.loadTable(null, true)" class="btn btn-ghost" style="width: 88px;">Load data</button>
+								</div>
 								<div class="tableList"></div>
 							</span>
 							<span (showIf)="!self.showTablesList">

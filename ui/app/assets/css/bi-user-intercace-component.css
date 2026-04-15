@@ -165,7 +165,10 @@
   .bi-user-interface-component-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
   .bi-user-interface-component-body { 
       .dash-tile {  background: white;  border: 1px solid var(--border);  border-radius: 4px;  padding: 5px;  display: flex;  flex-direction: column;  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);  resize: both;  overflow: hidden;  min-width: 280px;  height: 280px;  position: relative;  }		  
-      .field-item { background: #fff; padding: 10px; border-radius: 6px; cursor: grab; border: 1px solid var(--border); font-size: 13px; font-weight: 500; }
+      .field-item { 
+        background: #fff; cursor: grab; font-weight: 500; padding: 5px 3px; font-size: 10px; font-family: var(--mono);
+        color: var(--text); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+    }
       .field-item.calc-field { border-left: 4px solid var(--success); background: #f0fdf4; }
       @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-5px);} 60% {transform: translateY(-3px);} }
       .scroll-indicator { display: none; text-align: center; padding: 5px; color: var(--primary); font-size: 18px; font-weight: bold; background: linear-gradient(transparent, white); bottom: 0; width: 100%; pointer-events: none; animation: bounce 2s infinite; position: relative; margin-top: -30px; }
@@ -351,4 +354,29 @@
         font-size: 12px;
         color: #475569;
     }
+}
+
+.fields-panel { 
+    background: var(--surface); 
+    border: 1px solid var(--border); 
+    border-radius: var(--radius); 
+    box-shadow: var(--shadow-lg); 
+    position: absolute; 
+    z-index: 50; 
+    overflow: hidden; 
+    max-height: 260px; 
+    display: flex; 
+    flex-direction: column;
+    right: -12px;
+    top: 30;
+    width: 220px;
+    .field-item:last-child { border-bottom: none; }
+    .field-type { font-size: 9px; color: var(--muted2); background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; margin-left: auto; flex-shrink: 0; }
+}
+
+.fields-panel-body { overflow-y: auto; flex: 1; }
+.fields-panel-header { 
+    padding: 7px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; 
+    color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); display: flex;
+    justify-content: space-between;
 }
