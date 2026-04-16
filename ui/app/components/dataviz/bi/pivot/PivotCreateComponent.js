@@ -25,6 +25,8 @@ export class PivotCreateComponent extends ViewComponent {
 
 	/** @Prop @type { HTMLElement } */container;
 
+	/** @Prop */loadedData;
+
 	/** 
 	 * @Controller 
 	 * @Path controller/
@@ -39,13 +41,17 @@ export class PivotCreateComponent extends ViewComponent {
 			this.dashWorker =  new Worker('/app/components/dataviz/bi/pivot/worker.js');
 			this.container = document.getElementsByClassName('bi-pivot-ui-container')[0];
 			this.getData();
+            this.setData();
 			this.controller.renderAll();
 			this.setWorkerListiner();
 		});
 	}
 
     setData = (data) => {
-        if(data[0]) BIService.pivotBaseFields = Object.keys(data[0]);
+        if(data) this.loadedData = data;
+        if(this.loadedData){
+            if(data[0]) BIService.pivotBaseFields = Object.keys(this.loadedData[0]);
+        }
         this.dataset = data;
         this.controller.initSidebar();
         this.$parent.filterUtil.initDrawerPicker();
@@ -103,8 +109,6 @@ export class PivotCreateComponent extends ViewComponent {
 		const self = this;
 		this.dashWorker.onmessage = function(e) {
 			const { root, cols, tileIndex, cfg, type, progress } = e.data;
-
-            console.log(`WILL GOD WITH NEW DATA: `, { root, cols, tileIndex, cfg, type, progress });
             
             if (type === 'PROGRESS') {
                 console.log(`REGISTERING PROGRESS: `, progress);

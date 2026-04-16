@@ -6,7 +6,7 @@ import { BIController } from "../../../../controller/BIController.js";
 import { ModalWindowComponent } from "../../../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../../../popup-window/PopupUtil.js";
 import { mockDataTables, mockDepartments, mockTitles } from "../mock.js";
-import { FilterUtil } from "../pivot/filterUtil.js";
+import { FilterUtil } from "../pivot/FilterUtil.js";
 import { PivotCreateComponent } from "../pivot/PivotCreateComponent.js";
 import { BiUiUtil } from "../util.js";
 
@@ -90,7 +90,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 						chart = { ...chart, title: chart.name, config: config.config || config };
 
-						// In case it's pivot table it won'r have config.config
+						// In case it's pivot table it won't have config.config
 						if(!config.config){
 							chart = { ...chart, ...chart.config };
 							delete chart.config;
@@ -108,7 +108,6 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 				}
 				this.domainPipelinesList = result?.result?.pipelines?.map(([pp, dbName]) => ({ name: this.toCamel(pp).trim(), pipeline: `${dbName}.${pp}` }));
 			}
-			
 		//}, 0);
 	}
 

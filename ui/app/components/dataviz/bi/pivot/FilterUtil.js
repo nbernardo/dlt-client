@@ -28,8 +28,13 @@ export class FilterUtil {
     }
 
     toggleFilterDrawer(hideIt = true) {
-        const drawer = document.getElementById('global-filter-drawer');
+        if(hideIt) this.$('.global-filter-drawer-wrap').style.zIndex = 1;
+
+        const drawer = this.$('#global-filter-drawer');
         if(hideIt) drawer.classList.toggle('open');
+
+        if(!drawer.classList.contains('open'))
+            this.$('.global-filter-drawer-wrap').style.zIndex = -1;
     }
 
     initDrawerPicker() {

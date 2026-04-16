@@ -23,21 +23,8 @@ export class BIController extends BaseController {
     /** @returns { BIController } */
     static getObj = () => BIController.instance;
 
-    // renderTableList() {
-	// 	const tables = BIController.currentTableList || [];
-	// 	this.obj.popup.querySelector(".tableList").innerHTML = tables
-	// 		.map((t) =>
-	// 			this.obj.parseEvents(
-    //                 `<div class="table-item active">
-    //                     <div class="table-icon"><input type="checkbox" onclick="controller.loadTable('${t.name}',true, this.checked)"></div>${t?.name?.replace(/_/g, " ")}
-    //                     <span class="table-rows">${t?.totalCols}</span>
-    //                 </div>`
-    //             )
-	// 		)
-	// 		.join("");
-	// }
-
-    showFields(wrapperId, close = false){
+    showFields(e, wrapperId, close = false){
+        if(e.target.tagName === 'INPUT') return; //It takes place in case we checked the table box
         this.obj.popup.querySelectorAll(`.fields-panel`).forEach(elm => elm.style.display = 'none');
         this.obj.popup.querySelector(`.fields-panel-${wrapperId}`).style.display = close ? 'none' : '';
     }
@@ -48,30 +35,50 @@ export class BIController extends BaseController {
             const panel = `
                         <div class="fields-panel fields-panel-${id}" style="display: none;">
                             <div class="fields-panel-header">
-                                <div>Fields</div><div onclick="controller.showFields('${id}', true)" style="cursor: pointer;">x</div></div>
+                                <div>Fields</div><div onclick="controller.showFields(event, '${id}', true)" style="cursor: pointer;">x</div></div>
                             <div class="fields-panel-body">
                                 ${t.cols.map(f=>`
                                     <div class="field-item">
-                                        <input type="checkbox" onclick="controller.selectAnalyticsField('${t.name}_${f.column_name}')">${f.column_name}
+                                        <input type="checkbox" onclick="controller.selectAnalyticsField('${t.name}','${f.column_name}')">${f.column_name}
                                         <span class="field-type">${f.data_type}</span>
                                     </div>`).join('')}
                             </div>
                         </div>`;
             
             return this.obj.parseEvents(`<div class="table-item-wrap" style="position: relative;">
-                        <div class="table-item active" onclick="controller.showFields('${id}')">
-                            <div class="table-icon"><input type="checkbox" onclick="controller.loadTable('${t.name}',true, this.checked)"></div>
+                        <div class="table-item active" onclick="controller.showFields(event, '${id}')">
+                            <div class="table-icon"><input type="checkbox" class="check-table-selection-${t.name}" onclick="controller.loadTable('${t.name}',true, this.checked)"></div>
                             <span style="flex:1;overflow:hidden;text-overflow:ellipsis">${t.name.replace(/_/g,' ')}</span>
-                            <span class="table-rows">${t?.totalCols}</span>
+                            <span class="table-fields">
+                                <span class="selected-fields-${t.name}">0</span>
+                                <span class="total-fields-${t.name}">/ ${t?.totalCols}</span>
+                            </span>
                         </div>${panel}
                     </div>`);
         }).join('');
     }
 
     fieldNames = new Set();
-    selectAnalyticsField(fieldName){
-        if(this.fieldNames.has(fieldName)) this.fieldNames.delete(fieldName);
-        else this.fieldNames.add(fieldName);
+    selectedFieldsPerTable = {};
+
+    selectAnalyticsField(table, fieldName){
+        
+        fieldName = `${table}_${fieldName}`;
+        if(!this.selectedFieldsPerTable[table]) this.selectedFieldsPerTable[table] = 0;
+
+        if(this.fieldNames.has(fieldName)) {
+            this.fieldNames.delete(fieldName);
+            this.selectedFieldsPerTable[table]--;
+        }
+        else {
+            this.fieldNames.add(fieldName);
+            this.selectedFieldsPerTable[table]++;
+        }
+        this.obj.popup.querySelector(`.selected-fields-${table}`).textContent = this.selectedFieldsPerTable[table];
+        if(this.viewingTables.has(table)) {
+            this.obj.popup.querySelector(`.check-table-selection-${table}`).checked = false;
+            this.viewingTables.delete(table);
+        } 
     }
 
     viewingTables = new Set();
@@ -97,6 +104,10 @@ export class BIController extends BaseController {
             for(const fieldName of [...this.fieldNames]) columns.push(fieldName);
 
             await this.runAnaluticsAndRenderSheet(columns.join(','));
+            if(this.viewingTables.has(name))
+                this.obj.popup.querySelector(`.selected-fields-${name}`).textContent = 'All';
+            else
+                this.obj.popup.querySelector(`.selected-fields-${name}`).textContent = this.selectedFieldsPerTable[name] || 0;
         }
         
     }
@@ -682,6 +693,7 @@ export class BIController extends BaseController {
     static currentTableList = [];
 
 	async onPipelineChange(val) {
+        this.obj.popup.querySelector('.tableList').innerHTML = this.dataProcessLoading('Loading data tables');
         this.obj.state.pipeline = val;
         let tablesByContext = await BIController.getDomainPipelineFields(val);
         BIController.currentTableList = Object.entries(tablesByContext).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));

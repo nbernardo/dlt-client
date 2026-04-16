@@ -24,6 +24,7 @@
   }
   .bi-user-interface-component-body * { margin: 0; padding: 0; box-sizing: border-box; }
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.75)} }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
   .bi-user-interface-component-body .shell { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 52px 1fr; }
   
@@ -61,7 +62,7 @@
   .bi-user-interface-component-body .table-item.active { background: #eef1fd; color: var(--accent2); font-weight: 500; }
   .bi-user-interface-component-body .table-icon { width: 16px; height: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--muted); flex-shrink: 0; }
   .bi-user-interface-component-body .table-item.active .table-icon { background: var(--accent2); border-color: var(--accent2); color: #fff; }
-  .bi-user-interface-component-body .table-rows { font-size: 10px; color: var(--muted2); margin-left: auto; }
+  .bi-user-interface-component-body .table-fields { font-size: 10px; color: var(--muted2); margin-left: auto; }
   .bi-user-interface-component-body .sidebar-sep { height: 1px; background: var(--border); margin: 8px 16px; }
   .bi-user-interface-component-body .chart-thumb { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12px; color: var(--text); transition: background 0.12s; margin-bottom: 2px; }
   .bi-user-interface-component-body .chart-thumb:hover { background: var(--surface2); }
@@ -380,3 +381,5 @@
     color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); display: flex;
     justify-content: space-between;
 }
+
+.table-fields span:first-child{ padding: 0px 4px; border-radius: 6px; background: black; color: white; }
