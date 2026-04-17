@@ -38,6 +38,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	/**  @Prop  */ showDashboardActions = false;
 
+	/**  @Prop  */ appPath = '';
+
 	/** @Prop @type { FilterUtil } */ filterUtil;
 
 	dashboardList = [{ dashboard_name: 'Main Dashboard' }];
@@ -62,6 +64,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	/** @Prop @type { BIChatController } */ chatController;
 
 	async stBeforeInit(){
+		this.appPath = await BIService.getAppPath();
 		this.runningOnOdoo = StillAppSetup.config.get('runningOnOdoo');
 		//setTimeout(async () => {
 			let result = await BIController.getDashboardDetails();
@@ -118,8 +121,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 				await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/chart.js', type: 'js' });
 			});
 		}
-		const appPath = await BIService.getAppPath();
-		await Assets.import({ path: `${appPath}/app/assets/css/bi-user-intercace-component.css` });		
+		await Assets.import({ path: `${this.appPath}/app/assets/css/bi-user-intercace-component.css` });		
 	}
 
   	async stAfterInit(){		

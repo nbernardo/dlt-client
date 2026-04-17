@@ -161,10 +161,10 @@
 
 						<main class="main">
 							<nav class="tabs">
-								<div class="tab active" onclick="controller.switchTab('sheet',this)"><i class="fa fa-database"></i> &nbsp;Data</div>
-								<div class="tab" onclick="controller.switchTab('chart',this)"><img src="/app/assets/imgs/pie-chart.png" style="float: left; width: 15px;"> &nbsp;Chart Builder</div>
-								<div class="tab" onclick="controller.switchTab('pivot',this)"><img src="/app/assets/imgs/pivot.png" style="float: left; width: 19px;"> &nbsp;Pivot</div>
-								<div class="tab" onclick="controller.switchTab('dashboard',this)"><img src="/app/assets/imgs/dashboard.png" style="float: left; width: 21px;"> &nbsp;Dashboard</div>
+								<div class="tab active" onclick="controller.switchTab('sheet',this)"><img src="@appPath/app/assets/imgs/database_.png" style="width: 14px;"> &nbsp;Data</div>
+								<div class="tab" onclick="controller.switchTab('chart',this)"><img src="@appPath/app/assets/imgs/pie-chart.png" style="width: 15px;"> &nbsp;Chart Builder</div>
+								<div class="tab" onclick="controller.switchTab('pivot',this)"><img src="@appPath/app/assets/imgs/pivot.png" style="width: 19px;"> &nbsp;Pivot</div>
+								<div class="tab" onclick="controller.switchTab('dashboard',this)"><img src="@appPath/app/assets/imgs/dashboard.png" style="width: 21px;"> &nbsp;Dashboard</div>
 								<span (showIf)="self.showDashboardActions">
 									<span style="display: flex; display: flex; position: absolute; right: 32px; gap: 7px; width: 380px; margin-top: -14px; justify-content: flex-end;">									
 										<button class="btn btn-accent" style="justify-content: center; width: 250px; display: none;" id="btnPublish"  onclick="controller.openPublishModal()">
