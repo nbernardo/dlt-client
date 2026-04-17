@@ -38,7 +38,8 @@ export class PivotCreateComponent extends ViewComponent {
 		this.controller.on('load', async () => {
 			this.controller.obj = this;
 			await sleepForSec(500);
-			this.dashWorker =  new Worker('/app/components/dataviz/bi/pivot/worker.js');
+            const appPath = await BIService.getAppPath();
+			this.dashWorker = new Worker(`${appPath}/app/components/dataviz/bi/pivot/worker.js`);
 			this.container = document.getElementsByClassName('bi-pivot-ui-container')[0];
 			this.getData();
             this.setData();

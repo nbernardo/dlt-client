@@ -250,7 +250,7 @@ export class PivotTableController extends BaseController {
     }
 
     toggle(p) { 
-        this.obj.expandedPaths.has(p) ? this.obj.expandedPaths.delete(p) : this.obj.expandedPaths.add(p); this.renderAll(); this.renderDashboard(); 
+        this.obj.expandedPaths.has(p) ? this.obj.expandedPaths.delete(p) : this.obj.expandedPaths.add(p); this.renderAll(); //this.renderDashboard(); 
     }
 
     renderDashboard(container, pivotTile, isFetchFromDB, customGlobalFilters) {

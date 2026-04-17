@@ -3,6 +3,7 @@ import { UUIDUtil } from "../../../../../@still/util/UUIDUtil.js";
 import { StillAppSetup } from "../../../../../config/app-setup.js";
 import { BIChatController } from "../../../../controller/BIChatController.js";
 import { BIController } from "../../../../controller/BIController.js";
+import { BIService } from "../../../../services/BIService.js";
 import { ModalWindowComponent } from "../../../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../../../popup-window/PopupUtil.js";
 import { mockDataTables, mockDepartments, mockTitles } from "../mock.js";
@@ -112,14 +113,13 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	}
 
 	async stOnRender(){
-		let cssPathPrefix = '';
 		if(this.runningOnOdoo){
 			setTimeout(async () => {
 				await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/chart.js', type: 'js' });
 			});
-			cssPathPrefix = `${location.origin}/odoo-e2e-bi/static/src/dashboard-app`;
 		}
-		await Assets.import({ path: `${cssPathPrefix}/app/assets/css/bi-user-intercace-component.css` });		
+		const appPath = await BIService.getAppPath();
+		await Assets.import({ path: `${appPath}/app/assets/css/bi-user-intercace-component.css` });		
 	}
 
   	async stAfterInit(){		

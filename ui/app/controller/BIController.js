@@ -408,18 +408,16 @@ export class BIController extends BaseController {
         if (state.chartInstance) state.chartInstance.destroy();
         const ctx = this.obj.popup.querySelector('#chartCanvas').getContext('2d');
         
+        const backgroundColor = values.map((_, i) => `hsla(${(i * 137.5) % 360}, 70%, 55%, 0.8)`);
+        const borderColor = values.map((_, i) => `hsl(${(i * 137.5) % 360}, 70%, 45%, 1)`);
+
         state.chartInstance = new Chart(ctx, {
             type: ctDef.cjsType,
             data: {
                 labels,
                 datasets: [{
-                    label: yCol,
-                    data: values,
-                    backgroundColor: values.map((_, i) => `hsla(${(i * 137.5) % 360}, 70%, 55%, 0.8)`),
-                    borderColor: values.map((_, i) => `hsl(${(i * 137.5) % 360}, 70%, 45%, 1)`),
-                    //backgroundColor: state.chartColor + 'cc',
-                    borderColor: state.chartColor,
-                    borderWidth: 1
+                    label: yCol, data: values, backgroundColor, borderColor,
+                    borderColor: state.chartColor, borderWidth: 1
                 }]
             },
             options: {
@@ -434,6 +432,7 @@ export class BIController extends BaseController {
         if(chart) chart.config.values = values;
 
         state.pendingChart = { 
+            backgroundColor, borderColor,
             id: String(Math.random()).slice(2) + Date.now() + String(Math.random()).slice(2) + 'n', 
             title, 
             type: state.chartType, 
@@ -514,11 +513,14 @@ export class BIController extends BaseController {
 
     saveDashboardTile(chartData){
         const { state } = this.obj; 
-        if(chartData.saved !== true){
+        const isChartInDashboard = BIService.dashboardChartsMap.has(`${state.activeDash}-${chartData.id}`);
+
+        if(!isChartInDashboard){
+            if(chartData)
             if (!state.dashboards[state.activeDash]) state.dashboards[state.activeDash] = [];
             if(chartData.selection) chartData.selection.datasource = this.obj.state.pipeline;
             state.dashboards[state.activeDash].push({...chartData, instanceId: Date.now()});
-            chartData.saved = true;
+            BIService.dashboardChartsMap.add(`${state.activeDash}-${chartData.id}`);
         }
     }
 
@@ -571,7 +573,7 @@ export class BIController extends BaseController {
                 type: c.config.cjsType,
                 data: {
                     labels: c.config.labels,
-                    datasets: [{ data: c.config.values, backgroundColor: c.config.color + 'cc', borderColor: c.config.color, borderWidth: 1 }]
+                    datasets: [{ data: c.config.values, backgroundColor: c.backgroundColor, borderColor: c.borderColor, borderWidth: 1 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
@@ -660,6 +662,8 @@ export class BIController extends BaseController {
         document.getElementById(wrapperId).remove();
         BIController.dashboardAddedCharts.delete(index);
         this.obj.state.chartsByDashboard[this.obj.state.activeDash].delete(index);
+
+        BIService.dashboardChartsMap.delete(`${this.obj.state.activeDash}-${index}`);
 	}
 
     openPublishModal() { this.obj.popup.querySelector('#publishModal').classList.add('open'); }

@@ -28,7 +28,7 @@ export class FilterUtil {
     }
 
     toggleFilterDrawer(hideIt = true) {
-        if(hideIt) this.$('.global-filter-drawer-wrap').style.zIndex = 1;
+        if(hideIt) this.$('.global-filter-drawer-wrap').style.zIndex = 1000;
 
         const drawer = this.$('#global-filter-drawer');
         if(hideIt) drawer.classList.toggle('open');

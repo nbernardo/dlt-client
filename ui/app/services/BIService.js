@@ -10,6 +10,7 @@ export class BIService extends BaseService {
     static dashboardData = {};
     static dashboardDataPointer = {};
     static pivotBaseFields = [];
+    static dashboardChartsMap = new Set();
 
     static setDashboardDataPointer(data){
         const pointerId = Date.now() + Math.random().toString().slice(2);
@@ -104,6 +105,13 @@ export class BIService extends BaseService {
         if (response.ok && !response.error)
             return await response.json();
         return null;
+    }
+
+    static async getAppPath(){
+        let cssPathPrefix = '';
+        if(StillAppSetup.config.get('runningOnOdoo'))
+            cssPathPrefix = `${location.origin}/odoo-e2e-bi/static/src/dashboard-app`;
+        return cssPathPrefix;
     }
 
 }
