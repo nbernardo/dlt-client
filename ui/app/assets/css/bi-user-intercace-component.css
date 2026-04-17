@@ -19,6 +19,8 @@
     --shadow-lg: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
     --spinner-top: #2563eb;
     --success-save-button: #00a86b;
+    --identity-color: #2c3e50;
+    --identity-color-1: #2c3e50c3;
 
     background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px;
   }
@@ -48,8 +50,8 @@
   .bi-user-interface-component-body .pipeline-selector { display: flex; align-items: center; gap: 8px; padding: 8px 12px !important; margin-top: -8px; background: #8080805c !important; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font-size: 12px; color: var(--text); min-width: 200px; font-family: var(--sans); }
   .bi-user-interface-component-body .topbar-actions { display: flex; gap: 8px; border-left: 1px solid lightgrey; }
   .bi-user-interface-component-body .btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius); font-size: 12px; font-family: var(--sans); font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s ease; }
-  .bi-user-interface-component-body .btn-ghost { background: transparent; border-color: var(--border); color: var(--text); }
-  .bi-user-interface-component-body .btn-ghost:hover { background: var(--surface2); }
+  .bi-user-interface-component-body .btn-ghost { background: var(--identity-color); border-color: var(--identity-color); color: var(--surface); }
+  .bi-user-interface-component-body .btn-ghost:hover { background: var(--identity-color-1); }
   .bi-user-interface-component-body .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
   .bi-user-interface-component-body .btn-primary:hover { opacity: 0.88; }
   .bi-user-interface-component-body .btn-accent { background: var(--accent2); color: #fff; border-color: var(--accent2); }
@@ -68,9 +70,12 @@
   .bi-user-interface-component-body .chart-thumb:hover { background: var(--surface2); }
   .bi-user-interface-component-body .chart-type-badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); margin-left: auto; }
   .bi-user-interface-component-body .main { display: flex; flex-direction: column; overflow: hidden; }
-  .bi-user-interface-component-body .tabs { display: flex; align-items: center; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .bi-user-interface-component-body .tabs { display: flex; align-items: center; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border);  }
+  .bi-user-interface-component-body .tabs div { display: flex; align-items: center; }
   .bi-user-interface-component-body .tab { padding: 14px 18px; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
-  .bi-user-interface-component-body .tab:hover { color: var(--text); }
+  .bi-user-interface-component-body .tab img { opacity: 0.2; }
+  .bi-user-interface-component-body .tab.active img { opacity: 1; }
+  .bi-user-interface-component-body .tab:hover { color: var(--text); img { opacity: 1; } }
   .bi-user-interface-component-body .tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
   .bi-user-interface-component-body .content { flex: 1; overflow: auto; display: none; }
   .bi-user-interface-component-body .content.active { display: block; }
@@ -149,6 +154,7 @@
   .bi-user-interface-component-body .empty-icon { font-size: 32px; opacity: 0.4; }
   .bi-user-interface-component-body .toast { position: fixed; bottom: 24px; right: 24px; background: var(--accent); color: #fff; padding: 10px 18px; border-radius: var(--radius); font-size: 12px; font-weight: 500; opacity: 0; transform: translateY(8px); transition: all 0.25s ease; pointer-events: none; z-index: 1000; box-shadow: var(--shadow-lg); }
   .bi-user-interface-component-body .toast.show { opacity: 1; transform: translateY(0); }
+  .bi-user-interface-component-body .toast.error { opacity: 1; transform: translateY(0); background-color: var(--danger); }
   .bi-user-interface-component-body .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); backdrop-filter: blur(4px); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; }
   .bi-user-interface-component-body .modal-overlay.open { opacity: 1; pointer-events: all; }
   .bi-user-interface-component-body .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 400px; padding: 24px; box-shadow: var(--shadow-lg); transform: translateY(12px); transition: transform 0.2s; }
@@ -286,9 +292,8 @@
     position: absolute;
     top: 40;
     left: 0;
-    margin: 0; /* Forces it to ignore parent flex-centering */
+    margin: 0;
     width: 280px;
-    height: 94.7%;
     background: #fff;
     border-right: 1px solid var(--border);
     z-index: 2000;

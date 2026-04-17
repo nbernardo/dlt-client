@@ -32,10 +32,10 @@ export const BiUiUtil = {
         if(v===null||v===undefined)return'<em>null</em>';return String(v);
     },
 
-    showToast: (toast, msg) => {
+    showToast: (toast, msg, { durationInSec, warn} = { durationInSec: 3, warn: false } ) => {
         toast.textContent = msg;
-        toast.classList.add("show");
-        setTimeout(() => toast.classList.remove("show"), 3000);
+        toast.classList.add(warn ? 'error' : 'show');
+        setTimeout(() => toast.classList.remove(warn ? 'error' : 'show'), durationInSec * 1000);
     }
 
 }

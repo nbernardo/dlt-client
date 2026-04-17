@@ -9,6 +9,7 @@
 	.this-is-the-bi-view { .topbar { height: 67px; } .sidebar { height: 90.8vh; margin-top: 14px; } }
 	.minimize-analytics-log { right: 20px; margin-top: -49px; }
 	.this-is-the-bi-view .gragable-field-list { height: 280px; }
+	#global-filter-drawer { height: 100%; }
 
 	/** Dot Mini Loader */
 	.mini-loader-container { width: 13px; height: 13px; display: flex; align-items: center; justify-content: center; gap: 2px; }
@@ -24,6 +25,7 @@
 <style>
 	.minimize-analytics-log { right: 13px; margin-top: 2px; }
 	.this-is-the-bi-view {  .popup-mov-window{ width: 115%; } .chart-builder { height: 64vh; }  .tableContainer { height: 59vh; } }
+	#global-filter-drawer { height: 94.7%; }
 </style>
 @endif
 <div class="window-popup-mov-window this-is-the-bi-view" (showIf)="self.showWindowPopup">
@@ -66,7 +68,7 @@
 
 					<button class="drawer-toggle" onclick="controller.toggleFilterDrawer()">⚙️</button>
     
-					<div class="global-filter-drawer-wrap" style="overflow: hidden; position: absolute; height: 94.7%; width: 280px; z-index: -1;">
+					<div class="global-filter-drawer-wrap" style="overflow: hidden; position: absolute; height: 100%; width: 280px; z-index: -1;">
 						<div id="global-filter-drawer">
 							<div class="drawer-header" style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
 								<h3 style="margin:0;">Global Filters</h3>
@@ -159,10 +161,10 @@
 
 						<main class="main">
 							<nav class="tabs">
-								<div class="tab active" onclick="controller.switchTab('sheet',this)">Spreadsheet</div>
-								<div class="tab" onclick="controller.switchTab('chart',this)">Chart Builder</div>
-								<div class="tab" onclick="controller.switchTab('pivot',this)">Pivot</div>
-								<div class="tab" onclick="controller.switchTab('dashboard',this)">Dashboard</div>
+								<div class="tab active" onclick="controller.switchTab('sheet',this)"><i class="fa fa-database"></i> &nbsp;Data</div>
+								<div class="tab" onclick="controller.switchTab('chart',this)"><img src="/app/assets/imgs/pie-chart.png" style="float: left; width: 15px;"> &nbsp;Chart Builder</div>
+								<div class="tab" onclick="controller.switchTab('pivot',this)"><img src="/app/assets/imgs/pivot.png" style="float: left; width: 19px;"> &nbsp;Pivot</div>
+								<div class="tab" onclick="controller.switchTab('dashboard',this)"><img src="/app/assets/imgs/dashboard.png" style="float: left; width: 21px;"> &nbsp;Dashboard</div>
 								<span (showIf)="self.showDashboardActions">
 									<span style="display: flex; display: flex; position: absolute; right: 32px; gap: 7px; width: 380px; margin-top: -14px; justify-content: flex-end;">									
 										<button class="btn btn-accent" style="justify-content: center; width: 250px; display: none;" id="btnPublish"  onclick="controller.openPublishModal()">

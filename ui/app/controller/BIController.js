@@ -326,7 +326,7 @@ export class BIController extends BaseController {
 
 	}
 
-    showToast = (msg) => BiUiUtil.showToast(this.obj.popup.querySelector('#toast'), msg);
+    showToast = (msg, durationInSec = 3, warn = false) => BiUiUtil.showToast(this.obj.popup.querySelector('#toast'), msg, { durationInSec, warn });
 
     renderChartTypeGrid() {
         const { state, CHART_TYPES, parseEvents } = this.obj;
@@ -485,7 +485,8 @@ export class BIController extends BaseController {
             this.wasUiPreviousInited = true;
             const grid = this.obj.popup.querySelector('.dashGrid');
             
-            grid.addEventListener('dragover', e => { 
+            grid.addEventListener('dragover', e => {
+                if(this.obj.state.activeDash === null) return;
                 e.preventDefault();  grid.classList.add('drag-over'); 
                 this.isDraggingDashboardObject = true;
             });
@@ -493,6 +494,9 @@ export class BIController extends BaseController {
             grid.addEventListener('dragleave', () => grid.classList.remove('drag-over'));
             
             grid.addEventListener('drop', e => {
+                if(this.obj.state.activeDash === null){
+                    return this.showToast('Chart was not added as no dashoboard is active', 5, true);
+                }
                 e.preventDefault();
                 
                 grid.classList.remove('drag-over');
@@ -709,9 +713,7 @@ export class BIController extends BaseController {
     async loadSavedChart(id) {
 
         const { state } = this.obj;
-        
-        console.log('THE SAVED CHARTS ARE: ', state.savedCharts);
-        
+                
         const c = state.savedCharts['chart-'+id+'n'];
         if (!c) return;
 

@@ -201,7 +201,7 @@ class State {
 	frozenCols = new Set(); 
 	activeInsertIndex = -1;
 	dashboards = {'Main Dashboard': [] }; 
-	activeDash = 'Main Dashboard'; 
+	activeDash = null; 
 	pendingChart = null;
 	/** @type {Array<Set>} */ 
 	chartsByDashboard = {}
