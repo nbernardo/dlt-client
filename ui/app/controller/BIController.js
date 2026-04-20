@@ -412,8 +412,8 @@ export class BIController extends BaseController {
         if (state.chartInstance) state.chartInstance.destroy();
         const ctx = this.obj.popup.querySelector('#chartCanvas').getContext('2d');
         
-        const backgroundColor = values.map((_, i) => `hsla(${(i * 137.5) % 360}, 70%, 55%, 0.8)`);
-        const borderColor = values.map((_, i) => `hsl(${(i * 137.5) % 360}, 70%, 45%, 1)`);
+        const backgroundColor = state.chartType != 'pie' ? state.chartColor : values.map((_, i) => `hsla(${(i * 137.5) % 360}, 70%, 55%, 0.8)`);
+        const borderColor = state.chartType != 'pie' ? state.chartColor : values.map((_, i) => `hsl(${(i * 137.5) % 360}, 70%, 45%, 1)`);
 
         state.chartInstance = new Chart(ctx, {
             type: ctDef.cjsType,
@@ -428,7 +428,8 @@ export class BIController extends BaseController {
                 responsive: true,
                 maintainAspectRatio: false,
                 indexAxis: state.chartType === 'horizontalBar' ? 'y' : 'x',
-                plugins: { legend: { display: ['pie', 'doughnut'].includes(state.chartType) } }
+                legend: { display: ['pie', 'doughnut'].includes(state.chartType) },
+                datalabels: { anchor: 'end', align: 'end', offset: 10, clip: false }
             }
         });
 
@@ -540,7 +541,10 @@ export class BIController extends BaseController {
         container.insertAdjacentHTML('beforeend', loader);
     }
 
-    removeLoadingFromContainer = (container) => container.lastElementChild.remove()
+    removeLoadingFromContainer = (container) => {
+        if(container.lastElementChild.classList.contains('loading-the-data-processing'))
+            container.lastElementChild.remove();
+    } 
 
     static dashboardAddedCharts = new Set();
     async loadDashboard(name, isPivot, event, isDashboardChange = false) {
@@ -556,7 +560,7 @@ export class BIController extends BaseController {
         grid.classList.remove('empty-dashboard');
         grid.querySelectorAll('.dash-empty').forEach(el => el.remove());
 
-        const { charts, dataSources, importedDash } = this.extractDashboardDetailes(name);
+        const { charts, dataSources, importedDash } = this.extractDashboardDetailes(name, isDashboardChange);
 
         if ((charts || []).length === 0) {
             grid.classList.add('empty-dashboard');
@@ -589,9 +593,15 @@ export class BIController extends BaseController {
                 type: c.config.cjsType,
                 data: {
                     labels: c.config.labels,
-                    datasets: [{ data: c.config.values, backgroundColor: c.backgroundColor, borderColor: c.borderColor, borderWidth: 1 }]
+                    datasets: [{
+                        data: c.config.values, backgroundColor: c.backgroundColor, borderColor: c.borderColor, borderWidth: 1, label: c.config.yLabel 
+                    }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    datalabels: { anchor: 'end', align: 'end', offset: 10, clip: false }
+                }
             });
             this.obj.state.chartsByDashboard[name].add(c.id);
         });
@@ -635,12 +645,14 @@ export class BIController extends BaseController {
     }
 
 
-    extractDashboardDetailes(name){
+    extractDashboardDetailes(name, isDashboardChange){
 
         const dashboard = this.obj.state.dashboards[name];
+        let isFirstElementChart = Object.prototype.toString.call(dashboard[0]) === '[object Object]';
         const isImport = true; //TODO: Offload implementation - Initialize with false, and keep as is if data was previously loaded. But data will be offloaded to indexDB
-        let [importedDash, dataSources, charts] = [isImport, {}, dashboard];
-        if((dashboard || []).length){
+        let [importedDash, dataSources, charts] = [(isImport && !isFirstElementChart), {}, dashboard];
+
+        if((dashboard || []).length && isDashboardChange && !isFirstElementChart){
             //if(dashboard[0] == 'imported'){
                 [importedDash, dataSources, charts] = [true, dashboard[1], dashboard.slice(2)];
                 //this.obj.state.dashboards[name] = dashboard.slice(2);
@@ -879,7 +891,7 @@ export class BIController extends BaseController {
 
     dataProcessLoading(message){
         return `
-            <div class="lab-loader">
+            <div class="lab-loader loading-the-data-processing">
                 <div class="analytics-dataload-spinner"></div>
                 <div style="margin-left:10px; font-weight:bold; color:var(--spinner-top);">${message || 'Recalculating rows'}...</div>
             </div>
