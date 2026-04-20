@@ -25,10 +25,18 @@ export class PivotTableController extends BaseController {
 
     clearDrag(e) { e.currentTarget.classList.remove('drag-over'); }
 
-    renderAll(customGlobalFilters = {}) {
-        const container = this.obj.$parent.popup.querySelector('#table-canvas');        
-        const showAllRows = this.obj.container.querySelector('#show-all-rows-check')?.checked;
-		const { selection, filters, parseEvents } = this.obj;
+    renderAll(customGlobalFilters = {}, target = null) {
+        let specificContainer = null, dashboardTile = null;
+        if(target){
+            dashboardTile = target.closest('.dash-tile') || {};
+            if(String(dashboardTile.id).startsWith('pivotWrap_'))
+                specificContainer = dashboardTile.querySelector('table');
+        }
+
+        const isPitovINDashboard = (specificContainer !== null && dashboardTile !== null);
+        const container = specificContainer || this.obj.$parent.popup.querySelector('#table-canvas');        
+        const showAllRows = specificContainer ? false : this.obj.container.querySelector('#show-all-rows-check')?.checked;
+		const { selection, filters, parseEvents } = this.getPivotDataSource(isPitovINDashboard, dashboardTile);
 
         ['rows', 'cols', 'vals'].forEach(id => {
             const z = this.obj.container.querySelector('#'+id);
@@ -47,19 +55,29 @@ export class PivotTableController extends BaseController {
         });
 
         if (!selection.rows.length || !selection.vals.length) { 
-            return container.innerHTML = '<div class="empty-msg">Drag fields here to start.</div>'; 
+            return container.innerHTML = '<div class="empty-msg">Drag fields to start.</div>'; 
         }
 
         container.innerHTML = `${this.obj.$parent.controller.dataProcessLoading()}${container.innerHTML}`;
 
         requestAnimationFrame(() => {
             setTimeout(() => {
-                const { root, cols } = this.buildTree(selection, filters, showAllRows, customGlobalFilters);
-                const heatmapCheck = this.obj.container.querySelector('#heatmap-check').checked;
+                const { root, cols } = this.buildTree(selection, filters, showAllRows, customGlobalFilters, isPitovINDashboard);
+                const heatmapCheck = isPitovINDashboard ? false : this.obj.container.querySelector('#heatmap-check').checked;
                 const htmlString = this.getTableHTML(root, cols, selection, heatmapCheck);
                 this.updateTableDOM(container, htmlString); 
             }, 10);
         });
+    }
+
+    getPivotDataSource(isPitovINDashboard, dashboardTile){
+        const { parseEvents } = this.obj;
+        if(isPitovINDashboard){
+            const { selection, filters }  = this.obj.$parent.state.savedCharts[dashboardTile.id.replace('pivotWrap_','pivot-')];
+            return { parseEvents, selection, filters };
+        }
+        const { selection, filters } = this.obj;
+        return { selection, filters, parseEvents };
     }
 
     removeField(z, f) { this.obj.selection[z] = this.obj.selection[z].filter(x => (z==='vals'?x.field!==f:x!==f)); this.renderAll(); }
@@ -108,7 +126,7 @@ export class PivotTableController extends BaseController {
         container.appendChild(fragment);
     }
 
-    buildTree(sel, fltrs, showAllRows = false, customGlobalFilters = {}) {
+    buildTree(sel, fltrs, showAllRows = false, customGlobalFilters = {}, isDashoboardPivot = null) {
         const root = { children: {}, values: {}, label: 'Grand Total', depth: -1 };
         const allCols = new Set();
         
@@ -127,7 +145,9 @@ export class PivotTableController extends BaseController {
                 }
             }
 
-            if ([...sel.rows, ...sel.cols].some(f => !fltrs[f]?.includes(item[f]))) return;
+            if(!isDashoboardPivot){
+                if ([...sel.rows, ...sel.cols].some(f => !fltrs[f]?.includes(item[f]))) return;
+            }
             
             if (this.searchQuery) {
                 const matchFound = sel.rows.some(f => String(item[f]).toLowerCase().includes(this.searchQuery));
@@ -175,7 +195,6 @@ export class PivotTableController extends BaseController {
     getTableHTML(root, cols, sel, heatmapOn) {
         const buffer = [];
         const stats = {};
-        console.log(`THIS IS THE SELS: `, sel);
         
         if (heatmapOn) {
             const scan = (n) => {
@@ -202,7 +221,7 @@ export class PivotTableController extends BaseController {
             tr += `<td class="row-label-cell" style="padding-left: ${isGrand ? 12 : (node.depth * 25) + 12}px">`;
             
             if (!isGrand && Object.keys(node.children).length > 0) {
-                tr += this.obj.parseEvents(`<span class="toggle-btn" onclick="controller.toggle('${label}')">${this.obj.expandedPaths.has(label) ? '−' : '+'}</span>`);
+                tr += this.obj.parseEvents(`<span class="toggle-btn-on-pivot-table" onclick="controller.toggle('${label}', this)">${this.obj.expandedPaths.has(label) ? '−' : '+'}</span>`);
             }
             
             let cleanLabel = label.split('|').pop();
@@ -249,8 +268,8 @@ export class PivotTableController extends BaseController {
         return 0;
     }
 
-    toggle(p) { 
-        this.obj.expandedPaths.has(p) ? this.obj.expandedPaths.delete(p) : this.obj.expandedPaths.add(p); this.renderAll(); //this.renderDashboard(); 
+    toggle(p, target = null) { 
+        this.obj.expandedPaths.has(p) ? this.obj.expandedPaths.delete(p) : this.obj.expandedPaths.add(p); this.renderAll({}, target); //this.renderDashboard(); 
     }
 
     renderDashboard(container, pivotTile, isFetchFromDB, customGlobalFilters) {
@@ -271,7 +290,7 @@ export class PivotTableController extends BaseController {
 
     renderPivotOnDashboard(cfg, i, isFetchFromDB, customGlobalFilters) {
         const tile = document.createElement('div'); 
-        tile.className = 'dash-tile', tile.id = `pivotWrap_${Date.now()}`;
+        tile.className = 'dash-tile', tile.id = `pivotWrap_${cfg.id}`;
         tile.innerHTML = this.obj.parseEvents(`
             <div id="loader-${i}" class="loading-overlay">
                 <div class="analytics-dataload-spinner"></div>

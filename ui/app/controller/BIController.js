@@ -15,6 +15,9 @@ export class BIController extends BaseController {
 
     wasUiPreviousInited = false;
 
+    /** @type { HTMLDivElement } */
+    dashboardContainer;
+
     constructor(){
         super();
         BIController.instance = this;
@@ -166,6 +169,7 @@ export class BIController extends BaseController {
         const container = this.obj.popup.querySelector('.tableContainer');
         const line = this.obj.popup.querySelector('#colInsertLine');
         const { state } = this.obj;
+        this.dashboardContainer = this.obj.popup.querySelector('.tab-dashboard');
 
         container.addEventListener("mousemove", (e) => {
 
@@ -531,9 +535,17 @@ export class BIController extends BaseController {
     /** @returns { HTMLElement } */
     static getDashboardGrid = () => BIController.get().obj.popup.querySelector('.dashGrid');
 
+    addLoadingOnContainer = (container, message) => {
+        const loader = this.dataProcessLoading(message);
+        container.insertAdjacentHTML('beforeend', loader);
+    }
+
+    removeLoadingFromContainer = (container) => container.lastElementChild.remove()
 
     static dashboardAddedCharts = new Set();
     async loadDashboard(name, isPivot, event, isDashboardChange = false) {
+
+        if(isDashboardChange) this.addLoadingOnContainer(this.dashboardContainer, 'Loading dashboard')
 
         if(this.obj.state.activeDash == name && !this.isDraggingDashboardObject) return;
         if(!this.obj.state.chartsByDashboard[name]) this.obj.state.chartsByDashboard[name] = new Set();
@@ -583,7 +595,8 @@ export class BIController extends BaseController {
             });
             this.obj.state.chartsByDashboard[name].add(c.id);
         });
-        this.isDraggingDashboardObject = false;       
+        this.isDraggingDashboardObject = false;
+        this.removeLoadingFromContainer(this.dashboardContainer);
     }
 
     addPivotToDashboard(event, grid, name, chart, isFetchFromDB){
@@ -625,14 +638,14 @@ export class BIController extends BaseController {
     extractDashboardDetailes(name){
 
         const dashboard = this.obj.state.dashboards[name];
-        
-        let [importedDash, dataSources, charts] = [false, {}, dashboard];
+        const isImport = true; //TODO: Offload implementation - Initialize with false, and keep as is if data was previously loaded. But data will be offloaded to indexDB
+        let [importedDash, dataSources, charts] = [isImport, {}, dashboard];
         if((dashboard || []).length){
-            if(dashboard[0] == 'imported'){
+            //if(dashboard[0] == 'imported'){
                 [importedDash, dataSources, charts] = [true, dashboard[1], dashboard.slice(2)];
-                this.obj.state.dashboards[name] = dashboard.slice(2);
+                //this.obj.state.dashboards[name] = dashboard.slice(2);
                 return { importedDash, dataSources, charts }
-            }
+            //}
         }
         return { importedDash, dataSources, charts };
     }
@@ -707,7 +720,7 @@ export class BIController extends BaseController {
         BIController.currentTableList = Object.entries(tablesByContext).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));
         this.obj.state.activeTable = BIController.currentTableList[0].name;
         this.renderTableList();
-        this.viewingTables.clear();
+        //this.viewingTables.clear(); //TODO: Offload implementation
 	}
 
     async loadSavedChart(id) {
@@ -729,8 +742,8 @@ export class BIController extends BaseController {
             const fields = this.genDuckDBFieldNames(viewingTables);
             await this.runAnaluticsAndRenderSheet(fields, dataSource);
             await sleepForSec(1000);
-            delete c.imported;
-            loader.hideLoading();
+            //delete c.imported; //TODO: Offload implementation
+            loader.hideLoading();            
         }
 
         this.obj.popup.querySelector('#xAxisSelect').value = xCol;

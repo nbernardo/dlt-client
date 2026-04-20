@@ -21,6 +21,7 @@
     --success-save-button: #00a86b;
     --identity-color: #2c3e50;
     --identity-color-1: #2c3e50c3;
+    --primary: #2563eb; 
 
     background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px;
   }
@@ -73,7 +74,7 @@
   .bi-user-interface-component-body .tabs { display: flex; align-items: center; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border);  }
   .bi-user-interface-component-body .tabs div { display: flex; align-items: center; }
   .bi-user-interface-component-body .tab { padding: 14px 18px; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
-  .bi-user-interface-component-body .tab img { opacity: 0.2; }
+  .bi-user-interface-component-body .tab img { opacity: 0.2; float: left; }
   .bi-user-interface-component-body .tab.active img { opacity: 1; }
   .bi-user-interface-component-body .tab:hover { color: var(--text); img { opacity: 1; } }
   .bi-user-interface-component-body .tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
@@ -388,3 +389,6 @@
 }
 
 .table-fields span:first-child{ padding: 0px 4px; border-radius: 6px; background: black; color: white; }
+
+.toggle-btn-on-pivot-table { cursor: pointer; margin-right: 8px; font-weight: bold; color: var(--primary); border: 1px solid var(--primary); padding: 0 4px; border-radius: 3px; background: #fff; display: inline-block; min-width: 14px; text-align: center; }
+.dash-tile.toggle-btn-on-pivot-table { color: var(--primary); border: 1px solid var(--primary); }

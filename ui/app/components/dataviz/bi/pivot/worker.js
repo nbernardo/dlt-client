@@ -1,5 +1,4 @@
 self.onmessage = function(e) {
-
     const { 
         dataset = [], 
         cfg = {}, 
@@ -28,19 +27,19 @@ self.onmessage = function(e) {
         });
     } else {
         for (let f in filters) {
-            if (Array.isArray(filters[f])) {
-                filterSets[f] = new Set(filters[f]);
-            } else {
-                filterSets[f] = new Set();
+            // Only create a filter set if there are active selections in the UI
+            if (Array.isArray(filters[f]) && filters[f].length > 0) {
+                filterSets[f] = new Set(filters[f].map(v => String(v)));
             }
         }
     }
 
-    const globalFilterKeys = globalFilters ? Object.keys(globalFilters) : [];
+    const globalFilterKeys = globalFilters ? Object.keys(globalFilters).filter(k => globalFilters[k] && globalFilters[k].length > 0) : [];
     const hasGlobalFilters = globalFilterKeys.length > 0;
 
-    const dataKeys = Object.keys(dataset[0] || {});
-    let updateFnBody = "let v, k; const vals = node.values;";
+    const dataKeys = dataset.length > 0 ? Object.keys(dataset[0]) : [];
+    let updateFnBody = "let v; const vals = node.values;";
+    
     sel.vals.forEach(valObj => {
         const field = valObj.field;
         const calc = calculatedFields.find(cf => cf.name === field);
@@ -51,7 +50,7 @@ self.onmessage = function(e) {
             dataKeys.forEach(dk => f = f.replace(new RegExp(`\\b${dk}\\b`, 'g'), `(Number(item["${dk}"]) || 0)`));
             updateFnBody += `try { v = Number(${f}) || 0; } catch { v = 0; }`;
         } else {
-            updateFnBody += `v = Number(item["${field}"]) || 0;`;
+            updateFnBody += `v = (item["${field}"] === null || item["${field}"] === undefined) ? 0 : Number(item["${field}"]) || 0;`;
         }
         updateFnBody += `entry_${field}.sum += v; entry_${field}.count += 1; if(v > entry_${field}.max) entry_${field}.max = v;`;
     });
@@ -62,7 +61,6 @@ self.onmessage = function(e) {
 
     for (let i = 0; i < len; i++) {
         const item = dataset[i];
-
         if (i > 0 && i % reportChunk === 0) 
             self.postMessage({ type: 'PROGRESS', progress: Math.round((i / len) * 100), tileIndex });
 
@@ -70,15 +68,10 @@ self.onmessage = function(e) {
             let failGlobal = false;
             for (let k = 0; k < globalFilterKeys.length; k++) {
                 const f = globalFilterKeys[k];
-                const allowedValues = globalFilters[f];
-                
-                // ONLY filter if the array exists AND has at least one value selected
-                // If it's empty, we treat it as "no filter applied" (show everything)
-                if (allowedValues && allowedValues.length > 0) {
-                    if (!allowedValues.includes(item[f])) {
-                        failGlobal = true;
-                        break;
-                    }
+                const val = (item[f] === null || item[f] === undefined) ? item[f] : String(item[f]);
+                if (!globalFilters[f].includes(val)) {
+                    failGlobal = true;
+                    break;
                 }
             }
             if (failGlobal) continue;
@@ -87,20 +80,24 @@ self.onmessage = function(e) {
         if (!isFetchFromDB) {
             let skip = false;
             for (let f in filterSets) {
-                if (!filterSets[f].has(item[f])) { skip = true; break; }
+                if(!(f in item)) continue;
+                const val = (item[f] === null || item[f] === undefined) ? item[f] : String(item[f]);
+                // If the value is not in the allowed set, skip the row
+                if (!filterSets[f].has(val)) { skip = true; break; }
             }
             if (skip) continue;
         } else {
-
             for (let f in filterSets) {
-                if (item[f] != null) filterSets[f].add(item[f]);
+                if(!(f in item)) continue;
+                const val = (item[f] === null || item[f] === undefined) ? item[f] : String(item[f]);
+                filterSets[f].add(val);
             }
         }
         
         if (searchQ) {
             let found = false;
             for (let r = 0; r < sel.rows.length; r++) {
-                if (String(item[sel.rows[r]]).toLowerCase().includes(searchQ)) { 
+                if (String(item[sel.rows[r]] || "").toLowerCase().includes(searchQ)) { 
                     found = true; 
                     break; 
                 }
@@ -108,18 +105,27 @@ self.onmessage = function(e) {
             if (!found) continue;
         }
 
-        const cKey = sel.cols.length > 0 ? sel.cols.map(f => item[f]).join(' | ') : "Value";
+        const cKey = sel.cols.length > 0 ? sel.cols.map(f => {
+            const v = item[f];
+            return (v === null || v === undefined) ? "N/A" : v;
+        }).join(' | ') : "Value";
+        
         allCols.add(cKey);
 
-        runUpdate(item, root, cKey); runUpdate(item, root, 'TOTAL');
+        runUpdate(item, root, cKey); 
+        runUpdate(item, root, 'TOTAL');
         
         let curr = root;
         for (let j = 0; j < effectiveRows.length; j++) {
-            const rowVal = item[effectiveRows[j]];
+            const rawVal = item[effectiveRows[j]];
+            const rowVal = (rawVal === null || rawVal === undefined) ? "N/A" : rawVal;
+
             if (!curr.children[rowVal]) 
                 curr.children[rowVal] = { children: {}, values: {}, depth: j };
+            
             curr = curr.children[rowVal]; 
-            runUpdate(item, curr, cKey); runUpdate(item, curr, 'TOTAL');
+            runUpdate(item, curr, cKey); 
+            runUpdate(item, curr, 'TOTAL');
         }
     }
 
