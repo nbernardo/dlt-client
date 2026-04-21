@@ -180,15 +180,17 @@
 							<div class="content active tab-sheet">
 								<div class="sheet-toolbar">
 									<div class="search-wrap"><input class="search-input" id="searchInput" placeholder="Search..." oninput="controller.filterRows(this.value)"></div>
-									<select class="field-select" style="width:auto" id="colFilter" onchange="controller.filterRows(document.getElementById('searchInput').value)"><option value="">All columns</option></select>
-									<button class="btn btn-ghost" onclick="controller.addColumn()" style="width: 94px;">+ Add Col</button>
-									<div class="topbar-actions" style="width: 301px;padding-left: 8px;">
+									<select class="field-select" style="width:auto; width: 180px;" id="colFilter" onchange="controller.filterRows(document.getElementById('searchInput').value)"><option value="">All columns</option></select>
+									<!-- <button class="btn btn-ghost" onclick="controller.addColumn()" style="width: 94px;">+ Add Col</button> -->
+									<div class="topbar-actions" style="width: 140px;padding-left: 8px;">
 										<button class="btn btn-ghost" style="width: 115px;" onclick="controller.exportCSV()">↓ Export CSV</button>
 									</div>
-									<div class="stats-row">
-									<div class="stat-chip">Rows: <span id="rowCount">0</span></div>
-									<div class="stat-chip">Cols: <span id="colCount">0</span></div>
-									<div class="stat-chip">Selected: <span id="selCount">0</span></div>
+									<div class="data-source-date-filter"></div>
+									<div class="stats-row" style="margin-right: 2px;">
+										<div class="stat-chip">Rows: <span id="rowCount">0</span></div>
+										<div class="stat-chip">Cols: <span id="colCount">0</span></div>
+										<div class="stat-chip">Selected: <span id="selCount">0</span>
+									</div>
 								</div>
 							</div>
 							<div class="table-wrap tableContainer">

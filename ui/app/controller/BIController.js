@@ -3,6 +3,7 @@ import { BaseController } from "../../@still/component/super/service/BaseControl
 import { AppTemplate } from "../../config/app-template.js";
 import { BIUserInterfaceComponent } from "../components/dataviz/bi/main/BIUserInterfaceComponent.js";
 import { BiUiUtil } from "../components/dataviz/bi/util.js";
+import { Stepper } from "../components/dataviz/util-components/Stepper.js";
 import { BIService } from "../services/BIService.js";
 import { AIUtil } from "../util/AIUtil.js";
 
@@ -12,11 +13,11 @@ export class BIController extends BaseController {
     obj;
 
     static instance = null;
-
     wasUiPreviousInited = false;
 
-    /** @type { HTMLDivElement } */
-    dashboardContainer;
+    /** @type { Stepper } */ dataSourceStepper = null;
+
+    /** @type { HTMLDivElement } */ dashboardContainer;
 
     constructor(){
         super();
@@ -163,6 +164,18 @@ export class BIController extends BaseController {
         this.obj.popup.querySelector('#rowCount').textContent = rows.length.toLocaleString();
         this.obj.popup.querySelector('#colCount').textContent = cols.length;
         this.obj.popup.querySelector('#selCount').textContent = state.selectedRows.size;
+
+        if(this.dataSourceStepper === null){
+            this.dataSourceStepper = Stepper.new(this.obj.popup.querySelector('.data-source-date-filter'), {
+                isDate: true, start: '2024-01-01', end: '2026-01-01', step: 1, component: this.obj, onColumnSelect: 'controller.implementMe'
+            });
+
+        }        
+        this.dataSourceStepper.updateTablesList(BIController.currentTableList);
+    }
+
+    implementMe(){
+        console.log(`I WAS CALLED`);
     }
 
     initInsertLogic() {
