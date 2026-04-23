@@ -248,6 +248,24 @@ class DuckdbUtil:
             print(f"Error while running analytics: {e}")
 
 
+    @staticmethod
+    def get_range_columns_data(db_path, table_path):
+        try:
+            table_name, _ = table_path.split('.')
+            from utils.pipeline.PipelinesHelper import PipelineHelper
+            cnx = duckdb.connect(db_path)
+            cursor = cnx.cursor()
+
+            query = f"""
+                SELECT MIN(COLUMNS('(?i).*(date|time|ts).*')) AS "min_\\0", MAX(COLUMNS('(?i).*(date|time|ts).*')) AS "max_\\0" FROM {table_path}.{PipelineHelper.prefix_and_suffix_table(table_name)}
+            """
+            result = cursor.sql(query).fetch_arrow_table()
+
+            return result.to_pylist()
+        except Exception as e:
+            print(f"Error while running analytics: {e}")
+
+
 
 def is_extension_installed(extension_name):
     con = duckdb.connect()

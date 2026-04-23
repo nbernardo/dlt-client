@@ -31,7 +31,19 @@ def get_domain_pipelines(namespace):
     }
 
 
-@bi_controller.route('/analytics/ppline/domains/catalog/<namespace>/<pipeline>', methods=['GET'])
-def get_domain_pipeline_fields(namespace, pipeline):
+from utils.duckdb_util import DuckdbUtil
+import platform
+from controller.pipeline import BasePipeline
+
+@bi_controller.route('/analytics/ppline/domains/catalog/<namespace>/<pipeline>/<datawarehouse>', methods=['GET'])
+def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
     from utils.metastore.DataCatalog import DataCatalog
-    return { 'result': DataCatalog.get_fields_by_pipeline(pipeline, namespace), 'error': False }
+
+    sep = '/' if platform.system() != 'Windows' else '\\\\'
+    database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
+
+    table_path = f'{pipeline}.{datawarehouse}'
+    range_fields_data = DuckdbUtil.get_range_columns_data(database_path, table_path)
+    all_fields = DataCatalog.get_fields_by_pipeline(pipeline, namespace)
+
+    return { 'result': { 'range_fields_data': range_fields_data, 'all_fields': all_fields }, 'error': False }

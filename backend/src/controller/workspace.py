@@ -8,8 +8,6 @@ from flask_cors import cross_origin
 import threading
 import requests
 import time
-from services.agents.data_query.DataQueryAIAssistent import DataQueryAIAssistent as Agent
-from typing import List
 import traceback
 from flask import abort, send_file
 from utils.cache_util import DuckDBCache
