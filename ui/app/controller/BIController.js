@@ -165,17 +165,13 @@ export class BIController extends BaseController {
         this.obj.popup.querySelector('#colCount').textContent = cols.length;
         this.obj.popup.querySelector('#selCount').textContent = state.selectedRows.size;
 
-        if(this.dataSourceStepper === null){
-            this.dataSourceStepper = Stepper.new(this.obj.popup.querySelector('.data-source-date-filter'), {
-                isDate: true, start: '2024-01-01', end: '2026-01-01', step: 1, component: this.obj, onColumnSelect: 'controller.implementMe'
-            });
-
-        }        
         this.dataSourceStepper.updateTablesList(BIController.currentTableList);
     }
 
-    implementMe(){
-        console.log(`I WAS CALLED`);
+    /** @param { BIController } self */
+    implementMe(self, field){
+        const values = BIController.rangeFields[field];
+        self.dataSourceStepper.setRangeValues({ start: values.min, end: values.max });
     }
 
     initInsertLogic() {
@@ -183,6 +179,12 @@ export class BIController extends BaseController {
         const line = this.obj.popup.querySelector('#colInsertLine');
         const { state } = this.obj;
         this.dashboardContainer = this.obj.popup.querySelector('.tab-dashboard');
+
+        if(this.dataSourceStepper === null){
+            this.dataSourceStepper = Stepper.new(this.obj.popup.querySelector('.data-source-date-filter'), {
+                isDate: true, start: '2024-01-01', end: '2026-01-01', step: 1, onColumnSelect: (column) => this.implementMe(this, column)
+            });
+        }
 
         container.addEventListener("mousemove", (e) => {
 
@@ -737,12 +739,17 @@ export class BIController extends BaseController {
     }
 
     static currentTableList = [];
+    static rangeFields;
 
 	async onPipelineChange(val) {
         this.obj.popup.querySelector('.tableList').innerHTML = this.dataProcessLoading('Loading data tables');
         this.obj.state.pipeline = val;
         let tablesByContext = await BIController.getDomainPipelineFields(val);
-        BIController.currentTableList = Object.entries(tablesByContext).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));
+        
+        BIController.rangeFields = tablesByContext.rangeFieldsData;
+        console.log(`FIELDS DATA ARE: `, BIController.rangeFields);
+
+        BIController.currentTableList = Object.entries(tablesByContext.allFields).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));
         this.obj.state.activeTable = BIController.currentTableList[0].name;
         this.renderTableList();
         //this.viewingTables.clear(); //TODO: Offload implementation
@@ -889,6 +896,9 @@ export class BIController extends BaseController {
 
     /** @returns { { result: { result } } } */
     sendAnalyticsRequest = async (fields, pipeline) => BIService.sendAnalyticsRequest(fields, pipeline || this.obj.state.pipeline);
+
+    /** @returns { { result: { result } } } */
+    getAnalyticsRangeFields = async (fields, pipeline) => BIService.getAnalyticsRangeFields(fields, pipeline || this.obj.state.pipeline);
 
     static getDashboardDetails = async () => BIService.getDashboardDetails();
     static getDomainPipelineFields = async (pipeline) => BIService.getDomainPipelineFields(pipeline)

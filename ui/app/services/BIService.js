@@ -76,11 +76,27 @@ export class BIService extends BaseService {
 
     static async getDomainPipelineFields(pipeline) {
         const namespace = await BIService.getNamespace();
-        const url = `/analytics/ppline/domains/catalog/${namespace}/${pipeline.split('.')[1]}`;
+        const url = `/analytics/ppline/domains/catalog/${namespace}/${pipeline.split('.')[1]}/${pipeline.split('.')[0]}`;
         const response = await $still.HTTPClient.get(url);
         if (response.ok){
             const result = await response.json();
-            return JSON.parse(result.result);
+            const maxMinFields = {};
+
+            for(const itm of Object.entries(result.result.range_fields_data[0])){
+
+                const minOrMax = itm[0].split('_')[0];
+                const fieldName = itm[0].replace(/min_|max_/,'');
+                const preValues = maxMinFields[fieldName] || {};
+
+                maxMinFields[fieldName] = { ...preValues, [minOrMax]: String(itm[1]).includes('T') ? itm[1].split('T')[0] : itm[1] };
+            }
+
+            console.log(`THIS IS THE VALUES: `, maxMinFields);
+            
+            return {
+                allFields: JSON.parse(result.result.all_fields),
+                rangeFieldsData: maxMinFields,
+            };
         }
         return [];
     }
@@ -91,6 +107,17 @@ export class BIService extends BaseService {
         
         const url = `/workspace/analytics/${namespace}/${pipeline}`;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ fields }), HTTPHeaders.JSON);
+        if (response.ok && !response.error)
+            return await response.json();
+        return null;
+    }
+
+    /** @returns { { result: { result } } } */
+    static async getAnalyticsRangeFields(fields, pipeline) {
+        let namespace = await BIService.getNamespace();
+        
+        const url = `/workspace/analytics/rangefields/${namespace}/${pipeline}`;
+        const response = await $still.HTTPClient.get(url);
         if (response.ok && !response.error)
             return await response.json();
         return null;

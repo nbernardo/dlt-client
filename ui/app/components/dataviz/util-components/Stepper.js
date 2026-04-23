@@ -11,9 +11,14 @@ class StepperOptions{
 export class Stepper {
 
     id = '_'+UUIDUtil.newId();
+    start; end;
+
     static fieldListSource = {};
     static methodNames = {};
     static components = {};
+    static innerOnSelectEvents = {};
+    /** @type { StepperOptions } */ options;
+    /** @type { HTMLElement } */ container;
 
     constructor(){
         // This is done so this class/util is made available globally
@@ -27,7 +32,7 @@ export class Stepper {
     static getOnFieldSelection = (id) => Stepper.methodNames[id];
     static setOnFieldSelection = (id, methodName) => Stepper.methodNames[id] = methodName;
 
-    /** @returns { BaseComponent } */
+    /** @returns { Stepper } */
     static getComponent = (id) => Stepper.components[id];
     static setComponent = (id, component) => Stepper.components[id] = component;
 
@@ -36,15 +41,25 @@ export class Stepper {
         const stepper = new Stepper()
         stepper.initStepper(container, options);
         Stepper.setOnFieldSelection(stepper.id, options.onColumnSelect);
-        Stepper.setComponent(stepper.id, options.component);
+        Stepper.setComponent(stepper.id, stepper);
         return stepper;
     }
 
-    initStepper(container, /** @type { StepperOptions } */ options = {}) {
-      
+    initStepper(containerElm, /** @type { StepperOptions } */ elmOptions = {}) {
+        if(containerElm){
+            this.container = containerElm, this.options = elmOptions;
+        }else{
+            this.options.start = elmOptions.start, this.options.end = elmOptions.end;
+        }
+
+        const { container, options } = this;
         const isDate = options.isDate;
-        container.className = 'stepper-range-with-slider';
-        container.innerHTML = this.stepperBody((isDate ? 'date' : 'number'), (options.label || 'Range'));
+        
+        if(containerElm){
+            container.className = 'stepper-range-with-slider';
+            container.innerHTML = this.stepperBody((isDate ? 'date' : 'number'), (options.label || 'Range'));
+        }
+
         const rMin = container.querySelector('.min'), rMax = container.querySelector('.max');
         const iMin = container.querySelector('.in-min'), iMax = container.querySelector('.in-max');
         const wrapper = container.querySelector('.wrapper');
@@ -61,7 +76,8 @@ export class Stepper {
 
             if (e?.target.classList.contains('range-input')) {
               if (v1 > v2) {
-                if (e.target === rMin) rMin.value = v2; else rMax.value = v1;
+                if (e.target === rMin) rMin.value = v2; 
+                else rMax.value = v1;
                 v1 = parseInt(rMin.value); v2 = parseInt(rMax.value);
               }
             }
@@ -104,7 +120,9 @@ export class Stepper {
             <div class="datasource">
                 <img src="/app/assets/imgs/database_.png" width="12" onclick="Stepper.openSourceOptions('${this.id}')">
                 <div class="list-of-fields ${this.id}" style="display: none;">
-                    <select class="tables-${this.id}" onchange="Stepper.updateFieldList(this.value, '${this.id}')"></select>
+                    <select class="tables-${this.id}" onchange="Stepper.updateFieldList(this.value, '${this.id}')">
+                        <option value="">No model selected</option>
+                    </select>
                     <div class="available-fields available-fields-${this.id}"></div>
                 </div>
             </div>
@@ -114,33 +132,46 @@ export class Stepper {
     }
 
     updateTablesList(tablesList = []){
-        Stepper.fieldListSource = {};
+        Stepper.fieldListSource = {}, tablesList = tablesList.length ? [{ name: 'Select a table' }, ...tablesList] : [{ name: 'No model selected' }];
         Stepper.setFieldList(this.id, tablesList);
+        Stepper.setSelectRangeField(this.id);
         document.querySelector(`.tables-${this.id}`).innerHTML = tablesList.map(tbl => `<option value="${tbl.name}">${tbl.name}</option>`).join('');
     }
 
     static updateFieldList(table, id){
         const columnList = Stepper.getFieldList(id).find(it => it.name == table)?.cols || [];
 
-        // This is the event name which can be from the 
-        // component of from the controller
-        const eventName = Stepper.getOnFieldSelection(id);
-
-        // Because the event will come from the component of its controller, 
-        // the component itself need to parse the events
-        const component = Stepper.getComponent(id);
-
         document.querySelector(`.available-fields-${id}`).innerHTML = `
             <div class="fields-panel-body">
-                ${columnList.map(f=>
-                    component.parseEvents(`<div class="field-item">
-                        <input type="radio" onclick="${eventName}('${f.name}','${f.column_name}')">${f.column_name}
+                ${columnList.filter(f => ['datetime','date','timestamp','time'].includes(f.data_type)).map(f=>
+                    `<div class="field-item">
+                        <input type="radio" name="column" onclick="Stepper.runSelectRangeField('${id}','${table}_${f.column_name}')">${f.column_name}
                         <span class="field-type">${f.data_type}</span>
-                    </div>`)
+                    </div>`
                 ).join('')}
             </div>
         `;
     }
+
+    setRangeValues({ start, end }){
+        this.start = start, this.end = end;
+    }
+
+    static setSelectRangeField(id){
+        
+        Stepper.innerOnSelectEvents[id] = (table, value) => {
+            // This is the event name which can be from the 
+            // component of from the controller
+            const eventName = Stepper.getOnFieldSelection(id);
+            const component = Stepper.getComponent(id);
+            if(eventName) eventName(table, value);
+
+            component.initStepper(null, { start: component.start, end: component.end });
+        }
+
+    }
+
+    static runSelectRangeField = (id, fieldPath) => Stepper.innerOnSelectEvents[id](fieldPath);
 
     static openSourceOptions(id){
         const fieldsContainer = document.querySelector(`.${id}`);
