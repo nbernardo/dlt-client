@@ -102,11 +102,11 @@ export class BIService extends BaseService {
     }
 
     /** @returns { { result: { result } } } */
-    static async sendAnalyticsRequest(fields, pipeline) {
+    static async sendAnalyticsRequest(fields, pipeline, dataRange) {
         let namespace = await BIService.getNamespace();
         
         const url = `/workspace/analytics/${namespace}/${pipeline}`;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ fields }), HTTPHeaders.JSON);
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ fields, dataRange }), HTTPHeaders.JSON);
         if (response.ok && !response.error)
             return await response.json();
         return null;

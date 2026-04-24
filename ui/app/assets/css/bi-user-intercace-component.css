@@ -395,12 +395,13 @@
 
 
 .stepper-range-with-slider { 
-    width: 380px; padding: 7px; padding-bottom: 1px; background: white; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-family: sans-serif; margin-top: 10px; 
-    .main-label { display: block; font-weight: bold; margin-bottom: 5px; color: #333; font-size: .7rem; }
+    margin-top: 0px; width: 380px; padding: 6px; padding-bottom: 2px; background: white; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-family: sans-serif;
+    .main-label { display: block; font-weight: bold; margin-bottom: -6px; color: #333; font-size: .7rem; }
 
-    .stepper-data, .input-box, .stepper-top-controls { display: flex; margin-bottom: 5px; gap: 5px; }
-    .stepper-top-controls { justify-content: space-between; }
-    .input-box input { width: 38%; padding: 1px; border: 2px solid #ddd; border-radius: 4px; text-align: center; font-size: 0.7rem; }
+    .stepper-data, .input-box, .stepper-top-controls { display: flex; margin-bottom: 0px; gap: 5px; }
+    .input-box { flex-direction: column; }
+    .stepper-top-controls { justify-content: space-between; flex-direction: row; }
+    .input-box input { width: 50%; padding: 1px; border: 2px solid #ddd; border-radius: 4px; text-align: center; font-size: 0.7rem; }
 
     .wrapper { position: relative; height: 2px; background: #ddd; border-radius: 4px; margin: 10px 0 10px 0; }
     .range-input { position: absolute; width: 100%; top: -7px; left: 0; pointer-events: none; -webkit-appearance: none; background: none; margin: 0; }

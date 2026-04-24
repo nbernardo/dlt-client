@@ -107,7 +107,7 @@ export class BIController extends BaseController {
 
             for(const fieldName of [...this.fieldNames]) columns.push(fieldName);
 
-            await this.runAnaluticsAndRenderSheet(columns.join(','));
+            await this.runAnaliticsAndRenderSheet(columns.join(','));
             if(this.viewingTables.has(name))
                 this.obj.popup.querySelector(`.selected-fields-${name}`).textContent = 'All';
             else
@@ -116,8 +116,8 @@ export class BIController extends BaseController {
         
     }
 
-    async runAnaluticsAndRenderSheet(fields, pipeline){
-        const result = await this.sendAnalyticsRequest(fields, pipeline);
+    async runAnaliticsAndRenderSheet(fields, pipeline){
+        const result = await this.sendAnalyticsRequest(fields, pipeline, this.dataSourceRange);
         await this.obj.setData((result.result || [])).init();
         this.renderSheet();
         return result.result;
@@ -164,16 +164,9 @@ export class BIController extends BaseController {
         this.obj.popup.querySelector('#rowCount').textContent = rows.length.toLocaleString();
         this.obj.popup.querySelector('#colCount').textContent = cols.length;
         this.obj.popup.querySelector('#selCount').textContent = state.selectedRows.size;
-
-        this.dataSourceStepper.updateTablesList(BIController.currentTableList);
     }
 
-    /** @param { BIController } self */
-    implementMe(self, field){
-        const values = BIController.rangeFields[field];
-        self.dataSourceStepper.setRangeValues({ start: values.min, end: values.max });
-    }
-
+    dataSourceRange = {};
     initInsertLogic() {
         const container = this.obj.popup.querySelector('.tableContainer');
         const line = this.obj.popup.querySelector('#colInsertLine');
@@ -181,8 +174,22 @@ export class BIController extends BaseController {
         this.dashboardContainer = this.obj.popup.querySelector('.tab-dashboard');
 
         if(this.dataSourceStepper === null){
-            this.dataSourceStepper = Stepper.new(this.obj.popup.querySelector('.data-source-date-filter'), {
-                isDate: true, start: '2024-01-01', end: '2026-01-01', step: 1, onColumnSelect: (column) => this.implementMe(this, column)
+            const container = this.obj.popup.querySelector('.data-source-date-filter');
+            this.dataSourceStepper = Stepper.new(container, {isDate: true, start: null, end: null, step: 1});
+
+            this.dataSourceStepper.onColumnSelect((field) => {
+                const values = BIController.rangeFields[field];
+                this.dataSourceStepper.label = field;
+                this.dataSourceStepper.setRangeValues({ start: values?.min, end: values?.max });
+            });
+
+            this.dataSourceStepper.onRangeChange(({ max, min, field }) => {
+                this.dataSourceRange = {};
+                this.dataSourceRange[field] = { min, max };
+            });
+
+            this.dataSourceStepper.onDataRangeSelect(() => {
+                this.dataSourceStepper.totalRecords = BIController.rangeFields['row_count']['row'];
             });
         }
 
@@ -747,11 +754,12 @@ export class BIController extends BaseController {
         let tablesByContext = await BIController.getDomainPipelineFields(val);
         
         BIController.rangeFields = tablesByContext.rangeFieldsData;
-        console.log(`FIELDS DATA ARE: `, BIController.rangeFields);
 
         BIController.currentTableList = Object.entries(tablesByContext.allFields).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));
         this.obj.state.activeTable = BIController.currentTableList[0].name;
         this.renderTableList();
+        this.dataSourceStepper.updateTablesList(BIController.currentTableList);
+        this.dataSourceStepper.initStepper(null, {isDate: false, start: 1, end: BIController.rangeFields?.row_count?.row || 1, step: 1})
         //this.viewingTables.clear(); //TODO: Offload implementation
 	}
 
@@ -895,7 +903,7 @@ export class BIController extends BaseController {
     sendDataQueryAgentMessage = async(message) => BIService.sendDataQueryAgentMessage(message);
 
     /** @returns { { result: { result } } } */
-    sendAnalyticsRequest = async (fields, pipeline) => BIService.sendAnalyticsRequest(fields, pipeline || this.obj.state.pipeline);
+    sendAnalyticsRequest = async (fields, pipeline, dataRange) => BIService.sendAnalyticsRequest(fields, pipeline || this.obj.state.pipeline, dataRange);
 
     /** @returns { { result: { result } } } */
     getAnalyticsRangeFields = async (fields, pipeline) => BIService.getAnalyticsRangeFields(fields, pipeline || this.obj.state.pipeline);
