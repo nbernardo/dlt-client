@@ -80,23 +80,18 @@ export class BIService extends BaseService {
         const response = await $still.HTTPClient.get(url);
         if (response.ok){
             const result = await response.json();
-            const maxMinFields = {};
+            const rangeFieldsData = {};
 
             for(const itm of Object.entries(result.result.range_fields_data[0])){
 
                 const minOrMax = itm[0].split('_')[0];
                 const fieldName = itm[0].replace(/min_|max_/,'');
-                const preValues = maxMinFields[fieldName] || {};
+                const preValues = rangeFieldsData[fieldName] || {};
 
-                maxMinFields[fieldName] = { ...preValues, [minOrMax]: String(itm[1]).includes('T') ? itm[1].split('T')[0] : itm[1] };
+                rangeFieldsData[fieldName] = { ...preValues, [minOrMax]: String(itm[1]).includes('T') ? itm[1].split('T')[0] : itm[1] };
             }
 
-            console.log(`THIS IS THE VALUES: `, maxMinFields);
-            
-            return {
-                allFields: JSON.parse(result.result.all_fields),
-                rangeFieldsData: maxMinFields,
-            };
+            return { allFields: JSON.parse(result.result.all_fields), rangeFieldsData };
         }
         return [];
     }
