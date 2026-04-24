@@ -234,13 +234,31 @@ class DuckdbUtil:
 
 
     @staticmethod
-    def run_analytics_query(db_path, fields, table):
+    def run_analytics_query(db_path, fields, table, data_range):
         try:
+            filter_range, query = '', ''
+            range_filter_details = list(data_range.items())
             schema, table = table.split('.')
-            from utils.pipeline.PipelinesHelper import PipelineHelper
+            
+            if(len(range_filter_details) > 0):
+                from utils.pipeline.PipelinesHelper import PipelineHelper
+
+                values = range_filter_details[0][1]
+                field = range_filter_details[0][0]
+                if(field == 'undefined'):
+                    query = f'''
+                        SELECT * FROM (
+                            SELECT  {fields}, ROW_NUMBER() OVER () AS rn
+                            FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}
+                        ) AS paginated
+                        WHERE rn > {int(values['min'])} AND rn <= ({int(values['min'])} + {int(values['max'])})
+                    '''
+                else:
+                    filter_range = f" WHERE DATE({field}) BETWEEN DATE '{values['min']}' AND DATE '{values['max']}'"
+                    query = f'SELECT {fields} FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}{filter_range}'
+
             cnx = duckdb.connect(db_path)
             cursor = cnx.cursor()
-            query = f'SELECT {fields} FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}'
             result = cursor.sql(query).fetch_arrow_table()
 
             return result.to_pylist()
@@ -257,7 +275,7 @@ class DuckdbUtil:
             cursor = cnx.cursor()
 
             query = f"""
-                SELECT MIN(COLUMNS('(?i).*(date|time|ts).*')) AS "min_\\0", MAX(COLUMNS('(?i).*(date|time|ts).*')) AS "max_\\0" FROM {table_path}.{PipelineHelper.prefix_and_suffix_table(table_name)}
+                SELECT COUNT(*) AS row_count, MIN(COLUMNS('(?i).*(date|time|ts).*')) AS "min_\\0", MAX(COLUMNS('(?i).*(date|time|ts).*')) AS "max_\\0" FROM {table_path}.{PipelineHelper.prefix_and_suffix_table(table_name)}
             """
             result = cursor.sql(query).fetch_arrow_table()
 
