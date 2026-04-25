@@ -47,3 +47,14 @@ def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
     all_fields = DataCatalog.get_fields_by_pipeline(pipeline, namespace)
 
     return { 'result': { 'range_fields_data': range_fields_data, 'all_fields': all_fields }, 'error': False }
+
+
+
+@bi_controller.route('/analytics/integration/odoomodules/<namespace>/<pipeline>', methods=['GET'])
+def get_odoo_modules(namespace, pipeline):
+    return { 
+        'result': {
+            'modules': BIService.get_odoo_modules(namespace, pipeline),
+        }, 
+        'error': False 
+    }

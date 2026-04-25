@@ -1,5 +1,5 @@
-from utils.metastore.BI.DashboardConfig import DashboardConfig
 from utils.metastore.meta_storage import MetaStore
+from integrations.database.OdooDBIntegration import OdooDBIntegration
 
 class BIService:
 
@@ -21,3 +21,7 @@ class BIService:
     @staticmethod
     def get_dashboard_configs(namespace):
         return MetaStore.chart_config_store().get_dashboard_configs(namespace)
+    
+    @staticmethod
+    def get_odoo_modules(namespace, pipeline):
+        return OdooDBIntegration.get_modules(namespace, pipeline).get('result', {})
