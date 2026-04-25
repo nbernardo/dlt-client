@@ -329,6 +329,10 @@ export class BIController extends BaseController {
         
         if(id === 'sheet') await this.obj.init();
         if(id === 'dashboard') this.obj.showDashboardActions = true;
+        if(id === 'diagram') {
+            const result = await BIService.getModulesWhenOdoo(this.obj.state.pipeline);
+            this.obj.dbDiagramProxy.updateGraphData(result);            
+        }
         else {
             this.obj.showDashboardActions = false;
             this.obj.showDashboardActions = false;

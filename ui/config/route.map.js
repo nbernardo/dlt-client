@@ -137,6 +137,10 @@ export const stillRoutesMap = {
             PivotCreateComponent: {
                 path: "app/components/dataviz/bi/pivot",
                 url: "/pivot-create"
+            },
+            DatabaseDiagram: {
+                path: "app/components/dataviz/diagram",
+                url: "/database-diagram"
             }
         },
         lazyInitial: {}

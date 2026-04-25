@@ -6,6 +6,7 @@ import { BIController } from "../../../../controller/BIController.js";
 import { BIService } from "../../../../services/BIService.js";
 import { ModalWindowComponent } from "../../../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../../../popup-window/PopupUtil.js";
+import { DatabaseDiagram } from "../../diagram/DatabaseDiagram.js";
 import { mockDataTables, mockDepartments, mockTitles } from "../mock.js";
 import { FilterUtil } from "../pivot/FilterUtil.js";
 import { PivotCreateComponent } from "../pivot/PivotCreateComponent.js";
@@ -52,6 +53,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	/** @Prop */ gridDataSource = null;
 
 	/** @Proxy @type { PivotCreateComponent } */ pivotTableProxy = null;
+
+	/** @Proxy @type { DatabaseDiagram } */ dbDiagramProxy = null;
 
 	/** @Prop */ analyticsChatStateEnum = { OPENED: 'Expanded', CLOSED: 'Minimized' };
 
@@ -160,7 +163,9 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	setData = (dataSource) => {
 		this.gridDataSource = dataSource;
-		if(this.pivotTableProxy) this.pivotTableProxy.setData(dataSource);
+		try {
+			if(this.pivotTableProxy) this.pivotTableProxy.setData(dataSource);
+		} catch (error) {}
 		this.filterUtil.dataset = dataSource;
 		return this;
 	}

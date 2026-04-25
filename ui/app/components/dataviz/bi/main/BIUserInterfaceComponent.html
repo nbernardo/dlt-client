@@ -161,6 +161,7 @@
 
 						<main class="main">
 							<nav class="tabs">
+								<div class="tab" onclick="controller.switchTab('diagram',this)"><img src="@appPath/app/assets/imgs/database_.png" style="width: 14px;"> &nbsp;Diagram</div>
 								<div class="tab active" onclick="controller.switchTab('sheet',this)"><img src="@appPath/app/assets/imgs/database_.png" style="width: 14px;"> &nbsp;Data</div>
 								<div class="tab" onclick="controller.switchTab('chart',this)"><img src="@appPath/app/assets/imgs/pie-chart.png" style="width: 15px;"> &nbsp;Chart Builder</div>
 								<div class="tab" onclick="controller.switchTab('pivot',this)"><img src="@appPath/app/assets/imgs/pivot.png" style="width: 19px;"> &nbsp;Pivot</div>
@@ -252,7 +253,11 @@
 							</div>
 
 							<div class="content tab-pivot">
-								<st-element component="PivotCreateComponent" proxy="pivotTableProxy" @delayed="2.1s"></st-element>
+								<st-element component="PivotCreateComponent" proxy="pivotTableProxy" @delayed="2.5s"></st-element>
+							</div>
+							
+							<div class="content tab-diagram">
+								<st-element component="DatabaseDiagram" proxy="dbDiagramProxy" @delayed="2.1s"></st-element>
 							</div>
 
 							<div class="content tab-dashboard">

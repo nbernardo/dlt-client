@@ -96,6 +96,15 @@ export class BIService extends BaseService {
         return [];
     }
 
+    static async getModulesWhenOdoo(pipeline) {
+        const namespace = await BIService.getNamespace();
+        const url = `/analytics/integration/odoomodules/${namespace}/${pipeline.split('.')[1]}`;
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok)
+            return (await response.json())?.result?.modules;
+        return [];
+    }
+
     /** @returns { { result: { result } } } */
     static async sendAnalyticsRequest(fields, pipeline, dataRange) {
         let namespace = await BIService.getNamespace();
