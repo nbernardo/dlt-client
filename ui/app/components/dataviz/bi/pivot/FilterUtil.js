@@ -1,4 +1,4 @@
-import { BIService } from "../../../../services/BIService.js";
+import { BIService } from "../../services/BIService.js";
 import { BIUserInterfaceComponent } from "../main/BIUserInterfaceComponent.js";
 
 export class FilterUtil {

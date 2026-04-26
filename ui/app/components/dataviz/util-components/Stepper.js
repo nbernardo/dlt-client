@@ -20,6 +20,7 @@ export class Stepper {
     static components = {};
     static innerOnSelectEvents = {};
     static onTableChange = {};
+    static appPath = '';
     /** @type { StepperOptions } */ options;
     /** @type { HTMLElement } */ container;
 
@@ -158,7 +159,7 @@ export class Stepper {
                 </div>
             </div>
             <div class="datasource">
-                <img src="/app/assets/imgs/database_.png" width="12" onclick="Stepper.openSourceOptions('${this.id}')">
+                <img src="${Stepper.appPath}/app/assets/imgs/database_.png" width="12" onclick="Stepper.openSourceOptions('${this.id}')">
                 <div class="list-of-fields ${this.id}" style="display: none;">
                     <select class="tables-${this.id}" onchange="Stepper.updateFieldList(this.value, '${this.id}')">
                         <option value="">No model selected</option>

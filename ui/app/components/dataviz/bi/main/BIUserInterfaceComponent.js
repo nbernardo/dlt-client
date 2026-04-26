@@ -2,8 +2,8 @@ import { Assets } from "../../../../../@still/util/componentUtil.js";
 import { UUIDUtil } from "../../../../../@still/util/UUIDUtil.js";
 import { StillAppSetup } from "../../../../../config/app-setup.js";
 import { BIChatController } from "../../../../controller/BIChatController.js";
-import { BIController } from "../../../../controller/BIController.js";
-import { BIService } from "../../../../services/BIService.js";
+import { BIController } from "../../controllers/BIController.js";
+import { BIService } from "../../services/BIService.js";
 import { ModalWindowComponent } from "../../../abstract/ModalWindowComponent.js";
 import { PopupUtil } from "../../../popup-window/PopupUtil.js";
 import { DatabaseDiagram } from "../../diagram/DatabaseDiagram.js";
@@ -60,15 +60,17 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	/** 
 	 * @Controller
-	 * @Path controller/
-	 * @type { BIController }  */
+	 * @Path components/dataviz/controllers/
+	 * @type { BIController }  */ 
 	controller;
 
 	/** @Prop @type { BIChatController } */ chatController;
 
 	async stBeforeInit(){
+		
 		this.appPath = await BIService.getAppPath();
 		this.runningOnOdoo = StillAppSetup.config.get('runningOnOdoo');
+        await Assets.import({ path: `${this.appPath}/app/components/dataviz/diagram/g6.js`, type: 'js' });
 		//setTimeout(async () => {
 			let result = await BIController.getDashboardDetails();
 			

@@ -1,8 +1,8 @@
-import { $still } from "../../@still/component/manager/registror.js";
-import { BaseService } from "../../@still/component/super/service/BaseService.js";
-import { HTTPHeaders } from "../../@still/helper/http.js";
-import { StillAppSetup } from "../../config/app-setup.js";
-import { AIUtil } from "../util/AIUtil.js";
+import { $still } from "../../../../@still/component/manager/registror.js";
+import { BaseService } from "../../../../@still/component/super/service/BaseService.js";
+import { HTTPHeaders } from "../../../../@still/helper/http.js";
+import { StillAppSetup } from "../../../../config/app-setup.js";
+import { AIUtil } from "../../../util/AIUtil.js";
 
 
 export class BIService extends BaseService {
@@ -59,8 +59,8 @@ export class BIService extends BaseService {
     static async getNamespace(){
         let namespace = StillAppSetup.config.get('clientNamespace');
         if(!StillAppSetup.config.get('runningOnOdoo')){
-            const { UserUtil } = await import('../components/auth/UserUtil.js');
-            const { UserService } = await  import('../services/UserService.js');
+            const { UserUtil } = await import('../../auth/UserUtil.js');
+            const { UserService } = await  import('../../../services/UserService.js');
             namespace = StillAppSetup.config.get('anonymousLogin') ? UserUtil.email : await UserService.getNamespace();
         }
         return namespace;

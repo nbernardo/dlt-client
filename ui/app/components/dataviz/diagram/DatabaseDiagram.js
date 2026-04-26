@@ -1,11 +1,11 @@
 import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
-import { BIService } from "../../../services/BIService.js";
-import { DBDiagramController } from "./controller/DBDiagramController.js";
+import { BIService } from "../services/BIService.js";
+import { DBDiagramController } from "../controllers/DBDiagramController.js";
 
 /** This component used the G6 library (https://g6.antv.antgroup.com/en/manual/introduction) which
-* is being dynamically imported in the app-setup.js, especially because of the heaviness of the
+* is being dynamically imported in the BIUserInterfaceComponent.js, especially because of the heaviness of the
 * library, importing it directly here makes things to delay even more or the component not to load */
 export class DatabaseDiagram extends ViewComponent {
     isPublic = true;
@@ -20,7 +20,7 @@ export class DatabaseDiagram extends ViewComponent {
 
 	/**
 	 * @Controller
-	 * @Path components/dataviz/diagram/controller/
+	 * @Path components/dataviz/controllers/
 	 * @type { DBDiagramController }
 	 */ controller;
 

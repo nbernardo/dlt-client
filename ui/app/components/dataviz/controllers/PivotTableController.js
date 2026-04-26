@@ -1,5 +1,5 @@
-import { BaseController } from "../../@still/component/super/service/BaseController.js";
-import { PivotCreateComponent } from "../components/dataviz/bi/pivot/PivotCreateComponent.js";
+import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
+import { PivotCreateComponent } from "../bi/pivot/PivotCreateComponent.js";
 import { BIService } from "../services/BIService.js";
 import { BIController } from "./BIController.js";
 

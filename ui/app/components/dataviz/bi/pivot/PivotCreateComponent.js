@@ -1,7 +1,7 @@
 import { sleepForSec } from "../../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../../@still/component/super/ViewComponent.js";
-import { PivotTableController } from "../../../../controller/PivotTableController.js";
-import { BIService } from "../../../../services/BIService.js";
+import { PivotTableController } from "../../controllers/PivotTableController.js";
+import { BIService } from "../../services/BIService.js";
 import { BIUserInterfaceComponent } from "../main/BIUserInterfaceComponent.js";
 
 export class PivotCreateComponent extends ViewComponent {
@@ -29,7 +29,7 @@ export class PivotCreateComponent extends ViewComponent {
 
 	/** 
 	 * @Controller 
-	 * @Path controller/
+	 * @Path components/dataviz/controllers/
 	 * @type { PivotTableController } */ controller;
 
 	/** @type { BIUserInterfaceComponent } */ $parent;

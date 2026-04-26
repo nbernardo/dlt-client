@@ -1,11 +1,11 @@
-import { sleepForSec } from "../../@still/component/manager/timer.js";
-import { BaseController } from "../../@still/component/super/service/BaseController.js";
-import { AppTemplate } from "../../config/app-template.js";
-import { BIUserInterfaceComponent } from "../components/dataviz/bi/main/BIUserInterfaceComponent.js";
-import { BiUiUtil } from "../components/dataviz/bi/util.js";
-import { Stepper } from "../components/dataviz/util-components/Stepper.js";
+import { sleepForSec } from "../../../../@still/component/manager/timer.js";
+import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
+import { AppTemplate } from "../../../../config/app-template.js";
+import { BIUserInterfaceComponent } from "../bi/main/BIUserInterfaceComponent.js";
+import { BiUiUtil } from "../bi/util.js";
+import { Stepper } from "../util-components/Stepper.js";
 import { BIService } from "../services/BIService.js";
-import { AIUtil } from "../util/AIUtil.js";
+import { AIUtil } from "../../../util/AIUtil.js";
 
 export class BIController extends BaseController {
 
@@ -172,6 +172,7 @@ export class BIController extends BaseController {
         const line = this.obj.popup.querySelector('#colInsertLine');
         const { state } = this.obj;
         this.dashboardContainer = this.obj.popup.querySelector('.tab-dashboard');
+        Stepper.appPath = this.obj.appPath;
 
         if(this.dataSourceStepper === null){
             const container = this.obj.popup.querySelector('.data-source-date-filter');
@@ -333,8 +334,7 @@ export class BIController extends BaseController {
             BIService.activePipeline = this.obj.state.pipeline.split('.')[1];
             const result = await BIService.getModulesWhenOdoo();
             this.obj.dbDiagramProxy.updateGraphData(result);            
-        }
-        else {
+        } else {
             this.obj.showDashboardActions = false;
             this.obj.showDashboardActions = false;
         }

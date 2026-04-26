@@ -1,5 +1,5 @@
-import { BaseController } from "../../../../../@still/component/super/service/BaseController.js";
-import { DatabaseDiagram } from "../DatabaseDiagram.js";
+import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
+import { DatabaseDiagram } from "../diagram/DatabaseDiagram.js";
 
 export class DBDiagramController extends BaseController {
     
@@ -110,8 +110,8 @@ export class DBDiagramController extends BaseController {
                 joins.push(`LEFT JOIN ${currentTable} ON ${currentTable}.${rCol} = ${lTab}.${lCol}`);
                 processed.add(currentTable);
             } else {
-                crossJoins.push(currentTable);
-                processed.add(currentTable);
+                //crossJoins.push(currentTable);
+                //processed.add(currentTable);
             }
         });
 
