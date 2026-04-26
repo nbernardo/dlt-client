@@ -110,8 +110,10 @@ export class BIService extends BaseService {
         const namespace = await BIService.getNamespace();
         const url = `/analytics/integration/odootables/${moduleName}/${namespace}/${BIService.activePipeline}`;
         const response = await $still.HTTPClient.get(url);
-        if (response.ok)
-            return (await response.json())?.result?.modules;
+        if (response.ok){
+            const result = (await response.json())?.result;
+            return result;
+        }
         return [];
     }
 

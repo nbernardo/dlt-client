@@ -1,5 +1,32 @@
 <style>
-#mountNode { width: 100%; height: 100%; min-height: 600px; overflow: hidden; display: block; }
-#mountNode canvas { display: block; width: 100% !important; }
+    .DatabaseDiagram { display: flex; flex-direction: column; height: 100vh; width: 100%; border: 1px solid #d9d9d9; }
+
+	.DatabaseDiagram{
+		.diagram-toolbar { padding: 12px; background: #fafafa; border-bottom: 1px solid #d9d9d9; display: flex; gap: 10px; }
+		
+		.view-btn { padding: 6px 16px; border: 1px solid #d9d9d9; cursor: pointer;  background: #fff; border-radius: 4px; font-size: 12px; transition: all 0.2s; }
+		.view-btn.active { background: #1d39c4; color: #fff; border-color: #1d39c4; font-weight: bold; }
+		.view-btn:hover:not(.active) { background: #f0f0f0; }
+	
+		#mountNode { width: 100%; flex: 1; overflow: hidden; }
+		#sqlEditor { width: 100%; flex: 1; display: none; background: #1e1e1e; padding: 0; position: relative; }
+		
+		#sqlTextarea { 
+			width: 100%; height: 100%; background: transparent; color: #d4d4d4;  border: none; padding: 20px; font-family: 'Consolas', 'Monaco', monospace; 
+			font-size: 13px; line-height: 1.5; outline: none; resize: none; box-sizing: border-box;
+		}
+	}
 </style>
-<div id="mountNode"></div>
+
+<div id="@uniqueId" class="DatabaseDiagram">
+    <div class="diagram-toolbar">
+        <button id="btnDiagram" class="view-btn active">Diagram</button>
+        <button id="btnSQL" class="view-btn">SQL Editor</button>
+    </div>
+
+    <div id="mountNode"></div>
+
+    <div id="sqlEditor">
+        <textarea id="sqlTextarea" spellcheck="false"></textarea>
+    </div>
+</div>
