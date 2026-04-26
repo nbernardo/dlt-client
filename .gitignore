@@ -31,6 +31,7 @@ package-lock.json
 *vanilla.html
 *.pyc
 *.*.pyc
+*catalog.lance/
 
 backend/destinations/duckdb/*/*.duckdb
 backend/destinations/pipeline/*/*.py
