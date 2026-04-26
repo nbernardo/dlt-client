@@ -30,4 +30,4 @@ class BIService:
 
     @staticmethod
     def get_odoo_tables_by_module(module_name, namespace, pipeline):
-        return OdooDBIntegration.get_tables_by_module(module_name, namespace, pipeline).get('result', {})
+        return OdooDBIntegration.get_tables_by_module(module_name, namespace, pipeline)

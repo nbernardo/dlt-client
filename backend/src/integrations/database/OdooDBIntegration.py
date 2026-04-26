@@ -25,45 +25,82 @@ class OdooDBIntegration:
     
 
     @staticmethod
+    def _tables_rel_query():
+        return '''
+            SELECT 
+                conname AS constraint_name, att2.attname AS source_column,  cl.relname AS source_table, att.attname AS target_column, cl2.relname AS target_table
+            FROM pg_constraint con
+            JOIN pg_class cl ON cl.oid = con.conrelid
+            JOIN pg_class cl2 ON cl2.oid = con.confrelid
+            JOIN pg_attribute att ON att.attrelid = con.confrelid AND att.attnum = con.confkey[1]
+            JOIN pg_attribute att2 ON att2.attrelid = con.conrelid AND att2.attnum = con.conkey[1]
+            WHERE con.contype = 'f'
+            -- Filter out non-business tables directly at the DB level
+            AND cl.relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|sms_|web_|spreadsheet_|digest_|report_|wizard_|res_users|res_groups|auth_).*'
+            AND cl2.relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|sms_|web_|spreadsheet_|digest_|report_|wizard_|res_users|res_groups|auth_).*';
+        '''
+    
+
+    @staticmethod
     def get_tables_by_module(module_name: str, namespace, pipeline):
         query = f'''
             WITH RECURSIVE TableHierarchy AS (
-                -- Anchor: Fetch core business models for the specific module
+                -- Anchor: Fetch core tables for the module
                 SELECT 
-                    1 AS level, NULL::text COLLATE "default" AS parent_table,
-                    REPLACE(m.model, '.', '_')::text COLLATE "default" AS physical_table,
-                    UPPER(split_part(m.model, '.', 1))::text COLLATE "default" AS path
-                FROM ir_model m
-                WHERE m.transient = false 
-                AND m.state = 'base'
-                -- Block technical namespaces
-                AND m.model NOT SIMILAR TO '(ir\.|base\.|mail\.|bus\.|report\.|sms\.|snailmail\.|calendar\.|spreadsheet\.|web\.|wizard\.|portal\.|l10n\.|digest\.).*'
-                AND m.model LIKE '{module_name.lower()}.%' 
+                    1 AS level,
+                    NULL::text COLLATE "default" AS parent_table,
+                    relname::text COLLATE "default" AS physical_table,
+                    UPPER('{module_name}')::text COLLATE "default" AS path -- Standardized root
+                FROM pg_class c
+                JOIN pg_namespace n ON n.oid = c.relnamespace
+                WHERE n.nspname = 'public' 
+                AND c.relkind = 'r'
+                AND relname LIKE '{module_name.lower()}_%' 
+                -- Filter Level 1
+                AND relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|report_|sms_|snailmail_|calendar_|spreadsheet_|web_|wizard_|portal_|l10n_|digest_|res_).*'
 
                 UNION ALL
 
-                -- Recursive: Trace relationships while blocking utility/noise tables
+                -- Recursive: Trace relations but BLOCK technical tables at every step
                 SELECT 
                     th.level + 1,
                     th.physical_table,
-                    child_cl.relname::text COLLATE "default",
-                    (th.path || ' -> ' || child_cl.relname)::text COLLATE "default"
+                    ref_cl.relname::text COLLATE "default",
+                    (th.path || ' -> ' || ref_cl.relname)::text COLLATE "default"
                 FROM TableHierarchy th
-                JOIN pg_class parent_cl ON parent_cl.relname = th.physical_table
-                JOIN pg_constraint con ON con.confrelid = parent_cl.oid
-                JOIN pg_class child_cl ON child_cl.oid = con.conrelid
+                JOIN pg_class child_cl ON child_cl.relname = th.physical_table
+                JOIN pg_constraint con ON con.conrelid = child_cl.oid  
+                JOIN pg_class ref_cl ON ref_cl.oid = con.confrelid    
                 WHERE con.contype = 'f' 
                 AND th.level < 5
-                -- Block physical tables that are technical or cross-module noise
-                AND child_cl.relname NOT SIMILAR TO '(ir_|mail_|bus_|sms_|snailmail_|calendar_|web_|spreadsheet_|portal_|l10n_|digest_|report_|wizard_|res_users|res_groups|res_partner_bank|res_currency|payment_token).*'
-                AND child_cl.relname NOT LIKE '%_wizard'
-                AND child_cl.relname NOT LIKE '%_rel' -- Optional: removes many-to-many join tables
+                -- CRITICAL: Filter every subsequent level to keep the tree clean
+                AND ref_cl.relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|sms_|snailmail_|calendar_|web_|spreadsheet_|portal_|l10n_|digest_|report_|wizard_|res_).*'
             )
             SELECT DISTINCT ON (path)
-                level, parent_table, physical_table AS table_name, path
+                level,
+                parent_table,
+                physical_table AS table_name,
+                path
             FROM TableHierarchy
+                WHERE 
+                    physical_table not like 'ir_%' and
+                    physical_table not like 'mail_%' and
+                    physical_table not like 'sms_%' and
+                    physical_table not like 'report_%' and
+                    physical_table not like 'sms_%' and
+                    physical_table not like 'l10n_%' and
+                    
+                    parent_table not like 'ir_%' and
+                    parent_table not like 'mail_%' and
+                    parent_table not like 'sms_%' and
+                    parent_table not like 'report_%' and
+                    parent_table not like 'sms_%' and
+                    parent_table not like 'l10n_%'
             ORDER BY path, level;
         '''
         pipeline_meta = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
         connection_name = pipeline_meta[2]
-        return DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
+        tables = DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
+        relations = DestinationQueryUtil._query_sql_database(OdooDBIntegration._tables_rel_query(), namespace, connection_name)
+
+        return { 'tables': tables.get('result', {}), 'relations': relations.get('result', {}) }

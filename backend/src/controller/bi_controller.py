@@ -62,9 +62,5 @@ def get_odoo_modules(namespace, pipeline):
 
 @bi_controller.route('/analytics/integration/odootables/<module_name>/<namespace>/<pipeline>', methods=['GET'])
 def get_odoo_tables(module_name, namespace, pipeline):
-    return { 
-        'result': {
-            'modules': BIService.get_odoo_tables_by_module(module_name, namespace, pipeline),
-        }, 
-        'error': False 
-    }
+    tables_and_relations = BIService.get_odoo_tables_by_module(module_name, namespace, pipeline)
+    return { 'result':  tables_and_relations, 'error': False }
