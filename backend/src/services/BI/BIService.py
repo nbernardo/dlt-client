@@ -21,7 +21,13 @@ class BIService:
     @staticmethod
     def get_dashboard_configs(namespace):
         return MetaStore.chart_config_store().get_dashboard_configs(namespace)
-    
+
+
     @staticmethod
     def get_odoo_modules(namespace, pipeline):
         return OdooDBIntegration.get_modules(namespace, pipeline).get('result', {})
+    
+
+    @staticmethod
+    def get_odoo_tables_by_module(module_name, namespace, pipeline):
+        return OdooDBIntegration.get_tables_by_module(module_name, namespace, pipeline).get('result', {})
