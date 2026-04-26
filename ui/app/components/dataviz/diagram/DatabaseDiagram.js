@@ -46,17 +46,29 @@ export class DatabaseDiagram extends ViewComponent {
         const container = this.container.querySelector('#mountNode');
         if (!container) return null;
 
-        const graph = new G6.TreeGraph({
-            container: 'mountNode', width: container.scrollWidth, height: container.scrollHeight || 600,
-            fitView: false, fitCenter: true, modes: { default: ['drag-canvas', 'zoom-canvas'] },
-            layout: {
-                type: 'compactBox', direction: 'LR', getId: (d) => d.id, getHeight: () => 20, 
-				getWidth: (d) => DBDiagramController.calculateTextWidth(d.label) + 20, getVGap: () => 10, getHGap: () => 60,
-            },
-            animate: true,
-            defaultNode: { type: 'db-table' },
-            defaultEdge: { type: 'cubic-horizontal', style: { stroke: '#A3B1BF', lineWidth: 1 } },
-        });
+		const graph = new G6.TreeGraph({
+			container: 'mountNode',  width: container.scrollWidth, 
+			height: container.scrollHeight || 600, fitView: false, fitCenter: true, 
+			container: 'mountNode', cursor: 'grab', 
+			modes: { 
+				default: [
+					{ type: 'drag-canvas', delegateStyle: { cursor: 'grabbing' }, }, 
+					'zoom-canvas'
+				]
+			},
+			layout: {
+				type: 'compactBox', 
+				direction: 'LR', 
+				getId: (d) => d.id, 
+				getHeight: () => 20, 
+				getWidth: (d) => DBDiagramController.calculateTextWidth(d.label) + 20, 
+				getVGap: () => 10, 
+				getHGap: () => 60,
+			},
+			animate: true,
+			defaultNode: { type: 'db-table' },
+			defaultEdge: { type: 'cubic-horizontal', style: { stroke: '#A3B1BF', lineWidth: 1 } },
+		});
 
         if (typeof window !== 'undefined') {
             window.addEventListener('resize', () => {
@@ -64,6 +76,12 @@ export class DatabaseDiagram extends ViewComponent {
                 graph.changeSize(container.scrollWidth, container.scrollHeight);
             });
         }
+
+		const canvasEl = graph.get('canvas').get('el');
+		graph.on('canvas:mouseenter', () => canvasEl.style.cursor = 'grab');	
+		graph.on('canvas:dragstart', () => canvasEl.style.cursor = 'grabbing');
+		graph.on('canvas:dragend', () => canvasEl.style.cursor = 'grab');
+
         return graph;
     }
 
@@ -80,31 +98,21 @@ export class DatabaseDiagram extends ViewComponent {
         });
         this.graph.render();
 
-        // Single event listener to manage all node interactions
         this.graph.on('node:click', async (e) => {
             const { item, target } = e;
-            const model = item.getModel();
-            const shapeName = target.get('name');
+            const model = item.getModel(), shapeName = target.get('name');
 
-            /** * 1. HANDLE TABLE SELECTION (SQL BUILDER)
-             * Checks if the click was on the green/red icon circle or the +/- text
-             */
-            if (shapeName === 'select-icon-bg' || shapeName === 'select-icon-text') {
-                // Controller manages the Set of selected tables
-                this.controller.handleTableSelect(model.label);
-                
-                // Update the view state for this specific node
-                this.graph.updateItem(item, { isSelected: this.controller.selectedTables.has(model.label)});
+			if (shapeName === 'select-icon-bg' || shapeName === 'select-icon-text') {
+				this.controller.handleTableSelect(model.label);
+				
+				const order = this.controller.selectedTablesMap.get(model.label);
+				const isUnrelated = this.controller.isTableUnrelated(model.label);
 
-				//await this.onFolderExpand(moduleName, item);
-                
-                // Return early to prevent triggering expansion logic
-                return;
-            }
+				this.graph.updateItem(item, { isSelected: !!order, orderNumber: order || '', selectIconColor: isUnrelated ? '#9E9E9E' : '#4CAF50' });
+				return this.controller.syncSqlEditor();
+			}
 
-            /** * 2. HANDLE TREE EXPANSION / COLLAPSE
-             * If the node already has children loaded, just toggle visibility
-             */
+
             if (model.children && model.children.length > 0) {
                 this.graph.updateItem(item, { 
                     collapsed: !model.collapsed 
@@ -112,28 +120,15 @@ export class DatabaseDiagram extends ViewComponent {
                 return this.graph.layout(); 
             }
 
-            /** * 3. HANDLE DYNAMIC LOADING (ODOO MODULES)
-             * If it's a folder node and has no children, fetch data from BIService
-             */
             if (model.id.startsWith('folder:')) {
                 const moduleName = model.label; 
                 this.graph.updateItem(item, { label: `${moduleName} (Loading...)` });
 
                 try {
-                    // Call service layer for Odoo metadata
-                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase());
-                    
-                    // Controller handles the heavy lifting of list-to-tree conversion
+                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase());                    
                     const children = this.controller.listToTree(result.tables, moduleName);
-
                     setTimeout(() => this.controller.compileRelations(result.relations));
-                    
-                    this.graph.updateItem(item, { 
-                        label: moduleName, 
-                        children: children, 
-                        collapsed: false 
-                    });
-                    
+                    this.graph.updateItem(item, { label: moduleName, children: children, collapsed: false });
                     this.graph.layout(); 
                 } catch (err) {
                     console.error('Failed to load module tables:', err);
@@ -141,6 +136,7 @@ export class DatabaseDiagram extends ViewComponent {
                 }
             }
         });
+
     }
 
     async updateGraphData(summaryRows) {
@@ -155,7 +151,7 @@ export class DatabaseDiagram extends ViewComponent {
             id: `folder:${row[2].toUpperCase()}`, label: row[2].toUpperCase(), level: 1, children: [], collapsed: true
         }));
 
-        this.graph.data({ id: 'root', label: 'e2e-Data Platform', isRoot: true, children: moduleNodes });
+        this.graph.data({ id: 'root', label: 'Oddo modules', isRoot: true, children: moduleNodes });
         this.graph.render();
         this.graph.fitView(40);
 
@@ -166,20 +162,4 @@ export class DatabaseDiagram extends ViewComponent {
 
     }
 
-	// DatabaseDiagram.js
-	async onFolderExpand(moduleName, item) {
-		try {
-			const result = await BIService.getTablesWhenOdoo(moduleName);
-			// If result is an object with a 'rows' or 'data' property, use that:
-			const rows = Array.isArray(result) ? result : result.data; 
-			
-			this.compileRelations(rows);            
-			const children = this.controller.listToTree(rows, moduleName);
-			
-			this.graph.updateItem(item, { children, collapsed: false });
-			this.graph.layout(); 
-		} catch (err) {
-			console.error('Failed to load module tables:', err);
-		}
-	}
 }
