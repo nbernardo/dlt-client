@@ -1,212 +1,179 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
+import { BIService } from "../../../services/BIService.js";
 
+/** This component used the G6 library (https://g6.antv.antgroup.com/en/manual/introduction) which
+* is being dynamically imported in the app-setup.js, especially because of the heaviness of the
+* library, importing it directly here makes things to delay even more or the component not to load */
 export class DatabaseDiagram extends ViewComponent {
-	/**
-	 * This component used the G6 library (https://g6.antv.antgroup.com/en/manual/introduction) which
-	 * is being dynamically imported in the app-setup.js, especially because of the heaviness of the
-	 * library, importing it directly here makes things to delay even more or the component not to load
-	 */
+    isPublic = true;
 
-	isPublic = true;
+    /** @Prop */ graph;
 
-	/** @Prop */ graph;
+	/** @Prop */ initCount = 0;
 
-	async stOnRender(){ this.initCustomDBNode(); }
+    calculateTextWidth(text, font = '8px Arial') {
+        const context = document.createElement('canvas').getContext('2d');
+        context.font = font;
+        return context.measureText(text || '').width;
+    }
 
-	stAfterInit(){
-		this.init();
-	}
+    listToTree(data, moduleName) {
+        const map = {};
+        const folderChildren = [];
+        const blacklist = ['base_', 'portal_', 'l10n_', 'change_password_', 'wizard_ir_', 'res_users', 'res_groups', 'res_partner', 'mail_'];
+        
+        data.forEach(row => {
+            const [level, parentName, tableName, path] = row;
+            if (!path) return;
 
-	wrapperTableNode(group, width, height, color){
-		return group.addShape('rect', {
-			attrs: { x: 0, y: 0, width, height, fill: '#ffffff', stroke: color, lineWidth: 1, radius: 6, cursor: 'move' },
-			name: 'table-container', draggable: true,
-		});
-	}
+            const isBlacklisted = blacklist.some(p => tableName.startsWith(p));
+            if (isBlacklisted) return;
 
-	addTableHeader(group, width, headerHeight, color){
-		group.addShape('rect', {
-			attrs: { x: 0, y: 0, width, height: headerHeight, fill: color, radius: [6, 6, 0, 0], cursor: 'move' },
-			name: 'header', draggable: true,
-		});
-	}
+            const id = path.replace(/^[a-z0-9_]+/i, moduleName);            
+            const isExternal = !tableName.toLowerCase().startsWith(moduleName.toLowerCase());
 
-	addHeaderText(group, name, width, headerHeight){
-		group.addShape('text', {
-			attrs: {
-				x: width / 2, y: headerHeight / 2, textAlign: 'center', textBaseline: 'middle',
-				text: name, fill: '#ffffff', fontWeight: 'bold', fontSize: 12, cursor: 'move',
-			},
-			name: 'header-text', draggable: true,
-		});
-	}
+            map[id] = { id, label: tableName, level: level, isExternal: isExternal, children: [], collapsed: true };
+        });
 
-	addTableRow(group, col, yOffset, width, rowHeight){
-		// This adds the row with column name
-		group.addShape('rect', {
-			attrs: {  x: 0, y: yOffset, width, height: rowHeight,  fill: '#fff',  cursor: 'move'  },
-			name: `row-${col.name}`, draggable: true
-		});
-		// This adds the highlighter that takes place 
-		// when we hover in the tables relationship arrow
-		group.addShape('text', {
-			attrs: { x: 10, y: yOffset + rowHeight / 2, textBaseline: 'middle', text: col.name, fill: '#333', fontSize: 11, cursor: 'move' },
-			name: `text-${col.name}`, draggable: true
-		});
-	}
+        Object.values(map).forEach(node => {
+            const parts = node.id.split(' -> ');
+            const isModuleTable = !node.isExternal;
+            
+            if (parts.length === 1 || (parts.length === 2 && isModuleTable)) {
+                folderChildren.push(node);
+            } else {
+                const parentId = parts.slice(0, -1).join(' -> ');
+                if (map[parentId]) {
+                    map[parentId].children.push(node);
+                } else if (parts.length === 2) {
+                    const rootId = parts[0]; 
+                    if (map[rootId]) map[rootId].children.push(node);
+                }
+            }
+        });
+        return folderChildren;
+    }
 
-	initCustomDBNode(){
-		const self = this;
-		G6.registerNode('db-table', {
-			draw(cfg, group) {
-				const { name, columns, collapsed, color = '#5B8FF9' } = cfg;
-				const width = 200, headerHeight = 35, rowHeight = 25;
-				const height = collapsed ? headerHeight : headerHeight + ((columns || []).length * rowHeight);
-				const keyShape = self.wrapperTableNode(group, width, height, color);
+    stOnRender() { 
+        if (!G6.registerNode.isDbRegistered) {
+            this.initCustomDBNode(); 
+            G6.registerNode.isDbRegistered = true;
+        }
+    }
+    
+    stAfterInit() { this.init(); }
 
-				self.addTableHeader(group, width, headerHeight, color);
-				self.addHeaderText(group, name, width, headerHeight);
+    initCustomDBNode() {
+        const self = this;
+        G6.registerNode('db-table', {
+            draw(cfg, group) {
+                const { label = '', isRoot, isExternal } = cfg;
+                const fontSize = 8, height = 20;
+                const width = self.calculateTextWidth(label, `${fontSize}px Arial`) + 16;
 
-				(columns || []).forEach((col, i) => self.addTableRow(group, col, (headerHeight + (i * rowHeight)), width, rowHeight));
+                let fill = cfg.level === 1 ? '#e6f7ff' : '#f0f5ff';
+                let stroke = cfg.level === 1 ? '#91d5ff' : '#adc6ff';
+                let textColor = isRoot ? '#ffffff' : '#000000';
+                let lineDash = null;
 
-				return keyShape;
-			},
-			getAnchorPoints() { return [[0, 0.5], [1, 0.5]]; }
-		}, 'rect');
-	}
+                if (isRoot) { 
+                    fill = '#1d39c4', stroke = '#002329'; 
+                } else if (isExternal) {
+                    fill = '#ffffff', stroke = '#ffa39e', lineDash = [3, 2];
+                }
 
-	initGraph() {
-		const container = document.getElementById('mountNode');
-		if (!container) return null;
+                const keyShape = group.addShape('rect', {
+                    attrs: { 
+                        x: -width / 2, y: -height / 2, width, height, fill, 
+                        stroke, lineWidth: 1, radius: 2, lineDash: lineDash 
+                    },
+                    name: 'table-container',
+                });
 
-		const graphInstance = new G6.Graph({
-			container: 'mountNode',
-			width: container.clientWidth || 800, 
-			height: container.clientHeight || 600,
-			fitView: true,
-			fitViewPadding: 50,
-			modes: {
-				default: ['drag-canvas', 'zoom-canvas', 'drag-node'],
-			},
-			layout: {
-				type: 'gForce',
-				gravity: 10,
-				edgeStrength: 200,
-				nodeStrength: 1000,
-				preventOverlap: true,
-				workerEnabled: true, 
-				gpuEnabled: true 
-			},
-			defaultNode: {
-				type: 'db-table',
-			}
-		});
+                group.addShape('text', {
+                    attrs: { 
+                        x: 0, y: 0, textAlign: 'center', textBaseline: 'middle', text: label, 
+                        fill: textColor, fontSize, fontWeight: isRoot ? 'bold' : 'normal' 
+                    },
+                    name: 'table-label',
+                });
+                return keyShape;
+            }
+        });
+    }
 
-		// Handle window resizing
-		window.addEventListener('resize', () => {
-			if (!graphInstance || graphInstance.get('destroyed')) return;
-			graphInstance.changeSize(container.clientWidth, container.clientHeight);
-		});
+    initGraph() {
+        const container = document.getElementById('mountNode');
+        if (!container) return null;
 
-		// RETURN the instance so this.graph is defined
-		return graphInstance;
-	}
+        const graph = new G6.TreeGraph({
+            container: 'mountNode', width: container.scrollWidth, height: container.scrollHeight || 600,
+            fitView: false, fitCenter: true, modes: { default: ['drag-canvas', 'zoom-canvas'] },
+            layout: {
+                type: 'compactBox', direction: 'LR', getId: (d) => d.id, getHeight: () => 20, 
+				getWidth: (d) => this.calculateTextWidth(d.label) + 20, getVGap: () => 10, getHGap: () => 60,
+            },
+            animate: true,
+            defaultNode: { type: 'db-table' },
+            defaultEdge: { type: 'cubic-horizontal', style: { stroke: '#A3B1BF', lineWidth: 1 } },
+        });
 
-	toggleFieldHighlight(graph, edgeItem, isHovering){
-		const model = edgeItem.getModel();
-		const sourceNode = graph.findById(model.source), targetNode = graph.findById(model.target);
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', () => {
+                if (!graph || graph.get('destroyed')) return;
+                graph.changeSize(container.scrollWidth, container.scrollHeight);
+            });
+        }
+        return graph;
+    }
 
-		const highlight = (node, fieldName) => {
-			if (!node || !fieldName) return;
-			const group = node.getContainer();
-			const row = group.find(el => el.get('name') === `row-${fieldName}`);
-			if (row) {
-				row.attr('fill', isHovering ? '#e6f7ff' : '#ffffff');
-				row.attr('stroke', isHovering ? '#1890ff' : 'transparent');
-			}
-		};
+    init() {
+        this.graph = this.initGraph();
+        if (!this.graph) return;
 
-		highlight(sourceNode, model.sourceField);
-		highlight(targetNode, model.targetField);
+        this.graph.data({ id: 'root', label: 'e2e-Data Platform', isRoot: true, children: [] });
+        this.graph.render();
 
-		graph.updateItem(edgeItem, { style: { stroke: isHovering ? '#1890ff' : '#A3B1BF', lineWidth: isHovering ? 3 : 2 } });
-	};
+        this.graph.on('node:click', async (e) => {
+            const { item } = e;
+            const model = item.getModel();
 
-	init(){
+            if (model.children && model.children.length > 0) {
+                this.graph.updateItem(item, { collapsed: !model.collapsed });
+                return this.graph.layout(); 
+            }
 
-		const data = {
-			nodes: [
-				{ id: 't1', name: 'Users', type: 'db-table', x: 100, y: 100, columns: [{name: 'id'}, {name: 'name'}] },
-				{ id: 't2', name: 'Posts', type: 'db-table', x: 450, y: 100, columns: [{name: 'id'}, {name: 'user_id'}] },
-				{ id: 't3', name: 'Peoples', type: 'db-table', x: 450, y: 300, columns: [{name: 'id'}, {name: 'user_id'}] }
-			],
-			edges: [
-				{ 
-				source: 't1', target: 't2', label: '1:N', sourceField: 'id',  targetField: 'user_id', 
-					labelCfg: {
-						autoRotate: false,
-						style: {
-							fill: '#333', fontSize: 11, fontWeight: 'bold',
-							background: { fill: '#ffffff', padding: [2, 4, 2, 4], radius: 2, stroke: '#A3B1BF', lineWidth: 1 }
-						}
-					}
-				},
-				{ 
-				source: 't1',  target: 't3', label: '1:N', sourceField: 'id', targetField: 'user_id', 
-					labelCfg: {
-						autoRotate: false, 
-						style: {
-							fill: '#333', fontSize: 11, fontWeight: 'bold',
-							background: { fill: '#ffffff', padding: [2, 4, 2, 4], radius: 2, stroke: '#A3B1BF', lineWidth: 1 }
-						}
-					}
-				}
-			]
-		};
+            if (model.id.startsWith('folder:')) {
+                const moduleName = model.label; 
+                this.graph.updateItem(item, { label: `${moduleName} (Loading...)` });
 
-		this.graph = this.initGraph();
-		this.graph.on('edge:mouseenter', (evt) => this.toggleFieldHighlight(this.graph, evt.item, true));
-		this.graph.on('edge:mouseleave', (evt) => this.toggleFieldHighlight(this.graph, evt.item, false));
+                try {
+                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase());
+                    const children = this.listToTree(result, moduleName);
+                    this.graph.updateItem(item, { label: moduleName, children: children, collapsed: false });
+                    this.graph.layout(); 
+                } catch (err) {
+                    this.graph.updateItem(item, { label: moduleName });
+                }
+            }
+        });
+    }
 
-		this.graph.data(data); this.graph.render();
-	}
+    updateGraphData(summaryRows) {
+        if (!this.graph) 
+            return setTimeout(() => this.updateGraphData(summaryRows), 50);
 
-	updateGraphData(dbRows) {
-		if (!dbRows || !Array.isArray(dbRows)) return;
+        if (!summaryRows || summaryRows.length === 0) return;
 
-		if (!this.nodeRegistered) {
-			this.initCustomDBNode();
-			this.nodeRegistered = true; 
-		}
+        const container = document.getElementById('mountNode');
+        if (container) this.graph.changeSize(container.scrollWidth, container.scrollHeight);
+        
+        const moduleNodes = summaryRows.map(row => ({
+            id: `folder:${row[2].toUpperCase()}`, label: row[2].toUpperCase(), level: 1, children: [], collapsed: true
+        }));
 
-		const nodes = dbRows.map(row => {
-			// row[0] is the model name from your SQL query (e.g., 'account.move')
-			const modelName = row[0] || 'Unknown Model'; 
-			const prefix = modelName.split('.')[0];
-			
-			const colors = {
-				sale: '#3b82f6',
-				account: '#10b981',
-				stock: '#f59e0b',
-				product: '#ef4444',
-				res: '#8b5cf6'
-			};
-
-			return {
-				id: modelName,        // Used for edge connections
-				name: modelName,      // Used by your custom node 'draw' function
-				type: 'db-table',
-				table_name: modelName.replace(/\./g, '_'),
-				color: colors[prefix] || '#94a3b8', // Matches your draw() parameter
-				// Initial spread to help the gForce layout engine
-				x: Math.random() * 500,
-				y: Math.random() * 500
-			};
-		});
-
-		this.graph.data({ nodes, edges: [] });
-		this.graph.render();
-		this.graph.fitView(40);
-	}
-
+        this.graph.data({ id: 'root', label: 'e2e-Data Platform', isRoot: true, children: moduleNodes });
+        this.graph.render();
+        this.graph.fitView(40);
+    }
 }

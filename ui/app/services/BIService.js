@@ -11,6 +11,7 @@ export class BIService extends BaseService {
     static dashboardDataPointer = {};
     static pivotBaseFields = [];
     static dashboardChartsMap = new Set();
+    static activePipeline = null;
 
     static setDashboardDataPointer(data){
         const pointerId = Date.now() + Math.random().toString().slice(2);
@@ -96,9 +97,18 @@ export class BIService extends BaseService {
         return [];
     }
 
-    static async getModulesWhenOdoo(pipeline) {
+    static async getModulesWhenOdoo() {
         const namespace = await BIService.getNamespace();
-        const url = `/analytics/integration/odoomodules/${namespace}/${pipeline.split('.')[1]}`;
+        const url = `/analytics/integration/odoomodules/${namespace}/${BIService.activePipeline}`;
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok)
+            return (await response.json())?.result?.modules;
+        return [];
+    }
+
+    static async getTablesWhenOdoo(moduleName) {
+        const namespace = await BIService.getNamespace();
+        const url = `/analytics/integration/odootables/${moduleName}/${namespace}/${BIService.activePipeline}`;
         const response = await $still.HTTPClient.get(url);
         if (response.ok)
             return (await response.json())?.result?.modules;
