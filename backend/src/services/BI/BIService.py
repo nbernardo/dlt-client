@@ -25,13 +25,13 @@ class BIService:
 
 
     @staticmethod
-    def get_odoo_modules(namespace, pipeline):
-        return OdooDBIntegration.get_modules(namespace, pipeline).get('result', {})
+    def get_odoo_modules(namespace, connection_name, pipeline):
+        return OdooDBIntegration.get_modules(namespace, connection_name, pipeline).get('result', [])
     
 
     @staticmethod
-    def get_odoo_tables_by_module(module_name, namespace, pipeline):
-        return OdooDBIntegration.get_tables_by_module(module_name, namespace, pipeline)    
+    def get_odoo_tables_by_module(module_name, namespace, connection_name, pipeline):
+        return OdooDBIntegration.get_tables_by_module(module_name, namespace, connection_name, pipeline)    
 
 
     @staticmethod

@@ -4,7 +4,7 @@ from utils.metastore.PipelineMedatata import PipelineMedatata
 class OdooDBIntegration:
 
     @staticmethod
-    def get_modules(namespace, pipeline):
+    def get_modules(namespace, connection_name = None, pipeline = None):
         query = '''
             -- FETCH ALL UNIQUE MODULES AS ENTRY POINTS (ULTIMATE FILTER)
             WITH RawModules AS (
@@ -19,9 +19,15 @@ class OdooDBIntegration:
             AND module_name ~ '^[A-Z]' AND length(module_name) > 2
             ORDER BY table_name;
         '''
-        pipeline_meta = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
-        connection_name = pipeline_meta[2]
-        return DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
+        try:
+            if connection_name == None:
+                pipeline_meta = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
+                connection_name = pipeline_meta[2]
+
+            return DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
+        except Exception as err:
+            print(f'Error while fetching Odoo modules: {str(err)}')
+            return {}
     
 
     @staticmethod
@@ -42,7 +48,7 @@ class OdooDBIntegration:
     
 
     @staticmethod
-    def get_tables_by_module(module_name: str, namespace, pipeline):
+    def get_tables_by_module(module_name: str, namespace, connection_name, pipeline):
         query = f'''
             WITH RECURSIVE TableHierarchy AS (
                 -- Anchor: Fetch core tables for the module
@@ -98,9 +104,17 @@ class OdooDBIntegration:
                     parent_table not like 'l10n_%'
             ORDER BY path, level;
         '''
-        pipeline_meta = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
-        connection_name = pipeline_meta[2]
-        tables = DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
-        relations = DestinationQueryUtil._query_sql_database(OdooDBIntegration._tables_rel_query(), namespace, connection_name)
 
-        return { 'tables': tables.get('result', {}), 'relations': relations.get('result', {}) }
+        try:
+            if connection_name == None:
+                pipeline_meta = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
+                connection_name = pipeline_meta[2]
+
+            tables = DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
+            relations = DestinationQueryUtil._query_sql_database(OdooDBIntegration._tables_rel_query(), namespace, connection_name)
+
+            return { 'tables': tables.get('result', {}), 'relations': relations.get('result', {}) }
+        
+        except Exception as err:
+            print(f'Error while fetching Odoo modules: {str(err)}')
+            return {}

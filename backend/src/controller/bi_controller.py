@@ -51,18 +51,22 @@ def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
 
 
 @bi_controller.route('/analytics/integration/odoomodules/<namespace>/<pipeline>', methods=['GET'])
-def get_odoo_modules(namespace, pipeline):
+@bi_controller.route('/analytics/integration/odoomodules/<namespace>', methods=['POST'])
+def get_odoo_modules(namespace, pipeline = None):
+    payload = request.get_json()
     return { 
         'result': {
-            'modules': BIService.get_odoo_modules(namespace, pipeline),
+            'modules': BIService.get_odoo_modules(namespace, payload.get('connectioName'), pipeline),
         }, 
         'error': False 
     }
 
 
 @bi_controller.route('/analytics/integration/odootables/<module_name>/<namespace>/<pipeline>', methods=['GET'])
-def get_odoo_tables(module_name, namespace, pipeline):
-    tables_and_relations = BIService.get_odoo_tables_by_module(module_name, namespace, pipeline)
+@bi_controller.route('/analytics/integration/odootables/<module_name>/<namespace>', methods=['POST'])
+def get_odoo_tables(module_name, namespace, pipeline = None):
+    payload = request.get_json()
+    tables_and_relations = BIService.get_odoo_tables_by_module(module_name, namespace, payload.get('connectioName'), pipeline)
     return { 'result':  tables_and_relations, 'error': False }
 
 
