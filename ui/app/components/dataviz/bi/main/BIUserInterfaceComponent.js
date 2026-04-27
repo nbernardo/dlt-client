@@ -70,7 +70,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		
 		this.appPath = await BIService.getAppPath();
 		this.runningOnOdoo = StillAppSetup.config.get('runningOnOdoo');
-        await Assets.import({ path: `${this.appPath}/app/components/dataviz/diagram/g6.js`, type: 'js' });
+		if(this.runningOnOdoo)
+        	await Assets.import({ path: `${this.appPath}/app/components/dataviz/diagram/g6.js`, type: 'js' });
 		//setTimeout(async () => {
 			let result = await BIController.getDashboardDetails();
 			

@@ -333,7 +333,8 @@ export class BIController extends BaseController {
         if(id === 'diagram') {
             BIService.activePipeline = this.obj.state.pipeline.split('.')[1];
             const result = await BIService.getModulesWhenOdoo();
-            this.obj.dbDiagramProxy.updateGraphData(result);            
+            this.obj.dbDiagramProxy.updateGraphData(result);
+            setTimeout(async () => this.assignDiagramConnectionName(await BIService.listSecrets()));
         } else {
             this.obj.showDashboardActions = false;
             this.obj.showDashboardActions = false;
@@ -753,7 +754,10 @@ export class BIController extends BaseController {
     static currentTableList = [];
     static rangeFields;
 
-	async onPipelineChange(val) {
+	async onPipelineChange(elm) {
+
+        const val = elm.value, modelName = elm.options[elm.selectedIndex].textContent;
+
         this.obj.popup.querySelector('.tableList').innerHTML = this.dataProcessLoading('Loading data tables');
         this.obj.state.pipeline = val;
         let tablesByContext = await BIController.getDomainPipelineFields(val);
@@ -765,8 +769,19 @@ export class BIController extends BaseController {
         this.renderTableList();
         this.dataSourceStepper.updateTablesList(BIController.currentTableList);
         this.dataSourceStepper.initStepper(null, {isDate: false, start: 1, end: BIController.rangeFields?.row_count?.row || 1, step: 1})
+        this.assignDiagramConnectionName([{ name: `> Current Model - ${modelName} <` }]);
         //this.viewingTables.clear(); //TODO: Offload implementation
 	}
+
+    assignDiagramConnectionName(secretsList = []){
+        const diagramLoadedSecrets = this.obj.dbDiagramProxy.secretList.value || [];
+        if(secretsList[0]?.name?.startsWith('> Current Model - ')){
+            const prevModelIndex = diagramLoadedSecrets.findIndex(itm => String(itm.name).startsWith('> Current Model - '));
+            diagramLoadedSecrets.splice(prevModelIndex, 1);
+        }
+
+        this.obj.dbDiagramProxy.secretList = [...secretsList, ...diagramLoadedSecrets]
+    }
 
     async loadSavedChart(id) {
 

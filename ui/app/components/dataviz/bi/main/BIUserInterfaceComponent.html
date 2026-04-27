@@ -108,7 +108,7 @@
 								<!-- <div class="logo"><div class="logo-dot"></div>DataViz</div>
 								<div class="topbar-divider"></div> -->
 								<div style="font-weight: bold; font-size: 12px;">Modelo: </div>
-								<select class="pipeline-selector" (forEach)="domainPipelinesList" onchange="controller.onPipelineChange(this.value)">
+								<select class="pipeline-selector" (forEach)="domainPipelinesList" onchange="controller.onPipelineChange(this)">
 									<option each="item" value="{item.pipeline}">{item.name}</option>
 								</select>
 							</div>

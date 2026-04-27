@@ -1,10 +1,15 @@
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
 import { DatabaseDiagram } from "../diagram/DatabaseDiagram.js";
+import { BIService } from "../services/BIService.js";
 
 export class DBDiagramController extends BaseController {
     
     /** @type { DatabaseDiagram } */
     obj;
+
+    editor;
+
+    selectedConnection;
 
     /** @type { Map<string, number> } */
     selectedTablesMap = new Map(); // table_name -> orderNumber
@@ -80,12 +85,10 @@ export class DBDiagramController extends BaseController {
     }
 
     syncSqlEditor() {
-        const textarea = this.obj.container.querySelector('#sqlTextarea');
-        if (!textarea) return;
 
         const selectedEntries = Array.from(this.selectedTablesMap.entries());
         if (selectedEntries.length === 0) {
-            textarea.value = `-- e2e-Data Query Builder\n-- Select tables in the diagram to auto-generate JOINs.`;
+            this.editor.setValue(`-- Write your query here. \n-- Or Add/Select tables in the diagram to the query.`);
             return;
         }
 
@@ -116,12 +119,13 @@ export class DBDiagramController extends BaseController {
         });
 
         const fromClause = [baseTable, ...crossJoins].join(', ');
-        textarea.value = [
-            `-- Auto-generated Business Query`,
-            `SELECT *`,
-            `FROM ${fromClause}`,
-            joins.length > 0 ? `    ${joins.join('\n    ')}` : ''
-        ].filter(v => v.trim()).join('\n') + ';';
+        this.editor.setValue(
+            [
+                `-- Auto-generated Business Query`,
+                `SELECT *`,`FROM ${fromClause}`,
+                joins.length > 0 ? `    ${joins.join('\n    ')}` : ''
+            ].filter(v => v.trim()).join('\n') + ';'
+        );        
     }
 
     static initCustomDBNode() {
@@ -137,7 +141,7 @@ export class DBDiagramController extends BaseController {
                 let textColor = isRoot ? '#ffffff' : '#000000';
                 let lineWidth = isSelected ? 2 : 1;
 
-                if (isRoot) { fill = '#1d39c4'; stroke = '#002329'; } 
+                if (isRoot) { fill = '#2c3e50'; stroke = '#002329'; } 
                 else if (isExternal) { fill = '#ffffff'; stroke = '#ffa39e'; }
 
                 const keyShape = group.addShape('rect', {
@@ -207,5 +211,38 @@ export class DBDiagramController extends BaseController {
         });
 
         return Array.from(nodeMap.values()).filter(node => node.id.split(' -> ').length === 2);
+    }
+
+    async loadMonacoEditorDependencies(){
+        
+        if (window.monaco) return;
+        
+        await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js' });
+        await Assets.import({ path: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js' });
+
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } });
+        require(['vs/editor/editor.main'], (monaco) => {
+            monaco.languages.registerCompletionItemProvider('python', {
+                provideCompletionItems: () => ({ suggestions: CodeEditorUtil.getPythonSuggestions() }),
+            });
+            window.monaco
+        });
+
+    }
+
+    selectConnectionName = (connectionName) => this.selectedConnection = connectionName;
+
+    async loadCodeEditor(){
+        this.loadMonacoEditorDependencies();
+        this.editor = monaco.editor.create(document.getElementById('sqlEditor'), {
+            value: this.query, language: 'sql', theme: 'vs-light', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false,
+        }); 
+        this.editor.setValue(`-- Write your query here. \n-- Or Add/Select tables in the diagram to the query.`);
+    }
+
+    async runSQLQuery(){
+        const result = await BIService.runSQLQuery(this.editor.getValue(), this.selectedConnection);
+        console.log(`THE QUERY RESULT IS: `, result);
+        
     }
 }

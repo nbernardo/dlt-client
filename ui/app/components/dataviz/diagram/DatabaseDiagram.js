@@ -22,9 +22,9 @@ export class DatabaseDiagram extends ViewComponent {
 	 * @Controller
 	 * @Path components/dataviz/controllers/
 	 * @type { DBDiagramController }
-	 */ controller;
+	*/ controller;
 
-
+    secretList;
 
     stOnRender() { 
         if (!G6.registerNode.isDbRegistered) {
@@ -35,10 +35,11 @@ export class DatabaseDiagram extends ViewComponent {
     
     stAfterInit() { 
 		this.container = document.getElementById(this.uniqueId);
-		this.controller.on('load', () => {
+		this.controller.on('load', async () => {
 			this.controller.obj = this;
 			this.init();
 			this.controller.bindToolbar();
+            await this.controller.loadCodeEditor();
 		});
 	}
 
@@ -151,7 +152,7 @@ export class DatabaseDiagram extends ViewComponent {
             id: `folder:${row[2].toUpperCase()}`, label: row[2].toUpperCase(), level: 1, children: [], collapsed: true
         }));
 
-        this.graph.data({ id: 'root', label: 'Oddo modules', isRoot: true, children: moduleNodes });
+        this.graph.data({ id: 'root', label: 'Odoo modules', isRoot: true, children: moduleNodes });
         this.graph.render();
         this.graph.fitView(40);
 
@@ -159,7 +160,6 @@ export class DatabaseDiagram extends ViewComponent {
 			await sleepForSec(200);
 			this.initCount++, await this.updateGraphData(summaryRows);
 		}
-
     }
 
 }

@@ -2,6 +2,7 @@ import { $still } from "../../../../@still/component/manager/registror.js";
 import { BaseService } from "../../../../@still/component/super/service/BaseService.js";
 import { HTTPHeaders } from "../../../../@still/helper/http.js";
 import { StillAppSetup } from "../../../../config/app-setup.js";
+import { AppTemplate } from "../../../../config/app-template.js";
 import { AIUtil } from "../../../util/AIUtil.js";
 
 
@@ -150,11 +151,52 @@ export class BIService extends BaseService {
         return null;
     }
 
+    /** @returns { { result: { result } } } */
+    static async runSQLQuery(query, connectionName) {
+        const namespace = await BIService.getNamespace();
+        const url = '/analytics/sql_query/' + namespace;
+
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ query, connectionName }), HTTPHeaders.JSON);
+        if (response.ok && !response.error)
+            return await response.json();
+        return null;
+    }
+
     static async getAppPath(){
         let cssPathPrefix = '';
         if(StillAppSetup.config.get('runningOnOdoo'))
             cssPathPrefix = `${location.origin}/odoo-e2e-bi/static/src/dashboard-app`;
         return cssPathPrefix;
+    }
+
+    static async listSecrets() {
+        try {
+            
+            const namespace = await BIService.getNamespace();
+            const response = await $still.HTTPClient.get('/secret/' + namespace);
+    
+            if (response.ok && !response.error){
+    
+                let secretList = (await response.json()).result, secretAndServerList;
+    
+                if(Array.isArray(secretList?.db_secrets)){
+                    const secretNames = [];
+                    secretAndServerList = secretList.db_secrets.map(secret => {
+                        if(!secretList.metadata[secret]) secretNames.push(secret);
+                        return { name: secret, host: secretList.metadata[secret] || 'None' };
+                    });
+                }
+                
+                return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
+    
+            } else {
+                const result = await response.json();
+                AppTemplate.toast.error(result.result);
+            }
+
+        } catch (error) {
+            return [];
+        }
     }
 
 }
