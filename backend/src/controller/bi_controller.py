@@ -64,3 +64,10 @@ def get_odoo_modules(namespace, pipeline):
 def get_odoo_tables(module_name, namespace, pipeline):
     tables_and_relations = BIService.get_odoo_tables_by_module(module_name, namespace, pipeline)
     return { 'result':  tables_and_relations, 'error': False }
+
+
+@bi_controller.route('/analytics/sql_query/<namespace>', methods=['POST'])
+def query_sql_rdbms(namespace):
+    payload = request.get_json()
+    tables_and_relations = BIService.query_sql_rdbms(payload['query'], namespace, payload['connectionName'])
+    return { **tables_and_relations, 'error': False }

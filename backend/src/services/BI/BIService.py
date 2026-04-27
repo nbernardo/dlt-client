@@ -1,5 +1,6 @@
 from utils.metastore.meta_storage import MetaStore
 from integrations.database.OdooDBIntegration import OdooDBIntegration
+from utils.DestinationQueryUtil import DestinationQueryUtil
 
 class BIService:
 
@@ -30,4 +31,9 @@ class BIService:
 
     @staticmethod
     def get_odoo_tables_by_module(module_name, namespace, pipeline):
-        return OdooDBIntegration.get_tables_by_module(module_name, namespace, pipeline)
+        return OdooDBIntegration.get_tables_by_module(module_name, namespace, pipeline)    
+
+
+    @staticmethod
+    def query_sql_rdbms(query, namespace, connection_name):
+        return DestinationQueryUtil.query_sql_database(query, namespace, connection_name)
