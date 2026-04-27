@@ -1,6 +1,9 @@
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
+import { Assets } from "../../../../@still/util/componentUtil.js";
+import { Grid } from "../bi/grid/Grid.js";
 import { DatabaseDiagram } from "../diagram/DatabaseDiagram.js";
 import { BIService } from "../services/BIService.js";
+import { BIController } from "./BIController.js";
 
 export class DBDiagramController extends BaseController {
     
@@ -15,6 +18,11 @@ export class DBDiagramController extends BaseController {
     selectedTablesMap = new Map(); // table_name -> orderNumber
 
     relationRegistry = new Map(); 
+
+    /** @returns { DBDiagramController } */
+    static fromContext = () => DBDiagramController.get();
+
+    /** @type { Grid } */ datagridInstance;
 
     handleTableSelect(tableName) {
         if (this.selectedTablesMap.has(tableName)) {
@@ -65,19 +73,16 @@ export class DBDiagramController extends BaseController {
 
     toggleView(view) {
         const diagramEl = this.obj.container.querySelector('#mountNode');
-        const editorEl = this.obj.container.querySelector('#sqlEditor');
         const btnDiagram = this.obj.container.querySelector('#btnDiagram');
         const btnSQL = this.obj.container.querySelector('#btnSQL');
 
         if (view === 'diagram') {
-            diagramEl.style.display = 'block';
-            editorEl.style.display = 'none';
+            this.obj.showDiagram = true;
             btnDiagram.classList.add('active');
             btnSQL.classList.remove('active');
             if (this.obj.graph) this.obj.graph.changeSize(diagramEl.scrollWidth, diagramEl.scrollHeight);
         } else {
-            diagramEl.style.display = 'none';
-            editorEl.style.display = 'block';
+            this.obj.showDiagram = false;
             btnDiagram.classList.remove('active');
             btnSQL.classList.add('active');
             this.syncSqlEditor();
@@ -122,8 +127,9 @@ export class DBDiagramController extends BaseController {
         this.editor.setValue(
             [
                 `-- Auto-generated Business Query`,
-                `SELECT *`,`FROM ${fromClause}`,
-                joins.length > 0 ? `    ${joins.join('\n    ')}` : ''
+                `SELECT * FROM ${fromClause}`,
+                joins.length > 0 ? `    ${joins.join('\n    ')}` : '',
+                'LIMIT 100'
             ].filter(v => v.trim()).join('\n') + ';'
         );        
     }
@@ -230,10 +236,19 @@ export class DBDiagramController extends BaseController {
 
     }
 
-    selectConnectionName = (connectionName) => this.selectedConnection = connectionName;
+    async selectConnectionName(connectionName){
+        const container = this.obj.container.querySelector('#mountNode');
+        BIController.fromContext().addLoadingOnContainer(container, 'Loading database diagram');
+        const result = await BIService.getModulesWhenOdoo(connectionName);
+        this.obj.updateGraphData(result);
+        this.selectedConnection = connectionName;
+        BIController.fromContext().removeLoadingFromContainer(container);
+    }
 
     async loadCodeEditor(){
-        this.loadMonacoEditorDependencies();
+        if(!this.obj.$parent.runningOnOdoo)
+            this.loadMonacoEditorDependencies();
+
         this.editor = monaco.editor.create(document.getElementById('sqlEditor'), {
             value: this.query, language: 'sql', theme: 'vs-light', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false,
         }); 
@@ -241,8 +256,65 @@ export class DBDiagramController extends BaseController {
     }
 
     async runSQLQuery(){
+        const container = this.obj.container.querySelector('.sqlDataExploratio');
+        BIController.fromContext().addLoadingOnContainer(container, 'Fetching/Processing data');
+
         const result = await BIService.runSQLQuery(this.editor.getValue(), this.selectedConnection);
-        console.log(`THE QUERY RESULT IS: `, result);
+        const fields = result.fields || [];
+        const rows = result.result;
+        
+        if(!this.datagridInstance){
+            const { template: gridUI, component: gridComponent } = await Components.new(Grid, { fields, data: rows });
+            this.datagridInstance = gridComponent;
+            this.obj.container.querySelector('.queryResultPLaceholder').innerHTML = gridUI;
+            this.datagridInstance.onLoad(() => {
+                this.datagridInstance.loadGrid();
+                BIController.fromContext().removeLoadingFromContainer(container);
+            });
+        }else{
+            this.datagridInstance.setGridData(fields, rows).loadGrid();
+            BIController.fromContext().removeLoadingFromContainer(container);
+        }
         
     }
+
+    setGraphOnClickEvt(graph){
+
+        graph.on('node:click', async (e) => {
+            const { item, target } = e;
+            const model = item.getModel(), shapeName = target.get('name');
+
+			if (shapeName === 'select-icon-bg' || shapeName === 'select-icon-text') {
+				this.handleTableSelect(model.label);
+				
+				const order = this.selectedTablesMap.get(model.label);
+				const isUnrelated = this.isTableUnrelated(model.label);
+
+				graph.updateItem(item, { isSelected: !!order, orderNumber: order || '', selectIconColor: isUnrelated ? '#9E9E9E' : '#4CAF50' });
+				return this.syncSqlEditor();
+			}
+
+            if (model.children && model.children.length > 0) {
+                graph.updateItem(item, { collapsed: !model.collapsed });
+                return graph.layout(); 
+            }
+
+            if (model.id.startsWith('folder:')) {
+                const moduleName = model.label; 
+                graph.updateItem(item, { label: `${moduleName} (Loading...)` });
+
+                try {
+                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase(), this.selectedConnection);                    
+                    const children = this.listToTree(result.tables, moduleName);
+                    setTimeout(() => this.compileRelations(result.relations));
+                    graph.updateItem(item, { label: moduleName, children: children, collapsed: false });
+                    graph.layout(); 
+                } catch (err) {
+                    console.error('Failed to load module tables:', err);
+                    graph.updateItem(item, { label: moduleName });
+                }
+            }
+        });
+
+    }    
 }

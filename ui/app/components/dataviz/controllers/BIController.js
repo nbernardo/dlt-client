@@ -88,7 +88,7 @@ export class BIController extends BaseController {
     viewingTables = new Set();
     async loadTable(name, runAnalytics) {
         this.obj.state.activeTable = name;
-        this.obj.state.filteredRows = [...this.obj.gridDataSource];
+        this.obj.state.filteredRows = [...(this.obj.gridDataSource || [])];
         this.obj.state.selectedRows.clear();
         this.populateAxisSelects();
         
@@ -331,10 +331,8 @@ export class BIController extends BaseController {
         if(id === 'sheet') await this.obj.init();
         if(id === 'dashboard') this.obj.showDashboardActions = true;
         if(id === 'diagram') {
-            BIService.activePipeline = this.obj.state.pipeline.split('.')[1];
-            const result = await BIService.getModulesWhenOdoo();
-            this.obj.dbDiagramProxy.updateGraphData(result);
-            setTimeout(async () => this.assignDiagramConnectionName(await BIService.listSecrets()));
+            if(!this.obj.dbDiagramProxy.secretList.value)
+                setTimeout(async () => this.assignDiagramConnectionName(await BIService.listSecrets()));
         } else {
             this.obj.showDashboardActions = false;
             this.obj.showDashboardActions = false;
@@ -350,8 +348,7 @@ export class BIController extends BaseController {
         if(id == 'pivot'){
             this.obj.showTablesList = false;
             this.obj.showTablesList = false;
-        }
-        else {
+        } else {
             this.obj.showTablesList = true;
             this.obj.showTablesList = true;
         }
@@ -391,13 +388,15 @@ export class BIController extends BaseController {
     populateAxisSelects() {
 
         const { gridDataSource } = this.obj;
-        const cols = gridDataSource.length ? Object.keys(gridDataSource[0]) : [];
-        const opts = cols.map((c) => `<option value="${c}">${c}</option>`).join("");
-
-        this.obj.popup.querySelector('#xAxisSelect').innerHTML = opts;
-        this.obj.popup.querySelector('#yAxisSelect').innerHTML = opts;
-
-        if (cols.length > 1) this.obj.popup.querySelector('#yAxisSelect').value = cols[1];
+        if(gridDataSource){
+            const cols = gridDataSource.length ? Object.keys(gridDataSource[0]) : [];
+            const opts = cols.map((c) => `<option value="${c}">${c}</option>`).join("");
+    
+            this.obj.popup.querySelector('#xAxisSelect').innerHTML = opts;
+            this.obj.popup.querySelector('#yAxisSelect').innerHTML = opts;
+    
+            if (cols.length > 1) this.obj.popup.querySelector('#yAxisSelect').value = cols[1];
+        }
 
     }
 
@@ -563,6 +562,9 @@ export class BIController extends BaseController {
 
     /** @returns { HTMLElement } */
     static getDashboardGrid = () => BIController.get().obj.popup.querySelector('.dashGrid');
+
+    /** @returns { BIController } */
+    static fromContext = () => BIController.get();
 
     addLoadingOnContainer = (container, message) => {
         const loader = this.dataProcessLoading(message);
@@ -769,7 +771,7 @@ export class BIController extends BaseController {
         this.renderTableList();
         this.dataSourceStepper.updateTablesList(BIController.currentTableList);
         this.dataSourceStepper.initStepper(null, {isDate: false, start: 1, end: BIController.rangeFields?.row_count?.row || 1, step: 1})
-        this.assignDiagramConnectionName([{ name: `> Current Model - ${modelName} <` }]);
+        //this.assignDiagramConnectionName([{ name: `> Current Model - ${modelName} <` }]);
         //this.viewingTables.clear(); //TODO: Offload implementation
 	}
 

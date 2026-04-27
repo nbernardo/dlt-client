@@ -98,23 +98,31 @@ export class BIService extends BaseService {
         return [];
     }
 
-    static async getModulesWhenOdoo() {
+    static async getModulesWhenOdoo(connectioName) {
         const namespace = await BIService.getNamespace();
-        const url = `/analytics/integration/odoomodules/${namespace}/${BIService.activePipeline}`;
-        const response = await $still.HTTPClient.get(url);
+        let url = `/analytics/integration/odoomodules/${namespace}`;
+
+        if(connectioName){
+            var response = await $still.HTTPClient.post(url, JSON.stringify({ connectioName }), HTTPHeaders.JSON);
+        }else
+            var response = await $still.HTTPClient.get(`${url}/${BIService.activePipeline}`);
+
         if (response.ok)
             return (await response.json())?.result?.modules;
         return [];
     }
 
-    static async getTablesWhenOdoo(moduleName) {
+    static async getTablesWhenOdoo(moduleName, connectioName) {
         const namespace = await BIService.getNamespace();
-        const url = `/analytics/integration/odootables/${moduleName}/${namespace}/${BIService.activePipeline}`;
-        const response = await $still.HTTPClient.get(url);
-        if (response.ok){
-            const result = (await response.json())?.result;
-            return result;
-        }
+        let url = `/analytics/integration/odootables/${moduleName}/${namespace}`;
+
+        if(connectioName){
+            var response = await $still.HTTPClient.post(url, JSON.stringify({ connectioName }), HTTPHeaders.JSON);
+        }else
+            var response = await $still.HTTPClient.get(`${url}/${BIService.activePipeline}`);
+      
+        if (response.ok)
+            return (await response.json())?.result;
         return [];
     }
 

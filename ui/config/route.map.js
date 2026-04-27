@@ -91,7 +91,7 @@ export const stillRoutesMap = {
                 url: "/aia-gent"
             },
             Grid: {
-                path: "app/components/grid",
+                path: "app/components/dataviz/bi/grid",
                 url: "/grid"
             },
             SqlEditor: {

@@ -1,7 +1,7 @@
 import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
-import { BIService } from "../services/BIService.js";
+import { BIUserInterfaceComponent } from "../bi/main/BIUserInterfaceComponent.js";
 import { DBDiagramController } from "../controllers/DBDiagramController.js";
 
 /** This component used the G6 library (https://g6.antv.antgroup.com/en/manual/introduction) which
@@ -16,7 +16,11 @@ export class DatabaseDiagram extends ViewComponent {
 
     /** @Prop @type { HTMLElement } */ container;
 
+    /** @Prop @type { BIUserInterfaceComponent } */ $parent;
+
 	/** @Prop */ initCount = 0;
+
+	/** @Prop */ showDiagram = true;
 
 	/**
 	 * @Controller
@@ -48,27 +52,15 @@ export class DatabaseDiagram extends ViewComponent {
         if (!container) return null;
 
 		const graph = new G6.TreeGraph({
-			container: 'mountNode',  width: container.scrollWidth, 
+			container: 'mountNode',  width: container.scrollWidth, animate: true,
 			height: container.scrollHeight || 600, fitView: false, fitCenter: true, 
 			container: 'mountNode', cursor: 'grab', 
-			modes: { 
-				default: [
-					{ type: 'drag-canvas', delegateStyle: { cursor: 'grabbing' }, }, 
-					'zoom-canvas'
-				]
-			},
+			modes: { default: [{ type: 'drag-canvas', delegateStyle: { cursor: 'grabbing' }, }, 'zoom-canvas'] },
 			layout: {
-				type: 'compactBox', 
-				direction: 'LR', 
-				getId: (d) => d.id, 
-				getHeight: () => 20, 
-				getWidth: (d) => DBDiagramController.calculateTextWidth(d.label) + 20, 
-				getVGap: () => 10, 
-				getHGap: () => 60,
+				type: 'compactBox', direction: 'LR', getId: (d) => d.id, getHeight: () => 20, getVGap: () => 10, 
+				getWidth: (d) => DBDiagramController.calculateTextWidth(d.label) + 20, getHGap: () => 60,
 			},
-			animate: true,
-			defaultNode: { type: 'db-table' },
-			defaultEdge: { type: 'cubic-horizontal', style: { stroke: '#A3B1BF', lineWidth: 1 } },
+			defaultNode: { type: 'db-table' }, defaultEdge: { type: 'cubic-horizontal', style: { stroke: '#A3B1BF', lineWidth: 1 } },
 		});
 
         if (typeof window !== 'undefined') {
@@ -91,75 +83,33 @@ export class DatabaseDiagram extends ViewComponent {
         if (!this.graph) return;
 
         // Initialize with the root node for the e2e-Data Platform
-        this.graph.data({ 
-            id: 'root', 
-            label: 'e2e-Data Platform', 
-            isRoot: true, 
-            children: [] 
-        });
+        this.graph.data({ id: 'root', label: 'e2e-Data Platform', isRoot: true, children: [] });
         this.graph.render();
-
-        this.graph.on('node:click', async (e) => {
-            const { item, target } = e;
-            const model = item.getModel(), shapeName = target.get('name');
-
-			if (shapeName === 'select-icon-bg' || shapeName === 'select-icon-text') {
-				this.controller.handleTableSelect(model.label);
-				
-				const order = this.controller.selectedTablesMap.get(model.label);
-				const isUnrelated = this.controller.isTableUnrelated(model.label);
-
-				this.graph.updateItem(item, { isSelected: !!order, orderNumber: order || '', selectIconColor: isUnrelated ? '#9E9E9E' : '#4CAF50' });
-				return this.controller.syncSqlEditor();
-			}
-
-
-            if (model.children && model.children.length > 0) {
-                this.graph.updateItem(item, { 
-                    collapsed: !model.collapsed 
-                });
-                return this.graph.layout(); 
-            }
-
-            if (model.id.startsWith('folder:')) {
-                const moduleName = model.label; 
-                this.graph.updateItem(item, { label: `${moduleName} (Loading...)` });
-
-                try {
-                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase());                    
-                    const children = this.controller.listToTree(result.tables, moduleName);
-                    setTimeout(() => this.controller.compileRelations(result.relations));
-                    this.graph.updateItem(item, { label: moduleName, children: children, collapsed: false });
-                    this.graph.layout(); 
-                } catch (err) {
-                    console.error('Failed to load module tables:', err);
-                    this.graph.updateItem(item, { label: moduleName });
-                }
-            }
-        });
-
+        this.controller.setGraphOnClickEvt(this.graph);
     }
 
     async updateGraphData(summaryRows) {
-        if (!this.graph) return setTimeout(() => this.updateGraphData(summaryRows), 50);
-
-        if (!summaryRows || summaryRows.length === 0) return;
-
-        const container = this.container.querySelector('#mountNode');
-        if (container) this.graph.changeSize(container.scrollWidth, container.scrollHeight);
-        
-        const moduleNodes = summaryRows.map(row => ({
-            id: `folder:${row[2].toUpperCase()}`, label: row[2].toUpperCase(), level: 1, children: [], collapsed: true
-        }));
-
-        this.graph.data({ id: 'root', label: 'Odoo modules', isRoot: true, children: moduleNodes });
-        this.graph.render();
-        this.graph.fitView(40);
-
-		if(this.initCount == 0){
-			await sleepForSec(200);
-			this.initCount++, await this.updateGraphData(summaryRows);
-		}
+        this.graph.clear();
+        if(summaryRows){
+            if (!this.graph) return setTimeout(() => this.updateGraphData(summaryRows), 50);
+            if (!summaryRows || summaryRows.length === 0) return;
+    
+            const container = this.container.querySelector('#mountNode');
+            if (container) this.graph.changeSize(container.scrollWidth, container.scrollHeight);
+            
+            const moduleNodes = summaryRows.map(row => ({
+                id: `folder:${row[2].toUpperCase()}`, label: row[2].toUpperCase(), level: 1, children: [], collapsed: true
+            }));
+    
+            this.graph.data({ id: 'root', label: 'Odoo modules', isRoot: true, children: moduleNodes });
+            this.graph.render();
+            this.graph.fitView(40);
+    
+            if(this.initCount == 0){
+                await sleepForSec(200);
+                this.initCount++, await this.updateGraphData(summaryRows);
+            }
+        }
     }
 
 }

@@ -70,8 +70,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 		
 		this.appPath = await BIService.getAppPath();
 		this.runningOnOdoo = StillAppSetup.config.get('runningOnOdoo');
-		if(this.runningOnOdoo)
-        	await Assets.import({ path: `${this.appPath}/app/components/dataviz/diagram/g6.js`, type: 'js' });
+		//if(this.runningOnOdoo)
+        //	await Assets.import({ path: `${this.appPath}/app/components/dataviz/diagram/g6.js`, type: 'js' });
 		//setTimeout(async () => {
 			let result = await BIController.getDashboardDetails();
 			
@@ -127,7 +127,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 				await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/chart.js', type: 'js' });
 			});
 		}
-		await Assets.import({ path: `${this.appPath}/app/assets/css/bi-user-intercace-component.css` });		
+		await Assets.import({ path: `${this.appPath}/app/components/dataviz/styles/bi-user-intercace-component.css` });		
 	}
 
   	async stAfterInit(){		

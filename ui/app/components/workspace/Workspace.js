@@ -17,7 +17,7 @@ import { Transformation } from "../node-types/Transformation.js";
 import { LogDisplay } from "../log/LogDisplay.js";
 import { Assets } from "../../../@still/util/componentUtil.js";
 import { Header } from "../parts/Header.js";
-import { Grid } from "../grid/Grid.js";
+import { Grid } from "../dataviz/bi/grid/Grid.js";
 import { SqlEditor } from "../code/sqleditor/SqlEditor.js";
 import { DLTCode } from "../node-types/dlt/DLTCode.js";
 import { DLTCodeOutput } from "../node-types/destination/DLTCodeOutput.js";
