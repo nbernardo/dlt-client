@@ -32,6 +32,7 @@ def create():
     context.is_duck_destination = payload['duckOutput']
     context.pipeline_action = payload.get('actionType', None)
     context.pipeline_metadata.domain_pipeline = payload['analyticOptimized']
+    context.pipeline_metadata.existing_wd = payload.get('usedExistingDW')
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -349,6 +350,9 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     if isinstance(duckdb_path, str) and '\\' in duckdb_path:
         duckdb_path = duckdb_path.replace('\\', '\\\\')
     
+    if context.pipeline_metadata.existing_wd != None:
+        pipeline_name = str(context.pipeline_metadata.existing_wd).split('.')[1]
+
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
     template = template.replace('%Dbfile_name%', pipeline_name)
     template = template.replace('__current.PIPELINE_NAME', f"'{pipeline_name}'")

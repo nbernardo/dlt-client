@@ -200,3 +200,4 @@ class PipelineMetadata:
         self.source_config = ''
         self.referenced_secrets = ''
         self.domain_pipeline = False
+        self.existing_wd = None

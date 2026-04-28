@@ -18,9 +18,10 @@ def save_dashboard(namespace):
     return BIService.save_dashboard(namespace, payload.get('charts'), payload.get('name'), payload.get('id'))
 
 
+from utils.metastore.PipelineMedatata import PipelineMedatata
+
 @bi_controller.route('/analytics/ppline/domains/<namespace>', methods=['GET'])
 def get_domain_pipelines(namespace):
-    from utils.metastore.PipelineMedatata import PipelineMedatata
     return { 
         'result': {
             'pipelines': PipelineMedatata.get_domain_pipelines(namespace),
@@ -29,6 +30,11 @@ def get_domain_pipelines(namespace):
         }, 
         'error': False 
     }
+
+
+@bi_controller.route('/analytics/ppline/dwh/<namespace>', methods=['GET'])
+def get_domain_pipeline_list(namespace):
+    return PipelineMedatata.get_domain_pipelines(namespace)
 
 
 from utils.duckdb_util import DuckdbUtil
