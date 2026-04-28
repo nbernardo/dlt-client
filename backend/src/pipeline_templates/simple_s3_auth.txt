@@ -167,7 +167,7 @@ def stream_s3(bucket_url, pattern):
 logger.info("Starting authenticated pipeline execution", extra={'stage': 'pipeline_execution', 'template_type': 's3_auth'})
 
 try:
-    load_info = pipeline.run(stream_s3(bucket_url, pattern), write_disposition='merge',refresh='drop_sources')
+    load_info = pipeline.run(stream_s3(bucket_url, pattern), write_disposition='merge')
 
     # Log pipeline execution results
     if hasattr(load_info, 'loads_ids') and load_info.loads_ids:

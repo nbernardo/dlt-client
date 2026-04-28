@@ -84,7 +84,7 @@ def load_select_tables_from_db():
 
     print('Starting pipeline run', flush=True)
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
-    info = pipeline.run(source, write_disposition='merge', refresh='drop_sources', %table_format%)
+    info = pipeline.run(source, write_disposition='merge', %table_format%)
     
     if hasattr(info, 'loads_ids') and info.loads_ids:
         logger.info("SQL database pipeline execution completed successfully", extra={
