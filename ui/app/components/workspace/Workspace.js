@@ -173,12 +173,10 @@ export class Workspace extends ViewComponent {
 		this.userService.on('load', async () => {
 			let user = (await this.userService.getLoggedUser());
 
-			if (user?.user)
-				user = user?.user;
+			if (user?.user) user = user?.user;
 
 			if (UserUtil.name === null) {
-				UserUtil.name = user.name;
-				UserUtil.email = user.email;
+				UserUtil.name = user.name, UserUtil.email = user.email;
 				Object.freeze(UserUtil);
 			}
 			this.loggedUser = user.name;
@@ -209,7 +207,6 @@ export class Workspace extends ViewComponent {
 	buildWorkspaceView() {
 
 		this.controller.on('load', () => {
-
 			this.controller.registerEvents();
 			this.controller.socketChannelSetup(SocketIO, this.socketData);
 
@@ -250,6 +247,8 @@ export class Workspace extends ViewComponent {
 			if(actionType !== 'onlysave') this.logProxy.appendLogEntry('error', result.result, Date.now());
 			return AppTemplate.toast.error(result.result);
 		}
+		
+		WorkSpaceController.usedExistingDW = null;
 		this.controller.isSubmittingPipeline = false;
 		if(actionType === 'onlysave')
 			AppTemplate.toast.success(`Pipeline ${this.activeGrid.value} saved successfully`, 15000);

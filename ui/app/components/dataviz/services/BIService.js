@@ -76,6 +76,15 @@ export class BIService extends BaseService {
         return [];
     }
 
+    static async getDWPipelines() {
+        const namespace = await BIService.getNamespace();
+        const url = '/analytics/ppline/dwh/' + namespace;
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok)
+            return await response.json();
+        return [];
+    }
+
     static async getDomainPipelineFields(pipeline) {
         const namespace = await BIService.getNamespace();
         const url = `/analytics/ppline/domains/catalog/${namespace}/${pipeline.split('.')[1]}/${pipeline.split('.')[0]}`;
