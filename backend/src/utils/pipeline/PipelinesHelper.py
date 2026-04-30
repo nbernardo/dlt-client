@@ -1,7 +1,9 @@
 from utils.logging.pipeline_logger_config import PipelineLogger as PL
 from polars.dataframe import DataFrame
-from utils.metastore.PipelineMedatata import PipelineMedatata
+from os import getenv as env
 import sys
+import threading
+import duckdb
 
 PipelineLogger = PL
 
@@ -63,6 +65,7 @@ class PipelineHelper:
         db_name = additionals['db_name']
         meta = additionals['meta']
         tbls = additionals['tbls']
+        new_tbls = additionals.get('tbls')
         perf_optmzd = additionals.get('perf_optmzd', False)
         
         try:
@@ -70,7 +73,10 @@ class PipelineHelper:
 
             if perf_optmzd == 'yes':
                 table_name = pipeline.pipeline_name.split('_at_', 1)[1]
-                PipelineHelper._create_analytics_storage(dest, big_query, table_name, db_name, meta, tbls)
+                if additionals.get('use_existing_dw') == 'yes':
+                    PipelineHelper._update_analytics_storage(dest, big_query, table_name, db_name, meta, tbls)
+                else:
+                    PipelineHelper._create_analytics_storage(dest, big_query, table_name, db_name, meta, tbls)
 
         finally:
             sys.exit(0) # Gracefully terminates the sub-process
@@ -78,8 +84,6 @@ class PipelineHelper:
 
     @staticmethod
     def _create_analytics_storage(db_path, ready_query, domain_table, db_name, meta, tbls):
-        import threading
-        import duckdb
 
         def run_transform(db_path, domain_table, big_query, done_event):
             try:
@@ -99,8 +103,8 @@ class PipelineHelper:
                             created_ghosts.append(table_name)
                             print(f"ghost: Created temporary view for missing table '{table_name}'")
 
-                    con.execute("SET threads TO 4;")
-                    con.execute("SET max_memory TO '4GB';")                    
+                    con.execute(f'SET threads TO {env('AN_TOTAL_THREADS')};')
+                    con.execute(f"SET max_memory TO '{env('AN_MAX_MEMORY')}';")                    
                     con.execute(f"CREATE OR REPLACE TABLE {PipelineHelper.prefix_and_suffix_table(domain_table)} AS {big_query}")
 
                     for view_name in created_ghosts:
@@ -122,6 +126,63 @@ class PipelineHelper:
         t.join()
         print('BI Table Created (Balanced Mode).')
 
+
+    @staticmethod
+    def _update_analytics_storage(db_path, ready_query, domain_table, db_name, meta, tbls):
+        # Handles Schema evolution for existing bigtable on the Datawarehouse
+
+        con = duckdb.connect(db_path.config_params['credentials'])
+
+        def run_transform(con, domain_table, big_query, done_event):
+            try:
+                con.execute(f"SET search_path = '{db_name}';")
+                big_table = PipelineHelper.prefix_and_suffix_table(domain_table)
+
+                new_columns = PipelineHelper.get_new_columns(con, meta, tbls, big_table)
+                new_cols_str = '\n'.join([f"ALTER TABLE {big_table} ADD COLUMN {c} {str(type).replace('()','')};" for c, type in new_columns.items()])
+                    
+                con.execute(f'BEGIN;\n{new_cols_str}\nCOMMIT;')
+                con.execute(f'SET threads TO {env('AN_TOTAL_THREADS')};')
+                con.execute(f"SET max_memory TO '{env('AN_MAX_MEMORY')}';")                    
+                #con.execute(f'CREATE OR REPLACE TABLE {big_table} AS {big_query}')
+
+            except Exception as err:
+                print(f'Error on running big table update {str(err)}')
+
+            finally:
+                done_event.set()
+
+        done_event = threading.Event()
+        t = threading.Thread(target=run_transform, args=(con, domain_table, ready_query, done_event))
+        t.start()
+
+        while not done_event.is_set():
+            done_event.wait(timeout=10.0)
+
+        t.join()
+        print('BI Table Created (Balanced Mode).')
+
+
+    def get_new_columns(con, meta, tbls, big_table):
+
+        columns_to_add = {}
+        for tbl in tbls:
+            tbl = tbl.split('.')[1]
+            cols = ', '.join([f"('{tbl}_{c}')" for c, _ in meta[tbl].items()])
+            query = f'''SELECT list.col_name FROM ( VALUES {cols} ) AS list(col_name) LEFT JOIN information_schema.columns AS info 
+                        ON list.col_name = info.column_name AND info.table_name = '{big_table}' WHERE info.column_name IS NULL;
+                    '''
+            
+            result = con.query(query).fetchall()
+            new_cols = str(result).replace('[','').replace(']','').replace("',)",'').replace("('",'').replace(' ','').split(',')
+            
+            # Append the new columns names accordingly (format tablename_columnname)
+            # every single column is being mapped to the type from the data source
+            for c in new_cols:
+                real_column_name = c.split(tbl+'_',1)[1]
+                columns_to_add[c] = meta[tbl][real_column_name]
+        
+        return columns_to_add
 
 
     def short_query(big_query):

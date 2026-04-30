@@ -56,6 +56,9 @@ class PipelineMedatata:
             tbl = PipelineMedatata._get_table()
             PipelineMedatata._migrate_pipeline_metadata(tbl)
 
+            if details['existing_wd'] != None:
+                dataset_name = details['existing_wd']
+
             rows_to_insert = [{
                 'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'],
                 'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type'],
@@ -94,7 +97,7 @@ class PipelineMedatata:
     def get_domain_pipelines(namespace: str = None, db_path: str = None):
         try:
             con = PipelineMedatata._get_duckdb_conn(False, db_path)
-            return con.execute(f'SELECT pipeline, dataset_name FROM pipeline_metadata WHERE domain_pipeline = true AND namespace = ?', [namespace]).fetchall()
+            return con.execute(f'SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline = true AND namespace = ?', [namespace]).fetchall()
 
         except Exception as err:
             if str(err).__contains__('Extension'):

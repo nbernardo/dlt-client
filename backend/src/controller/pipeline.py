@@ -33,6 +33,7 @@ def create():
     context.pipeline_action = payload.get('actionType', None)
     context.pipeline_metadata.domain_pipeline = payload['analyticOptimized']
     context.pipeline_metadata.existing_wd = payload.get('usedExistingDW')
+    context.pipeline_metadata.new_tables = payload.get('pipelineNewTables')
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -71,11 +72,7 @@ def create():
             context.emit_ppsuccess()
         return result
     else:
-        return create_new_ppline(fst_connection, 
-                        pipeline_name, 
-                        payload, 
-                        duckdb_path, 
-                        context)
+        return create_new_ppline(fst_connection, pipeline_name, payload, duckdb_path, context)
 
 def parse_first_node(connections, node_params, is_cloud_bucket_req, sql_destinations):
 
@@ -359,6 +356,7 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('%User_folder%', payload['user'])
     template = template.replace('%namespace%', f"'{payload['user']}'")
     template = template.replace('%perf_optmzd%', 'yes' if context.pipeline_metadata.domain_pipeline else 'no')
+    template = template.replace('%use_existing_dw%', 'yes' if context.pipeline_metadata.existing_wd != None else 'no')
     # %table_format% replace might be preceeded by the DLTCodeOutput node type which
     # means that if this was stated at the node level, this one won't take any effect 
     template = template.replace('%table_format%', '')
@@ -635,3 +633,5 @@ def update_pipeline_pause(namespace, pipeline, status):
         return { 'error': False, 'result': { 'result': 'Pipeline job paused' } }
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }
+    
+

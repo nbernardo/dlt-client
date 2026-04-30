@@ -44,8 +44,8 @@ def load_select_tables_from_db():
     
     logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(original_tables)})
     tables, pks, rels, meta, ddls, big_query = normalize_table_names(secret, original_tables, original_tables_pk)
-    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'perf_optmzd': '%perf_optmzd%' }
-    additionals = { **additionals, 'rels': rels, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query }
+    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'rels': rels, 'perf_optmzd': '%perf_optmzd%' }
+    additionals = { **additionals, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query, 'use_existing_dw': '%use_existing_dw%' }
 
     short_query = Helper.short_query(big_query)
     print(f'SHORT_QUERY=__e2e_short_query_:{short_query}')

@@ -479,7 +479,7 @@ def normalize_table_names(secrets, tables, primary_keys=None, db_name = {}):
     for table in actual_tables.keys():
         if table in available:
             [cols, column_defs] = [inspector.get_columns(table, schema=schema), []]
-            schema_metadata[table] = [c['name'] for c in cols]
+            schema_metadata[table] = { c['name']: c['type']  for c in cols }
 
             for c in cols:
                 null_str = 'NOT NULL' if not c.get('nullable') else ''

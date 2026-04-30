@@ -267,6 +267,22 @@ class DuckdbUtil:
 
 
     @staticmethod
+    def check_dw_schema(db_path, table):
+        try:
+
+            filter_range = " WHERE DATE({field}) BETWEEN DATE '{values['min']}' AND DATE '{values['max']}'"
+            query = 'SELECT {fields} FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}{filter_range}'
+
+            cnx = duckdb.connect(db_path)
+            cursor = cnx.cursor()
+            result = cursor.sql(query).fetch_arrow_table()
+
+            return result.to_pylist()
+        except Exception as e:
+            print(f"Error while running analytics: {e}")
+
+
+    @staticmethod
     def get_range_columns_data(db_path, table_path):
         try:
             table_name, _ = table_path.split('.')
