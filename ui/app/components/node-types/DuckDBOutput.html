@@ -10,7 +10,7 @@
 	<div class="box @formWrapClass">
 		<form (formRef)="formRef" onsubmit="return false;">
 			<p>Target Datawahoreuse:</p>
-			<select placeholder="None" (forEach)="targetDataWarehouses" onchange="component.selectTargetDW(this.value)">
+			<select placeholder="Create a new one" (forEach)="targetDataWarehouses" onchange="component.selectTargetDW(this.value)">
 				<option each="item" value="{item.dwname}.{item.table}">{item.dwname}</option>
 			</select>
 			<span (showIf)="!self.userExistingDW">

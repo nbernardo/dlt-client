@@ -91,9 +91,8 @@ export class BIService extends BaseService {
         const response = await $still.HTTPClient.get(url);
         if (response.ok){
             const result = await response.json();
-            const rangeFieldsData = {};
-
-            for(const itm of Object.entries(result.result.range_fields_data[0])){
+            const rangeFieldsData = {}, rengeFields = (result.result.range_fields_data[0] || {})
+            for(const itm of Object.entries(rengeFields)){
 
                 const minOrMax = itm[0].split('_')[0];
                 const fieldName = itm[0].replace(/min_|max_/,'');
