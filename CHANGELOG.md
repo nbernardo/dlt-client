@@ -28,6 +28,9 @@ Schema Evolution: Implemented automated metadata handling for the Gold layer to 
 
 Database Schema Tree: Built a dynamic visualizer that generates a live relational tree of the source database metadata.
 
+
+NOTE: These chanes do not include query validation to allow only select queries against the DW, as this'll be part of the next merge.
+
 Visual Query Builder: Integrated a functional query editor directly into the schema tree, enabling users to execute SQL queries against the source via a specialized Python-based BI backend.
 
 Odoo-Optimized Modeling: Fine-tuned the initial relational modeling logic for Odoo schemas to streamline the setup for Odoo-centric environments.
