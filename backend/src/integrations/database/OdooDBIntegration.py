@@ -56,52 +56,62 @@ class OdooDBIntegration:
                     1 AS level,
                     NULL::text COLLATE "default" AS parent_table,
                     relname::text COLLATE "default" AS physical_table,
-                    UPPER('{module_name}')::text COLLATE "default" AS path -- Standardized root
+                    UPPER('{module_name}')::text COLLATE "default" AS path, -- Standardized root
+                    NULL::text COLLATE "default" AS source_column, -- New: No source for root
+                    NULL::text COLLATE "default" AS target_column  -- New: No target for root
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE n.nspname = 'public' 
                 AND c.relkind = 'r'
                 AND relname LIKE '{module_name.lower()}_%' 
-                -- Filter Level 1
                 AND relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|report_|sms_|snailmail_|calendar_|spreadsheet_|web_|wizard_|portal_|l10n_|digest_|res_).*'
 
                 UNION ALL
 
-                -- Recursive: Trace relations but BLOCK technical tables at every step
+                -- Recursive: Trace relations
                 SELECT 
                     th.level + 1,
                     th.physical_table,
                     ref_cl.relname::text COLLATE "default",
-                    (th.path || ' -> ' || ref_cl.relname)::text COLLATE "default"
+                    (th.path || ' -> ' || ref_cl.relname)::text COLLATE "default",
+                    -- NEW: Extracting the specific columns involved in the FK
+                    (SELECT a.attname FROM pg_attribute a WHERE a.attrelid = con.conrelid AND a.attnum = con.conkey[1])::text COLLATE "default" AS source_column,
+                    (SELECT a.attname FROM pg_attribute a WHERE a.attrelid = con.confrelid AND a.attnum = con.confkey[1])::text COLLATE "default" AS target_column
                 FROM TableHierarchy th
                 JOIN pg_class child_cl ON child_cl.relname = th.physical_table
                 JOIN pg_constraint con ON con.conrelid = child_cl.oid  
                 JOIN pg_class ref_cl ON ref_cl.oid = con.confrelid    
                 WHERE con.contype = 'f' 
                 AND th.level < 5
-                -- CRITICAL: Filter every subsequent level to keep the tree clean
                 AND ref_cl.relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|sms_|snailmail_|calendar_|web_|spreadsheet_|portal_|l10n_|digest_|report_|wizard_|res_).*'
             )
             SELECT DISTINCT ON (path)
                 level,
                 parent_table,
                 physical_table AS table_name,
-                path
+                path,
+                -- NEW: The formatted label column for your G6 arrows
+                source_column,
+                target_column,
+                CASE 
+                    WHEN source_column IS NOT NULL THEN source_column || ' ➔ ' || target_column 
+                    ELSE '' 
+                END AS relation_label
             FROM TableHierarchy
-                WHERE 
-                    physical_table not like 'ir_%' and
-                    physical_table not like 'mail_%' and
-                    physical_table not like 'sms_%' and
-                    physical_table not like 'report_%' and
-                    physical_table not like 'sms_%' and
-                    physical_table not like 'l10n_%' and
-                    
-                    parent_table not like 'ir_%' and
-                    parent_table not like 'mail_%' and
-                    parent_table not like 'sms_%' and
-                    parent_table not like 'report_%' and
-                    parent_table not like 'sms_%' and
-                    parent_table not like 'l10n_%'
+            WHERE 
+                physical_table NOT LIKE 'ir_%' AND
+                physical_table NOT LIKE 'mail_%' AND
+                physical_table NOT LIKE 'sms_%' AND
+                physical_table NOT LIKE 'report_%' AND
+                physical_table NOT LIKE 'l10n_%' AND
+                
+                (parent_table IS NULL OR (
+                    parent_table NOT LIKE 'ir_%' AND
+                    parent_table NOT LIKE 'mail_%' AND
+                    parent_table NOT LIKE 'sms_%' AND
+                    parent_table NOT LIKE 'report_%' AND
+                    parent_table NOT LIKE 'l10n_%'
+                ))
             ORDER BY path, level;
         '''
 
