@@ -52,7 +52,7 @@ def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
     range_fields_data = DuckdbUtil.get_range_columns_data(database_path, table_path)
     all_fields = DataCatalog.get_fields_by_pipeline(pipeline, namespace)
 
-    return { 'result': { 'range_fields_data': range_fields_data, 'all_fields': all_fields }, 'error': False }
+    return { 'result': { 'range_fields_data': range_fields_data if range_fields_data != None else [], 'all_fields': all_fields }, 'error': False }
 
 
 
