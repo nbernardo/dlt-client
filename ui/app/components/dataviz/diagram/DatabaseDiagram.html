@@ -1,0 +1,66 @@
+@if(this.$parent.runningOnOdoo)
+<style>
+	.DatabaseDiagram { display: flex; flex-direction: column; height: 100vh; width: 100%; border: 1px solid #d9d9d9; }
+	.grid-component-container .table-container { height: 59vh; }
+</style>
+@endif
+
+@if(!this.$parent.runningOnOdoo)
+<style>
+	.DatabaseDiagram { display: flex; flex-direction: column; width: 100%; border: 1px solid #d9d9d9; }
+	.grid-component-container .table-container { height: 50vh; }
+</style>
+@endif
+<style>
+    
+
+	.DatabaseDiagram{
+		.diagram-toolbar { padding: 12px; background: #fafafa; border-bottom: 1px solid #d9d9d9; display: flex; gap: 10px; }
+		
+		.view-btn { padding: 6px 16px; border: 1px solid #d9d9d9; cursor: pointer;  background: #fff; border-radius: 4px; font-size: 12px; transition: all 0.2s; }
+		.view-btn.active { background: var(--identity-color);; color: #fff; border-color: var(--identity-color); }
+		.view-btn:hover:not(.active) { background: #f0f0f0; }
+	
+		#mountNode { width: 100%; flex: 1; overflow: hidden; }
+		#sqlEditor { width: 100%; height: 100px; }	
+		.DatabaseDiagram-app-controls{ display: flex; align-items: center; gap: 4px; border-right: 1px solid #8080808a; padding-right: 9px; }	
+		.DatabaseDiagram-app-controls select{ 
+			padding: 8px 12px !important; background: #8080805c !important; border: 1px solid var(--border); border-radius: var(--radius);
+			cursor: pointer; font-size: 12px; color: var(--text); min-width: 200px; font-family: var(--sans); 
+		}
+
+		.grid-component-container { .tools-container { position: relative; } .table-container { margin-top: 0; } } 
+	}
+</style>
+
+<div id="@uniqueId" class="DatabaseDiagram">
+	<div class="diagram-toolbar">
+		<div class="DatabaseDiagram-app-controls">
+			<span style="font-weight: bold; font-size: 12px;">Data source:</span>
+			<select (forEach)="secretList" onchange="controller.selectConnectionName(this.value)">
+				<option each="item" value="{item.name}">{item.name}</option>
+			</select>
+		</div>
+		<button type="button" id="btnDiagram" class="view-btn active">Diagram</button>
+		<button type="button" id="btnSQL" class="view-btn">SQL Editor</button>
+		<span (showIf)="!self.showDiagram">
+			<div style="border-left: 1px solid #8080809c; padding-left: 10px; display: flex; height: 100%;">
+				<button type="button" style="border: none; padding: 7px; background: #059669; color: white; border-radius: 4px;" onclick="controller.runSQLQuery()">
+					&#9654; Run Query
+				</button>
+			</div>
+		</span>
+	</div>
+	<span (showIf)="self.showDiagram">
+		<div id="mountNode"></div>
+	</span>
+	
+	<span (showIf)="!self.showDiagram">
+		<form class="sqlDataExploratio">	
+			<div>
+				<div id="sqlEditor"></div>
+				<div class="queryResultPLaceholder" style="text-align: center;">No data selected</div>
+			</div>
+		</form>
+	</span>
+</div>

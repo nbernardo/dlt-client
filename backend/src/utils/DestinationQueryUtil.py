@@ -5,6 +5,15 @@ from services.workspace.SecretManager import SecretManager
 import traceback
 import re
 from utils.pipeline.Enums import DestinationType, ProviderURL
+from flask import jsonify
+import base64
+
+
+def serialize_value(val):
+    if isinstance(val, memoryview):
+        return base64.b64encode(val.tobytes()).decode('utf-8')
+    return val
+
 
 class DestinationQueryUtil:
     """ Utility class for executing SQL queries using Polars and connectorx across different database types """
@@ -72,19 +81,41 @@ class DestinationQueryUtil:
             secret = SecretManager.get_db_secret(namespace, connection_name, from_pipeline=True)
             connection_url = secret['connection_url']
                         
-            # Detect database engine from connection URL
             db_engine = DestinationQueryUtil._detect_database_engine(connection_url)
             engine = create_engine(connection_url).connect()
             
-            # Use Polars with connectorx to execute query
             df = pl.read_database(query, connection=engine)
             
-            # Convert DataFrame to list of tuples for JSON serialization
             result = [tuple(row) for row in df.iter_rows()]
             fields = ','.join(df.columns)
                 
             print(f'Query successful using Polars, returned {len(result)} rows')
             return {'result': result, 'fields': fields, 'db_engine': db_engine}
+            
+        except Exception as err:
+            print(f'Error querying SQL database: {str(err)}')
+            print(f'Connection: {connection_name}, Namespace: {namespace}')
+            raise
+
+
+    @staticmethod
+    def query_sql_database(query: str, namespace: str, connection_name: str):
+        """Query SQL databases (MySQL, PostgreSQL, Oracle, SQL Server, MariaDB) using Polars"""
+        try:
+            # Get connection credentials from secret manager
+            secret = SecretManager.get_db_secret(namespace, connection_name, from_pipeline=True)
+            connection_url = secret['connection_url']
+                        
+            db_engine = DestinationQueryUtil._detect_database_engine(connection_url)
+            engine = create_engine(connection_url)
+            
+            rows, fields = {}, {}
+            with engine.connect() as conn:
+                result = conn.execute(text(query))
+                fields = list(result.keys())
+                rows = [ [serialize_value(v) for v in row] for row in result.fetchall()]
+
+            return { 'result': rows, 'fields': fields, 'db_engine': db_engine }
             
         except Exception as err:
             print(f'Error querying SQL database: {str(err)}')

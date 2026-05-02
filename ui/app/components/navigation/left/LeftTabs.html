@@ -38,6 +38,16 @@
                     </label>
                 </li>
 
+                <!-- <li class="left-menu-item" onclick="component.selectTab('data-viz')"> -->
+                <li class="left-menu-item" onclick="component.openDataViz()">
+                    <label for="tab-logs">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/analytics.svg" width="30" alt="">
+                        </span>
+                        <span class="text">Data Viz</span>
+                    </label>
+                </li>
+
                 <li class="left-menu-item" 
                     onclick="component.selectTab('content-ppline-script')">
                     <label for="tab-script-ppline">
@@ -82,14 +92,6 @@
                     </label>
                 </li>
 
-                <!-- <li class="left-menu-item" onclick="component.selectTab('content-logs')">
-                    <label for="tab-logs">
-                        <span class="icon">
-                            <img src="app/assets/imgs/left-menu/logs.svg" width="23" alt="">
-                        </span>
-                        <span class="text">Logs</span>
-                    </label>
-                </li> -->
                 <li class="left-menu-item" onclick="component.startAIAssistant()">
                     <label for="tab-ai">
                         <span class="icon">
@@ -258,8 +260,8 @@
 
             </div>
 
-            <div class="content-panel content-logs">
-                <h3>Logs</h3>
+            <div class="content-panel data-viz">
+                <h3>Data Visualization</h3>
             </div>
 
             <div class="content-panel content-ai">
@@ -779,7 +781,7 @@
     #tab-diagram:checked~.app-container .content-diagram,
     #tab-data-files:checked~.app-container .content-data-files,
     #tab-api-catalog:checked~.app-container .content-api-catalog,
-    #tab-logs:checked~.app-container .content-logs,
+    #tab-logs:checked~.app-container .data-viz,
     #tab-ai:checked~.app-container .content-ai,
     #tab-script-ppline:checked~.app-container .content-ppline-script {
         opacity: 1;

@@ -144,7 +144,7 @@ class DltPipeline:
         #  specific situation like will only print if the ppline has transformation or if it's
         #  ppline update, otherwise flag = True will print the log in any scenario
         #  flag = context.transformation is not None or context.action_type == 'UPDATE'
-        flag, dataset_name = True, None
+        flag, dataset_name, short_query = True, None, ''
 
         logger = DltPipeline.get_pipeline_logger(context)
 
@@ -158,6 +158,10 @@ class DltPipeline:
                 if not line: break
                 line = line.strip()
                 
+                if(line.startswith('SHORT_QUERY=__e2e_short_query_:')):
+                    short_query = line.split(':')[1]
+                    continue
+
                 if(line.startswith('DATA=__dlt__destination__datasetname__:')):
                     dataset_name = line.split(':')[1]
                     break
@@ -200,7 +204,7 @@ class DltPipeline:
             
         #result.kill() # Each process will be responsible to kill/exit ifself
         MetaStore.persist_pipeline_metadata(
-            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), dataset_name
+            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), dataset_name, short_query
         )
 
         if pipeline_exception == True:

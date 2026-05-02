@@ -217,6 +217,7 @@ class DuckdbUtil:
     def del_connection_for(db_filename) -> DuckDBPyConnection:
         del DuckdbUtil.db_connections[db_filename]
 
+
     @staticmethod
     def initialize_logging_tables():
         """
@@ -230,6 +231,73 @@ class DuckdbUtil:
             print(f"Error initializing logging tables: {e}")
             # Don't raise the exception to prevent application startup failure
             # Logging should be optional and not break the main application
+
+
+    @staticmethod
+    def run_analytics_query(db_path, fields, table, data_range):
+        try:
+            filter_range, query = '', ''
+            range_filter_details = list(data_range.items())
+            schema, table = table.split('.')
+            
+            if(len(range_filter_details) > 0):
+                from utils.pipeline.PipelinesHelper import PipelineHelper
+
+                values = range_filter_details[0][1]
+                field = range_filter_details[0][0]
+                if(field == 'undefined'):
+                    query = f'''
+                        SELECT * FROM (
+                            SELECT  {fields}, ROW_NUMBER() OVER () AS rn
+                            FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}
+                        ) AS paginated
+                        WHERE rn > {int(values['min'])} AND rn <= ({int(values['min'])} + {int(values['max'])})
+                    '''
+                else:
+                    filter_range = f" WHERE DATE({field}) BETWEEN DATE '{values['min']}' AND DATE '{values['max']}'"
+                    query = f'SELECT {fields} FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}{filter_range}'
+
+            cnx = duckdb.connect(db_path)
+            cursor = cnx.cursor()
+            result = cursor.sql(query).fetch_arrow_table()
+
+            return result.to_pylist()
+        except Exception as e:
+            print(f"Error while running analytics: {e}")
+
+
+    @staticmethod
+    def check_dw_schema(db_path, table):
+        try:
+
+            filter_range = " WHERE DATE({field}) BETWEEN DATE '{values['min']}' AND DATE '{values['max']}'"
+            query = 'SELECT {fields} FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}{filter_range}'
+
+            cnx = duckdb.connect(db_path)
+            cursor = cnx.cursor()
+            result = cursor.sql(query).fetch_arrow_table()
+
+            return result.to_pylist()
+        except Exception as e:
+            print(f"Error while running analytics: {e}")
+
+
+    @staticmethod
+    def get_range_columns_data(db_path, table_path):
+        try:
+            table_name, _ = table_path.split('.')
+            from utils.pipeline.PipelinesHelper import PipelineHelper
+            cnx = duckdb.connect(db_path)
+            cursor = cnx.cursor()
+
+            query = f"""
+                SELECT COUNT(*) AS row_count, MIN(COLUMNS('(?i).*(date|time|ts).*')) AS "min_\\0", MAX(COLUMNS('(?i).*(date|time|ts).*')) AS "max_\\0" FROM {table_path}.{PipelineHelper.prefix_and_suffix_table(table_name)}
+            """
+            result = cursor.sql(query).fetch_arrow_table()
+
+            return result.to_pylist()
+        except Exception as e:
+            print(f"Error while running analytics: {e}")
 
 
 

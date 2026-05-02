@@ -1,0 +1,323 @@
+@if(this.runningOnOdoo)
+<style>
+	div:has(.this-is-the-bi-view) { width: 100%; }
+	.this-is-the-bi-view .popup-mov-window{ width: 100%; }
+	.this-is-the-bi-view .main { height: 92.5vh; padding: 15px; margin-top: 10px; }
+	.this-is-the-bi-view .tableContainer { height: 76vh; }
+	.this-is-the-bi-view .empty-dashboard { height: 75vh; }
+	.this-is-the-bi-view .tab-sheet, .this-is-the-bi-view .tab-chart, .this-is-the-bi-view .tab-dashboard { padding-top: 8px; }
+	.this-is-the-bi-view { .topbar { height: 67px; } .sidebar { height: 90.8vh; margin-top: 14px; } }
+	.minimize-analytics-log { right: 20px; margin-top: -49px; }
+	.this-is-the-bi-view .gragable-field-list { height: 280px; }
+	#global-filter-drawer { height: 100%; }
+
+	/** Dot Mini Loader */
+	.mini-loader-container { width: 13px; height: 13px; display: flex; align-items: center; justify-content: center; gap: 2px; }
+	.mini-loader-dot { width: 3px; height: 3px; border-radius: 50%; background-color: attr(dot-color, #E5E7EB); animation: pulse-dot 1.5s infinite ease-in-out both; }
+	.mini-loader-dot:nth-child(1) { animation-delay: -0.32s; }
+	.mini-loader-dot:nth-child(2) { animation-delay: -0.16s; }
+	@keyframes pulse-dot { 0%, 100% { transform: scale(0.6); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } }
+
+</style>
+@endif
+
+@if(!this.runningOnOdoo)
+<style>
+	.minimize-analytics-log { right: 13px; margin-top: 2px; }
+	.this-is-the-bi-view {  .popup-mov-window{ width: 115%; } .chart-builder { height: 64vh; }  .tableContainer { height: 59vh; } }
+	#global-filter-drawer { height: 94.7%; }
+</style>
+@endif
+<div class="window-popup-mov-window this-is-the-bi-view" (showIf)="self.showWindowPopup">
+
+	<!-- <button onclick="component.openPopup()">Open Popup-mov-window</button> -->
+	<div id="container-@uniqueId" class="popup-windows-cmp-container">
+		<div id="@uniqueId" class="popup-mov-window data-catalog-ui-container" 
+			style="height: 95%; top: 50%; left: 41%;">
+			<span>
+				
+			</span>
+			<div class="resize-handle n"></div>
+			<div class="resize-handle s"></div>
+			<div class="resize-handle w"></div>
+			<div class="resize-handle e"></div>
+			<div class="resize-handle nw"></div>
+			<div class="resize-handle ne"></div>
+			<div class="resize-handle sw"></div>
+			<div class="resize-handle se"></div>
+
+			<span (showIf)="!self.runningOnOdoo">
+				<div class="popup-mov-window-header-@uniqueId popup-mov-window-header">
+					<div class="popup-mov-window-title">Data Visualization and BI</div>
+					<div class="popup-mov-window-controls">
+						<button class="minimize" style="visibility: hidden;" onclick="component.toggleMinimize()">−</button>
+						<button class="maximize" style="visibility: hidden;" onclick="component.toggleMaximize()">□</button>
+						<button class="close" onclick="component.closePopup()">×</button>
+					</div>
+				</div>
+			</span>
+
+			<div class="popup-mov-window-content">
+				<div class="bi-user-interface-component-body">
+
+					<div id="filter-modal" onclick="event.stopPropagation()">
+						<strong id="modal-title" style="font-size: 11px;">Filter</strong>
+						<div id="modal-list" style="max-height: 200px; overflow-y: auto; margin: 10px 0;"></div>
+						<button onclick="closeFilter()" style="width: 100%; cursor: pointer;">Apply</button>
+					</div>
+
+					<button class="drawer-toggle" onclick="controller.toggleFilterDrawer()">⚙️</button>
+    
+					<div class="global-filter-drawer-wrap" style="overflow: hidden; position: absolute; height: 100%; width: 280px; z-index: -1;">
+						<div id="global-filter-drawer">
+							<div class="drawer-header" style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+								<h3 style="margin:0;">Global Filters</h3>
+								<button onclick="controller.toggleFilterDrawer()" style="background:none; border:none; font-size:20px; cursor:pointer;">×</button>
+							</div>
+							
+							<div id="active-filters-summary" style="padding: 10px 15px; border-bottom: 1px solid var(--border); background: #f8fafc; display: none;">
+								<div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between;">
+									Active Filters
+									<span onclick="clearAllGlobalFilters()" style="color: #ef4444; cursor: pointer; text-transform: none;">Clear All</span>
+								</div>
+								<div id="summary-badges" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+							</div>
+
+							<div id="global-filters-list" style="flex:1; overflow-y:auto;"></div>
+
+							<div class="drawer-content">
+								<div style="margin-bottom: 20px;">
+									<label style="font-size: 11px; font-weight: 800; color: #64748b;">ADD NEW FILTER</label>
+									<select id="drawer-field-picker" onchange="controller.addCustomGlobalFilter(this.value)" style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid var(--border);">
+										<option value="">Select Field...</option>
+									</select>
+								</div>
+
+								<div id="active-filters-list"></div>
+							</div>
+
+							<div style="padding: 15px; border-top: 1px solid var(--border);">
+								<button class="bi-filter-action-btn" onclick="controller.applyGlobalFilters()" style="width:100%;">Apply to All Tiles</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="shell">
+						<header class="topbar" style="display: flex;">
+							<div style="display: flex; flex-direction: column; gap: 7px;">
+								<!-- <div class="logo"><div class="logo-dot"></div>DataViz</div>
+								<div class="topbar-divider"></div> -->
+								<div style="font-weight: bold; font-size: 12px;">Modelo: </div>
+								<select class="pipeline-selector" (forEach)="domainPipelinesList" onchange="controller.onPipelineChange(this)">
+									<option each="item" value="{item.pipeline}">{item.name}</option>
+								</select>
+							</div>
+							<div class="e2e-chat-container" id="chat_wrapper">
+								<div class="minimize-analytics-log" title="@analyticsChatStateEnum.OPENED" onclick="controller.shrinkChatLogs(this)"> &plus; </div>
+								<textarea 
+									onkeyup="controller.submitAIAnalyticsQuery(event)"
+									id="ai_input" 
+									class="e2e-chat-input" 
+									style="padding-right: 43%; height: 46px;" 
+									placeholder="Tell me what do you want to fetch..."></textarea>
+								<div class="ai-analytics-chat-logs" style="width: 26px; height: 26px;">
+								</div>
+								<div id="ai_agent_ui" class="e2e-agent-ui e2e-hidden">
+									<span id="ai_question_label" style="color: #0056b3; font-weight: bold;"></span>
+									<div id="ai_pills" style="display: flex;"></div>
+									<button onclick="controller.resetToInputMode()" style="background:none; border:none; cursor:pointer; color:#999; margin-left:10px;">✕</button>
+								</div>
+							</div>
+						</header>
+
+						<aside class="sidebar">
+							<div class="sidebar-section">
+							<span (showIf)="self.showTablesList">
+								<div class="sidebar-title" style="display: flex; justify-content: space-between; align-items: center;">
+									<div>Tables</div>
+									<button onclick="controller.loadTable(null, true)" class="btn btn-ghost" style="width: 88px;">Load data</button>
+								</div>
+								<div class="tableList"></div>
+							</span>
+							<span (showIf)="!self.showTablesList">
+								<aside class="sidebar gragable-field-list" style="padding: 0;">
+									<div class="sidebar-section" style="padding: 0 !important;">
+										<h3>Dataset Fields</h3>
+										<button onclick="event.stopPropagation(); document.getElementById('calc-modal').style.display='block'" style="width:100%; padding:8px; cursor:pointer; cursor: pointer; margin: 3px auto;">+ Add Formula</button>
+										<div id="source-fields" style="max-height: 200px; overflow-y: auto; padding-top: 6px;" onscroll="controller.checkScroll(this)"></div>
+										<div id="field-scroll-arrow" class="scroll-indicator">↓</div>
+									</div>
+								</aside>
+							</span>
+							</div>
+							<div class="sidebar-sep"></div>
+							<div class="sidebar-section">
+							<div class="sidebar-title">Saved Charts</div>
+							<div class="chartList"></div>
+							<div class="sidebar-title">Saved Pivots</div>
+							<div class="saved-pivots"></div>
+							</div>
+						</aside>
+
+						<main class="main">
+							<nav class="tabs">
+								<div class="tab" onclick="controller.switchTab('diagram',this)"><img src="@appPath/app/assets/imgs/blocks.png" style="width: 24px;"> &nbsp;Diagram</div>
+								<div class="tab active" onclick="controller.switchTab('sheet',this)"><img src="@appPath/app/assets/imgs/database_.png" style="width: 14px;"> &nbsp;Data</div>
+								<div class="tab" onclick="controller.switchTab('chart',this)"><img src="@appPath/app/assets/imgs/pie-chart.png" style="width: 15px;"> &nbsp;Chart Builder</div>
+								<div class="tab" onclick="controller.switchTab('pivot',this)"><img src="@appPath/app/assets/imgs/pivot.png" style="width: 19px;"> &nbsp;Pivot</div>
+								<div class="tab" onclick="controller.switchTab('dashboard',this)"><img src="@appPath/app/assets/imgs/dashboard.png" style="width: 21px;"> &nbsp;Dashboard</div>
+								<span (showIf)="self.showDashboardActions">
+									<span style="display: flex; display: flex; position: absolute; right: 32px; gap: 7px; width: 380px; margin-top: -14px; justify-content: flex-end;">									
+										<button class="btn btn-accent" style="justify-content: center; width: 250px; display: none;" id="btnPublish"  onclick="controller.openPublishModal()">
+											<div class="publish-dot"></div>Publish Dashboard
+										</button>
+										<button class="btn btn-accent" style="background: var(--success-save-button); justify-content: center; border: none; width: 230px;" id="btnPublish"  onclick="controller.saveDashboardConfig()">
+											<i class="fa fa-save"></i>Save Dashboard
+										</button>
+									</span>
+								</span>
+							</nav>
+
+							<div class="content active tab-sheet">
+								<div class="sheet-toolbar">
+									<div class="search-wrap"><input class="search-input" id="searchInput" placeholder="Search..." oninput="controller.filterRows(this.value)"></div>
+									<select class="field-select" style="width:auto; width: 180px;" id="colFilter" onchange="controller.filterRows(document.getElementById('searchInput').value)"><option value="">All columns</option></select>
+									<!-- <button class="btn btn-ghost" onclick="controller.addColumn()" style="width: 94px;">+ Add Col</button> -->
+									<div class="topbar-actions" style="width: 140px;padding-left: 8px;">
+										<button class="btn btn-ghost" style="width: 115px;" onclick="controller.exportCSV()">↓ Export CSV</button>
+									</div>
+									<div class="data-source-date-filter"></div>
+									<div class="stats-row" style="margin-right: 2px;">
+										<div class="stat-chip">Rows: <span id="rowCount">0</span></div>
+										<div class="stat-chip">Cols: <span id="colCount">0</span></div>
+										<div class="stat-chip">Selected: <span id="selCount">0</span>
+									</div>
+								</div>
+							</div>
+							<div class="table-wrap tableContainer">
+								<div id="colInsertLine" class="col-insert-line" onclick="controller.insertColumnAtGap()"></div>
+								<table id="dataTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table>
+							</div>
+							</div>
+
+							<div class="content tab-chart">
+								<div class="chart-builder">
+									<div class="chart-config">
+										<div>
+											<div class="config-section-title">Chart Type</div>
+											<div class="chart-type-grid chartTypeGrid"></div>
+										</div>
+										<div>
+											<div class="config-section-title">Data</div>
+											<label class="field-label">X Axis / Labels</label>
+											<select class="field-select" id="xAxisSelect"></select>
+											<label class="field-label" style="margin-top:10px;">Y Axis / Values</label>
+											<select class="field-select" id="yAxisSelect"></select>
+											<label class="field-label" style="margin-top:10px;">Aggregation</label>
+											<select class="field-select" id="aggSelect">
+												<option value="none">None (raw values)</option>
+												<option value="count">Count</option>
+												<option value="sum">Sum</option>
+												<option value="avg">Average</option>
+												<option value="max">Max</option>
+												<option value="min">Min</option>
+											</select>
+										</div>
+									</div>
+									<div class="chart-preview">
+										<div class="chart-preview-header">
+											<div>
+												<div class="chart-preview-title" id="previewTitle">Chart Preview</div>
+												<div>
+													<div class="chart-style-config-wrapper" style="display: flex; gap: 10px;">
+														<div>
+															<label class="field-label">Chart Title</label>
+															<input class="chart-title-input chartTitleInput" placeholder="Chart title..." value="My Chart">
+														</div>
+														<div style="display: none;">
+															<label class="field-label">Color</label>
+															<div class="color-row" id="colorRow"></div>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div style="display: flex; gap: 6px;">
+												<button class="btn btn-ghost" style="width: 90px;" onclick="controller.buildChart()">↺ Preview</button>
+												<!-- <button class="btn btn-primary" style="width: 95px" onclick="controller.buildChart()">Build Chart</button> -->
+												<button class="btn btn-ghost" style="width: 95px" onclick="controller.saveChart()">Save Chart</button>
+											</div>
+										</div>
+										<div class="chart-canvas-wrap"><canvas id="chartCanvas"></canvas></div>
+									</div>
+								</div>
+							</div>
+
+							<div class="content tab-pivot">
+								<st-element component="PivotCreateComponent" proxy="pivotTableProxy" @delayed="2.5s"></st-element>
+							</div>
+							
+							<div class="content tab-diagram">
+								<st-element component="DatabaseDiagram" proxy="dbDiagramProxy" @delayed="2.1s"></st-element>
+							</div>
+
+							<div class="content tab-dashboard">
+								<div class="dashboard-toolbar bi-dashboard-list">
+									<select (forEach)="dashboardList" style="width: 250px;"  onchange="controller.loadDashboard(this.value, null, null, true)">
+										<option each="item" value="{item.dashboard_name}">{item.dashboard_name}</option>
+									</select>
+									<button class="btn btn-ghost" style="width: 135px;" onclick="controller.newDashboard()">+ New Dashboard</button>
+								</div>
+								<div class="dashboard-grid dashGrid"></div>
+							</div>
+						</main>
+					</div>
+
+					<div class="modal-overlay" id="publishModal">
+						<div class="modal">
+						<div class="modal-title">Publish to Dashboard</div>
+						<label class="field-label">Select Dashboard</label>
+						<select class="dashboard-select publishDashSelect"></select>
+						<label class="field-label">Or create new</label>
+						<input class="new-dash-input" id="newDashInput" placeholder="New dashboard name...">
+						<div class="modal-footer">
+							<button class="btn btn-ghost" onclick="closePublishModal()">Cancel</button>
+							<button class="btn btn-primary" onclick="publishChart()">Publish</button>
+						</div>
+						</div>
+					</div>
+					<div class="toast" id="toast"></div>
+
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<style>
+	.minimize-analytics-log{
+    	width: 22px; height: 22px; margin-top: 0px; border-radius: 15px; cursor: pointer; position: fixed; border: 1px solid;
+    	background: #059669; color: white; display: flex; justify-content: center; align-items: center; z-index: 1;
+	}
+	.ai-analytics-chat-logs{ 
+		
+		position: absolute; right: 1.7em; top: 9px; border-radius: 3px; padding: 3px !important; 
+        background-color: #2c3e50; padding: 1rem;  border-radius: 0.5rem; display: flex; flex-direction: column;
+        border: 1px solid #d1d5db; overflow: hidden; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+
+		.message-bubble {
+			margin: 6px; max-width: 85%; padding: 10px .5rem; border-radius: 1rem;
+			font-family: sans-serif; font-size: 0.80rem; display: flex; gap: 10px;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+			p { line-height: normal; }
+		}
+
+		.user-message-bubble .sender-label { color: #d1fae5; font-weight: bold; }
+		.agent-message-bubble .sender-label { color: #4b5563; font-weight: bold; }
+		.agent-message-bubble { background-color: #e5e7eb; color: #1f2937; border-bottom-left-radius: 0.25rem !important; }
+		.user-message-bubble { background-color: #059669;  color: white; border-bottom-right-radius: 0.25rem; margin-top: 5px; margin-left: auto; margin-right: 16px; }
+		.mini-loader-dot { width: 18px; height: 8px; }
+		.mini-loader-container { width: 30px; margin-top: 1px; }
+		.no-success { color: #a22020; }
+		.yes-success { color: #027002; }
+
+	}
+</style>

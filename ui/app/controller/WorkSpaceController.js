@@ -75,6 +75,9 @@ export class WorkSpaceController extends BaseController {
     static typeOfImportSource = null;
     static importtablesFieldMap = null;
     static importDataSource = null;
+    static isCurrentPipelineOptimized = null;
+    static usedExistingDW = null;
+    static pipelineNewTables = null;
 
     importingPipelineSourceDetails = null;
 
@@ -124,19 +127,17 @@ export class WorkSpaceController extends BaseController {
     }
 
     resetEdges() {
-        this.edgeTypeAdded = {};
-        this.formReferences.clear();
-        this.validationErrors = [];
-        this.idCounter = 0;
-        this.cmpIdToNodeIdMap = {};
-        this.pplineStatus = {};
-        this.editor.nodeId = 1;
-        this.pipelineDestinationTrace = { sql: {}, duckdb: {} }
-        this.nodeIdToComponentIdMap = {}
-        this.drawnNodeList = [];
-        this.drawnNodes = 0;
-        this.importingPipelineSourceDetails = null;
-        this.isTemplating = false;
+        this.edgeTypeAdded = {}, this.formReferences.clear(), this.validationErrors = [];
+        this.idCounter = 0, this.cmpIdToNodeIdMap = {}, this.pplineStatus = {};
+        this.editor.nodeId = 1, this.pipelineDestinationTrace = { sql: {}, duckdb: {} }
+        this.nodeIdToComponentIdMap = {}, this.drawnNodeList = [], this.drawnNodes = 0;
+        this.importingPipelineSourceDetails = null, this.isTemplating = false;
+        this.unmarkOptimizedPipeline();
+    }
+
+    unmarkOptimizedPipeline = () => {
+        document.querySelector('.analyticsOptimizedPipeline').checked = false;
+        WorkSpaceController.isCurrentPipelineOptimized = false;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */
@@ -429,23 +430,13 @@ export class WorkSpaceController extends BaseController {
         //Skip if already added
         if (this.edgeTypeAdded[type]) return null;
         this.edgeTypeAdded[type] = this.getNodeId();
-        return `
-            <div class="edge-label">${type}</div>
-            <div></div>
-        `;
+        return `<div class="edge-label">${type}</div><div></div>`;
     }
 
-    checkStartNode() {
-        return this.edgeTypeAdded[NodeTypeEnum.START];
-    }
+    checkStartNode = () => this.edgeTypeAdded[NodeTypeEnum.START];
 
-    events() {
-        return {
-            drag: window.drawdrag,
-            drop: window.drawdrop,
-            positionMobile: window.drawpositionMobile
-        }
-    }
+    events = () =>
+         ({ drag: window.drawdrag, drop: window.drawdrop, positionMobile: window.drawpositionMobile })
 
     isStartOrEndNode(id) {
         return this.edgeTypeAdded[NodeTypeEnum.START] == id
@@ -457,10 +448,7 @@ export class WorkSpaceController extends BaseController {
 
         // Events!
         const obj = this;
-        editor.on('nodeCreated', function (id) {
-            console.log("Node created " + id);
-            obj.nodeIdToComponentIdMap[id] = WorkSpaceController.getNode(id).data.componentId;
-        });
+        editor.on('nodeCreated', (id) => obj.nodeIdToComponentIdMap[id] = WorkSpaceController.getNode(id).data.componentId);
 
         editor.on('nodeRemoved', function (id) {
 
@@ -481,13 +469,9 @@ export class WorkSpaceController extends BaseController {
             delete obj.edgeTypeAdded[id];
         });
 
-        editor.on('nodeSelected', function (id) {
-            console.log("Node selected " + id);
-        });
+        editor.on('nodeSelected', (id) => console.log("Node selected " + id));
 
-        editor.on('moduleCreated', function (name) {
-            console.log("Module Created " + name);
-        });
+        editor.on('moduleCreated', (name) => console.log("Module Created " + name));
 
         editor.on('moduleChanged', function (name) {
             console.log("Module Changed " + name);
@@ -524,21 +508,15 @@ export class WorkSpaceController extends BaseController {
             console.log("Node moved " + id);
         });
 
-        editor.on('zoom', function (zoom) {
-            console.log('Zoom level ' + zoom);
-        });
+        editor.on('zoom', (zoom) => console.log('Zoom level ' + zoom));
 
         editor.on('translate', function (position) {
             console.log('Translate x:' + position.x + ' y:' + position.y);
         });
 
-        editor.on('addReroute', function (id) {
-            console.log("Reroute added " + id);
-        });
+        editor.on('addReroute', (id) => console.log("Reroute added " + id));
 
-        editor.on('removeReroute', function (id) {
-            console.log("Reroute removed " + id);
-        });
+        editor.on('removeReroute', (id) => console.log("Reroute removed " + id));
 
     }
 
@@ -557,10 +535,7 @@ export class WorkSpaceController extends BaseController {
         return Object.keys(obj.editor.drawflow.drawflow.Home.data)?.length || 0;
     }
 
-    clearHTML(nodeId) {
-        WorkSpaceController.getNode(nodeId).html = '';
-    }
-
+    clearHTML = (nodeId) => WorkSpaceController.getNode(nodeId).html = '';
 
     export() {
         const exportResult = this.editor.export();
@@ -950,12 +925,9 @@ export class WorkSpaceController extends BaseController {
     /** @param { HTMLElement } obj */
     showItemsGroup(obj){
 
-        const groupName = obj.dataset.groupName;
-        const items = document.getElementsByClassName(`${groupName}-item`);
-        
+        const items = document.getElementsByClassName(`${obj.dataset.groupName}-item`);
         if(items.length > 0){
-            
-            const showClassGroup = `${groupName}-item-show`;
+            const showClassGroup = `${obj.dataset.groupName}-item-show`;
             const addOrRemove = items[0].classList.contains(showClassGroup) ? 'remove' : 'add';
             obj.getElementsByClassName('drop-down-icon')[0].firstChild.classList[addOrRemove]('rotate-menu-arrow');
             for(const item of items){
@@ -965,27 +937,25 @@ export class WorkSpaceController extends BaseController {
     }
 
     handleNodeMinimize(icon, minimizedWidth, nodeType){
-        const mainContainer = icon.parentNode;
-        const outerContainer = icon.parentNode.parentNode.parentNode;
+        const mainContainer = icon.parentNode, outerContainer = icon.parentNode.parentNode.parentNode;
+
 		if(mainContainer.classList.contains('minimize-node')){
             const normalWidth = mainContainer.normalWidth;
-            outerContainer.style.width = normalWidth;
-			mainContainer.classList.remove('minimize-node');
-            icon.innerHTML = '_';
-            icon.style.height = '27px';
+            outerContainer.style.width = normalWidth, mainContainer.classList.remove('minimize-node');
+            icon.innerHTML = '_', icon.style.height = '27px';
             if(nodeType === 'transform')
                 mainContainer.querySelector('.statusicon').style.width = '20px';
 
         }else{
-            mainContainer.normalWidth = outerContainer.style.width;
-			mainContainer.classList.add('minimize-node');
+            mainContainer.normalWidth = outerContainer.style.width, mainContainer.classList.add('minimize-node');
             outerContainer.style.width = minimizedWidth;
-            icon.innerHTML = '+';
-            icon.style.height = '15px';
+            icon.innerHTML = '+', icon.style.height = '15px';
 
             if(nodeType === 'transform')
                 mainContainer.querySelector('.statusicon').style.width = '56px';
         }
     }
+
+    markAnalyticsOptimizedPipeline = (value) => WorkSpaceController.isCurrentPipelineOptimized = value;
 
 }

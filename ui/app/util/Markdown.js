@@ -108,6 +108,20 @@ export function markdownToHTMLTable(md){
       }
     );
 
+    md = renderScopedSchema(md);
+
     return md;
 
+}
+
+
+function renderScopedSchema(md) {
+    const rawHtml = md
+        .replace(/^\*\*(.*?)\*\*/gm, '<h3 class="sv-title">$1</h3>')       
+        .replace(/^(\d+\.\s+\*\*(.*?)\*\*)/gm, '</ul><div class="sv-table-name">$1</div><ul>')
+        .replace(/^\s*[\*|-]\s+(.*)/gm, '<li class="sv-column">$1</li>')
+        .replace(/`(.*?)`/g, '<code class="sv-code">$1</code>');
+
+    return `<div class="schema-viewer">${rawHtml}</ul></div>`.replace(/<div class="schema-viewer"><\/ul>/, '<div class="schema-viewer">');
+    
 }

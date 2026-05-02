@@ -1,0 +1,39 @@
+from utils.metastore.meta_storage import MetaStore
+from integrations.database.OdooDBIntegration import OdooDBIntegration
+from utils.DestinationQueryUtil import DestinationQueryUtil
+
+class BIService:
+
+    @staticmethod
+    def save_dashboard(namespace = None, charts_list=None, dashboard_name = None, dashboard_id = None):
+        return MetaStore.save_dashboard(namespace, charts_list, dashboard_name, dashboard_id)    
+    
+    
+    @staticmethod
+    def save_chart(namespace, config_details, context, chart_name, data_source, chart_id):
+        return MetaStore.save_analytics_chart(namespace, config_details, context, chart_name, data_source, chart_id)    
+    
+    
+    @staticmethod
+    def get_chart_configs(namespace, chart_name = None):
+        return MetaStore.chart_config_store().get_chart_configs(namespace, chart_name)  
+    
+      
+    @staticmethod
+    def get_dashboard_configs(namespace):
+        return MetaStore.chart_config_store().get_dashboard_configs(namespace)
+
+
+    @staticmethod
+    def get_odoo_modules(namespace, connection_name, pipeline):
+        return OdooDBIntegration.get_modules(namespace, connection_name, pipeline).get('result', [])
+    
+
+    @staticmethod
+    def get_odoo_tables_by_module(module_name, namespace, connection_name, pipeline):
+        return OdooDBIntegration.get_tables_by_module(module_name, namespace, connection_name, pipeline)    
+
+
+    @staticmethod
+    def query_sql_rdbms(query, namespace, connection_name):
+        return DestinationQueryUtil.query_sql_database(query, namespace, connection_name)

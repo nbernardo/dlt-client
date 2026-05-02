@@ -29,8 +29,10 @@ SEMANTIC_ONLY_FIELDS = {
     "source": "cast(null as string)",
     "validated": "cast(0 as int)",
     "validated_by": "cast(null as string)",
-    "validated_at": "cast(null as string)",
+    "validated_at": "cast(null as int)",
+    "is_deleted": "cast(null as int)",
 }
+
 
 EMBEDDING_MODEL = "intfloat/multilingual-e5-small"
 EMBEDDING_DIMS = 384
@@ -72,7 +74,7 @@ class SemanticModel:
     def _match_rules(columns: list[dict], rules=None) -> tuple[list[dict], list[dict]]:
         """Splits columns into rule-matched and unmatched.
             Returns:
-                matched   — list of dicts with semantic_concept, confidence_score, source='rule'
+                matched — list of dicts with semantic_concept, confidence_score, source='rule'
                 unmatched — list of original column dicts to send to LLM
         """
         rules = rules or DEFAULT_RULES
@@ -154,8 +156,6 @@ class SemanticModel:
         if unmatched:
             llm_results = SemanticModel.get_data_catalog_semantic_model(unmatched)
 
-        SemanticModel.migrate(dbs_path)
-
         semantic_map = {
             f"{r['table_name']}_{r['original_column_name']}": r
             for r in matched + llm_results
@@ -183,7 +183,7 @@ class SemanticModel:
         """
         db = LanceConnectionFactory.get(dbs_path)
     
-        SEMANTIC_INDEXES = ['semantic_concept', 'pipeline', 'table_name', 'original_column_name']
+        SEMANTIC_INDEXES = ['column_version', 'semantic_concept', 'pipeline', 'table_name', 'original_column_name', 'is_deleted']
     
         try:
             tbl = db.open_table('column_catalog')
@@ -214,13 +214,12 @@ class SemanticModel:
 
 
     @staticmethod
-    def get_embeddings(rows: list[dict]) -> list[dict]:
+    def get_embeddings(rows: list[dict], pipeline = None) -> list[dict]:
         """
         Generates vector embeddings for the semantic model using fastembed locally.
         """
         if not rows: return rows
-
-        texts = [f"{r['semantic_concept']}: {r['description']}" for r in rows]
+        texts = [f"Pipeline: {r['pipeline'] if pipeline == None else pipeline} | Table: {r['table_name']} | Column {r['column_name']} | Concept: {r['semantic_concept']} | Description {r['description']}" for r in rows]
 
         try:
             model = SemanticModel._get_embedding_model()
@@ -262,6 +261,7 @@ class SemanticModel:
             con = SemanticModel._get_duckdb_conn()
             tbl = SemanticModel._get_table()
 
+            original_pipeline_name = pipeline
             namespace = namespace.replace('-','_')
             pipeline = f'{namespace}_at_{pipeline}'
 
@@ -302,7 +302,10 @@ class SemanticModel:
                     'ingested_at': datetime.utcnow().isoformat(),
                     'embedding': SemanticModel.get_embeddings([{
                                     'semantic_concept': row['semantic'],
-                                    'description': row.get('description', existing_row.get('description', ''))
+                                    'description': row.get('description', existing_row.get('description', '')),
+                                    'pipeline': original_pipeline_name,
+                                    'column_name': row['column_name'],
+                                    'table_name': row['table_name'],
                                 }])[0]['embedding'],
                 }
                 rows_to_insert.append(entry)

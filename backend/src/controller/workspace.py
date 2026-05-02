@@ -8,8 +8,6 @@ from flask_cors import cross_origin
 import threading
 import requests
 import time
-from services.agents.data_query.DataQueryAIAssistent import DataQueryAIAssistent as Agent
-from typing import List
 import traceback
 from flask import abort, send_file
 from utils.cache_util import DuckDBCache
@@ -19,6 +17,7 @@ from utils.BucketUtil import BucketUtil
 from utils.BucketConnector import BucketConnector
 from utils.workspace_util import handle_conversasion_turn_limit
 from utils.pipeline.Enums import DestinationType
+from services.agents.Enums import AgentFlow
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -256,20 +255,46 @@ def message_ai_agent(namespace):
 
         payload = request.get_json()
         message = payload['message']
+        agent_flow = payload['agentFlow']
 
         if(os.path.exists(namespace)):
             result = 'No agent was started since no data found in the Namespace.'
             return { 'error': False, 'result': { 'result': result } }
         
-        return send_message_to_agent_wit_groq(message, namespace)
+        return send_message_to_agent_with_local_or_groq(message, namespace, agent_flow=agent_flow)
     except Exception as error:
         print(f'AI Agent error while processing your request {str(error)}')
         print(error)
         traceback.print_exc()
-        result = 'No medatata was loaded about your namespace.'\
-              if str(error).strip() == namespace else 'Could not load details about your namespace.'
+        if agent_flow == AgentFlow.ANALYTICS:
+            result = 'Was not able to run your request, seems not match your data, can you refine and make it more clear'
+        else:
+            result = 'No medatata was loaded about your namespace.'\
+                if str(error).strip() == namespace else 'Could not load details about your namespace.'
         return { 'error': True, 'result': { 'result': result } }
-    
+
+
+@workspace.route('/workspace/analytics/<namespace>/<table>', methods=['POST'])
+def run_analytics(namespace, table):
+
+    try:
+        from utils.duckdb_util import DuckdbUtil
+        import platform
+
+        payload = request.get_json()
+        fields = payload['fields']
+        data_range = payload.get('dataRange', {})
+        
+        sep = '/' if platform.system() != 'Windows' else '\\\\'
+        database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{table.split('.')[1]}.duckdb'
+
+        return { 'error': True, 'result': DuckdbUtil.run_analytics_query(database_path, fields, table, data_range) }
+        
+    except Exception as error:
+        result = f'Erro while running analytics query. {str(error)}'
+        print(result)
+        return { 'error': True, 'result': { 'result': result } }
+
     
 @workspace.route('/workcpace/agent/<namespace>/<username>', methods=['POST'])
 def message_ai_agent_with_username(namespace, username):
@@ -401,22 +426,25 @@ def send_message_to_agent(message, namespace, user_id = None):
     return { 'success': True, 'result': agent.cloud_mistral_call(message) }    
 
 
-def send_message_to_agent_wit_groq(message, namespace, user_id = None):
+def send_message_to_agent_with_local_or_groq(message, namespace, user_id = None, agent_flow = None):
 
     user = user_id if user_id != None else namespace
-    agent = AgentFactory.get_data_agent(user)
+    if agent_flow == AgentFlow.ANALYTICS:
+        agent = AgentFactory.get_data_catalog_agent(user)
+        result = agent.call_offline_model(message, namespace)
+    else:
+        agent = AgentFactory.get_data_agent(user)
+        result = agent.cloud_groq_call(message)
 
     if(agent == None):
         return { 
-            'success': False, 
+            'success': False, 'started': False,
             'result': "No agent was initiated since you don't/didn't have data in the namespace. I can update myself if you ask.",
-            'started': False
         }
     
-
-    if(not os.path.exists(agent.db_path)):
+    if(not os.path.exists(agent.db_path) and agent_flow != AgentFlow.ANALYTICS):
         return { 'success': False, 'result': 'No data, pipeline found in your name space.' }
-    return { 'success': True, 'result': agent.cloud_groq_call(message) }
+    return { 'success': True, 'result': result }
 
 
 @workspace.route('/secret/<namespace>', methods=['POST'])

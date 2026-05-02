@@ -15,6 +15,7 @@ from controller.workspace import workspace, call_scheduled_job
 from controller.logs import logs
 from controller.file_upload import upload, BaseUpload
 from controller.data_catalog import datacatalog
+from controller.bi_controller import bi_controller
 from utils.app_util import add_app_custom_handlers
 
 from services.workspace.SecretManager import SecretManager
@@ -47,6 +48,7 @@ app.register_blueprint(pipeline)
 app.register_blueprint(workspace)
 app.register_blueprint(upload)
 app.register_blueprint(datacatalog)
+app.register_blueprint(bi_controller)
 add_app_custom_handlers(app)
 
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true":

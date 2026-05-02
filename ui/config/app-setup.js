@@ -11,7 +11,6 @@ export class StillAppSetup extends StillAppMixin(Components) {
     constructor() {
         super();
         this.setHomeComponent(Workspace);
-
         const isCloud = window.location.href.toString().startsWith('dlt-c.cloud') 
             || window.location.hostname.toString().startsWith('mvp2.e2e-data.com');
 
@@ -22,6 +21,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
         
         this.prefetchComponent();
         this.prefetchStyleSheet();
+        this.earlyImports();
     }
 
     prefetchComponent(){
@@ -37,6 +37,11 @@ export class StillAppSetup extends StillAppMixin(Components) {
         setTimeout(async () => {
             await Assets.import({ path: '/app/assets/css/movable-popup.css' })
         });
+    }
+
+    earlyImports(){
+        // This imports the G6 CommonJS module which is used by the DatabaseDiagram.js 
+        (async () => await Assets.import({ path: 'app/components/dataviz/diagram/g6.js', type: 'js' }))()
     }
 
     localEnv(){

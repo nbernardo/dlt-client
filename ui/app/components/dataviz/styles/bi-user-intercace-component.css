@@ -1,0 +1,429 @@
+  .bi-user-interface-component-body {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface2: #f0f2f5;
+    --border: #e2e6ed;
+    --border2: #d0d5de;
+    --accent: #1a1f2e;
+    --accent2: #2c3e50;
+    --success: #00a86b;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text: #1a1f2e;
+    --muted: #8892a4;
+    --muted2: #b0bac8;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --radius: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+    --spinner-top: #2563eb;
+    --success-save-button: #00a86b;
+    --identity-color: #2c3e50;
+    --identity-color-1: #2c3e50c3;
+    --primary: #2563eb; 
+
+    background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px;
+  }
+  .bi-user-interface-component-body * { margin: 0; padding: 0; box-sizing: border-box; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.75)} }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  .bi-user-interface-component-body .shell { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 52px 1fr; }
+  
+  .bi-user-interface-component-body .topbar {
+    grid-column: 1/-1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 0 20px !important;
+    background: var(--surface) !important;
+    border-bottom: 1px solid var(--border) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    box-shadow: var(--shadow) !important;
+  }
+
+  .bi-user-interface-component-body .logo { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: 0.06em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .bi-user-interface-component-body .logo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: pulse 2s ease-in-out infinite; }
+  .bi-user-interface-component-body .topbar-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+  .bi-user-interface-component-body .pipeline-selector { display: flex; align-items: center; gap: 8px; padding: 8px 12px !important; margin-top: -8px; background: #8080805c !important; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font-size: 12px; color: var(--text); min-width: 200px; font-family: var(--sans); }
+  .bi-user-interface-component-body .topbar-actions { display: flex; gap: 8px; border-left: 1px solid lightgrey; }
+  .bi-user-interface-component-body .btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--radius); font-size: 12px; font-family: var(--sans); font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.15s ease; }
+  .bi-user-interface-component-body .btn-ghost { background: var(--identity-color); border-color: var(--identity-color); color: var(--surface); }
+  .bi-user-interface-component-body .btn-ghost:hover { background: var(--identity-color-1); }
+  .bi-user-interface-component-body .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .bi-user-interface-component-body .btn-primary:hover { opacity: 0.88; }
+  .bi-user-interface-component-body .btn-accent { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+  .bi-user-interface-component-body .btn-accent:hover { opacity: 0.88; }
+  .bi-user-interface-component-body .sidebar { background: var(--surface) !important; border-right: 1px solid var(--border) !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }
+  .bi-user-interface-component-body .sidebar-section { padding: 14px 16px 8px !important; }
+  .bi-user-interface-component-body .sidebar-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+  .bi-user-interface-component-body .table-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12px; color: var(--text); transition: background 0.12s; margin-bottom: 2px; }
+  .bi-user-interface-component-body .table-item:hover { background: var(--surface2); }
+  .bi-user-interface-component-body .table-item.active { background: #eef1fd; color: var(--accent2); font-weight: 500; }
+  .bi-user-interface-component-body .table-icon { width: 16px; height: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--muted); flex-shrink: 0; }
+  .bi-user-interface-component-body .table-item.active .table-icon { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .bi-user-interface-component-body .table-fields { font-size: 10px; color: var(--muted2); margin-left: auto; }
+  .bi-user-interface-component-body .sidebar-sep { height: 1px; background: var(--border); margin: 8px 16px; }
+  .bi-user-interface-component-body .chart-thumb { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius); cursor: pointer; font-size: 12px; color: var(--text); transition: background 0.12s; margin-bottom: 2px; }
+  .bi-user-interface-component-body .chart-thumb:hover { background: var(--surface2); }
+  .bi-user-interface-component-body .chart-type-badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); margin-left: auto; }
+  .bi-user-interface-component-body .main { display: flex; flex-direction: column; overflow: hidden; }
+  .bi-user-interface-component-body .tabs { display: flex; align-items: center; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--border);  }
+  .bi-user-interface-component-body .tabs div { display: flex; align-items: center; }
+  .bi-user-interface-component-body .tab { padding: 14px 18px; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .bi-user-interface-component-body .tab img { opacity: 0.2; float: left; }
+  .bi-user-interface-component-body .tab.active img { opacity: 1; }
+  .bi-user-interface-component-body .tab:hover { color: var(--text); img { opacity: 1; } }
+  .bi-user-interface-component-body .tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+  .bi-user-interface-component-body .content { flex: 1; overflow: auto; display: none; }
+  .bi-user-interface-component-body .content.active { display: block; }
+  .bi-user-interface-component-body .sheet-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .bi-user-interface-component-body .search-input { padding: 6px 10px 6px 30px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; font-family: var(--sans); color: var(--text); width: 220px; }
+  .bi-user-interface-component-body .search-input:focus { outline: none; border-color: var(--accent2); }
+  .bi-user-interface-component-body .search-wrap { position: relative; }
+  .bi-user-interface-component-body .search-wrap::before { content: '⌕'; position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+  .bi-user-interface-component-body .stats-row { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+  .bi-user-interface-component-body .stat-chip { padding: 4px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .bi-user-interface-component-body .stat-chip span { color: var(--text); font-weight: 600; }
+  .bi-user-interface-component-body .table-wrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: auto; box-shadow: var(--shadow); max-height: calc(100vh - 200px); }
+  .bi-user-interface-component-body table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .bi-user-interface-component-body thead { position: sticky; top: 0; z-index: 20; }
+  .bi-user-interface-component-body th { background: var(--surface2); border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; user-select: none; position: relative; }
+  .bi-user-interface-component-body th .th-actions { float: right; display: flex; gap: 4px; }
+  .bi-user-interface-component-body th .freeze-btn { cursor: pointer; opacity: 0.5; font-size: 10px; }
+  .bi-user-interface-component-body th .freeze-btn.frozen { opacity: 1; color: var(--accent2); }
+  .bi-user-interface-component-body th.frozen { position: sticky; left: 40px; z-index: 21; background: #eaecf3; border-right: 2px solid var(--accent2); }
+  .bi-user-interface-component-body td.frozen { position: sticky; left: 40px; z-index: 5; background: #f8faff !important; border-right: 2px solid var(--accent2); }
+  .bi-user-interface-component-body th:hover { background: #e8eaf0; color: var(--text); }
+  .bi-user-interface-component-body th.sorted { color: var(--accent2); }
+  .bi-user-interface-component-body td { padding: 7px 12px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); font-size: 12px; color: var(--text); font-family: var(--mono); white-space: nowrap; max-width: 240px; overflow: hidden; text-overflow: ellipsis; background: #fff; }
+  .bi-user-interface-component-body tr:hover td { background: #f8f9fc; }
+  .bi-user-interface-component-body tr.selected td { background: #eef1fd; }
+  .bi-user-interface-component-body .td-null { color: var(--muted2); font-style: italic; font-family: var(--sans); }
+  .bi-user-interface-component-body .td-num { color: #2563eb; }
+  .bi-user-interface-component-body .td-bool { color: var(--success); }
+  .bi-user-interface-component-body .td-date { color: #7c3aed; }
+  .bi-user-interface-component-body .row-num { position: sticky; left: 0; z-index: 22; width: 40px; min-width: 40px; text-align: right; color: var(--muted2); font-size: 10px; background: var(--surface2) !important; border-right: 2px solid var(--border2) !important; cursor: default; }
+  .bi-user-interface-component-body th.row-num { z-index: 23; }
+
+  /* New column insert UI */
+  .bi-user-interface-component-body .col-insert-line { position: absolute; top: 0; width: 3px; height: 100%; background: var(--accent2); cursor: pointer; display: none; z-index: 50; transform: translateX(-50%); pointer-events: auto; }
+  .bi-user-interface-component-body .col-insert-line::after { content: '+'; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: var(--accent2); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; font-family: var(--sans); box-shadow: var(--shadow); }
+
+  .bi-user-interface-component-body .chart-builder { display: grid; grid-template-columns: 280px 1fr; gap: 16px; height: calc(100vh - 160px); }
+  .bi-user-interface-component-body .chart-config { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; box-shadow: var(--shadow); }
+  .bi-user-interface-component-body .config-section-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+  .bi-user-interface-component-body .chart-type-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+  .bi-user-interface-component-body .chart-type-btn { padding: 10px 6px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: var(--muted); transition: all 0.12s; }
+  .bi-user-interface-component-body .chart-type-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .bi-user-interface-component-body .chart-type-btn.active { border-color: var(--accent2); background: #eef1fd; color: var(--accent2); font-weight: 600; }
+  .bi-user-interface-component-body .chart-type-icon { font-size: 18px; }
+  .bi-user-interface-component-body .dashboard-toolbar select,
+  .bi-user-interface-component-body .field-select { width: 100%; padding: 7px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; font-family: var(--sans); color: var(--text); cursor: pointer; }
+  .bi-user-interface-component-body .dashboard-toolbar select:focus,
+  .bi-user-interface-component-body .field-select:focus { outline: none; border-color: var(--accent2); }
+
+  .bi-user-interface-component-body .field-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; display: block; }
+  .bi-user-interface-component-body .color-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bi-user-interface-component-body .color-swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.1s; }
+  .bi-user-interface-component-body .color-swatch:hover { transform: scale(1.15); }
+  .bi-user-interface-component-body .color-swatch.active { border-color: var(--text); }
+  .bi-user-interface-component-body .chart-title-input { width: 100%; padding: 7px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 12px; font-family: var(--sans); color: var(--text); }
+  .bi-user-interface-component-body .chart-title-input:focus { outline: none; border-color: var(--accent2); }
+  .bi-user-interface-component-body .chart-preview { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+  .bi-user-interface-component-body .chart-preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .bi-user-interface-component-body .chart-preview-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .bi-user-interface-component-body .chart-canvas-wrap { flex: 1; position: relative; max-height: 300px; }
+  .bi-user-interface-component-body .dashboard-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .bi-user-interface-component-body .dashboard-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; min-height: 200px; padding: 10px; border-radius: var(--radius); transition: background 0.2s; }
+  .bi-user-interface-component-body .dashboard-grid.drag-over { background: rgba(79, 110, 247, 0.05); outline: 2px dashed var(--accent2); }
+  .bi-user-interface-component-body .dashboard-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); transition: box-shadow 0.15s; position: relative; }
+  .bi-user-interface-component-body .dashboard-card.dragging { opacity: 0.5; border: 2px dashed var(--accent2); }
+  .bi-user-interface-component-body .dashboard-card:hover { box-shadow: var(--shadow-lg); }
+  .bi-user-interface-component-body .dashboard-card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); cursor: grab; }
+  .bi-user-interface-component-body .dashboard-card-header:active { cursor: grabbing; }
+  .bi-user-interface-component-body .dashboard-card-title { font-size: 12px; font-weight: 600; color: var(--text); pointer-events: none; }
+  .bi-user-interface-component-body .card-actions { display: flex; gap: 4px; }
+  .bi-user-interface-component-body .icon-btn { width: 26px; height: 26px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); transition: all 0.12s; }
+  .bi-user-interface-component-body .icon-btn:hover { background: var(--surface2); color: var(--text); }
+  .bi-user-interface-component-body .dashboard-card-body { padding: 16px; max-height: 230px; }
+  .bi-user-interface-component-body .dashboard-card-canvas { width: 100% !important; height: 200px !important; }
+  .bi-user-interface-component-body .empty-dashboard { grid-column: 1/-1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: var(--muted); gap: 12px; background: var(--surface); border: 2px dashed var(--border); border-radius: var(--radius); }
+  .bi-user-interface-component-body .empty-icon { font-size: 32px; opacity: 0.4; }
+  .bi-user-interface-component-body .toast { position: fixed; bottom: 24px; right: 24px; background: var(--accent); color: #fff; padding: 10px 18px; border-radius: var(--radius); font-size: 12px; font-weight: 500; opacity: 0; transform: translateY(8px); transition: all 0.25s ease; pointer-events: none; z-index: 1000; box-shadow: var(--shadow-lg); }
+  .bi-user-interface-component-body .toast.show { opacity: 1; transform: translateY(0); }
+  .bi-user-interface-component-body .toast.error { opacity: 1; transform: translateY(0); background-color: var(--danger); }
+  .bi-user-interface-component-body .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); backdrop-filter: blur(4px); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; }
+  .bi-user-interface-component-body .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .bi-user-interface-component-body .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; width: 400px; padding: 24px; box-shadow: var(--shadow-lg); transform: translateY(12px); transition: transform 0.2s; }
+  .bi-user-interface-component-body .modal-overlay.open .modal { transform: translateY(0); }
+  .bi-user-interface-component-body .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+  .bi-user-interface-component-body .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+  .bi-user-interface-component-body .dashboard-select { width: 100%; padding: 8px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: var(--sans); color: var(--text); margin-bottom: 12px; }
+  .bi-user-interface-component-body .new-dash-input { width: 100%; padding: 8px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: var(--sans); color: var(--text); }
+  .bi-user-interface-component-body .new-dash-input:focus { outline: none; border-color: var(--accent2); }
+  .bi-user-interface-component-body .publish-dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: 0; }
+  .bi-user-interface-component-body .btn-accent.ready .publish-dot { opacity: 1; animation: pulse 2s ease-in-out infinite; }
+
+  .bi-user-interface-component-body::-webkit-scrollbar { width: 6px; height: 6px; }
+  .bi-user-interface-component-body::-webkit-scrollbar-track { background: transparent; }
+  .bi-user-interface-component-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  .bi-user-interface-component-body { 
+      .dash-tile {  background: white;  border: 1px solid var(--border);  border-radius: 4px;  padding: 5px;  display: flex;  flex-direction: column;  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);  resize: both;  overflow: hidden;  min-width: 280px;  height: 280px;  position: relative;  }		  
+      .field-item { 
+        background: #fff; cursor: grab; font-weight: 500; padding: 5px 3px; font-size: 10px; font-family: var(--mono);
+        color: var(--text); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+    }
+      .field-item.calc-field { border-left: 4px solid var(--success); background: #f0fdf4; }
+      @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-5px);} 60% {transform: translateY(-3px);} }
+      .scroll-indicator { display: none; text-align: center; padding: 5px; color: var(--primary); font-size: 18px; font-weight: bold; background: linear-gradient(transparent, white); bottom: 0; width: 100%; pointer-events: none; animation: bounce 2s infinite; position: relative; margin-top: -30px; }
+    }
+    
+
+.e2e-chat-container {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    padding: 4px 8px;
+    min-height: 40px;
+    transition: all 0.2s ease;
+}
+
+.e2e-chat-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 14px;
+    height: 32px;
+}
+
+.e2e-agent-ui {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.e2e-hidden {
+    display: none !important;
+}
+
+.e2e-btn-pill {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 4px;
+}
+
+.e2e-btn-pill:hover {
+    background: #e0e0e0;
+}
+
+
+
+
+
+/* TODO: validate the effect of bellow styling agains Markdown LLM response */
+.schema-viewer {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 15px;
+    background-color: #f8f9fa; 
+    border-radius: 8px;
+    line-height: 1.6;
+}
+
+.schema-viewer .sv-title {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    color: #1a1f23;
+}
+
+.schema-viewer .sv-table-name {
+    font-weight: 700;
+    margin-top: 18px;
+    margin-bottom: 4px;
+    color: #202124;
+    padding-left: 0; 
+    display: block;
+}
+
+.schema-viewer ul {
+    list-style-type: disc;
+    padding-left: 28px; 
+    margin: 0;
+}
+
+.schema-viewer .sv-column {
+    color: #3c4043;
+    margin-bottom: 2px;
+}
+
+.schema-viewer .sv-code {
+    background-color: #e8eaed;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.9em;
+    color: #000;
+}
+
+.analytics-dataload-spinner { width: 30px; height: 30px; border: 3px solid #e2e8f0; border-top: 3px solid var(--spinner-top); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
+.loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; backdrop-filter: blur(2px); }
+.lab-loader { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.7); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(2px); }
+.action-btn.success-save-button { background: var(--success-save-button); }
+.bi-filter-action-btn { background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; }
+
+#filter-modal, #calc-modal { position: absolute; background: white; border: 1px solid var(--border); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 8px; padding: 12px; z-index: 1000; display: none; min-width: 170px; }
+
+
+.bi-user-interface-component-body { 
+    
+/* --- Pivot Filter implementation --- */
+#global-filter-drawer {
+    position: absolute;
+    top: 40;
+    left: 0;
+    margin: 0;
+    width: 280px;
+    background: #fff;
+    border-right: 1px solid var(--border);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    
+    /* Use transform for the collapse state to break out of parent centering */
+    transition: transform 0.3s ease, width 0.3s ease;
+    transform: translateX(-100%); /* Default: Collapsed */
+}
+
+#global-filter-drawer.open {
+    transform: translateX(0); /* Expanded */
+}
+
+/* Ensure the internal content doesn't squash during the transition */
+.drawer-content {
+    min-width: 280px; 
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.drawer-toggle {
+    position: absolute;
+    left: 15px;
+    bottom: 15px;
+    z-index: 2001;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #1e293b;
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: left 0.3s ease;
+}
+
+#global-filter-drawer.open ~ .drawer-toggle {
+    left: 295px; /* Pushes the button out when open */
+}
+/* --- End Pivot Filter implementation --- */
+
+    /* Ensure the cards inside the drawer allow for visible value chips */
+    .filter-card {
+        margin: 10px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+    }
+    /* */
+
+    .filter-card-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-weight: 700;
+        font-size: 12px;
+        color: #475569;
+    }
+}
+
+.fields-panel { 
+    background: var(--surface); 
+    border: 1px solid var(--border); 
+    border-radius: var(--radius); 
+    box-shadow: var(--shadow-lg); 
+    position: absolute; 
+    z-index: 50; 
+    overflow: hidden; 
+    max-height: 260px; 
+    display: flex; 
+    flex-direction: column;
+    right: -12px;
+    top: 30;
+    width: 220px;
+    .field-item:last-child { border-bottom: none; }
+    .field-type { font-size: 9px; color: var(--muted2); background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; margin-left: auto; flex-shrink: 0; }
+}
+
+.fields-panel-body { overflow-y: auto; flex: 1; }
+.fields-panel-header { 
+    padding: 7px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; 
+    color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); display: flex;
+    justify-content: space-between;
+}
+
+.table-fields span:first-child{ padding: 0px 4px; border-radius: 6px; background: black; color: white; }
+
+.toggle-btn-on-pivot-table { cursor: pointer; margin-right: 8px; font-weight: bold; color: var(--primary); border: 1px solid var(--primary); padding: 0 4px; border-radius: 3px; background: #fff; display: inline-block; min-width: 14px; text-align: center; }
+.dash-tile.toggle-btn-on-pivot-table { color: var(--primary); border: 1px solid var(--primary); }
+
+
+.stepper-range-with-slider { 
+    margin-top: 0px; width: 380px; padding: 6px; padding-bottom: 2px; background: white; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); font-family: sans-serif;
+    .main-label { display: block; font-weight: bold; margin-bottom: -6px; color: #333; font-size: .7rem; }
+
+    .stepper-data, .input-box, .stepper-top-controls { display: flex; margin-bottom: 0px; gap: 5px; }
+    .input-box { flex-direction: column; }
+    .stepper-top-controls { justify-content: space-between; flex-direction: row; }
+    .input-box input { width: 50%; padding: 1px; border: 2px solid #ddd; border-radius: 4px; text-align: center; font-size: 0.7rem; }
+
+    .wrapper { position: relative; height: 2px; background: #ddd; border-radius: 4px; margin: 10px 0 10px 0; }
+    .range-input { position: absolute; width: 100%; top: -7px; left: 0; pointer-events: none; -webkit-appearance: none; background: none; margin: 0; }
+    .range-input::-webkit-slider-thumb { 
+      pointer-events: auto; -webkit-appearance: none; width: 15px; height: 15px; 
+      border-radius: 50%; background: #5d93e1; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .datasource img:hover { opacity: .5; cursor: pointer; }
+
+    .list-of-fields{
+        position: absolute;
+        margin-left: -194px;
+        width: 207px;
+        z-index: 1000;
+        background: white;
+        border: 1px solid grey;
+        padding: 5px;
+        height: 200px;
+        overflow: scroll;
+        select { position: fixed; width: 193px; }
+    }
+
+    .available-fields{ padding-top: 30px; }
+}

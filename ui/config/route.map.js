@@ -91,7 +91,7 @@ export const stillRoutesMap = {
                 url: "/aia-gent"
             },
             Grid: {
-                path: "app/components/grid",
+                path: "app/components/dataviz/bi/grid",
                 url: "/grid"
             },
             SqlEditor: {
@@ -129,6 +129,18 @@ export const stillRoutesMap = {
             DataCatalogUI: {
                 path: "app/components/data-catalog",
                 url: "/data-catalog-ui"
+            },
+            BIUserInterfaceComponent: {
+                path: "app/components/dataviz/bi/main",
+                url: "/biu-ser-interface"
+            },
+            PivotCreateComponent: {
+                path: "app/components/dataviz/bi/pivot",
+                url: "/pivot-create"
+            },
+            DatabaseDiagram: {
+                path: "app/components/dataviz/diagram",
+                url: "/database-diagram"
             }
         },
         lazyInitial: {}

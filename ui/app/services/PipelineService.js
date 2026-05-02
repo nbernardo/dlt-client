@@ -20,6 +20,7 @@ export class PipelineService extends BaseService {
     async createOrUpdatePipeline(content = null, update = false, actionType = '') {
 
         const payload = content || {};
+        payload.usedExistingDW = WorkSpaceController.usedExistingDW;
 
         const headers = PipelineService.jsonHeaders;
         if(update === true){

@@ -43,24 +43,11 @@
             font-size: 14px;
         }
         
-        .grid-component-container .search-box:focus {
-            outline: none;
-            border-color: #4a90e2;
-        }
+        .grid-component-container .search-box:focus { outline: none; border-color: #4a90e2; }
         
-        .grid-component-container .table-container {
-            overflow-x: auto;
-            margin-top: 65px;
-            overflow-y: scroll;
-            position: relative;
-            height: 50vh;
-        }
+        .grid-component-container .table-container { overflow-x: auto; margin-top: 65px; overflow-y: scroll; position: relative; }
         
-        .grid-component-container table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-        }
+        .grid-component-container table { width: 100%; border-collapse: collapse; font-size: 11px; }
         
         .grid-component-container th {
             background-color: #333;

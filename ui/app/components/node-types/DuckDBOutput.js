@@ -1,4 +1,6 @@
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
+import { PipelineService } from "../../services/PipelineService.js";
+import { BIService } from "../dataviz/services/BIService.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "./SqlDBComponent.js";
@@ -13,11 +15,15 @@ export class DuckDBOutput extends AbstractNode {
 	/** @Prop */ aiGenerated;
 	/** @Prop */ aiGenerated;
 	/** @Prop */ importFields;
+	/** @Prop */ userExistingDW = false;
+
+	/** @Prop @type { HTMLInputElement } */ newDBInput = false;
 
 	database;
 	tableName;
 	label = 'Duckdb Output';
 	nodeCount = '';
+	targetDataWarehouses = [{ dwname: 'None', table: 'none' }];
 
 	/** @Prop */
 	inConnectors = 1;
@@ -50,7 +56,21 @@ export class DuckDBOutput extends AbstractNode {
 		this.importFields = { database, table };
 	}
 
-	stAfterInit(){
+	selectTargetDW(dwName){
+		if(dwName === ''){
+			this.newDBInput.setAttribute('required', true);
+			this.userExistingDW = false;
+			WorkSpaceController.usedExistingDW = null;
+		} else {
+			WorkSpaceController.usedExistingDW = dwName;
+			this.userExistingDW = true;
+			this.newDBInput.removeAttribute('required');
+		}
+	}
+
+	async stAfterInit(){
+		this.newDBInput = document.querySelector(`.${this.cmpInternalId} .newDatabaseName`)
+		this.newDBInput.setAttribute('required', true);
 		this.wSpaceController.isDuckDBDest = true;
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
@@ -71,6 +91,11 @@ export class DuckDBOutput extends AbstractNode {
 			data['database'] = this.database.value;
 			data['tableName'] = this.tableName.value;
 		}
+
+		setTimeout(async () => {
+			const pipelines = await BIService.getDWPipelines();
+			this.targetDataWarehouses = (pipelines || []).map(itm => ({ dwname: itm[1], table: itm[0] }));
+		});
 	}
 
 	setupOnChangeListen(){

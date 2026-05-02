@@ -1,6 +1,7 @@
-import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
-import { Assets } from "../../../@still/util/componentUtil.js";
-import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
+import { ViewComponent } from "../../../../../@still/component/super/ViewComponent.js";
+import { Assets } from "../../../../../@still/util/componentUtil.js";
+import { UUIDUtil } from "../../../../../@still/util/UUIDUtil.js";
+import { BIService } from "../../services/BIService.js";
 
 export class Grid extends ViewComponent {
 
@@ -30,8 +31,13 @@ export class Grid extends ViewComponent {
 
 	/** @Prop */ runningQuery = false;
 
+	/** @Prop */ onLoadEvents;
+
+	onLoad(evt = () => {}){ this.onLoadEvents = evt }
+
 	async stBeforeInit(){
-		await Assets.import({ path: '/app/assets/css/grid.css' });
+		const appPath = await BIService.getAppPath();
+		await Assets.import({ path: `${appPath}/app/components/dataviz/styles/grid.css` });
 	}
 
 	stOnRender({ fields, data }){
@@ -41,7 +47,12 @@ export class Grid extends ViewComponent {
 	stAfterInit(error, loading) {			
 		this.mainContainer = document.querySelector('#'+this.uniqueId);
 		this.dataTable = this.mainContainer.querySelector('.dataTable');
-
+		
+		if(this.onLoadEvents){
+			this.onLoadEvents();
+			return this.dataTableHandlingSetup();
+		}
+		
 		if(loading){
 			this.mainContainer.querySelector(`tbody`).style.display = 'none';
 			return this.runningQuery = true;

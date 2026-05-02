@@ -1,0 +1,81 @@
+<style>
+	.bi-pivot-ui-container{
+		--bg: #f8fafc; --border: #e2e8f0; --success: #10b981;
+		/* Loading Overlay Styles */
+		#table-canvas { position: relative; min-height: 200px; }
+  
+		  .sidebar-section { position: relative; }
+		  body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; height: 100vh; color: #1e293b; }
+		  
+		  /* Sidebar */
+		  .sidebar { width: 240px; background: white; border-right: 1px solid var(--border); padding: 20px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
+		  .sidebar-section { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+		  .sidebar h3 { margin: 0; font-size: 11px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; font-weight: 800; }
+  
+		  /* Workspace */
+		  .workspace { flex: 1; display: flex; flex-direction: column; gap: 20px; overflow: hidden; position: relative; }
+		    
+		  /* Toolbar */
+		  .toolbar { display: flex; align-items: center; gap: 15px; }
+		  .search-container { flex: 1; display: flex; align-items: center; background: white; border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; gap: 10px; }
+		  .search-input { border: none; outline: none; flex: 1; font-size: 14px; }
+		  .heatmap-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; white-space: nowrap; }
+		  .action-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+  
+		  .drop-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+		  .zone { background: white; border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 12px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+		  .zone.drag-over { border-color: var(--primary); background: #f0f9ff; }
+		  .zone-title { width: 100%; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+		  
+		  .chip { background: var(--primary); color: white; padding: 6px 10px; border-radius: 6px; font-size: 11px; display: flex; align-items: center; gap: 6px; }
+		  .agg-select { background: #fff; border: none; border-radius: 3px; font-size: 10px; padding: 2px; cursor: pointer; }
+		  .remove-btn { background: none; border: none; color: white; cursor: pointer; font-size: 16px; line-height: 1; }
+  
+		  /* Table Styling */
+		  .output { background: white; border-radius: 10px; padding: 20px; flex: 1; overflow: auto; border: 1px solid var(--border); }
+		  table { border-collapse: collapse; width: 100%; font-size: 12px; min-width: 600px; }
+		  th, td { border: 1px solid var(--border); padding: 10px; text-align: right; }
+		  th { background: #f1f5f9; position: sticky; top: 0; z-index: 10; font-weight: 600; }
+		  
+		  .row-label-cell { text-align: left; background: #f8fafc; font-weight: 600; min-width: 180px; }
+		  .grand-total-row { background: #f1f5f9 !important; font-weight: 800 !important; }
+		  .total-col { background: #f8fafc; font-weight: 700; border-left: 2px solid var(--border); }
+  
+		  #dashboard-canvas {  display: none;  flex-wrap: wrap;  gap: 20px;  overflow-y: auto;  flex: 1;  padding: 20px;  border: 3px dashed #cbd5e1;  border-radius: 10px; align-content: flex-start; }
+	}
+</style>
+
+<div class="bi-pivot-ui-container">
+
+    <div id="calc-modal" style="width: 220px; top: 50%; left: 50%; transform: translate(-50%, -50%);" onclick="event.stopPropagation()">
+        <strong style="font-size: 13px;">New Calculated Field</strong>
+        <input type="text" id="calc-name" placeholder="Name" style="width: 100%; margin: 10px 0 5px;">
+        <input type="text" id="calc-formula" placeholder="Salary + Bonus" style="width: 100%; margin-bottom: 10px;">
+        <button onclick="controller.addCalculatedField()" class="action-btn" style="width: 100%;">Add Field</button>
+    </div>
+
+    <main class="workspace">
+        <div id="lab-controls" style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="toolbar">
+                <div class="search-container">🔍 <input type="text" id="global-search" class="search-input" placeholder="Search rows..." oninput="controller.handleSearch(this.value)"></div>
+                <label class="heatmap-toggle">
+                    <input type="checkbox" id="heatmap-check" onchange="controller.renderAll()"> Heatmap
+                </label>
+                <label class="heatmap-toggle">
+                    <input type="checkbox" id="show-all-rows-check" onchange="controller.renderAll()"> Raw Records
+                </label>
+                <button class="action-btn success-save-button" onclick="controller.saveConfiguration()"><i class="fa fa-save"></i> Save Pivot table</button>
+                <button class="action-btn" style="background: #9fa3a9;" onclick="component.exportToCSV()">↓ Export CSV</button>
+                <button class="action-btn" style="background: #ef4444;" onclick="component.clearWorkspace()">Reset</button>
+            </div>
+            <div class="drop-grid">
+                <div class="zone" id="rows" ondrop="controller.handleDrop(event)" ondragover="controller.allowDrop(event)" ondragleave="controller.clearDrag(event)"><div class="zone-title">Rows</div></div>
+                <div class="zone" id="cols" ondrop="controller.handleDrop(event)" ondragover="controller.allowDrop(event)" ondragleave="controller.clearDrag(event)"><div class="zone-title">Columns</div></div>
+                <div class="zone" id="vals" ondrop="controller.handleDrop(event)" ondragover="controller.allowDrop(event)" ondragleave="controller.clearDrag(event)"><div class="zone-title">Values</div></div>
+            </div>
+        </div>
+
+        <div class="output" id="table-canvas"></div>
+        <div id="dashboard-canvas" ondrop="controller.handleDashDrop(event)" ondragover="controller.allowDrop(event)" ondragleave="controller.clearDrag(event)"></div>
+    </main>
+</div>

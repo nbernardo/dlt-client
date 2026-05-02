@@ -2,7 +2,7 @@ import { ViewComponent } from "../../../../@still/component/super/ViewComponent.
 import { ListState, State } from "../../../../@still/component/type/ComponentType.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { AIResponseLinterUtil } from "../../agent/AIResponseLinterUtil.js";
-import { Grid } from "../../grid/Grid.js";
+import { Grid } from "../../dataviz/bi/grid/Grid.js";
 import { handleHideShowSubmenu } from "../../workspace/generic-util.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { isNonDuckDBDestination, generateInitialQuery } from "../../../services/DestinationUtil.js";
@@ -194,7 +194,7 @@ export class SqlEditor extends ViewComponent {
 		// Store db_engine for future queries
 		if (db_engine) this.dbEngine = db_engine;
 		
-		const parsedFields = (fields || '').replaceAll('\n', '')?.split(',')?.map(field => field.trim());
+		const parsedFields = (fields || '').replaceAll('\n', '')?.split(',')?.map(field => field.trim());		
 		this.queryOutput.setGridData(parsedFields, result).stAfterInit(error);
 	}
 

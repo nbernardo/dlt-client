@@ -255,16 +255,12 @@ export class LeftTabs extends ViewComponent {
 		
 		if(tab === 'content-data-source'){
 			this.showLoading = 1;
-			setTimeout(async () => {
-				await this.$parent.controller.createCatalogForm(1);
-			},100);
+			setTimeout(async () => await this.$parent.controller.createCatalogForm(1),100);
 		}
 
 		if(tab === 'content-api-catalog'){
 			this.showLoading = 2;
-			setTimeout(async () => {
-				await this.$parent.controller.createCatalogForm(2);
-			},100);
+			setTimeout(async () => await this.$parent.controller.createCatalogForm(2),100);
 		}
 
 		if(tab === 'content-data-files'){
@@ -446,5 +442,9 @@ export class LeftTabs extends ViewComponent {
 		event.preventDefault();
 		this.$parent.showDataCatalog();
 		this.$parent.dataCatalogUIProxy.onPipelineChange(WorkspaceService.currentSelectedPpeline, true);
+	}
+
+	openDataViz(){
+		this.$parent.dataVizProxy.openPopup();
 	}
 }

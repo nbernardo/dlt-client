@@ -18,6 +18,8 @@ import { Workspace } from "../components/workspace/Workspace.js";
 import { UserService } from "./UserService.js";
 import { constructTablePath } from "./DestinationUtil.js";
 import { PipelineService } from "./PipelineService.js";
+import { AIAgent } from "../components/agent/AIAgent.js";
+import { AIUtil } from "../util/AIUtil.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -324,21 +326,6 @@ export class WorkspaceService extends BaseService {
         } catch (error) {
             console.log(`Error on starting the chat: `, error);
         }
-        return null;
-    }
-
-    /** @returns { { result: { result } } } */
-    static async sendDataQueryAgentMessage(message) {
-
-        const namespace = StillAppSetup.config.get('anonymousLogin')
-            ? UserUtil.email : await UserService.getNamespace();
-
-        const url = '/workcpace/agent/' + namespace;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ message }), {
-            headers: { 'content-type': 'Application/json' }
-        });
-        if (response.ok && !response.error)
-            return await response.json();
         return null;
     }
 

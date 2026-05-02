@@ -26,6 +26,9 @@ import { UUIDUtil } from "./util/UUIDUtil.js";
             StillAppSetup.register(Components);
             StillAppSetup.register(BaseService);
             StillAppSetup.register(ServiceEvent);
+            
+            StillAppSetup.config.props = await Components.loneLoadConfig();
+            Object.freeze(StillAppSetup.config.props);
 
             StillAppSetup.register(ComponentNotFoundException);
             /** Only for dev mode */ StillAppSetup.setDevErrorTracing();

@@ -17,7 +17,7 @@ import { Transformation } from "../node-types/Transformation.js";
 import { LogDisplay } from "../log/LogDisplay.js";
 import { Assets } from "../../../@still/util/componentUtil.js";
 import { Header } from "../parts/Header.js";
-import { Grid } from "../grid/Grid.js";
+import { Grid } from "../dataviz/bi/grid/Grid.js";
 import { SqlEditor } from "../code/sqleditor/SqlEditor.js";
 import { DLTCode } from "../node-types/dlt/DLTCode.js";
 import { DLTCodeOutput } from "../node-types/destination/DLTCodeOutput.js";
@@ -27,6 +27,7 @@ import { CatalogForm } from "../catalog/CatalogForm.js";
 import { expoandApiTestData } from "../catalog/util/CatalogUtil.js";
 import { LogQueryDisplay } from "../log/logquery/LogQueryDisplay.js";
 import { DataCatalogUI } from "../data-catalog/DataCatalogUI.js";
+import { BIUserInterfaceComponent } from "../dataviz/bi/main/BIUserInterfaceComponent.js";
 
 export class Workspace extends ViewComponent {
 
@@ -73,10 +74,7 @@ export class Workspace extends ViewComponent {
 	 * @type { UserService }*/
 	userService;
 
-	/** 
-	 * @Prop 
-	 * @type { EditorLanguageType }
-	 * */
+	/** @Prop @type { EditorLanguageType }  */
 	editorActiveLang = EditorLanguageType.PYTHON;
 
 	/** @Prop */
@@ -114,6 +112,9 @@ export class Workspace extends ViewComponent {
 
 	/** @Proxy @type { LeftTabs } */
 	leftMenuProxy;
+
+	/** @Proxy @type { BIUserInterfaceComponent } */
+	dataVizProxy;
 
 	/** @Prop */
 	isEditorOpened = false;
@@ -172,12 +173,10 @@ export class Workspace extends ViewComponent {
 		this.userService.on('load', async () => {
 			let user = (await this.userService.getLoggedUser());
 
-			if (user?.user)
-				user = user?.user;
+			if (user?.user) user = user?.user;
 
 			if (UserUtil.name === null) {
-				UserUtil.name = user.name;
-				UserUtil.email = user.email;
+				UserUtil.name = user.name, UserUtil.email = user.email;
 				Object.freeze(UserUtil);
 			}
 			this.loggedUser = user.name;
@@ -208,7 +207,6 @@ export class Workspace extends ViewComponent {
 	buildWorkspaceView() {
 
 		this.controller.on('load', () => {
-
 			this.controller.registerEvents();
 			this.controller.socketChannelSetup(SocketIO, this.socketData);
 
@@ -249,6 +247,9 @@ export class Workspace extends ViewComponent {
 			if(actionType !== 'onlysave') this.logProxy.appendLogEntry('error', result.result, Date.now());
 			return AppTemplate.toast.error(result.result);
 		}
+		
+		WorkSpaceController.usedExistingDW = null;
+		WorkSpaceController.pipelineNewTables = null;
 		this.controller.isSubmittingPipeline = false;
 		if(actionType === 'onlysave')
 			AppTemplate.toast.success(`Pipeline ${this.activeGrid.value} saved successfully`, 15000);
@@ -319,10 +320,8 @@ export class Workspace extends ViewComponent {
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
 		let data = this.editor.export();
 		data = { 
-			...data, 
-			user: await UserService.getNamespace(), 
-			startNode, activeGrid, pplineLbl: this.activeGrid.value, 
-			socketSid: this.socketData.sid,
+			...data,  user: await UserService.getNamespace(), analyticOptimized: WorkSpaceController.isCurrentPipelineOptimized,
+			startNode, activeGrid, pplineLbl: this.activeGrid.value,  socketSid: this.socketData.sid,
 			...this.controller.pipelineCreateMetadata()
 		};
 		
@@ -535,8 +534,7 @@ export class Workspace extends ViewComponent {
 				self.controller.shouldDisableNodeFormInputs = false;
 			}
 			await self.controller.processImportingNodes(result, asTemplate);
-			AppTemplate.hideLoading();
-			self.wasDiagramSaved = false;
+			AppTemplate.hideLoading(), self.wasDiagramSaved = false;
 
 			if(fromReview){
 				self.isAnyDiagramActive = false;
@@ -545,7 +543,8 @@ export class Workspace extends ViewComponent {
 				document.getElementById('pplineNamePlaceHolder').contentEditable = true;
 				self.showSaveButton = true;
 				document.querySelector('.clear-workspace-btn').style.right = '96px';
-			}			
+			}
+			self.controller.unmarkOptimizedPipeline();
 		}
 		await openDiagram();
 	}

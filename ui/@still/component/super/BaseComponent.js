@@ -117,15 +117,21 @@ export class BaseComponent extends BehaviorComponent {
     static importScripts() { }
     static importAssets() { }
     parseEvents = (content) => {
+
         try{
+            const controllerType = this.$cmpStController;
+
             //This is for treeview component edge
             if(content?.content){
                 content.content = content.content
+                    ?.replace(/controller\./g,`$still.controller('${controllerType}').`)
                     ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
-                    ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
+                    ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`);
                 return content;
             }
+            
             return content
+                ?.replace(/controller\./g,`$still.controller('${controllerType}').`)
                 ?.replace(/parent\.|self\./g,`$still.component.ref('${this?.$parent?.cmpInternalId}').`)
                 ?.replace(/inner\./g,`$still.component.ref('${this?.cmpInternalId}').`)?.replace(/\$event/g,`event`)
         }catch(error){
@@ -272,15 +278,21 @@ export class BaseComponent extends BehaviorComponent {
                 }
             }
         }
-
+        const objectPropBind = {};
         /** Inject/Bind the component state/properties to the referenced place */
         fields.forEach(field => {
-
-            const fieldRE = new RegExp(`@${field}`), finalRE = /\^/.source + fieldRE.source + /\$/;
             tmpltWthState = tmpltWthState.replaceAll(
-                `@${field}`,
-                (mt, pos) => {
-
+                `@${field}`, (mt, pos) => {
+                    let wasObjectPropAsignment = false;
+                    // Bellow lines collect any object propery binding in the template
+                    const isObjectProp = tmpltWthState.slice(pos + mt.length).match(/\.([A-Z]{1,})/i);
+                    if(isObjectProp !== null && isObjectProp?.length > 1){
+                        if(this[field] && this[field][isObjectProp[1]]){
+                            objectPropBind[`@${field}.${isObjectProp[1]}`] = this[field][`${isObjectProp[1]}`];
+                            return `@${field}`;
+                        }
+                    }
+                    
                     /** Extract next 40 chars to handle conflict */
                     const nextChar = tmpltWthState.slice(pos, pos + field.length + 41);
 
@@ -299,15 +311,16 @@ export class BaseComponent extends BehaviorComponent {
                         }
                         //this.#stateChangeSubsribers.push(`subrcibe-${clsName}-${field}`);
                         return `<state class="state-change-${clsName}-${field}">${data}</state>`;
-
-                    } else {
+                    } else 
                         return `@${field}`;
-                    }
                 }
             );
             tmpltWthState = this.getBoundInputForm(tmpltWthState, formsRef);
         });
-
+        /** This handle the replacemend of object propery binding in the template (e.g. Gender.MALE)  */
+        for(const [f, v] of Object.entries(objectPropBind))
+            tmpltWthState = tmpltWthState.replaceAll(f,v);
+        
         return tmpltWthState;
     }
 
@@ -1158,7 +1171,6 @@ export class BaseComponent extends BehaviorComponent {
                 }
                 
             }
-
 
             const re = Components.parseAnnottationRE();
 
