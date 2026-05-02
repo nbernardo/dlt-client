@@ -52,16 +52,10 @@ export class DBDiagramController extends BaseController {
         rows.forEach(row => {
             const [_, sCol, sTable, tCol, tTable] = row;
             const relKey = `${sTable}.${sCol}->${tTable}.${tCol}`;
-            
             if (!this.relationRegistry.has(relKey)) {
-                this.relationRegistry.set(relKey, {
-                    sourceTable: sTable,
-                    sourceColumn: sCol,
-                    targetTable: tTable,
-                    targetColumn: tCol
-                });
+                this.relationRegistry.set(relKey, { sourceTable: sTable, sourceColumn: sCol, targetTable: tTable, targetColumn: tCol });
             }
-        });        
+        });
     }
 
     bindToolbar() {
@@ -137,8 +131,7 @@ export class DBDiagramController extends BaseController {
     static initCustomDBNode() {
         G6.registerNode('db-table', {
             draw(cfg, group) {
-                const { label = '', isRoot, isExternal, isSelected, orderNumber, selectIconColor, level } = cfg;
-                
+                const { label = '', isRoot, isExternal, isSelected, orderNumber, selectIconColor, level, relationLabel, depth } = cfg;
                 const fontSize = 8, height = 20;
                 const width = DBDiagramController.calculateTextWidth(label, `${fontSize}px Arial`) + 40;
 
@@ -159,6 +152,13 @@ export class DBDiagramController extends BaseController {
                     attrs: { x: -10, y: 0, textAlign: 'center', textBaseline: 'middle', text: label, fill: textColor, fontSize, cursor: 'pointer' },
                     name: 'table-label',
                 });
+
+                if (relationLabel && depth > 2) {
+                    group.addShape('text', {
+                        attrs: { x: 0, y: -height / 2 - 4, textAlign: 'center', textBaseline: 'bottom', text: relationLabel, fill: '#1890ff', fontSize: 7,  fontWeight: 'bold' },
+                        name: 'relation-label',
+                    });
+                }
 
                 if (!isRoot && level != 1) {
                     group.addShape('circle', {
@@ -187,33 +187,45 @@ export class DBDiagramController extends BaseController {
         return context.measureText(text || '').width;
     }
 
-    listToTree(data, moduleName) {
+    listToTree(data, moduleName, relations = []) {
         const prefix = `${moduleName.toLowerCase()}_`;
         const moduleRootPath = moduleName.toUpperCase();
         const nodeMap = new Map();
         const sorted = [...data].sort((a, b) => a[0] - b[0]);
 
+        const getRelationLabel = (sCol, tCol) => {
+            if (!sCol || !tCol) return {};
+            const cardinality = (tCol === 'id') ? 'N:1' : '1:1';
+            return { relationLabel: `(${cardinality}) ${sCol} ➔ ${tCol}` };
+        };
+
         sorted.forEach(row => {
-            const [level, parentTable] = row;
+            const [level, parentTable, childTable, fullPath, sCol, tCol] = row;
+            
             if (level !== 2 || !parentTable?.startsWith(prefix)) return;
+
             const key = `${moduleRootPath} -> ${parentTable}`;
+
             if (!nodeMap.has(key)) {
-                nodeMap.set(key, { id: key, label: parentTable, isExternal: false, children: [], collapsed: true });
+                nodeMap.set(key, { id: key, label: parentTable, isExternal: false, children: [], collapsed: true, ...getRelationLabel(sCol, tCol)});
             }
         });
 
         sorted.forEach(row => {
-            const [level, parentTable, childTable, fullPath] = row;
+            const [level, parentTable, childTable, fullPath, sCol, tCol] = row;
             if (level < 3 || !fullPath || !childTable) return;
+
             const segments = fullPath.split(' -> ');
             const parentPathKey = segments.slice(0, -1).join(' -> ');
 
             if (!nodeMap.has(fullPath)) {
-                nodeMap.set(fullPath, { id: fullPath, label: childTable, isExternal: !childTable.startsWith(prefix), children: [], collapsed: true });
+                nodeMap.set(fullPath, { id: fullPath, label: childTable, isExternal: !childTable.startsWith(prefix), children: [], collapsed: true, ...getRelationLabel(sCol, tCol) });
             }
+            
             const parentNode = nodeMap.get(parentPathKey);
-            if (parentNode && !parentNode.children.find(c => c.id === fullPath)) 
+            if (parentNode && !parentNode.children.find(c => c.id === fullPath)) {
                 parentNode.children.push(nodeMap.get(fullPath));
+            }
         });
 
         return Array.from(nodeMap.values()).filter(node => node.id.split(' -> ').length === 2);
@@ -305,10 +317,10 @@ export class DBDiagramController extends BaseController {
 
                 try {
                     const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase(), this.selectedConnection);                    
-                    const children = this.listToTree(result.tables, moduleName);
-                    setTimeout(() => this.compileRelations(result.relations));
+                    this.compileRelations(result.relations);                    
+                    const children = this.listToTree(result.tables, moduleName, result.relations);
                     graph.updateItem(item, { label: moduleName, children: children, collapsed: false });
-                    graph.layout(); 
+                    graph.layout();
                 } catch (err) {
                     console.error('Failed to load module tables:', err);
                     graph.updateItem(item, { label: moduleName });
