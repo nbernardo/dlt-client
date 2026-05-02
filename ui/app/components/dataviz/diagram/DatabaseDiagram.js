@@ -57,8 +57,8 @@ export class DatabaseDiagram extends ViewComponent {
 			container: 'mountNode', cursor: 'grab', 
 			modes: { default: [{ type: 'drag-canvas', delegateStyle: { cursor: 'grabbing' }, }, 'zoom-canvas'] },
 			layout: {
-				type: 'compactBox', direction: 'LR', getId: (d) => d.id, getHeight: () => 20, getVGap: () => 10, 
-				getWidth: (d) => DBDiagramController.calculateTextWidth(d.label) + 20, getHGap: () => 60,
+				type: 'compactBox', direction: 'LR', getId: (d) => d.id, getHeight: () => 20, getVGap: () => 15, 
+				getWidth: (d) => DBDiagramController.calculateTextWidth(d.label) + 20, getHGap: () => 100,
 			},
 			defaultNode: { type: 'db-table' }, defaultEdge: { type: 'cubic-horizontal', style: { stroke: '#A3B1BF', lineWidth: 1 } },
 		});
