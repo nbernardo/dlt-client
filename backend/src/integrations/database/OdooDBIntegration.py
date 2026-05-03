@@ -56,9 +56,9 @@ class OdooDBIntegration:
                     1 AS level,
                     NULL::text COLLATE "default" AS parent_table,
                     relname::text COLLATE "default" AS physical_table,
-                    UPPER('{module_name}')::text COLLATE "default" AS path, -- Standardized root
-                    NULL::text COLLATE "default" AS source_column, -- New: No source for root
-                    NULL::text COLLATE "default" AS target_column  -- New: No target for root
+                    UPPER('{module_name}')::text COLLATE "default" AS path, 
+                    NULL::text COLLATE "default" AS source_column, 
+                    NULL::text COLLATE "default" AS target_column  
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE n.nspname = 'public' 
@@ -74,7 +74,6 @@ class OdooDBIntegration:
                     th.physical_table,
                     ref_cl.relname::text COLLATE "default",
                     (th.path || ' -> ' || ref_cl.relname)::text COLLATE "default",
-                    -- NEW: Extracting the specific columns involved in the FK
                     (SELECT a.attname FROM pg_attribute a WHERE a.attrelid = con.conrelid AND a.attnum = con.conkey[1])::text COLLATE "default" AS source_column,
                     (SELECT a.attname FROM pg_attribute a WHERE a.attrelid = con.confrelid AND a.attnum = con.confkey[1])::text COLLATE "default" AS target_column
                 FROM TableHierarchy th
@@ -90,13 +89,26 @@ class OdooDBIntegration:
                 parent_table,
                 physical_table AS table_name,
                 path,
-                -- NEW: The formatted label column for your G6 arrows
                 source_column,
                 target_column,
                 CASE 
                     WHEN source_column IS NOT NULL THEN source_column || ' ➔ ' || target_column 
                     ELSE '' 
-                END AS relation_label
+                END AS relation_label,
+                -- Conditional Aggregation based on level
+                (
+                    SELECT string_agg(a.attname, ', ')
+                    FROM pg_attribute a
+                    JOIN pg_class c ON c.oid = a.attrelid
+                    WHERE a.attnum > 0 
+                    AND NOT a.attisdropped
+                    AND c.relname = (
+                        CASE 
+                            WHEN level = 2 THEN parent_table 
+                            ELSE physical_table 
+                        END
+                    )
+                ) AS all_fields
             FROM TableHierarchy
             WHERE 
                 physical_table NOT LIKE 'ir_%' AND
