@@ -7,15 +7,13 @@ import { BIController } from "./BIController.js";
 
 export class DBDiagramController extends BaseController {
     
-    /** @type { DatabaseDiagram } */
-    obj;
+    /** @type { DatabaseDiagram } */ obj;
 
     editor;
-
     selectedConnection;
 
     /** @type { Map<string, number> } */
-    selectedTablesMap = new Map(); // table_name -> orderNumber
+    selectedTablesMap = new Map();
 
     relationRegistry = new Map(); 
 
@@ -119,11 +117,10 @@ export class DBDiagramController extends BaseController {
 
         const fromClause = [baseTable, ...crossJoins].join(', ');
         this.editor.setValue(
-            [
-                `-- Auto-generated Business Query`,
-                `SELECT * FROM ${fromClause}`,
-                joins.length > 0 ? `    ${joins.join('\n    ')}` : '',
-                'LIMIT 100'
+            [ `-- Auto-generated Business Query`,
+              `SELECT * FROM ${fromClause}`,
+              joins.length > 0 ? `    ${joins.join('\n    ')}` : '',
+              'LIMIT 100'
             ].filter(v => v.trim()).join('\n') + ';'
         );        
     }
@@ -133,7 +130,7 @@ export class DBDiagramController extends BaseController {
             draw(cfg, group) {
                 const { label = '', isRoot, isExternal, isSelected, orderNumber, selectIconColor, level, relationLabel, depth } = cfg;
                 const fontSize = 8, height = 20;
-                const width = DBDiagramController.calculateTextWidth(label, `${fontSize}px Arial`) + 40;
+                const width = DBDiagramController.calculateTextWidth(label, `${fontSize}px Arial`) + 65;
 
                 let fill = cfg.level === 1 ? '#e6f7ff' : '#f0f5ff';
                 let stroke = isSelected ? '#1890ff' : (cfg.level === 1 ? '#91d5ff' : '#adc6ff');
@@ -142,15 +139,13 @@ export class DBDiagramController extends BaseController {
 
                 if (isRoot) { fill = '#2c3e50'; stroke = '#002329'; } 
                 else if (isExternal) { fill = '#ffffff'; stroke = '#ffa39e'; }
-
+                
                 const keyShape = group.addShape('rect', {
-                    attrs: { x: -width / 2, y: -height / 2, width, height, fill, stroke, lineWidth, radius: 2, cursor: 'pointer' },
-                    name: 'table-container',
+                    attrs: { x: -width / 2, y: -height / 2, width, height, fill, stroke, lineWidth, radius: 2, cursor: 'pointer' }, name: 'table-container',
                 });
 
                 group.addShape('text', {
-                    attrs: { x: -10, y: 0, textAlign: 'center', textBaseline: 'middle', text: label, fill: textColor, fontSize, cursor: 'pointer' },
-                    name: 'table-label',
+                    attrs: { x: -10, y: 0, textAlign: 'center', textBaseline: 'middle', text: label, fill: textColor, fontSize, cursor: 'pointer' }, name: 'table-label',
                 });
 
                 if (relationLabel && depth > 2) {
@@ -162,17 +157,21 @@ export class DBDiagramController extends BaseController {
 
                 if (!isRoot && level != 1) {
                     group.addShape('circle', {
-                        attrs: { 
-                            x: (width / 2) - 12, y: 0, r: 7, fill: isSelected ? (selectIconColor || '#3c970eff') : '#2c3e50', cursor: 'pointer' 
-                        },
-                        name: 'select-icon-bg',
+                        attrs: { x: (width / 2) - 12, y: 0, r: 7, fill: isSelected ? (selectIconColor || '#3c970eff') : '#2c3e50', cursor: 'pointer' }, name: 'select-icon-bg',
                     });
 
+                    const isInPipeline = cfg.isInPipeline || false;
+                    let textContent = { fill: '#8c8c8c', text: 'Plan', fontSize: 7 } ;
+                    if(isInPipeline)
+                        textContent = { fill: '#059669', text: '✔', fontSize: 9 };
+                    
                     group.addShape('text', {
-                        attrs: {
-                            x: (width / 2) - 12, y: 0, textAlign: 'center', textBaseline: 'middle', text: isSelected ? (orderNumber || '-') : '+', 
-                            fill: '#fff', fontSize: 9, fontWeight: 'bold', cursor: 'pointer'
-                        },
+                        attrs: { x: (width / 2) - 30, y: 0, textAlign: 'center', textBaseline: 'middle', ...textContent, fontWeight: 'bold', cursor: 'pointer' }, name: 'pipeline-tick-icon',
+                    });
+
+                    let text = isSelected ? (orderNumber || '-') : '+', fill = '#fff';
+                    group.addShape('text', {
+                        attrs: { x: (width / 2) - 12, y: 0, textAlign: 'center', textBaseline: 'middle', text, fill, fontSize: 9, fontWeight: 'bold', cursor: 'pointer' },
                         name: 'select-icon-text',
                     });
                 }
@@ -190,7 +189,7 @@ export class DBDiagramController extends BaseController {
     listToTree(data, moduleName, relations = []) {
         const prefix = `${moduleName.toLowerCase()}_`;
         const moduleRootPath = moduleName.toUpperCase();
-        const nodeMap = new Map();
+        const nodeMap = new Map();        
         const sorted = [...data].sort((a, b) => a[0] - b[0]);
 
         const getRelationLabel = (sCol, tCol) => {
@@ -200,26 +199,30 @@ export class DBDiagramController extends BaseController {
         };
 
         sorted.forEach(row => {
-            const [level, parentTable, childTable, fullPath, sCol, tCol] = row;
+            const [level, parentTable, childTable, fullPath, sCol, tCol, , allFields] = row;
+            
+            if(level == 2) this.pipelineTableFields.set(parentTable, allFields.split(','));
+            else this.pipelineTableFields.set(childTable, allFields.split(','));
             
             if (level !== 2 || !parentTable?.startsWith(prefix)) return;
-
+            
             const key = `${moduleRootPath} -> ${parentTable}`;
-
             if (!nodeMap.has(key)) {
-                nodeMap.set(key, { id: key, label: parentTable, isExternal: false, children: [], collapsed: true, ...getRelationLabel(sCol, tCol)});
+                nodeMap.set(key, { id: key, label: parentTable, children: [], collapsed: true, allFields, ...getRelationLabel(sCol, tCol) });
             }
         });
 
         sorted.forEach(row => {
-            const [level, parentTable, childTable, fullPath, sCol, tCol] = row;
+            const [level, parentTable, childTable, fullPath, sCol, tCol, , allFields] = row;
             if (level < 3 || !fullPath || !childTable) return;
 
             const segments = fullPath.split(' -> ');
             const parentPathKey = segments.slice(0, -1).join(' -> ');
 
             if (!nodeMap.has(fullPath)) {
-                nodeMap.set(fullPath, { id: fullPath, label: childTable, isExternal: !childTable.startsWith(prefix), children: [], collapsed: true, ...getRelationLabel(sCol, tCol) });
+                nodeMap.set(fullPath, { 
+                    id: fullPath, label: childTable, children: [], collapsed: true, allFields, isExternal: !childTable.startsWith(prefix), ...getRelationLabel(sCol, tCol) 
+                });
             }
             
             const parentNode = nodeMap.get(parentPathKey);
@@ -272,8 +275,7 @@ export class DBDiagramController extends BaseController {
         BIController.fromContext().addLoadingOnContainer(container, 'Fetching/Processing data');
 
         const result = await BIService.runSQLQuery(this.editor.getValue(), this.selectedConnection);
-        const fields = result.fields || [];
-        const rows = result.result;
+        const fields = result.fields || [], rows = result.result;
         
         if(!this.datagridInstance){
             const { template: gridUI, component: gridComponent } = await Components.new(Grid, { fields, data: rows });
@@ -296,6 +298,11 @@ export class DBDiagramController extends BaseController {
             const { item, target } = e;
             const model = item.getModel(), shapeName = target.get('name');
 
+            if (shapeName === 'pipeline-tick-icon') {
+                this.togglePipelineTable(model.label, item);
+                return graph.updateItem(item, { isInPipeline: this.pipelineTables.has(model.label) });
+            }
+
 			if (shapeName === 'select-icon-bg' || shapeName === 'select-icon-text') {
 				this.handleTableSelect(model.label);
 				
@@ -308,7 +315,7 @@ export class DBDiagramController extends BaseController {
 
             if (model.children && model.children.length > 0) {
                 graph.updateItem(item, { collapsed: !model.collapsed });
-                return graph.layout(); 
+                return graph.layout();
             }
 
             if (model.id.startsWith('folder:')) {
@@ -328,5 +335,79 @@ export class DBDiagramController extends BaseController {
             }
         });
 
-    }    
+    }
+
+    /** @type { Map<string, object> } */ pipelineTables = new Map();
+    /** @type { Map<string, object> } */ pipelineTableFields = new Map();
+    pipelineName;
+
+    togglePipelineTable(tableName, item) {
+        if (this.pipelineTables.has(tableName)) this.removeFromPipeline(tableName);
+        else {
+            this.pipelineTables.set(tableName, { name: tableName, isExpanded: false, item });
+            this.obj.pipelineTablesList = Array.from(this.pipelineTables.values());
+
+            const newPlanedTable = this.obj.parseEvents(`
+				<div each="item" class="item-container item-container-${tableName}">
+					<div class="item-main">
+						<div style="display: flex; align-items: center; gap: 8px;">
+							<button type="button" class="get-expand-table-columns-${tableName}"
+									style="border: none; background: none; cursor: pointer; padding: 0; font-size: 10px;" 
+									onclick="controller.toggleTableFields('${tableName}')">▶</button>
+							<span class="item-name">${tableName}</span>
+						</div>
+						<button class="remove-btn" onclick="controller.removeFromPipeline('${tableName}')">×</button>
+					</div>
+					<div class="item-fields-expanded" style="margin-top: 8px; padding-left: 18px; border-left: 2px solid #e5e7eb;">
+						<div class="list-of-tables-in-plan list-of-tables-in-plan-${tableName}"></div>
+					</div>
+				</div>
+            `);
+            this.obj.container.querySelector('.planner-item').insertAdjacentHTML('beforeend', newPlanedTable);
+        }
+    }
+
+    removeFromPipeline(tableName) { 
+        const item = this.pipelineTables.get(tableName).item;
+        this.pipelineTables.delete(tableName);
+        this.obj.graph.updateItem(item, { isInPipeline: false });
+        this.obj.container.querySelector(`.item-container-${tableName}`).remove();
+    }
+
+    setPipelineName(val) { this.pipelineName = val; }
+
+    async toggleTableFields(tableName) {
+        const tableEntry = this.pipelineTables.get(tableName);
+        if (!tableEntry) return;
+
+        tableEntry.isExpanded = !tableEntry.isExpanded;
+
+        const fieldsContainer = this.obj.container.querySelector(`.list-of-tables-in-plan-${tableName}`);
+        if (tableEntry.isExpanded) {
+            this.obj.container.querySelector(`.get-expand-table-columns-${tableName}`).textContent = '▼';
+            
+            if(fieldsContainer.style.display == 'none'){
+                // In case the fields were listed before
+                fieldsContainer.style.display = '';
+            }else{
+                const fields = this.pipelineTableFields.get(tableName);
+                fieldsContainer.innerHTML = fields.map(fld => {
+                    fld = fld.trim()
+                    return this.obj.parseEvents(`
+                        <div>
+                            <input type="checkbox" onclick="controller.selectColumn('${tableName}.${fld}')"> ${fld}
+                        </div>
+                    `);
+                }).join('');
+            }
+
+        }else{
+            this.obj.container.querySelector(`.get-expand-table-columns-${tableName}`).textContent = '▶';
+            fieldsContainer.style.display = 'none';
+        }
+        
+        // Update the reactive list to trigger Stilljs re-render[cite: 3]
+        //this.obj.pipelineTablesList = Array.from(this.pipelineTables.values());
+    }
+
 }

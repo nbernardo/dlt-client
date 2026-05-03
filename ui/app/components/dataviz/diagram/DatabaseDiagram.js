@@ -29,6 +29,9 @@ export class DatabaseDiagram extends ViewComponent {
 	*/ controller;
 
     secretList;
+    pipelineTablesList;
+    totalTablesAdded = 0;
+    existingModels = [];
 
     stOnRender() { 
         if (!G6.registerNode.isDbRegistered) {
@@ -45,6 +48,8 @@ export class DatabaseDiagram extends ViewComponent {
 			this.controller.bindToolbar();
             await this.controller.loadCodeEditor();
 		});
+        this.existingModels = this.$parent.domainPipelinesList.value || [];
+        this.$parent.domainPipelinesList.onChange((value) => this.dbDiagramProxy.existingModels = value);
 	}
 
     initGraph() {

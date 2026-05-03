@@ -12,11 +12,8 @@
 </style>
 @endif
 <style>
-    
-
 	.DatabaseDiagram{
 		.diagram-toolbar { padding: 12px; background: #fafafa; border-bottom: 1px solid #d9d9d9; display: flex; gap: 10px; }
-		
 		.view-btn { padding: 6px 16px; border: 1px solid #d9d9d9; cursor: pointer;  background: #fff; border-radius: 4px; font-size: 12px; transition: all 0.2s; }
 		.view-btn.active { background: var(--identity-color);; color: #fff; border-color: var(--identity-color); }
 		.view-btn:hover:not(.active) { background: #f0f0f0; }
@@ -30,6 +27,29 @@
 		}
 
 		.grid-component-container { .tools-container { position: relative; } .table-container { margin-top: 0; } } 
+
+		.pipeline-planner-panel {
+			position: absolute; top: 70px; left: 20px; width: 260px; max-height: 70vh;
+			background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px);
+			border: 1px solid #d9d9d9; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+			z-index: 100; display: flex; flex-direction: column; overflow: hidden;
+
+			.planner-header { padding: 10px 15px; background: #2c3e50; color: white; display: flex; justify-content: space-between; align-items: center; }
+			.planner-title { font-weight: bold; font-size: 13px; }
+			.planner-count { font-size: 11px; background: #059669; padding: 2px 6px; border-radius: 10px; }
+			.planner-body { 
+				padding: 4px; overflow-y: auto; flex: 1; max-height: 470px; .list-of-tables-in-plan{ max-height: 180px; overflow: scroll; font-size: 12px; }
+			}
+			.empty-planner { font-size: 12px; color: #888; text-align: center; padding: 20px; }
+			
+			.planner-item { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; padding: 8px; transition: all 0.2s; }
+			.item-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+			.item-name { font-size: 12px; font-weight: 600; color: #1f2937; }
+			.remove-btn { border: none; background: transparent; color: #9ca3af; cursor: pointer; font-size: 18px; line-height: 1; }
+			.remove-btn:hover { color: #ef4444; }
+			.item-fields-preview { display: flex; gap: 4px; flex-wrap: wrap; }
+			.field-tag { font-size: 10px; color: #6b7280; background: #f3f4f6; padding: 1px 4px; border-radius: 3px; }
+		}
 	}
 </style>
 
@@ -63,4 +83,27 @@
 			</div>
 		</form>
 	</span>
+
+	<div class="pipeline-planner-panel" (showIf)="self.showDiagram">
+		<div class="planner-header" style="flex-direction: column; gap: 8px; align-items: stretch;">
+			<div style="display: flex; justify-content: space-between; align-items: center;">
+				<span class="planner-title">Pipeline Plan</span>
+				<span class="planner-count">@totalTablesAdded Tables</span>
+			</div>			
+			<div style="display: flex; flex-direction: column; gap: 5px;">
+				<input type="text" placeholder="Pipeline Name..." 
+					style="width: 100%; padding: 4px 8px; border-radius: 4px; border: none; font-size: 11px;"
+					oninput="controller.setPipelineName(this.value)">
+				
+				<select 
+					(forEach)="existingModels" placeholder="-- Select Existing Model --"
+					style="width: 100%; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 11px; background: #bbbdbe; color: black;"
+					onchange="controller.loadExistingPipeline(this.value)">
+					<option each="item" value="{item.pipeline}">{item.name}</option>
+				</select>
+			</div>
+		</div>
+		<div class="planner-body"><div class="planner-item"></div></div>
+	</div>
+
 </div>
