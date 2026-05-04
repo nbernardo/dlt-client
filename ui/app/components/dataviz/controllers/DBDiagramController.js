@@ -254,6 +254,7 @@ export class DBDiagramController extends BaseController {
     }
 
     async selectConnectionName(connectionName){
+        this.obj.container.querySelector('#btnDiagram').click();
         const container = this.obj.container.querySelector('#mountNode');
         BIController.fromContext().addLoadingOnContainer(container, 'Loading database diagram');
         const result = await BIService.getModulesWhenOdoo(connectionName);
@@ -439,5 +440,15 @@ export class DBDiagramController extends BaseController {
             this.obj.container.querySelector(`.expand-table-columns-${tableName}`).textContent = '▶';
             fieldsContainer.style.display = 'none';
         }   
+    }
+
+    minizePlanner(){
+        const container = this.obj.container.querySelector('.pipeline-planner-panel');
+        const icon = this.obj.container.querySelector('.planner-minimize-icon');
+        if(container.style.height == 'auto'){
+            container.style.height = '42px', icon.innerHTML = '&#9634;';
+        } else {
+            container.style.height = 'auto', icon.innerHTML = '&minus;';
+        }
     }
 }

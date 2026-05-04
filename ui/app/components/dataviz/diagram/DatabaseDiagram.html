@@ -86,11 +86,15 @@
 		</form>
 	</span>
 
-	<div class="pipeline-planner-panel">
+	<div class="pipeline-planner-panel" style="height: auto;">
 		<div class="planner-header" style="flex-direction: column; gap: 8px; align-items: stretch;">
 			<div style="display: flex; justify-content: space-between; align-items: center;">
 				<span class="planner-title">Pipeline Plan</span>
-				<span class="planner-count">@totalTablesAdded Tables</span>
+				<span>
+					<span class="planner-count">@totalTablesAdded Tables</span>
+					&nbsp;&nbsp;
+					<span class="planner-minimize-icon" style="cursor: pointer;" onclick="controller.minizePlanner()">&minus;</span>
+				</span>
 			</div>			
 			<div style="display: flex; flex-direction: column; gap: 5px;">
 				<input type="text" placeholder="Pipeline Name..." 
