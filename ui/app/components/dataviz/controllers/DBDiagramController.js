@@ -12,10 +12,11 @@ export class DBDiagramController extends BaseController {
     editor;
     selectedConnection;
 
-    /** @type { Map<string, number> } */
-    selectedTablesMap = new Map();
-
+    /** @type { Map<string, number> } */ selectedTablesMap = new Map();
     relationRegistry = new Map(); 
+    /** @type { Map<string, object> } */ pipelineTables = new Map();
+    /** @type { Map<string, object> } */ pipelineTableFields = new Map();
+    pipelineName;
 
     /** @returns { DBDiagramController } */
     static fromContext = () => DBDiagramController.get();
@@ -36,8 +37,7 @@ export class DBDiagramController extends BaseController {
 
     isTableUnrelated(tableName) {
         if (this.selectedTablesMap.size <= 1) return false;
-        const selected = Array.from(this.selectedTablesMap.keys());
-        const relations = Array.from(this.relationRegistry.values());
+        const selected = Array.from(this.selectedTablesMap.keys()), relations = Array.from(this.relationRegistry.values());
 
         return !relations.some(rel => 
             (rel.sourceTable === tableName && selected.includes(rel.targetTable) && rel.targetTable !== tableName) || 
@@ -82,20 +82,24 @@ export class DBDiagramController extends BaseController {
     }
 
     syncSqlEditor() {
-
         const selectedEntries = Array.from(this.selectedTablesMap.entries());
-        if (selectedEntries.length === 0) {
-            this.editor.setValue(`-- Write your query here. \n-- Or Add/Select tables in the diagram to the query.`);
-            return;
-        }
+        if (selectedEntries.length === 0) 
+            return this.editor.setValue(`-- Write your query here. \n-- Or Add/Select tables in the diagram to the query.`);
+
+        const activeTables = new Set();
+        selectedEntries.forEach(([name]) => {
+            const hasFields = Array.from(this.selectedFieldsSet).some(f => f.startsWith(`${name}.`));
+            if (hasFields || this.selectedTablesMap.has(name)) 
+                activeTables.add(name);
+        });
 
         const [baseTable] = selectedEntries[0];
         const processed = new Set([baseTable]);
-        const joins = [];
-        const crossJoins = [];
-        const relations = Array.from(this.relationRegistry.values());
+        const joins = [], relations = Array.from(this.relationRegistry.values());
 
         selectedEntries.slice(1).forEach(([currentTable]) => {
+            if (!activeTables.has(currentTable)) return;
+
             const connection = relations.find(rel => 
                 (rel.sourceTable === currentTable && processed.has(rel.targetTable)) || 
                 (rel.targetTable === currentTable && processed.has(rel.sourceTable))
@@ -109,19 +113,17 @@ export class DBDiagramController extends BaseController {
 
                 joins.push(`LEFT JOIN ${currentTable} ON ${currentTable}.${rCol} = ${lTab}.${lCol}`);
                 processed.add(currentTable);
-            } else {
-                //crossJoins.push(currentTable);
-                //processed.add(currentTable);
             }
         });
 
-        const fromClause = [baseTable, ...crossJoins].join(', ');
+        let selectClause = "*";
+        const validFields = Array.from(this.selectedFieldsSet).filter(f => processed.has(f.split('.')[0]));
+        
+        if (validFields.length > 0)
+            selectClause = validFields.join(',\n       ');
+        
         this.editor.setValue(
-            [ `-- Auto-generated Business Query`,
-              `SELECT * FROM ${fromClause}`,
-              joins.length > 0 ? `    ${joins.join('\n    ')}` : '',
-              'LIMIT 100'
-            ].filter(v => v.trim()).join('\n') + ';'
+            [`-- Auto-generated Business Query`,`SELECT ${selectClause}`,`FROM ${baseTable}`,joins.length > 0 ? `    ${joins.join('\n    ')}` : '','LIMIT 100;'].filter(v => v.trim()).join('\n')
         );        
     }
 
@@ -289,7 +291,6 @@ export class DBDiagramController extends BaseController {
             this.datagridInstance.setGridData(fields, rows).loadGrid();
             BIController.fromContext().removeLoadingFromContainer(container);
         }
-        
     }
 
     setGraphOnClickEvt(graph){
@@ -306,8 +307,7 @@ export class DBDiagramController extends BaseController {
 			if (shapeName === 'select-icon-bg' || shapeName === 'select-icon-text') {
 				this.handleTableSelect(model.label);
 				
-				const order = this.selectedTablesMap.get(model.label);
-				const isUnrelated = this.isTableUnrelated(model.label);
+				const order = this.selectedTablesMap.get(model.label), isUnrelated = this.isTableUnrelated(model.label);
 
 				graph.updateItem(item, { isSelected: !!order, orderNumber: order || '', selectIconColor: isUnrelated ? '#9E9E9E' : '#4CAF50' });
 				return this.syncSqlEditor();
@@ -337,23 +337,19 @@ export class DBDiagramController extends BaseController {
 
     }
 
-    /** @type { Map<string, object> } */ pipelineTables = new Map();
-    /** @type { Map<string, object> } */ pipelineTableFields = new Map();
-    pipelineName;
-
     togglePipelineTable(tableName, item) {
-        if (this.pipelineTables.has(tableName)) this.removeFromPipeline(tableName);
-        else {
+        if (this.pipelineTables.has(tableName)){
+            this.removeFromPipeline(tableName);
+        } else {
             this.pipelineTables.set(tableName, { name: tableName, isExpanded: false, item });
             this.obj.pipelineTablesList = Array.from(this.pipelineTables.values());
+            this.obj.totalTablesAdded = this.pipelineTables.size;
 
             const newPlanedTable = this.obj.parseEvents(`
 				<div each="item" class="item-container item-container-${tableName}">
 					<div class="item-main">
 						<div style="display: flex; align-items: center; gap: 8px;">
-							<button type="button" class="get-expand-table-columns-${tableName}"
-									style="border: none; background: none; cursor: pointer; padding: 0; font-size: 10px;" 
-									onclick="controller.toggleTableFields('${tableName}')">▶</button>
+							<span class="expand-table-columns expand-table-columns-${tableName}" onclick="controller.toggleTableFields('${tableName}')">▶</span>
 							<span class="item-name">${tableName}</span>
 						</div>
 						<button class="remove-btn" onclick="controller.removeFromPipeline('${tableName}')">×</button>
@@ -367,11 +363,49 @@ export class DBDiagramController extends BaseController {
         }
     }
 
+    /** @type { Set<string> } */ selectedFieldsSet = new Set();
+
+    selectColumn(fieldPath) {
+        if (this.selectedFieldsSet.has(fieldPath)) {
+            this.selectedFieldsSet.delete(fieldPath);
+        } else 
+            this.selectedFieldsSet.add(fieldPath);
+        
+        let tableName = fieldPath.split('.')[0];
+        if (!this.selectedTablesMap.has(tableName)) 
+            this.handleTableSelect(tableName);
+
+        const shouldKeepTable = [...this.selectedFieldsSet].some(itm => itm.startsWith(fieldPath.split('.')[0]));
+        if(!shouldKeepTable)
+            this.selectedTablesMap.delete(tableName);
+
+        this.syncSqlEditor();
+    }
+
     removeFromPipeline(tableName) { 
-        const item = this.pipelineTables.get(tableName).item;
+        const entry = this.pipelineTables.get(tableName);
+        if (!entry) return;
+
+        if (this.selectedTablesMap.has(tableName)) {
+            this.selectedTablesMap.delete(tableName);
+            
+            for (const fieldPath of this.selectedFieldsSet) {
+                if (fieldPath.startsWith(`${tableName}.`)) this.selectedFieldsSet.delete(fieldPath);
+            }
+
+            const remaining = Array.from(this.selectedTablesMap.keys());
+            this.selectedTablesMap.clear();
+            remaining.forEach((name, i) => this.selectedTablesMap.set(name, i + 1));
+        }
+
         this.pipelineTables.delete(tableName);
-        this.obj.graph.updateItem(item, { isInPipeline: false });
-        this.obj.container.querySelector(`.item-container-${tableName}`).remove();
+        this.obj.graph.updateItem(entry.item, { isInPipeline: false, isSelected: false, orderNumber: '' });
+        
+        const container = this.obj.container.querySelector(`.item-container-${tableName}`);
+        if (container) container.remove();
+
+        this.obj.totalTablesAdded = this.pipelineTables.size;
+        this.syncSqlEditor();
     }
 
     setPipelineName(val) { this.pipelineName = val; }
@@ -384,7 +418,7 @@ export class DBDiagramController extends BaseController {
 
         const fieldsContainer = this.obj.container.querySelector(`.list-of-tables-in-plan-${tableName}`);
         if (tableEntry.isExpanded) {
-            this.obj.container.querySelector(`.get-expand-table-columns-${tableName}`).textContent = '▼';
+            this.obj.container.querySelector(`.expand-table-columns-${tableName}`).textContent = '▼';
             
             if(fieldsContainer.style.display == 'none'){
                 // In case the fields were listed before
@@ -402,12 +436,8 @@ export class DBDiagramController extends BaseController {
             }
 
         }else{
-            this.obj.container.querySelector(`.get-expand-table-columns-${tableName}`).textContent = '▶';
+            this.obj.container.querySelector(`.expand-table-columns-${tableName}`).textContent = '▶';
             fieldsContainer.style.display = 'none';
-        }
-        
-        // Update the reactive list to trigger Stilljs re-render[cite: 3]
-        //this.obj.pipelineTablesList = Array.from(this.pipelineTables.values());
+        }   
     }
-
 }

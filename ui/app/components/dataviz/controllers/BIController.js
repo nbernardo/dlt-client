@@ -655,7 +655,7 @@ export class BIController extends BaseController {
             if(importedDash){
                 
                 const fields = this.genDuckDBFieldNames(dataSources.tables);
-                let data = await this.runAnaluticsAndRenderSheet(fields, dataSources.datasource);
+                let data = await this.runAnaliticsAndRenderSheet(fields, dataSources.datasource);
                 const dataPointerID = BIService.setDashboardDataPointer(data);
                 BIService.assigneDataSourcePerTable(dataSources.tables, name, dataPointerID);
 
@@ -802,7 +802,7 @@ export class BIController extends BaseController {
         if(imported){
             const loader = this.showChartDataFetchLoading();
             const fields = this.genDuckDBFieldNames(viewingTables);
-            await this.runAnaluticsAndRenderSheet(fields, dataSource);
+            await this.runAnaliticsAndRenderSheet(fields, dataSource);
             await sleepForSec(1000);
             //delete c.imported; //TODO: Offload implementation
             loader.hideLoading();            

@@ -1,7 +1,7 @@
 @if(this.runningOnOdoo)
 <style>
 	div:has(.this-is-the-bi-view) { width: 100%; }
-	.this-is-the-bi-view .popup-mov-window{ width: 100%; }
+	.this-is-the-bi-view .popup-mov-window{ width: 120% !important; }
 	.this-is-the-bi-view .main { height: 92.5vh; padding: 15px; margin-top: 10px; }
 	.this-is-the-bi-view .tableContainer { height: 76vh; }
 	.this-is-the-bi-view .empty-dashboard { height: 75vh; }
@@ -17,7 +17,7 @@
 	.mini-loader-dot:nth-child(1) { animation-delay: -0.32s; }
 	.mini-loader-dot:nth-child(2) { animation-delay: -0.16s; }
 	@keyframes pulse-dot { 0%, 100% { transform: scale(0.6); opacity: 0.5; } 50% { transform: scale(1); opacity: 1; } }
-
+	.bi-ui-container{ height: 95% !important; top: 50% !important; left: 41% !important; }
 </style>
 @endif
 
@@ -26,17 +26,16 @@
 	.minimize-analytics-log { right: 13px; margin-top: 2px; }
 	.this-is-the-bi-view {  .popup-mov-window{ width: 115%; } .chart-builder { height: 64vh; }  .tableContainer { height: 59vh; } }
 	#global-filter-drawer { height: 94.7%; }
+	.bi-ui-container{ height: 106% !important; top: 46% !important; left: 39% !important; }
+	.bi-user-interface-component-body  { height: 90vh; .shell { height: 103% !important; } }
 </style>
 @endif
 <div class="window-popup-mov-window this-is-the-bi-view" (showIf)="self.showWindowPopup">
 
 	<!-- <button onclick="component.openPopup()">Open Popup-mov-window</button> -->
 	<div id="container-@uniqueId" class="popup-windows-cmp-container">
-		<div id="@uniqueId" class="popup-mov-window data-catalog-ui-container" 
-			style="height: 95%; top: 50%; left: 41%;">
-			<span>
-				
-			</span>
+		<div id="@uniqueId" class="popup-mov-window data-catalog-ui-container bi-ui-container">
+			<span></span>
 			<div class="resize-handle n"></div>
 			<div class="resize-handle s"></div>
 			<div class="resize-handle w"></div>
@@ -171,9 +170,6 @@
 										<button class="btn btn-accent" style="justify-content: center; width: 250px; display: none;" id="btnPublish"  onclick="controller.openPublishModal()">
 											<div class="publish-dot"></div>Publish Dashboard
 										</button>
-										<button class="btn btn-accent" style="background: var(--success-save-button); justify-content: center; border: none; width: 230px;" id="btnPublish"  onclick="controller.saveDashboardConfig()">
-											<i class="fa fa-save"></i>Save Dashboard
-										</button>
 									</span>
 								</span>
 							</nav>
@@ -266,6 +262,9 @@
 										<option each="item" value="{item.dashboard_name}">{item.dashboard_name}</option>
 									</select>
 									<button class="btn btn-ghost" style="width: 135px;" onclick="controller.newDashboard()">+ New Dashboard</button>
+									<button class="btn btn-accent" style="background: var(--success-save-button); justify-content: center; border: none; width: 150px;" id="btnPublish"  onclick="controller.saveDashboardConfig()">
+										<i class="fa fa-save"></i>Save Dashboard
+									</button>
 								</div>
 								<div class="dashboard-grid dashGrid"></div>
 							</div>

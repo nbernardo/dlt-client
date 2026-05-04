@@ -37,7 +37,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	/**  @Prop  */ showTablesList = true;
 
-	/**  @Prop  */ showDashboardActions = false;
+	/**  @Prop  */ showDashboardActions = true;
 
 	/**  @Prop  */ appPath = '';
 

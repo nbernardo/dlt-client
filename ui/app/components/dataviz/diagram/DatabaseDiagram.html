@@ -29,7 +29,7 @@
 		.grid-component-container { .tools-container { position: relative; } .table-container { margin-top: 0; } } 
 
 		.pipeline-planner-panel {
-			position: absolute; top: 70px; left: 20px; width: 260px; max-height: 70vh;
+			position: absolute; top: 63px; right: 5px; width: 300px; max-height: 70vh;
 			background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px);
 			border: 1px solid #d9d9d9; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 			z-index: 100; display: flex; flex-direction: column; overflow: hidden;
@@ -38,7 +38,9 @@
 			.planner-title { font-weight: bold; font-size: 13px; }
 			.planner-count { font-size: 11px; background: #059669; padding: 2px 6px; border-radius: 10px; }
 			.planner-body { 
-				padding: 4px; overflow-y: auto; flex: 1; max-height: 470px; .list-of-tables-in-plan{ max-height: 180px; overflow: scroll; font-size: 12px; }
+				padding: 4px; overflow-y: auto; flex: 1; max-height: 470px; 
+				.list-of-tables-in-plan{ max-height: 180px; overflow: scroll; font-size: 12px; }
+				.expand-table-columns { border: none; background: none; cursor: pointer; padding: 0; font-size: 10px; }
 			}
 			.empty-planner { font-size: 12px; color: #888; text-align: center; padding: 20px; }
 			
@@ -84,7 +86,7 @@
 		</form>
 	</span>
 
-	<div class="pipeline-planner-panel" (showIf)="self.showDiagram">
+	<div class="pipeline-planner-panel">
 		<div class="planner-header" style="flex-direction: column; gap: 8px; align-items: stretch;">
 			<div style="display: flex; justify-content: space-between; align-items: center;">
 				<span class="planner-title">Pipeline Plan</span>

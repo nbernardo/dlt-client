@@ -108,8 +108,11 @@ export class DatabaseDiagram extends ViewComponent {
     
             this.graph.data({ id: 'root', label: 'Odoo modules', isRoot: true, children: moduleNodes });
             this.graph.render();
-            this.graph.fitView(40);
-    
+            this.graph.fitView([20, 20, 20, 20]);
+
+            const width = this.graph.getWidth();
+            this.graph.translate(-(width / 5), 0);
+            
             if(this.initCount == 0){
                 await sleepForSec(200);
                 this.initCount++, await this.updateGraphData(summaryRows);
