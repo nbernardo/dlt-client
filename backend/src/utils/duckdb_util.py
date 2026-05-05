@@ -236,12 +236,12 @@ class DuckdbUtil:
     @staticmethod
     def run_analytics_query(db_path, fields, table, data_range):
         try:
+            from utils.pipeline.PipelinesHelper import PipelineHelper
             filter_range, query = '', ''
             range_filter_details = list(data_range.items())
             schema, table = table.split('.')
             
             if(len(range_filter_details) > 0):
-                from utils.pipeline.PipelinesHelper import PipelineHelper
 
                 values = range_filter_details[0][1]
                 field = range_filter_details[0][0]
@@ -256,6 +256,8 @@ class DuckdbUtil:
                 else:
                     filter_range = f" WHERE DATE({field}) BETWEEN DATE '{values['min']}' AND DATE '{values['max']}'"
                     query = f'SELECT {fields} FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}{filter_range}'
+            else:
+                query = f'SELECT {fields} FROM {schema}.{PipelineHelper.prefix_and_suffix_table(table)}'
 
             cnx = duckdb.connect(db_path)
             cursor = cnx.cursor()
