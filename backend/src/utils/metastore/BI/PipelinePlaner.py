@@ -10,6 +10,7 @@ PIPELINE_PLAN_SCHEMA = pa.schema([
     pa.field('user', pa.string()),
     pa.field('plan_setting', pa.string()),
     pa.field('namespace', pa.string()),
+    pa.field('pipeline_lbl', pa.string()),
     pa.field('created_at', pa.string()),
     pa.field('updated_at', pa.string()),
 ])
@@ -46,7 +47,10 @@ class PipelinePlaner:
             PipelinePlaner._migrate(tbl)
 
             rows_to_insert = [
-                { 'user': '', 'namespace': namespace, 'plan_setting': json.dumps(settings), 'id': LanceConnectionFactory.generate_id(), 'created_at': now }
+                { 
+                    'user': '', 'namespace': namespace, 'plan_setting': json.dumps(settings), 'id': LanceConnectionFactory.generate_id(), 
+                    'created_at': now, 'pipeline_lbl': settings.get('pipeline_lbl')
+                }
             ]
             tbl.add(rows_to_insert)
             if tbl.version % 100 == 0: PipelinePlaner.compact_metadata()
@@ -57,5 +61,14 @@ class PipelinePlaner:
 
     
     @staticmethod
-    def _migrate(tbl):
-        pass
+    def _migrate(tbl): pass
+
+
+    @staticmethod
+    def get_plans(namespace = None):
+        try:
+            tbl = PipelinePlaner._get_pipeline_plan()
+            return tbl.search().where(f"namespace = '{namespace}'").to_list()
+            
+        except Exception as e:
+            print(f"Pipeline plan fetch failed: {str(e)}")

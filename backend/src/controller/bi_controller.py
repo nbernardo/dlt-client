@@ -83,9 +83,16 @@ def query_sql_rdbms(namespace):
     return { **tables_and_relations, 'error': False }
 
 
+from utils.metastore.BI.PipelinePlaner import PipelinePlaner
+
 @bi_controller.route('/analytics/<namespace>/pipeline/plan', methods=['POST'])
 def create_pipeline_plan(namespace):
-    from utils.metastore.BI.PipelinePlaner import PipelinePlaner
     payload = request.get_json()
     PipelinePlaner.create_new_plan(namespace, payload.get('settings'))
     return { 'error': False }
+
+
+@bi_controller.route('/analytics/<namespace>/pipeline/plan', methods=['GET'])
+def get_pipeline_plan(namespace):
+    result = PipelinePlaner.get_plans(namespace)
+    return { 'error': False, 'result': result }
