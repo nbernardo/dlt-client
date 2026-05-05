@@ -95,19 +95,20 @@ class OdooDBIntegration:
                     WHEN source_column IS NOT NULL THEN source_column || ' ➔ ' || target_column 
                     ELSE '' 
                 END AS relation_label,
-                -- Conditional Aggregation based on level
                 (
-                    SELECT string_agg(a.attname, ', ')
+                    SELECT string_agg(
+                        a.attname || CASE WHEN pk.contype IS NOT NULL THEN ' (PK)' ELSE '' END, 
+                        ', '
+                    )
                     FROM pg_attribute a
                     JOIN pg_class c ON c.oid = a.attrelid
-                    WHERE a.attnum > 0 
+                    -- Standard PK check for the table identified in this specific row
+                    LEFT JOIN pg_constraint pk ON pk.conrelid = c.oid 
+                        AND pk.contype = 'p' 
+                        AND a.attnum = ANY(pk.conkey)
+                    WHERE c.relname = physical_table -- Use the current row's table name directly
+                    AND a.attnum > 0 
                     AND NOT a.attisdropped
-                    AND c.relname = (
-                        CASE 
-                            WHEN level = 2 THEN parent_table 
-                            ELSE physical_table 
-                        END
-                    )
                 ) AS all_fields
             FROM TableHierarchy
             WHERE 
