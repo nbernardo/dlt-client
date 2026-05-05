@@ -92,7 +92,7 @@
 				<span class="planner-title">Pipeline Plan</span>
 				<span>
 					<span class="planner-count">@totalTablesAdded Tables</span>
-					&nbsp;&nbsp;
+					&nbsp;
 					<span class="planner-minimize-icon" style="cursor: pointer;" onclick="controller.minizePlanner()">&minus;</span>
 				</span>
 			</div>			
@@ -101,12 +101,15 @@
 					style="width: 100%; padding: 4px 8px; border-radius: 4px; border: none; font-size: 11px;"
 					oninput="controller.setPipelineName(this.value)">
 				
-				<select 
-					(forEach)="existingModels" placeholder="-- Select Existing Model --"
-					style="width: 100%; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 11px; background: #bbbdbe; color: black;"
-					onchange="controller.loadExistingPipeline(this.value)">
-					<option each="item" value="{item.pipeline}">{item.name}</option>
-				</select>
+				<span style="display: flex;">
+					<select 
+						(forEach)="existingModels" placeholder="-- Select Existing Model --"
+						style="width: 90%; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 11px; background: #bbbdbe; color: black;"
+						onchange="controller.loadExistingPipeline(this.value)">
+						<option each="item" value="{item.pipeline}">{item.name}</option>
+					</select>
+					&nbsp;&nbsp;<span onclick="controller.savePipelinePlan()"><i class="fa fa-save"></i></span>
+				</span>
 			</div>
 		</div>
 		<div class="planner-body"><div class="planner-item"></div></div>

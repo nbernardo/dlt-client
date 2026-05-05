@@ -34,11 +34,7 @@ export class BIService extends BaseService {
             url, JSON.stringify({ charts, name, id }), 
             HTTPHeaders.JSON
         );
-        if (response.ok){
-            const result = await response.json();
-            return true;
-        }
-
+        if (response.ok) return true;
         return false;
     }
 

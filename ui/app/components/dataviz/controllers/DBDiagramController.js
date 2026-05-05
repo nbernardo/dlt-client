@@ -3,6 +3,7 @@ import { Assets } from "../../../../@still/util/componentUtil.js";
 import { Grid } from "../bi/grid/Grid.js";
 import { DatabaseDiagram } from "../diagram/DatabaseDiagram.js";
 import { BIService } from "../services/BIService.js";
+import { PipelinePlanPayload, PipelinePlanService } from "../services/PipelinePlanService.js";
 import { BIController } from "./BIController.js";
 
 export class DBDiagramController extends BaseController {
@@ -68,6 +69,8 @@ export class DBDiagramController extends BaseController {
         const btnDiagram = this.obj.container.querySelector('#btnDiagram');
         const btnSQL = this.obj.container.querySelector('#btnSQL');
 
+        if(btnDiagram.classList.contains('active') && view === 'diagram') return;
+
         if (view === 'diagram') {
             this.obj.showDiagram = true;
             btnDiagram.classList.add('active');
@@ -120,7 +123,7 @@ export class DBDiagramController extends BaseController {
         const validFields = Array.from(this.selectedFieldsSet).filter(f => processed.has(f.split('.')[0]));
         
         if (validFields.length > 0)
-            selectClause = validFields.join(',\n       ');
+            selectClause = validFields.map(itm => itm.split(' ')[0] /** To address primary keys */).join(',\n       ');
         
         this.editor.setValue(
             [`-- Auto-generated Business Query`,`SELECT ${selectClause}`,`FROM ${baseTable}`,joins.length > 0 ? `    ${joins.join('\n    ')}` : '','LIMIT 100;'].filter(v => v.trim()).join('\n')
@@ -254,7 +257,7 @@ export class DBDiagramController extends BaseController {
     }
 
     async selectConnectionName(connectionName){
-        this.obj.container.querySelector('#btnDiagram').click();
+        this.toggleView('diagram');
         const container = this.obj.container.querySelector('#mountNode');
         BIController.fromContext().addLoadingOnContainer(container, 'Loading database diagram');
         const result = await BIService.getModulesWhenOdoo(connectionName);
@@ -367,18 +370,34 @@ export class DBDiagramController extends BaseController {
     /** @type { Set<string> } */ selectedFieldsSet = new Set();
 
     selectColumn(fieldPath) {
+        let shouldKeepTable, tableName = fieldPath.split('.')[0], container = this.obj.container;
+        let pkPresent = [...this.selectedFieldsSet].find(itm => itm.startsWith(tableName) && itm.toLowerCase().includes('(pk)'));
+
         if (this.selectedFieldsSet.has(fieldPath)) {
             this.selectedFieldsSet.delete(fieldPath);
-        } else 
+        } else {
+            if(!container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.contains('addedkey')){
+                const tablePk = this.pipelineTableFields.get(tableName).find(itm => itm.toLowerCase().includes('(pk)'));
+                this.selectedFieldsSet.add(`${tableName}.${tablePk}`);
+                container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.add('addedkey');
+            }
+            
             this.selectedFieldsSet.add(fieldPath);
+            container.querySelectorAll(`.plan-pipeline-pk-${tableName}`).forEach(itm => itm.checked = true);
+        }
         
-        let tableName = fieldPath.split('.')[0];
         if (!this.selectedTablesMap.has(tableName)) 
             this.handleTableSelect(tableName);
 
-        const shouldKeepTable = [...this.selectedFieldsSet].some(itm => itm.startsWith(fieldPath.split('.')[0]));
-        if(!shouldKeepTable)
+        shouldKeepTable = [...this.selectedFieldsSet].some(itm => itm.startsWith(fieldPath.split('.')[0]) && itm != pkPresent);
+        if(!shouldKeepTable){
             this.selectedTablesMap.delete(tableName);
+            if(pkPresent){
+                container.querySelectorAll(`.plan-pipeline-pk-${tableName}`).forEach(itm => itm.checked = false);
+                this.selectedFieldsSet.delete(pkPresent);
+                container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.remove('addedkey');
+            }
+        }
 
         this.syncSqlEditor();
     }
@@ -427,10 +446,12 @@ export class DBDiagramController extends BaseController {
             }else{
                 const fields = this.pipelineTableFields.get(tableName);
                 fieldsContainer.innerHTML = fields.map(fld => {
-                    fld = fld.trim()
+                    fld = fld.trim();
+                    const isPk = fld.toLowerCase().includes('(pk)');
+
                     return this.obj.parseEvents(`
                         <div>
-                            <input type="checkbox" onclick="controller.selectColumn('${tableName}.${fld}')"> ${fld}
+                            <input type="checkbox" value="${fld.split(' ')[0]}" ${isPk ? `class="plan-pipeline-pk-${tableName}" disabled` : ''} onclick="controller.selectColumn('${tableName}.${fld}')"> ${fld}
                         </div>
                     `);
                 }).join('');
@@ -439,7 +460,7 @@ export class DBDiagramController extends BaseController {
         }else{
             this.obj.container.querySelector(`.expand-table-columns-${tableName}`).textContent = '▶';
             fieldsContainer.style.display = 'none';
-        }   
+        }
     }
 
     minizePlanner(){
@@ -450,5 +471,26 @@ export class DBDiagramController extends BaseController {
         } else {
             container.style.height = 'auto', icon.innerHTML = '&minus;';
         }
+    }
+
+    async savePipelinePlan(){
+        let settings = new PipelinePlanPayload(), pkCount = 0;
+        this.selectedFieldsSet.forEach(itm => {
+
+            let [table, field] = itm.split('.');
+            const isPk = field.toLowerCase().trim().endsWith('(pk)');
+            if(isPk){
+                pkCount++, field = field.split(' ')[0] //In case of PK, extract only the field name
+                if(pkCount == 1) settings.primaryKeys['pkName'] = field;
+                else settings.primaryKeys[`primaryKey${pkCount}`] = field;
+            }
+            if(!settings.tables[table]) settings.tables[table] = {}
+            settings.tables[table][field] = isPk ? 'PK' : null;
+        });
+        settings.goldTableQuery = this.editor.getValue(), settings.planPipelineLabel = this.pipelineName;
+        await (new PipelinePlanService(settings)).save();
+        console.log(`THOSE ARE SETTINGS: `, settings);
+        
+        //BIService.saveNewPipelinePlan(settings);
     }
 }
