@@ -9,6 +9,7 @@ import { FileList } from "../../filelist/FileList.js";
 import { FileUpload } from "../../fileupload/FileUpload.js";
 import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspace/icons/database.js";
 import { Workspace } from "../../workspace/Workspace.js";
+import { PipelinePlanService } from "../../dataviz/services/PipelinePlanService.js";
 
 export class LeftTabs extends ViewComponent {
 
@@ -292,6 +293,10 @@ export class LeftTabs extends ViewComponent {
 				this.scriptListProxy.filesList = data;
 				this.scriptListProxy.setUpFileMenuEvt();
 			}
+		}
+
+		if(tab === 'content-pipeline-plane') {
+			PipelinePlanService.getPipelinePlans();
 		}
 		this.$parent.selectedLeftTab = tab;
 	}

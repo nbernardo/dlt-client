@@ -1,3 +1,4 @@
+import { $still } from "../../../../@still/component/manager/registror.js";
 import { BaseService } from "../../../../@still/component/super/service/BaseService.js";
 import { HTTPHeaders } from "../../../../@still/helper/http.js";
 import { pipelinePlanContent } from "../samples/pipelinePlan.js";
@@ -21,6 +22,15 @@ export class PipelinePlanService extends BaseService {
         const namespace = await BIService.getNamespace();
         const url = `/analytics/${namespace}/pipeline/plan`;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ settings: this.settings }), HTTPHeaders.JSON);
+        if (response.ok && !response.error)
+            return await response.json();
+        return null;
+    }
+
+    static async getPipelinePlans(){
+        const namespace = await BIService.getNamespace();
+        const url = `/analytics/${namespace}/pipeline/plan`;
+        const response = await $still.HTTPClient.get(url);
         if (response.ok && !response.error)
             return await response.json();
         return null;
