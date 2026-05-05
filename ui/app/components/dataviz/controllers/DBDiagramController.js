@@ -489,8 +489,5 @@ export class DBDiagramController extends BaseController {
         });
         settings.goldTableQuery = this.editor.getValue(), settings.planPipelineLabel = this.pipelineName;
         await (new PipelinePlanService(settings)).save();
-        console.log(`THOSE ARE SETTINGS: `, settings);
-        
-        //BIService.saveNewPipelinePlan(settings);
     }
 }
