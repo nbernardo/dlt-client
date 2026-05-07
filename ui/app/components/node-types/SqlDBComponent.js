@@ -67,13 +67,13 @@ export class SqlDBComponent extends AbstractNode {
 	 * will be passed
 	 * */
 	stOnRender(data){		
-		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName, aiGenerated, asTemplate } = data;		
+		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName, aiGenerated, asTemplate, fromPlan } = data;		
 		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.tables = tables;
 		this.primaryKeys = primaryKeys;	
-		this.importFields = { database, dbengine, connectionName, asTemplate, changeCount: 0 };
+		this.importFields = { database, dbengine, connectionName, asTemplate, changeCount: 0, fromPlan };
 		if(data?.host) this.importFields.host = data.host;
 	}
 
@@ -100,14 +100,16 @@ export class SqlDBComponent extends AbstractNode {
 		// hance no this.wSpaceController.on('load') subscrtiption is needed
 		this.wSpaceController.disableNodeFormInputs(this.formWrapClass);
 		this.notifyReadiness();
+		// This flac if for this new scenario where the pipeline is generated from the pipeline plan
+		const isItPlanned = this.importFields.fromPlan;
 
 		const disable = this.wSpaceController.shouldDisableNodeFormInputs;
-		const allTables = Object.values(this.tables);
+		const allTables = isItPlanned ? Object.keys(this.tables) : Object.values(this.tables);
 		const allKeys = Object.values(this.primaryKeys);
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 
 		// Assign the first table
-		this.tableName = this.tables['tableName'];
+		this.tableName = isItPlanned ? allTables[0] : this.tables['tableName'];
 		this.primaryKey = allKeys[0];
 		// Assign remaining tables if more than one in the pipeline
 		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable, allKeys[idx+1]));

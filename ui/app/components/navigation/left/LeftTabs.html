@@ -83,12 +83,22 @@
                         <span class="text">API Catalog</span>
                     </label>
                 </li>
+
                 <li class="left-menu-item" onclick="component.selectTab('content-diagram')">
                     <label for="tab-diagram">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/flow-modeler.svg" width="23" alt="">
                         </span>
                         <span class="text">Diagram</span>
+                    </label>
+                </li>
+
+                <li class="left-menu-item" onclick="component.selectTab('content-pipeline-plane')">
+                    <label for="tab-pipeline-plane">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/blueprint.png" width="23" alt="">
+                        </span>
+                        <span class="text">Planned Pipelines</span>
                     </label>
                 </li>
 
@@ -463,6 +473,45 @@
                 </section>
             </div>
 
+            <div class="content-panel content-pipeline-plane" style="width: 250px;">
+                <h3>API Catalog</h3>
+
+                <div class="catalog-db-addnew" onclick="component.openSecretForm(null,'api')">
+                    <img src="app/assets/imgs/left-menu/api-cat-icon.png" width="20" height="20"> &nbsp;New API settings
+                </div>
+
+                <span (showIf)="self.showLoading == 2">
+                    <div class="fetching-db-loader">
+                        <div class="mini-loader-container db-secrets-loader">
+                            <div class="mini-loader-dot"></div>
+                            <div class="mini-loader-dot"></div>
+                            <div class="mini-loader-dot"></div>
+                        </div>
+                        Fetching Planned pipelines...
+                    </div>
+                </span>
+
+                <span (showIf)="!self.showLoading">
+                    @if(this.apiSecretsList.length == 0)
+                        <div class="fetching-db-loader">No secret found</div>
+                    @endif
+                    <!-- <ul class="database-catalog-list" (forEach)="apiSecretsList">
+                        <li each="item">
+                            <div class="database-name">
+                                <span>{item.name}</span>
+                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'api', '{item.bucket}', '{item.host}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
+                                        <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="host">{item.host}</div>
+                        </li>
+                    </ul> -->
+                </span>
+
+            </div>
+
         </div>
     </div>
 </body>
@@ -779,6 +828,7 @@
     #tab-outputs:checked~.app-container .content-outputs,
     #tab-data-source:checked~.app-container .content-data-source,
     #tab-diagram:checked~.app-container .content-diagram,
+    #tab-pipeline-plane:checked~.app-container .content-pipeline-plane,
     #tab-data-files:checked~.app-container .content-data-files,
     #tab-api-catalog:checked~.app-container .content-api-catalog,
     #tab-logs:checked~.app-container .data-viz,

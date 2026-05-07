@@ -10,6 +10,7 @@ import { FileUpload } from "../../fileupload/FileUpload.js";
 import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspace/icons/database.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { PipelinePlanService } from "../../dataviz/services/PipelinePlanService.js";
+import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 
 export class LeftTabs extends ViewComponent {
 
@@ -68,14 +69,8 @@ export class LeftTabs extends ViewComponent {
 
 	stAfterInit() {
 		this.$parent.controller.leftTab = this;
-
 		this.setUpPromptMenuEvt();
-		this.service.on('load', () => {
-			this.objectTypes = this.service.objectTypes;
-			this.service.table.onChange(newValue => {
-				console.log(`Workspace was update about changed and new value is: `, newValue);
-			});
-		});
+		this.service.on('load', () => this.objectTypes = this.service.objectTypes);
 	}
 
 	/** @param { HTMLElement | null } target */
@@ -95,8 +90,7 @@ export class LeftTabs extends ViewComponent {
 		
 		if(response?.no_data || Object.keys(response).length === 0){
 			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
-			this.fetchingPipelineData = false;
-			return;
+			return this.fetchingPipelineData = false;
 		}
 
 		if(response?.error === true){
@@ -235,8 +229,7 @@ export class LeftTabs extends ViewComponent {
 					<div class="pipeline-table-menu-wrapper pipeline-table-menu-wrap-${dbfile}${cleanTableName}"></div>
 				</span>
 				`;
-		};
-
+		}
 		return `<div class="table-in-treeview">${tableRow}</div>`;
 	}
 
@@ -253,16 +246,12 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	async selectTab(tab){
-		
-		if(tab === 'content-data-source'){
-			this.showLoading = 1;
+		this.showLoading = ({ 'content-data-source': 1, 'content-api-catalog': 2 })[tab];
+		if(tab === 'content-data-source')
 			setTimeout(async () => await this.$parent.controller.createCatalogForm(1),100);
-		}
 
-		if(tab === 'content-api-catalog'){
-			this.showLoading = 2;
+		if(tab === 'content-api-catalog')
 			setTimeout(async () => await this.$parent.controller.createCatalogForm(2),100);
-		}
 
 		if(tab === 'content-data-files'){
 			this.fileListProxy.noFilesMessage = 'No data file found';
@@ -280,23 +269,20 @@ export class LeftTabs extends ViewComponent {
 				let currentFileObject = null, count = 0;
 				for (const file of data){
 					if(file.name.match(isVersionFile) === null){
-						file.id = ++count;
-						currentFileObject = file;
-						currentFileObject.versions = [];
-						currentFileObject.category = 'script';
+						file.id = ++count, currentFileObject = file, currentFileObject.versions = [], currentFileObject.category = 'script';
 					}else{
-						file.version = true;
-						file.category = 'script';
-						currentFileObject.versions.push(file);
+						file.version = true, file.category = 'script', currentFileObject.versions.push(file);
 					}
 				}
-				this.scriptListProxy.filesList = data;
-				this.scriptListProxy.setUpFileMenuEvt();
+				this.scriptListProxy.filesList = data, this.scriptListProxy.setUpFileMenuEvt();
 			}
 		}
 
 		if(tab === 'content-pipeline-plane') {
-			PipelinePlanService.getPipelinePlans();
+			const result = await PipelinePlanService.getPipelinePlans();
+			this.$parent.activeGrid = result.result[0].pipeline_lbl;
+			const planContent = { pipelineCode: JSON.parse(result.result[0].plan_setting) };
+			WorkSpaceController.fromContext().processImportingNodes(planContent, false, true);
 		}
 		this.$parent.selectedLeftTab = tab;
 	}
@@ -328,15 +314,12 @@ export class LeftTabs extends ViewComponent {
 
 	showTableOptions(table, dbfile, tableName, tablePath){
 		
-		this.currentDBFile = dbfile;
-		this.currentTableToQuery = tablePath;
-		this.currentTableName = tableName;
+		this.currentDBFile = dbfile, this.currentTableToQuery = tablePath, this.currentTableName = tableName;
 		this.currentTableData = { table, dbfile, tableName, tablePath }; // Store for later use
 
 		const content = document.querySelector('.pipeline-submenu-contents-for-table').innerHTML;
 		const target = document.querySelector(`.pipeline-table-menu-wrap-${dbfile}${table}`);
-		target.style.display = '';
-		target.innerHTML = content;
+		target.style.display = '', target.innerHTML = content;
 		document.addEventListener('click', (event) => {
 			if(event.target.classList.contains(`${dbfile}${table}`) || event.target.classList.contains('stop-pipeline-job-icon')) return;
 			target.style.display = 'none';
@@ -405,7 +388,6 @@ export class LeftTabs extends ViewComponent {
 
 		const obj = this; //Becuase inside callback this is not available
         document.addEventListener('click', function(event) {
-			
             const [isClickInsideMenu, isClickTrigger] = [obj.promptSamplesMenu?.contains(event.target), event.target?.closest('img')];
             if (!isClickInsideMenu && !isClickTrigger) {
                 obj.promptSamplesMenu?.classList.remove('is-active');
@@ -449,7 +431,5 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.dataCatalogUIProxy.onPipelineChange(WorkspaceService.currentSelectedPpeline, true);
 	}
 
-	openDataViz(){
-		this.$parent.dataVizProxy.openPopup();
-	}
+	openDataViz = () => this.$parent.dataVizProxy.openPopup();
 }

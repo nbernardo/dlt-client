@@ -112,7 +112,7 @@ export class BIService extends BaseService {
             var response = await $still.HTTPClient.get(`${url}/${BIService.activePipeline}`);
 
         if (response.ok)
-            return (await response.json())?.result?.modules;
+            return (await response.json())?.result;
         return [];
     }
 

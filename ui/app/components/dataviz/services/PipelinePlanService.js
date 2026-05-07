@@ -14,7 +14,13 @@ export class PipelinePlanService extends BaseService {
         pipelinePlanContent.pipeline_lbl = settings.planPipelineLabel;
         pipelinePlanContent.content.Home.data[2].data.tables = settings.tables;
         pipelinePlanContent.content.Home.data[2].data.primaryKeys = settings.primaryKeys;
+        pipelinePlanContent.content.Home.data[2].data.database = settings.sourceDatabase;
+        pipelinePlanContent.content.Home.data[2].data.connectionName = settings.sourceDBConnection;
+        pipelinePlanContent.content.Home.data[2].data.dbengine = settings.sourceDBEngine;
+        pipelinePlanContent.content.Home.data[2].data.host = settings.sourceDBHost;
+        pipelinePlanContent.content.Home.data[2].data.namespace = settings.planNamespace;
         pipelinePlanContent.goldQuery = settings.goldTableQuery;
+        pipelinePlanContent.content.Home.data[3].data.database = settings.planPipelineLabel.toLowerCase().replace(/(\s|\_|\-)/g,'');
         this.settings = pipelinePlanContent;
     }
 
@@ -44,4 +50,9 @@ export class PipelinePlanPayload {
     /** @type { Object } */ primaryKeys = {};
     /** @type { String } */ goldTableQuery;
     /** @type { String } */ planPipelineLabel = '';
+    /** @type { String } */ sourceDatabase = '';
+    /** @type { String } */ sourceDBHost = '';
+    /** @type { String } */ sourceDBConnection = '';
+    /** @type { String } */ sourceDBEngine = '';
+    /** @type { String } */ planNamespace = '';
 }

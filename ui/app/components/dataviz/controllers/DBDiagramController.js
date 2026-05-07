@@ -12,6 +12,9 @@ export class DBDiagramController extends BaseController {
 
     editor;
     selectedConnection;
+    selectedConnectionHost;
+    selectedConnectionEngine;
+    selectedDatabase;
 
     /** @type { Map<string, number> } */ selectedTablesMap = new Map();
     relationRegistry = new Map(); 
@@ -261,8 +264,10 @@ export class DBDiagramController extends BaseController {
         const container = this.obj.container.querySelector('#mountNode');
         BIController.fromContext().addLoadingOnContainer(container, 'Loading database diagram');
         const result = await BIService.getModulesWhenOdoo(connectionName);
-        this.obj.updateGraphData(result);
-        this.selectedConnection = connectionName;
+        
+        this.obj.updateGraphData(result?.modules);
+        this.selectedConnection = connectionName, this.selectedDatabase = result?.db_name;
+        this.selectedConnectionHost = result?.db_host, this.selectedConnectionEngine = result?.db_engine;
         BIController.fromContext().removeLoadingFromContainer(container);
     }
 
@@ -488,6 +493,11 @@ export class DBDiagramController extends BaseController {
             settings.tables[table][field] = isPk ? 'PK' : null;
         });
         settings.goldTableQuery = this.editor.getValue(), settings.planPipelineLabel = this.pipelineName;
+        settings.sourceDatabase = this.selectedDatabase;
+        settings.sourceDBConnection = this.selectedConnection;
+        settings.sourceDBHost = this.selectedConnectionHost;
+        settings.sourceDBEngine = this.selectedConnectionEngine;
+        settings.planNamespace = await BIService.getNamespace();
         await (new PipelinePlanService(settings)).save();
     }
 }

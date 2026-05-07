@@ -316,7 +316,7 @@ export class WorkSpaceController extends BaseController {
         if(bucketNode || sqlDbNode) secretName = nodeList.find(r => r[1].class == name)[1].data.connectionName;
         
         const validConnection = (IsString(secretName) && secretName != '');
-        if(validConnection){
+        if(validConnection && 'dbDetails'in importData){
             const tablesFieldsMap = {}, dataSources = [];
             const metadataSource = bucketNode ? importData.dbDetails[name] : importData.dbDetails[name].metadata;
             WorkSpaceController.importtablesFieldMap = metadataSource.reduce((acc, result) => {
@@ -338,7 +338,7 @@ export class WorkSpaceController extends BaseController {
     }
 
     isTemplating = false;
-    async processImportingNodes(importData, asTemplate = false) {
+    async processImportingNodes(importData, asTemplate = false, fromPlan = false) {
 
         WorkSpaceController.importNodeIdMapping = {};
         WorkSpaceController.importCloudSecretName = null;
@@ -358,7 +358,7 @@ export class WorkSpaceController extends BaseController {
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { componentId: removedId, ...fields } = data;
                 const parentId = this.wSpaceComponent.cmpInternalId;
-                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true, asTemplate }, parentId);
+                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true, asTemplate, fromPlan }, parentId);
 
                 this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
                 setTimeout(() => Object.keys(fields).forEach((f) => component[f] = fields[f]), 10);
@@ -519,6 +519,8 @@ export class WorkSpaceController extends BaseController {
         editor.on('removeReroute', (id) => console.log("Reroute removed " + id));
 
     }
+
+    /** @returns { WorkSpaceController } */ static fromContext = () => WorkSpaceController.get();
 
     getNodeId() {
         this.idCounter = this.idCounter + 1

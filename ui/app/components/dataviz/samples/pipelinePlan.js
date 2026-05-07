@@ -10,15 +10,15 @@ export const pipelinePlanContent = {
           "id": 2,
           "name": "SqlDBComponent",
           "data": {
-            "componentId": "dynamic-_cmp12526392907717077SqlDBComponent", "host": "127.0.0.1", "connectionName": "New Oddo DB Local", "database": "newdb", 
-            "dbengine": "postgresql", "namespace": "google-oauth2_116448449010041059402", "tables": {}, "primaryKeys": {}
+            "componentId": "dynamic-activeSqlDBComponent", "host": "", "connectionName": "", "database": "", 
+            "dbengine": "postgresql", "namespace": "", "tables": {}, "primaryKeys": {}
           },
           "class": "SqlDBComponent", "html": "", "typenode": false, "inputs": { "input_1": { "connections": [ { "node": "1", "input": "output_1" } ] } },
           "outputs": { "output_1": { "connections": [ { "node": "3", "output": "input_1" } ] } }, "pos_x": 176, "pos_y": 97
         },
         "3": {
           "id": 3, "name": "DuckDBOutput", "html": "", "class": "DuckDBOutput", "typenode": false,
-          "data": { "componentId": "dynamic-_cmp395789456079922DuckDBOutput", "database": "fleetdatamart" },
+          "data": { "componentId": "dynamic-activeDuckDBOutput", "database": "" },
           "inputs": { "input_1": { "connections": [ { "node": "2", "input": "output_1" } ] } }, "outputs": {}, "pos_x": 505, "pos_y": 155
         }
       }
