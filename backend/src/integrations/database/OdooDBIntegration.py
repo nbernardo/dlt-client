@@ -24,7 +24,8 @@ class OdooDBIntegration:
                 pipeline_meta = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
                 connection_name = pipeline_meta[2]
 
-            return DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
+            result = DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
+            return result
         except Exception as err:
             print(f'Error while fetching Odoo modules: {str(err)}')
             return {}

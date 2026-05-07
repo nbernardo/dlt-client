@@ -90,7 +90,7 @@ class DestinationQueryUtil:
             fields = ','.join(df.columns)
                 
             print(f'Query successful using Polars, returned {len(result)} rows')
-            return {'result': result, 'fields': fields, 'db_engine': db_engine}
+            return {'result': result, 'fields': fields, 'db_engine': db_engine, 'db_name': secret.get('database'), 'db_host': secret.get('host') }
             
         except Exception as err:
             print(f'Error querying SQL database: {str(err)}')

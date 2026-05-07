@@ -26,7 +26,7 @@ class BIService:
 
     @staticmethod
     def get_odoo_modules(namespace, connection_name, pipeline):
-        return OdooDBIntegration.get_modules(namespace, connection_name, pipeline).get('result', [])
+        return OdooDBIntegration.get_modules(namespace, connection_name, pipeline)
     
 
     @staticmethod
