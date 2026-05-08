@@ -52,6 +52,11 @@
 			.item-fields-preview { display: flex; gap: 4px; flex-wrap: wrap; }
 			.field-tag { font-size: 10px; color: #6b7280; background: #f3f4f6; padding: 1px 4px; border-radius: 3px; }
 		}
+
+		.save-plan-btn{ background: none; border: none; color: rgb(220, 217, 217); cursor: pointer; }
+		.save-plan-btn:hover{ color: white; }
+		.save-plan-btn[disabled]{ color: rgb(147, 147, 147); background: none !important; background: none !important; opacity: 0.4; }
+		.plan-inputs1 input[disabled]::placeholder{ color: black; }
 	}
 </style>
 
@@ -96,19 +101,19 @@
 					<span class="planner-minimize-icon" style="cursor: pointer;" onclick="controller.minizePlanner()">&minus;</span>
 				</span>
 			</div>			
-			<div style="display: flex; flex-direction: column; gap: 5px;">
+			<div style="display: flex; flex-direction: column; gap: 5px;" class="plan-inputs1">
 				<input type="text" placeholder="Pipeline Name..." 
 					style="width: 100%; padding: 4px 8px; border-radius: 4px; border: none; font-size: 11px;"
 					oninput="controller.setPipelineName(this.value)">
 				
-				<span style="display: flex;">
+				<span style="display: flex;" class="plan-inputs2">
 					<select 
 						(forEach)="existingModels" placeholder="-- Select Existing Model --"
 						style="width: 90%; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 11px; background: #bbbdbe; color: black;"
 						onchange="controller.loadExistingPipeline(this.value)">
 						<option each="item" value="{item.pipeline}">{item.name}</option>
 					</select>
-					&nbsp;&nbsp;<span onclick="controller.savePipelinePlan()"><i class="fa fa-save"></i></span>
+					&nbsp;&nbsp;<button class="save-plan-btn" disabled onclick="controller.savePipelinePlan()"><i class="fa fa-save" style="font-size: 20px;"></i></button>
 				</span>
 			</div>
 		</div>

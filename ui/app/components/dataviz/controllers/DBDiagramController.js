@@ -15,6 +15,7 @@ export class DBDiagramController extends BaseController {
     selectedConnectionHost;
     selectedConnectionEngine;
     selectedDatabase;
+    selectedExistingPpline;
 
     /** @type { Map<string, number> } */ selectedTablesMap = new Map();
     relationRegistry = new Map(); 
@@ -264,7 +265,7 @@ export class DBDiagramController extends BaseController {
         const container = this.obj.container.querySelector('#mountNode');
         BIController.fromContext().addLoadingOnContainer(container, 'Loading database diagram');
         const result = await BIService.getModulesWhenOdoo(connectionName);
-        
+  
         this.obj.updateGraphData(result?.modules);
         this.selectedConnection = connectionName, this.selectedDatabase = result?.db_name;
         this.selectedConnectionHost = result?.db_host, this.selectedConnectionEngine = result?.db_engine;
@@ -277,7 +278,7 @@ export class DBDiagramController extends BaseController {
 
         this.editor = monaco.editor.create(document.getElementById('sqlEditor'), {
             value: this.query, language: 'sql', theme: 'vs-light', automaticLayout: true, fontSize: 14, minimap: { enabled: false }, scrollBeyondLastLine: false,
-        }); 
+        });
         this.editor.setValue(`-- Write your query here. \n-- Or Add/Select tables in the diagram to the query.`);
     }
 
@@ -433,7 +434,26 @@ export class DBDiagramController extends BaseController {
         this.syncSqlEditor();
     }
 
-    setPipelineName(val) { this.pipelineName = val; }
+    loadExistingPipeline(val){
+        const planeNameInput = this.obj.container.querySelector('.plan-inputs1 input');
+        const saveBtn = this.obj.container.querySelector('.save-plan-btn');
+        this.selectedExistingPpline = val;
+        if(val !== '') {
+            planeNameInput.disabled = true, saveBtn.disabled = false;
+        } else {
+            planeNameInput.disabled = false;
+            if([undefined, null,''].includes(this.pipelineName)) saveBtn.disabled = true;
+            else saveBtn.disabled = false;
+        }
+    }
+
+    setPipelineName(val) { 
+        const inputs = this.obj.container.querySelectorAll('.plan-inputs2 select, .save-plan-btn');
+        if(val !== '') inputs.forEach(ipt => ipt.disabled = false);
+        else inputs.forEach((ipt, idx) => ipt.disabled = idx == 0 ? false : true);
+        
+        this.pipelineName = val; 
+    }
 
     async toggleTableFields(tableName) {
         const tableEntry = this.pipelineTables.get(tableName);

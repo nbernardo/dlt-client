@@ -11,7 +11,7 @@ export const pipelinePlanContent = {
           "name": "SqlDBComponent",
           "data": {
             "componentId": "dynamic-activeSqlDBComponent", "host": "", "connectionName": "", "database": "", 
-            "dbengine": "postgresql", "namespace": "", "tables": {}, "primaryKeys": {}
+            "dbengine": "", "namespace": "", "tables": {}, "primaryKeys": {}
           },
           "class": "SqlDBComponent", "html": "", "typenode": false, "inputs": { "input_1": { "connections": [ { "node": "1", "input": "output_1" } ] } },
           "outputs": { "output_1": { "connections": [ { "node": "3", "output": "input_1" } ] } }, "pos_x": 176, "pos_y": 97
