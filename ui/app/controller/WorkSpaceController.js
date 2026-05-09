@@ -77,7 +77,7 @@ export class WorkSpaceController extends BaseController {
     static importDataSource = null;
     static isCurrentPipelineOptimized = null;
     static usedExistingDW = null;
-    static pipelineNewTables = null;
+    static pipelinePlanId = null;
 
     importingPipelineSourceDetails = null;
 

@@ -282,6 +282,8 @@ export class LeftTabs extends ViewComponent {
 			const result = await PipelinePlanService.getPipelinePlans();
 			this.$parent.activeGrid = result.result[0].pipeline_lbl;
 			const planContent = { pipelineCode: JSON.parse(result.result[0].plan_setting) };
+			WorkSpaceController.pipelinePlanId = result.result[0].id;
+			
 			WorkSpaceController.fromContext().processImportingNodes(planContent, false, true);
 		}
 		this.$parent.selectedLeftTab = tab;

@@ -130,14 +130,14 @@
 
 						<aside class="sidebar">
 							<div class="sidebar-section">
-							<span (showIf)="self.showTablesList">
+							<span (showIf)="self.biActiveTab">
 								<div class="sidebar-title" style="display: flex; justify-content: space-between; align-items: center;">
 									<div>Tables</div>
 									<button onclick="controller.loadTable(null, true)" class="btn btn-ghost" style="width: 88px;">Load data</button>
 								</div>
 								<div class="tableList"></div>
 							</span>
-							<span (showIf)="!self.showTablesList">
+							<span (showIf)="!self.biActiveTab">
 								<aside class="sidebar gragable-field-list" style="padding: 0;">
 									<div class="sidebar-section" style="padding: 0 !important;">
 										<h3>Dataset Fields</h3>

@@ -630,7 +630,8 @@ export class BaseComponent extends BehaviorComponent {
         if(showFlag.startsWith('!')) [showFlag, negateFlag] = [showFlag.slice(1),true];
         else if(showFlag.indexOf('==') > 0){
             [showFlag, flagVal] = showFlag.split('==');
-            litValFlag = `flag-${flagVal?.trim()?.replace(/\'/g,'')?.replace(/\s/g,'-')} context-${this.cmpInternalId}`;
+            flagVal = flagVal?.trim()?.replace(/\'/g,'')?.replace(/\s/g,'-');
+            litValFlag = `flag-${flagVal} context-${this.cmpInternalId}`;
         }
 
         return [showFlag, negateFlag, litValFlag, flagVal];

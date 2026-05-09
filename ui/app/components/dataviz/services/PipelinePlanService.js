@@ -1,6 +1,7 @@
 import { $still } from "../../../../@still/component/manager/registror.js";
 import { BaseService } from "../../../../@still/component/super/service/BaseService.js";
 import { HTTPHeaders } from "../../../../@still/helper/http.js";
+import { AppTemplate } from "../../../../config/app-template.js";
 import { pipelinePlanContent } from "../samples/pipelinePlan.js";
 import { BIService } from "./BIService.js";
 
@@ -28,9 +29,12 @@ export class PipelinePlanService extends BaseService {
         const namespace = await BIService.getNamespace();
         const url = `/analytics/${namespace}/pipeline/plan`;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ settings: this.settings }), HTTPHeaders.JSON);
-        if (response.ok && !response.error)
-            return await response.json();
-        return null;
+        const result = await response.json();
+        
+        if (response.ok && !result.error)
+            return AppTemplate.toast.success('Plan saved successfully')
+
+        AppTemplate.toast.error('Plan saving error: '+result.result)
     }
 
     static async getPipelinePlans(){

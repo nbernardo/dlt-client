@@ -32,6 +32,7 @@ export class DatabaseDiagram extends ViewComponent {
     pipelineTablesList;
     totalTablesAdded = 0;
     existingModels = [];
+    pipelinePlans = [];
 
     stOnRender() { 
         if (!G6.registerNode.isDbRegistered) {

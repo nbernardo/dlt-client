@@ -21,6 +21,7 @@ export class PipelineService extends BaseService {
 
         const payload = content || {};
         payload.usedExistingDW = WorkSpaceController.usedExistingDW;
+        payload.pipelinePlanId = WorkSpaceController.pipelinePlanId;
 
         const headers = PipelineService.jsonHeaders;
         if(update === true){

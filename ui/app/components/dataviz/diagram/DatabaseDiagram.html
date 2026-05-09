@@ -29,13 +29,14 @@
 		.grid-component-container { .tools-container { position: relative; } .table-container { margin-top: 0; } } 
 
 		.pipeline-planner-panel {
-			position: absolute; top: 63px; right: 5px; width: 300px; max-height: 70vh;
+			position: absolute; top: 5px; right: 5px; width: 300px; max-height: 70vh;
 			background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(4px);
 			border: 1px solid #d9d9d9; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 			z-index: 100; display: flex; flex-direction: column; overflow: hidden;
 
 			.planner-header { padding: 10px 15px; background: #2c3e50; color: white; display: flex; justify-content: space-between; align-items: center; }
-			.planner-title { font-weight: bold; font-size: 13px; }
+			.planner-title { font-weight: bold; font-size: 12px; span { cursor: pointer; } }; 
+			.planner-title span.inactive{ color: #888a8b7a; }
 			.planner-count { font-size: 11px; background: #059669; padding: 2px 6px; border-radius: 10px; }
 			.planner-body { 
 				padding: 4px; overflow-y: auto; flex: 1; max-height: 470px; 
@@ -57,6 +58,11 @@
 		.save-plan-btn:hover{ color: white; }
 		.save-plan-btn[disabled]{ color: rgb(147, 147, 147); background: none !important; background: none !important; opacity: 0.4; }
 		.plan-inputs1 input[disabled]::placeholder{ color: black; }
+		.pipeline-plan-item{ 
+			background: #ababab; padding: 0px 4px; color: black; border-radius: 2px; font-size: 12px; display: flex; justify-content: space-between; flex-direction: row !important;
+			.view-plan { cursor: pointer; } .view-plan:hover { color: white; }
+		}
+		.plan-wrapper.view span:first-child{ display: flex; flex-direction: column; gap: 3px; }
 	}
 </style>
 
@@ -94,14 +100,18 @@
 	<div class="pipeline-planner-panel" style="height: auto;">
 		<div class="planner-header" style="flex-direction: column; gap: 8px; align-items: stretch;">
 			<div style="display: flex; justify-content: space-between; align-items: center;">
-				<span class="planner-title">Pipeline Plan</span>
+				<span class="planner-title">
+					<span class="create" onclick="controller.selectPlanView('create')">Create Plan</span>
+					|
+					<span class="inactive view" onclick="controller.selectPlanView('view')">View Plans</span>
+				</span>
 				<span>
 					<span class="planner-count">@totalTablesAdded Tables</span>
 					&nbsp;
 					<span class="planner-minimize-icon" style="cursor: pointer;" onclick="controller.minizePlanner()">&minus;</span>
 				</span>
 			</div>			
-			<div style="display: flex; flex-direction: column; gap: 5px;" class="plan-inputs1">
+			<div style="display: flex; flex-direction: column; gap: 5px;" class="plan-inputs1 plan-wrapper create">
 				<input type="text" placeholder="Pipeline Name..." 
 					style="width: 100%; padding: 4px 8px; border-radius: 4px; border: none; font-size: 11px;"
 					oninput="controller.setPipelineName(this.value)">
@@ -114,6 +124,14 @@
 						<option each="item" value="{item.pipeline}">{item.name}</option>
 					</select>
 					&nbsp;&nbsp;<button class="save-plan-btn" disabled onclick="controller.savePipelinePlan()"><i class="fa fa-save" style="font-size: 20px;"></i></button>
+				</span>
+			</div>			
+			<div style="display: none; flex-direction: column; gap: 5px;" class="plan-wrapper view">
+				<span (forEach)="pipelinePlans">
+					<span each="item" class="pipeline-plan-item">
+						{item.name}
+						<span class="view-plan" onclick="controller.selectPlanView('review','{item.name}')">view</span>
+					</span>
 				</span>
 			</div>
 		</div>

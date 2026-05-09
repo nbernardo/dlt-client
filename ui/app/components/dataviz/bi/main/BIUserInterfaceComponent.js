@@ -35,7 +35,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	/**  @Prop  */ runningOnOdoo = false;
 
-	/**  @Prop  */ showTablesList = true;
+	/**  @Prop  */ biActiveTab = true;
 
 	/**  @Prop  */ showDashboardActions = true;
 

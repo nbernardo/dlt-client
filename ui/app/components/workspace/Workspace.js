@@ -249,7 +249,7 @@ export class Workspace extends ViewComponent {
 		}
 		
 		WorkSpaceController.usedExistingDW = null;
-		WorkSpaceController.pipelineNewTables = null;
+		WorkSpaceController.pipelinePlanId = null;
 		this.controller.isSubmittingPipeline = false;
 		if(actionType === 'onlysave')
 			AppTemplate.toast.success(`Pipeline ${this.activeGrid.value} saved successfully`, 15000);

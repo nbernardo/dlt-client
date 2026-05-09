@@ -342,15 +342,16 @@ export class BIController extends BaseController {
 		el.classList.add("active");
 		this.obj.popup.querySelectorAll(".content").forEach((c) => c.classList.remove('active'));
 		this.obj.popup.querySelector(`.tab-${id}`).classList.add('active');
+		this.obj.popup.querySelector(`.tab-${id}`).classList.add('active');
 
         if(id == 'chart') return;
-
+        
         if(id == 'pivot'){
-            this.obj.showTablesList = false;
-            this.obj.showTablesList = false;
+            this.obj.biActiveTab = false;
+            this.obj.biActiveTab = false;
         } else {
-            this.obj.showTablesList = true;
-            this.obj.showTablesList = true;
+            this.obj.biActiveTab = true;
+            this.obj.biActiveTab = true;
         }
 
 	}

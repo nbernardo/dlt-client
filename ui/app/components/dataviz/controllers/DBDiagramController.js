@@ -1,5 +1,6 @@
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
+import { AppTemplate } from "../../../../config/app-template.js";
 import { Grid } from "../bi/grid/Grid.js";
 import { DatabaseDiagram } from "../diagram/DatabaseDiagram.js";
 import { BIService } from "../services/BIService.js";
@@ -488,6 +489,32 @@ export class DBDiagramController extends BaseController {
         }
     }
 
+    listOfPlans = new Map();
+    async selectPlanView(name, planName){
+        const tab = name === 'review' ? 'create' : name;
+        this.obj.container.querySelectorAll(`.planner-title span`).forEach(itm => 
+            itm.classList.contains(tab) ? itm.classList.remove('inactive') : itm.classList.add('inactive')
+        );
+        this.obj.container.querySelectorAll(`.plan-wrapper`).forEach(itm => 
+            itm.classList.contains(tab) ? itm.style.display = 'flex' : itm.style.display = 'none'
+        );
+        
+        if(name === 'review'){
+            const reviewData = JSON.parse(this.listOfPlans.get(planName).plan).content.Home.data[2].data;
+            this.obj.container.querySelector(`.DatabaseDiagram-app-controls select`).value = reviewData.connectionName;
+            this.selectConnectionName(reviewData.connectionName);
+        }
+
+        if(name === 'view'){
+            let plans = await PipelinePlanService.getPipelinePlans(), planNames = [];
+            for(const plan of (plans.result || [])){
+                this.listOfPlans.set(plan.pipeline_lbl, { plan: plan.plan_setting, id: plan.id });
+                planNames.push({ name: plan.pipeline_lbl });
+            }
+            this.obj.pipelinePlans = [...planNames, { name: 'Second'}, { name: 'Another'}];
+        }
+    }
+
     minizePlanner(){
         const container = this.obj.container.querySelector('.pipeline-planner-panel');
         const icon = this.obj.container.querySelector('.planner-minimize-icon');
@@ -499,9 +526,9 @@ export class DBDiagramController extends BaseController {
     }
 
     async savePipelinePlan(){
-        let settings = new PipelinePlanPayload(), pkCount = 0;
+        let settings = new PipelinePlanPayload(), pkCount = 0, saveBtn = this.obj.container.querySelector('.save-plan-btn');
+        saveBtn.disabled = true;
         this.selectedFieldsSet.forEach(itm => {
-
             let [table, field] = itm.split('.');
             const isPk = field.toLowerCase().trim().endsWith('(pk)');
             if(isPk){
@@ -519,5 +546,6 @@ export class DBDiagramController extends BaseController {
         settings.sourceDBEngine = this.selectedConnectionEngine;
         settings.planNamespace = await BIService.getNamespace();
         await (new PipelinePlanService(settings)).save();
+        saveBtn.disabled = false;
     }
 }
