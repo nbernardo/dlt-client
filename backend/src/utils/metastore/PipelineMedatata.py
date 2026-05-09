@@ -49,9 +49,22 @@ class PipelineMedatata:
 
 
     @staticmethod
-    def persist_metadata(namespace = None, pipeline=None, details={}, dataset_name: str = '', short_query: str = ''):
-        """Persists the pipeline metadata — This is called from the pipeline run itself"""
+    def update_metadata_and_pipeline_plan(
+        namespace = None, pipeline=None, details={}, dataset_name: str = '', 
+        short_query: str = '', pipline_plan_id = None
+    ):
+        from utils.metastore.BI.PipelinePlan import PipelinePlan
+        PipelineMedatata.persist_metadata(namespace, pipeline, details, dataset_name, short_query)
+        if(pipline_plan_id != None):
+            PipelinePlan.mark_as_ran(pipline_plan_id)
 
+
+
+    @staticmethod
+    def persist_metadata(
+        namespace = None, pipeline=None, details={}, dataset_name: str = '', short_query: str = '',
+    ):
+        """Persists the pipeline metadata — This is called from the pipeline run itself"""
         try:
             tbl = PipelineMedatata._get_table()
             PipelineMedatata._migrate_pipeline_metadata(tbl)

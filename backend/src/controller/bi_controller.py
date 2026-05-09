@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from services.BI.BIService import BIService
+from utils.metastore.BI.PipelinePlan import PipelinePlan
 
 bi_controller = Blueprint('bi_controller', __name__)
 
@@ -85,16 +86,14 @@ def query_sql_rdbms(namespace):
     return { **tables_and_relations, 'error': False }
 
 
-from utils.metastore.BI.PipelinePlaner import PipelinePlaner
-
 @bi_controller.route('/analytics/<namespace>/pipeline/plan', methods=['POST'])
 def create_pipeline_plan(namespace):
     payload = request.get_json()
-    PipelinePlaner.create_new_plan(namespace, payload.get('settings'))
-    return { 'error': False }
+    result = PipelinePlan.create_new_plan(namespace, payload.get('settings'))
+    return result
 
 
 @bi_controller.route('/analytics/<namespace>/pipeline/plan', methods=['GET'])
 def get_pipeline_plan(namespace):
-    result = PipelinePlaner.get_plans(namespace)
+    result = PipelinePlan.get_plans(namespace)
     return { 'error': False, 'result': result }

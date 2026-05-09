@@ -204,7 +204,8 @@ class DltPipeline:
             
         #result.kill() # Each process will be responsible to kill/exit ifself
         MetaStore.persist_pipeline_metadata(
-            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), dataset_name, short_query
+            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), dataset_name, short_query, 
+            context.pipeline_metadata.pipline_plan_id
         )
 
         if pipeline_exception == True:

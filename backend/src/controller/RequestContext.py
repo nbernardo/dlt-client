@@ -201,4 +201,4 @@ class PipelineMetadata:
         self.referenced_secrets = ''
         self.domain_pipeline = False
         self.existing_wd = None
-        self.new_tables = None
+        self.pipline_plan_id = None

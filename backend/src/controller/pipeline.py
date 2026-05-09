@@ -33,7 +33,7 @@ def create():
     context.pipeline_action = payload.get('actionType', None)
     context.pipeline_metadata.domain_pipeline = payload['analyticOptimized']
     context.pipeline_metadata.existing_wd = payload.get('usedExistingDW')
-    context.pipeline_metadata.new_tables = payload.get('pipelineNewTables')
+    context.pipeline_metadata.pipline_plan_id = payload.get('pipelinePlanId')
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
