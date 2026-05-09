@@ -1,3 +1,4 @@
+import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
 import { AppTemplate } from "../../../../config/app-template.js";
@@ -89,6 +90,12 @@ export class DBDiagramController extends BaseController {
         }
     }
 
+    parseFieldMap = (f, returnModule = false, tableNameOnly = false) => {
+        let field = f, fieldPath = f.split('.'), pathSize = tableNameOnly === true ? 1 : 2;
+        if(fieldPath.length > pathSize) field = fieldPath.slice(1).join('.');
+        return returnModule === true ? [fieldPath.length > pathSize ? fieldPath[0] : null, field] : field;
+    }
+
     syncSqlEditor() {
         const selectedEntries = Array.from(this.selectedTablesMap.entries());
         if (selectedEntries.length === 0) 
@@ -96,7 +103,7 @@ export class DBDiagramController extends BaseController {
 
         const activeTables = new Set();
         selectedEntries.forEach(([name]) => {
-            const hasFields = Array.from(this.selectedFieldsSet).some(f => f.startsWith(`${name}.`));
+            const hasFields = Array.from(this.selectedFieldsSet).map(this.parseFieldMap).some(f => f.startsWith(`${name}.`));
             if (hasFields || this.selectedTablesMap.has(name)) 
                 activeTables.add(name);
         });
@@ -125,7 +132,7 @@ export class DBDiagramController extends BaseController {
         });
 
         let selectClause = "*";
-        const validFields = Array.from(this.selectedFieldsSet).filter(f => processed.has(f.split('.')[0]));
+        const validFields = Array.from(this.selectedFieldsSet).map(this.parseFieldMap).filter(f => processed.has(f.split('.')[0]));
         
         if (validFields.length > 0)
             selectClause = validFields.map(itm => itm.split(' ')[0] /** To address primary keys */).join(',\n       ');
@@ -218,7 +225,7 @@ export class DBDiagramController extends BaseController {
             
             const key = `${moduleRootPath} -> ${parentTable}`;
             if (!nodeMap.has(key)) {
-                nodeMap.set(key, { id: key, label: parentTable, children: [], collapsed: true, allFields, ...getRelationLabel(sCol, tCol) });
+                nodeMap.set(key, { id: key, label: parentTable, children: [], collapsed: true, allFields, ...getRelationLabel(sCol, tCol), moduleName });
             }
         });
 
@@ -231,7 +238,8 @@ export class DBDiagramController extends BaseController {
 
             if (!nodeMap.has(fullPath)) {
                 nodeMap.set(fullPath, { 
-                    id: fullPath, label: childTable, children: [], collapsed: true, allFields, isExternal: !childTable.startsWith(prefix), ...getRelationLabel(sCol, tCol) 
+                    id: fullPath, label: childTable, children: [], collapsed: true, allFields, isExternal: !childTable.startsWith(prefix), 
+                    ...getRelationLabel(sCol, tCol), moduleName 
                 });
             }
             
@@ -311,7 +319,7 @@ export class DBDiagramController extends BaseController {
             const model = item.getModel(), shapeName = target.get('name');
 
             if (shapeName === 'pipeline-tick-icon') {
-                this.togglePipelineTable(model.label, item);
+                this.togglePipelineTable(model.label, item, model.moduleName);
                 return graph.updateItem(item, { isInPipeline: this.pipelineTables.has(model.label) });
             }
 
@@ -337,7 +345,7 @@ export class DBDiagramController extends BaseController {
                     const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase(), this.selectedConnection);                    
                     this.compileRelations(result.relations);                    
                     const children = this.listToTree(result.tables, moduleName, result.relations);
-                    graph.updateItem(item, { label: moduleName, children: children, collapsed: false });
+                    graph.updateItem(item, { label: moduleName, children, collapsed: false });
                     graph.layout();
                 } catch (err) {
                     console.error('Failed to load module tables:', err);
@@ -348,7 +356,9 @@ export class DBDiagramController extends BaseController {
 
     }
 
-    togglePipelineTable(tableName, item) {
+    togglePipelineTable(tablePath, item, moduleName) {
+        let [module, tableName] = this.parseFieldMap(tablePath, true, true); 
+        if(module) moduleName = module;
         if (this.pipelineTables.has(tableName)){
             this.removeFromPipeline(tableName);
         } else {
@@ -360,7 +370,7 @@ export class DBDiagramController extends BaseController {
 				<div each="item" class="item-container item-container-${tableName}">
 					<div class="item-main">
 						<div style="display: flex; align-items: center; gap: 8px;">
-							<span class="expand-table-columns expand-table-columns-${tableName}" onclick="controller.toggleTableFields('${tableName}')">▶</span>
+							<span class="expand-table-columns expand-table-columns-${tableName}" onclick="controller.toggleTableFields('${tableName}','${moduleName}')">▶</span>
 							<span class="item-name">${tableName}</span>
 						</div>
 						<button class="remove-btn" onclick="controller.removeFromPipeline('${tableName}')">×</button>
@@ -376,7 +386,7 @@ export class DBDiagramController extends BaseController {
 
     /** @type { Set<string> } */ selectedFieldsSet = new Set();
 
-    selectColumn(fieldPath) {
+    selectColumn(fieldPath, moduleName) {
         let shouldKeepTable, tableName = fieldPath.split('.')[0], container = this.obj.container;
         let pkPresent = [...this.selectedFieldsSet].find(itm => itm.startsWith(tableName) && itm.toLowerCase().includes('(pk)'));
 
@@ -385,18 +395,18 @@ export class DBDiagramController extends BaseController {
         } else {
             if(!container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.contains('addedkey')){
                 const tablePk = this.pipelineTableFields.get(tableName).find(itm => itm.toLowerCase().includes('(pk)'));
-                this.selectedFieldsSet.add(`${tableName}.${tablePk}`);
+                this.selectedFieldsSet.add(`${moduleName ? moduleName+'.' : ''}${tableName}.${tablePk}`);
                 container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.add('addedkey');
             }
             
-            this.selectedFieldsSet.add(fieldPath);
+            this.selectedFieldsSet.add(`${moduleName ? moduleName+'.' : ''}`+fieldPath);
             container.querySelectorAll(`.plan-pipeline-pk-${tableName}`).forEach(itm => itm.checked = true);
         }
         
         if (!this.selectedTablesMap.has(tableName)) 
             this.handleTableSelect(tableName);
 
-        shouldKeepTable = [...this.selectedFieldsSet].some(itm => itm.startsWith(fieldPath.split('.')[0]) && itm != pkPresent);
+        shouldKeepTable = [...this.selectedFieldsSet].map(this.parseFieldMap).some(itm => itm.startsWith(fieldPath.split('.')[0]) && itm != pkPresent);
         if(!shouldKeepTable){
             this.selectedTablesMap.delete(tableName);
             if(pkPresent){
@@ -405,7 +415,7 @@ export class DBDiagramController extends BaseController {
                 container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.remove('addedkey');
             }
         }
-
+        
         this.syncSqlEditor();
     }
 
@@ -456,7 +466,7 @@ export class DBDiagramController extends BaseController {
         this.pipelineName = val; 
     }
 
-    async toggleTableFields(tableName) {
+    async toggleTableFields(tableName, moduleName) {
         const tableEntry = this.pipelineTables.get(tableName);
         if (!tableEntry) return;
 
@@ -470,14 +480,22 @@ export class DBDiagramController extends BaseController {
                 // In case the fields were listed before
                 fieldsContainer.style.display = '';
             }else{
-                const fields = this.pipelineTableFields.get(tableName);
+
+                let fields = this.pipelineTableFields.get(tableName);
+                if(!fields){
+                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase(), this.selectedConnection, true);                    
+                    this.compileRelations(result.relations);                    
+                    this.listToTree(result.tables, moduleName, result.relations);
+                    fields = this.pipelineTableFields.get(tableName);
+                }
+
                 fieldsContainer.innerHTML = fields.map(fld => {
                     fld = fld.trim();
                     const isPk = fld.toLowerCase().includes('(pk)');
 
                     return this.obj.parseEvents(`
                         <div>
-                            <input type="checkbox" value="${fld.split(' ')[0]}" ${isPk ? `class="plan-pipeline-pk-${tableName}" disabled` : ''} onclick="controller.selectColumn('${tableName}.${fld}')"> ${fld}
+                            <input type="checkbox" value="${fld.split(' ')[0]}" ${isPk ? `class="plan-pipeline-pk-${tableName}" disabled` : ''} onclick="controller.selectColumn('${tableName}.${fld}','${moduleName}')"> ${fld}
                         </div>
                     `);
                 }).join('');
@@ -503,6 +521,7 @@ export class DBDiagramController extends BaseController {
             const reviewData = JSON.parse(this.listOfPlans.get(planName).plan).content.Home.data[2].data;
             this.obj.container.querySelector(`.DatabaseDiagram-app-controls select`).value = reviewData.connectionName;
             this.selectConnectionName(reviewData.connectionName);
+            Object.keys(reviewData.tables).map(this.parseFieldMap).forEach(tbl => this.togglePipelineTable(tbl, {}));
         }
 
         if(name === 'view'){
@@ -528,8 +547,12 @@ export class DBDiagramController extends BaseController {
     async savePipelinePlan(){
         let settings = new PipelinePlanPayload(), pkCount = 0, saveBtn = this.obj.container.querySelector('.save-plan-btn');
         saveBtn.disabled = true;
-        this.selectedFieldsSet.forEach(itm => {
+        this.selectedFieldsSet.forEach(fld => {
+            let [moduleName, itm] = this.parseFieldMap(fld, true);
             let [table, field] = itm.split('.');
+
+            table = `${moduleName ? moduleName+'.' : ''}${table}`;
+            
             const isPk = field.toLowerCase().trim().endsWith('(pk)');
             if(isPk){
                 pkCount++, field = field.split(' ')[0] //In case of PK, extract only the field name

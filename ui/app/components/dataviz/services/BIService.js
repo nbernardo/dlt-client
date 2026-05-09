@@ -4,6 +4,7 @@ import { HTTPHeaders } from "../../../../@still/helper/http.js";
 import { StillAppSetup } from "../../../../config/app-setup.js";
 import { AppTemplate } from "../../../../config/app-template.js";
 import { AIUtil } from "../../../util/AIUtil.js";
+import { CacheService } from "./CacheService.js";
 
 
 export class BIService extends BaseService {
@@ -117,6 +118,10 @@ export class BIService extends BaseService {
     }
 
     static async getTablesWhenOdoo(moduleName, connectioName) {
+        const isCached = await CacheService.hasKey(moduleName);
+        if(isCached)
+            return await CacheService.get(moduleName);
+        
         const namespace = await BIService.getNamespace();
         let url = `/analytics/integration/odootables/${moduleName}/${namespace}`;
 
@@ -125,8 +130,11 @@ export class BIService extends BaseService {
         }else
             var response = await $still.HTTPClient.get(`${url}/${BIService.activePipeline}`);
       
-        if (response.ok)
-            return (await response.json())?.result;
+        if (response.ok){
+            const result = (await response.json())?.result;
+            await CacheService.add(moduleName, result);
+            return result;
+        }
         return [];
     }
 
