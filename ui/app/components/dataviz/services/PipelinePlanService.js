@@ -25,12 +25,12 @@ export class PipelinePlanService extends BaseService {
         this.settings = pipelinePlanContent;
     }
 
-    async save() {
+    async save(update, id) {
         const namespace = await BIService.getNamespace();
         const url = `/analytics/${namespace}/pipeline/plan`;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ settings: this.settings }), HTTPHeaders.JSON);
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ settings: this.settings, update, id }), HTTPHeaders.JSON);
         const result = await response.json();
-        
+
         if (response.ok && !result.error)
             return AppTemplate.toast.success('Plan saved successfully')
 

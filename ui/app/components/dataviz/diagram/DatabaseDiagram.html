@@ -14,7 +14,7 @@
 <style>
 	.DatabaseDiagram{
 		.diagram-toolbar { padding: 12px; background: #fafafa; border-bottom: 1px solid #d9d9d9; display: flex; gap: 10px; }
-		.view-btn { padding: 6px 16px; border: 1px solid #d9d9d9; cursor: pointer;  background: #fff; border-radius: 4px; font-size: 12px; transition: all 0.2s; }
+		.view-btn { padding: 4px 7px; border: 1px solid #d9d9d9; cursor: pointer;  background: #fff; border-radius: 4px; font-size: 11px; transition: all 0.2s; }
 		.view-btn.active { background: var(--identity-color);; color: #fff; border-color: var(--identity-color); }
 		.view-btn:hover:not(.active) { background: #f0f0f0; }
 	
@@ -54,7 +54,7 @@
 			.field-tag { font-size: 10px; color: #6b7280; background: #f3f4f6; padding: 1px 4px; border-radius: 3px; }
 		}
 
-		.save-plan-btn{ background: none; border: none; color: rgb(220, 217, 217); cursor: pointer; }
+		.save-plan-btn{ background: none; border: none; color: rgb(220, 217, 217); cursor: pointer; font-size: 11px; }
 		.save-plan-btn:hover{ color: white; }
 		.save-plan-btn[disabled]{ color: rgb(147, 147, 147); background: none !important; background: none !important; opacity: 0.4; }
 		.plan-inputs1 input[disabled]::placeholder{ color: black; }
@@ -63,6 +63,7 @@
 			.view-plan { cursor: pointer; } .view-plan:hover { color: white; }
 		}
 		.plan-wrapper.view span:first-child{ display: flex; flex-direction: column; gap: 3px; }
+		.diagram-action-btn { border: none; padding: 7px; color: white; border-radius: 4px; cursor: pointer; }
 	}
 </style>
 
@@ -76,9 +77,16 @@
 		</div>
 		<button type="button" id="btnDiagram" class="view-btn active">Diagram</button>
 		<button type="button" id="btnSQL" class="view-btn">SQL Editor</button>
+		<span (showIf)="self.showDiagram">
+			<div style="border-left: 1px solid #8080809c; padding-left: 10px; display: flex; height: 100%;">
+				<button type="button" class="diagram-action-btn" style="background: #ef4444;" onclick="controller.clearReview(null,true)">
+					&cross; Reset
+				</button>
+			</div>
+		</span>
 		<span (showIf)="!self.showDiagram">
 			<div style="border-left: 1px solid #8080809c; padding-left: 10px; display: flex; height: 100%;">
-				<button type="button" style="border: none; padding: 7px; background: #059669; color: white; border-radius: 4px;" onclick="controller.runSQLQuery()">
+				<button type="button" class="diagram-action-btn" style="background: #059669;" onclick="controller.runSQLQuery()">
 					&#9654; Run Query
 				</button>
 			</div>
@@ -123,7 +131,7 @@
 						onchange="controller.loadExistingPipeline(this.value)">
 						<option each="item" value="{item.pipeline}">{item.name}</option>
 					</select>
-					&nbsp;&nbsp;<button class="save-plan-btn" disabled onclick="controller.savePipelinePlan()"><i class="fa fa-save" style="font-size: 20px;"></i></button>
+					&nbsp;&nbsp;<button class="save-plan-btn" disabled onclick="controller.savePipelinePlan()">@saveBtnLabel</button>
 				</span>
 			</div>			
 			<div style="display: none; flex-direction: column; gap: 5px;" class="plan-wrapper view">

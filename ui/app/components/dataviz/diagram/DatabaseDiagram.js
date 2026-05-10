@@ -33,6 +33,7 @@ export class DatabaseDiagram extends ViewComponent {
     totalTablesAdded = 0;
     existingModels = [];
     pipelinePlans = [];
+    saveBtnLabel = 'Save';
 
     stOnRender() { 
         if (!G6.registerNode.isDbRegistered) {
