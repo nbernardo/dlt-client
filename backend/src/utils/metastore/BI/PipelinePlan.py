@@ -38,7 +38,7 @@ class PipelinePlan:
 
 
     @staticmethod
-    def create_new_plan(namespace = None, settings = None):
+    def create_new_plan(namespace = None, settings = None, is_update = False, id = None):
         import json
         now = datetime.now().isoformat()
 
@@ -46,13 +46,16 @@ class PipelinePlan:
             tbl = PipelinePlan._get_pipeline_plan()
             PipelinePlan._migrate(tbl)
 
-            rows_to_insert = [
-                { 
-                    'user': '', 'namespace': namespace, 'plan_setting': json.dumps(settings), 'id': LanceConnectionFactory.generate_id(), 
-                    'created_at': now, 'pipeline_lbl': settings.get('pipeline_lbl'), 'version': 1, 'processed': 0
-                }
-            ]
-            tbl.merge_insert('id').when_not_matched_insert_all().execute(rows_to_insert)
+            rows_to_insert = [{ 
+                'user': '', 'namespace': namespace, 'plan_setting': json.dumps(settings), 'id': LanceConnectionFactory.generate_id(), 
+                'created_at': now, 'pipeline_lbl': settings.get('pipeline_lbl'), 'version': 1, 'processed': 0
+            }]
+
+            if(is_update):
+                tbl.update(where=f'id={id}', values_sql={'plan_setting': f"'{json.dumps(settings)}'", 'version': 'version + 1', 'processed': '0'})
+            else:
+                tbl.merge_insert('id').when_not_matched_insert_all().execute(rows_to_insert)
+
             if tbl.version % 100 == 0: PipelinePlan.compact_metadata()
 
             return { 'error': False }
@@ -65,11 +68,11 @@ class PipelinePlan:
     @staticmethod
     def mark_as_ran(pipline_plan_id = None):
         now = datetime.now().isoformat()
-        
+
         try:
             tbl = PipelinePlan._get_pipeline_plan()
             PipelinePlan._migrate(tbl)
-            tbl.update(where=f"id={pipline_plan_id}", values_sql={ 'version': 'version + 1', 'processed': '1', 'run_date': f"'{now}'" })
+            tbl.update(where=f'id={pipline_plan_id}', values_sql={ 'processed': '1', 'run_date': f"'{now}'" })
 
             if tbl.version % 100 == 0: PipelinePlan.compact_metadata()
 
