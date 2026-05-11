@@ -74,6 +74,7 @@ export class SqlDBComponent extends AbstractNode {
 		this.tables = tables;
 		this.primaryKeys = primaryKeys;	
 		this.importFields = { database, dbengine, connectionName, asTemplate, changeCount: 0, fromPlan };
+		this.selectedSecret = this.importFields.connectionName;
 		if(data?.host) this.importFields.host = data.host;
 	}
 
@@ -104,7 +105,7 @@ export class SqlDBComponent extends AbstractNode {
 		const isItPlanned = this.importFields.fromPlan;
 
 		const disable = this.wSpaceController.shouldDisableNodeFormInputs;
-		const allTables = isItPlanned ? Object.keys(this.tables) : Object.values(this.tables);
+		const allTables = isItPlanned ? Object.keys(this.tables).map(this.extractTableName) : Object.values(this.tables);
 		const allKeys = Object.values(this.primaryKeys);
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 
@@ -113,26 +114,24 @@ export class SqlDBComponent extends AbstractNode {
 		this.primaryKey = allKeys[0];
 		// Assign remaining tables if more than one in the pipeline
 		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable, allKeys[idx+1]));
-		this.dbInputCounter = allTables.length;
+		this.dbInputCounter = allTables.length, this.hostName = this.importFields.host || 'None'
 		this.selectedDbEngine = this.importFields.dbengine;
 		this.setDBIcon(this.selectedDbEngine);
-		this.selectedSecret = this.importFields.connectionName;
-		this.hostName = this.importFields.host || 'None';
 		document.querySelector('.add-table-buttons').disabled = this.wSpaceController.shouldDisableNodeFormInputs;
-		data['database'] = this.database.value;
-		data['dbengine'] = this.selectedDbEngine.value;
-		data['host'] = this.hostName.value;
+		data['database'] = this.database.value, data['dbengine'] = this.selectedDbEngine.value, data['host'] = this.hostName.value;		
 	}
 
-	handleAiGenerated(){
-		this.selectedSecret = this.importFields.connectionName || '';
+	extractTableName = (tblPath) => {
+		const path = tblPath.split('.');
+		return path.length > 1 ? path.slice(1).join('.') : tblPath;
 	}
+
+	handleAiGenerated = () => this.selectedSecret = this.importFields.connectionName || '';
 
 	handleTableFieldsDropdown(tableSelecter, pkSelecter, tableFieldName, pkFieldName){
 
 		const pkField = InputDropdown.new({ 
-			inputSelector: pkSelecter, dataSource: this.selectedTableList.value,
-			boundComponent: this, componentFieldName: pkFieldName
+			inputSelector: pkSelecter, dataSource: this.selectedTableList.value, boundComponent: this, componentFieldName: pkFieldName
 		});
 
 		const tableField = InputDropdown.new({
@@ -141,19 +140,16 @@ export class SqlDBComponent extends AbstractNode {
 			boundComponent: this,
 			componentFieldName: tableFieldName,
 			onSelect: async (table, self) => {
-				const data = this.tablesFieldsMap[table];
+				const data = this.tablesFieldsMap[table], pkRelatedField = self.relatedFields[0];
 				this.selectedTablesName[self.componentFieldName] = table;
-				const pkRelatedField = self.relatedFields[0];
 				pkRelatedField.setDataSource(data.map(col => col.column));
 				self.relatedFields[0].filterInput.value = '';
-				
 			}
 		});
 
 		tableField.relatedFields.push(pkField);
 		this.dynamicFields.tables.push(tableField);
 		this.dynamicFields.fields.push(pkField);
-
 	}
 
 	setupOnChangeListen(){

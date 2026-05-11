@@ -143,9 +143,9 @@ export class DBDiagramController extends BaseController {
         if (validFields.length > 0)
             selectClause = validFields.map(itm => itm.split(' ')[0] /** To address primary keys */).join(',\n       ');
         
-        this.editor.setValue(
-            [`-- Auto-generated Business Query`,`SELECT ${selectClause}`,`FROM ${baseTable}`,joins.length > 0 ? `    ${joins.join('\n    ')}` : '','LIMIT 100;'].filter(v => v.trim()).join('\n')
-        );        
+        const sqlCode = this.editorSelectedCode 
+                || [`-- Auto-generated Business Query`,`SELECT ${selectClause}`,`FROM ${baseTable}`,joins.length > 0 ? `    ${joins.join('\n    ')}` : '','LIMIT 100;'].filter(v => v.trim()).join('\n')
+        this.editor.setValue(sqlCode);        
     }
 
     static initCustomDBNode() {
@@ -384,6 +384,7 @@ export class DBDiagramController extends BaseController {
             this.pipelineTables.set(tableName, { name: tableName, isExpanded: false, item });
             this.obj.pipelineTablesList = Array.from(this.pipelineTables.values());
             this.obj.totalTablesAdded = this.pipelineTables.size;
+            this.selectedTablesMap.set(tableName, this.selectedTablesMap.size);
 
             const newPlanedTable = this.obj.parseEvents(`
 				<div each="item" class="item-container item-container-${tableName}">
@@ -435,7 +436,7 @@ export class DBDiagramController extends BaseController {
                 container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.remove('addedkey');
             }
         }
-        
+        this.editorSelectedCode = null;
         this.syncSqlEditor();
     }
 
@@ -537,7 +538,7 @@ export class DBDiagramController extends BaseController {
         if((this.plannerMode !== plannerMode && this.plannerMode !== 'review') || force === true){
             this.rvewPlanSlctdFieldByTbl.clear(), this.obj.graph.clear();
             this.pipelineName = null;
-            this.pipelineTables.clear();
+            this.pipelineTables.clear(), this.selectedTablesMap.clear();
             this.editorSelectedCode = null, this.selectedPlanId = null, this.obj.saveBtnLabel = 'Save';
             this.obj.container.querySelector('.plan-inputs1 input').value = '';
             this.obj.container.querySelector(`.DatabaseDiagram-app-controls select`).value = '';
@@ -561,9 +562,12 @@ export class DBDiagramController extends BaseController {
             this.clearReview(name, true), this.plannerMode = name;
             const reviewData = JSON.parse(this.listOfPlans.get(planName).plan);
             const dataSource = reviewData.content.Home.data[2].data;
+            
             this.obj.container.querySelector('.plan-inputs1 input').value = reviewData.pipeline_lbl, this.obj.container.querySelector('.save-plan-btn').disabled = false;
             this.obj.container.querySelector(`.DatabaseDiagram-app-controls select`).value = dataSource.connectionName, this.pipelineName = reviewData.pipeline_lbl;
+            
             this.selectConnectionName(dataSource.connectionName), this.obj.saveBtnLabel = 'Update';
+            
             Object.entries(dataSource.tables).map(this.parseFieldMap).forEach(([tblField, selFlds]) => this.togglePipelineTable(tblField, {}, undefined, selFlds, true));
             this.editorSelectedCode = reviewData.goldQuery, this.selectedPlanId = this.listOfPlans.get(planName).id;
         }
@@ -572,7 +576,7 @@ export class DBDiagramController extends BaseController {
             let plans = await PipelinePlanService.getPipelinePlans(), planNames = [];
             for(const plan of (plans.result || [])){
                 this.listOfPlans.set(plan.pipeline_lbl, { plan: plan.plan_setting, id: plan.id });
-                planNames.push({ name: plan.pipeline_lbl });
+                planNames.push({ name: plan.pipeline_lbl, processed: plan.processed });
             }
             this.obj.pipelinePlans = [...planNames];
         }

@@ -11,6 +11,7 @@ import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspa
 import { Workspace } from "../../workspace/Workspace.js";
 import { PipelinePlanService } from "../../dataviz/services/PipelinePlanService.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
+import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 
 export class LeftTabs extends ViewComponent {
 
@@ -66,6 +67,7 @@ export class LeftTabs extends ViewComponent {
 	dataFetchilgLabel = 'Fetching Data';
 	dbSecretsList = [];
 	apiSecretsList = [];
+	pipelinePlanList = [];
 
 	stAfterInit() {
 		this.$parent.controller.leftTab = this;
@@ -246,7 +248,7 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	async selectTab(tab){
-		this.showLoading = ({ 'content-data-source': 1, 'content-api-catalog': 2 })[tab];
+		this.showLoading = ({ 'content-data-source': 1, 'content-api-catalog': 2, 'content-pipeline-plan': 3 })[tab];
 		if(tab === 'content-data-source')
 			setTimeout(async () => await this.$parent.controller.createCatalogForm(1),100);
 
@@ -278,13 +280,9 @@ export class LeftTabs extends ViewComponent {
 			}
 		}
 
-		if(tab === 'content-pipeline-plane') {
-			const result = await PipelinePlanService.getPipelinePlans();
-			this.$parent.activeGrid = result.result[0].pipeline_lbl;
-			const planContent = { pipelineCode: JSON.parse(result.result[0].plan_setting) };
-			WorkSpaceController.pipelinePlanId = result.result[0].id;
-			
-			WorkSpaceController.fromContext().processImportingNodes(planContent, false, true);
+		if(tab === 'content-pipeline-plan') {
+			const plans = await PipelinePlanService.getPipelinePlans();
+			this.pipelinePlanList = plans.result, this.showLoading = false;
 		}
 		this.$parent.selectedLeftTab = tab;
 	}
@@ -295,9 +293,19 @@ export class LeftTabs extends ViewComponent {
 		else return ppLinefiles;
 	}
 
-	async viewScript(){
-		this.$parent.popupWindowProxy.showWindowPopup = true;
+	async getPipelinePlan(planId){
+		const self = this;
+		this.$parent.resetWorkspace(false, async () => {
+			AppTemplate.showLoading();
+			const plan = await PipelinePlanService.getPlanById(planId);
+			WorkSpaceController.pipelinePlanId = plan.id, self.$parent.activeGrid = plan.pipelineName;
+			WorkSpaceController.fromContext().processImportingNodes(plan.planContent, false, true);			
+			if(plan.processed == 1) self.$parent.showSaveButton = false;
+			AppTemplate.hideLoading();
+		});
 	}
+
+	async viewScript(){ this.$parent.popupWindowProxy.showWindowPopup = true; }
 
 	/** @template */
 	async openScriptOnEditor(){}

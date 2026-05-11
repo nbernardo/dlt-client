@@ -4,6 +4,7 @@
     <input type="radio" id="tab-outputs" name="content-tabs">
     <input type="radio" id="tab-data-source" name="content-tabs">
     <input type="radio" id="tab-diagram" name="content-tabs" checked>
+    <input type="radio" id="tab-pipeline-plan" name="content-tabs" style="display: none;">
     <input type="radio" id="tab-script-ppline" name="content-tabs">
     <input type="radio" id="tab-data-files" name="content-tabs">
     <input type="radio" id="tab-api-catalog" name="content-tabs">
@@ -93,8 +94,8 @@
                     </label>
                 </li>
 
-                <li class="left-menu-item" onclick="component.selectTab('content-pipeline-plane')">
-                    <label for="tab-pipeline-plane">
+                <li class="left-menu-item" onclick="component.selectTab('content-pipeline-plan')">
+                    <label for="tab-pipeline-plan">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/blueprint.png" width="23" alt="">
                         </span>
@@ -179,9 +180,9 @@
                     @endif
                     <ul class="database-catalog-list" (forEach)="dbSecretsList">
                         <li each="item">
-                            <div class="database-name">
+                            <div class="item-name">
                                 <span>{item.name}</span>
-                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'db', '{item.bucket}', '{item.host}')">
+                                <span class="action-button" onclick="component.openSecretForm('{item.name}', 'db', '{item.bucket}', '{item.host}')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
                                         <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
                                     </svg>
@@ -255,9 +256,9 @@
                     @endif
                     <ul class="database-catalog-list" (forEach)="apiSecretsList">
                         <li each="item">
-                            <div class="database-name">
+                            <div class="item-name">
                                 <span>{item.name}</span>
-                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'api', '{item.bucket}', '{item.host}')">
+                                <span class="action-button" onclick="component.openSecretForm('{item.name}', 'api', '{item.bucket}', '{item.host}')">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
                                         <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
                                     </svg>
@@ -473,41 +474,34 @@
                 </section>
             </div>
 
-            <div class="content-panel content-pipeline-plane" style="width: 250px;">
-                <h3>API Catalog</h3>
+            <div class="content-panel content-pipeline-plan" style="width: 250px;">
+                <h3>List of pipeline Plans</h3>
 
-                <div class="catalog-db-addnew" onclick="component.openSecretForm(null,'api')">
-                    <img src="app/assets/imgs/left-menu/api-cat-icon.png" width="20" height="20"> &nbsp;New API settings
-                </div>
-
-                <span (showIf)="self.showLoading == 2">
+                <span (showIf)="self.showLoading == 3">
                     <div class="fetching-db-loader">
                         <div class="mini-loader-container db-secrets-loader">
                             <div class="mini-loader-dot"></div>
                             <div class="mini-loader-dot"></div>
                             <div class="mini-loader-dot"></div>
                         </div>
-                        Fetching Planned pipelines...
+                        Fetching pipelines plans...
                     </div>
                 </span>
 
                 <span (showIf)="!self.showLoading">
-                    @if(this.apiSecretsList.length == 0)
-                        <div class="fetching-db-loader">No secret found</div>
+                    @if(this.pipelinePlanList.length == 0)
+                        <div class="fetching-db-loader">No pipeline plan found</div>
                     @endif
-                    <!-- <ul class="database-catalog-list" (forEach)="apiSecretsList">
+                    <ul class="database-plan-list" (forEach)="pipelinePlanList">
                         <li each="item">
-                            <div class="database-name">
-                                <span>{item.name}</span>
-                                <span class="edit-datasource" onclick="component.openSecretForm('{item.name}', 'api', '{item.bucket}', '{item.host}')">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="grey" viewBox="0 0 16 16">
-                                        <path d="M12.146.854a.5.5 0 0 1 .708 0l2.292 2.292a.5.5 0 0 1 0 .708l-9.439 9.439-2.853.571a.5.5 0 0 1-.588-.588l.571-2.853 9.439-9.439zM11.207 2L3 10.207V11h.793L13 2.793 11.207 2z"/>
-                                    </svg>
+                            <div class="item-name">
+                                <span>{item.pipeline_lbl}</span>
+                                <span class="action-button" onclick="component.getPipelinePlan('{item.id}')">
+                                    <div class="processed-{item.processed}"></div> <i class='fas fa-eye' style='color: grey;'></i>
                                 </span>
                             </div>
-                            <div class="host">{item.host}</div>
                         </li>
-                    </ul> -->
+                    </ul>
                 </span>
 
             </div>
@@ -628,36 +622,26 @@
         height: 50.55px !important; transition: height .2s; border: 1px solid var(--border-color);
     }
 
-    .catalog-db-addnew{
-        padding: 10px 0px;
-        display: flex;
-        justify-content: center;
-    }
+    .catalog-db-addnew{ padding: 10px 0px; display: flex; justify-content: center; }
 
-    .database-catalog-list{
+    .database-catalog-list, .database-plan-list{
         width: 98%;
-        .database-name{ font-size: 1em; display: flex; justify-content: space-between; };
+        .item-name{ font-size: 1em; display: flex; justify-content: space-between; };
         .host{ font-size: .8em; };
-        li {
-            background: rgba(128, 128, 128, 0.23);
-            padding-left: 5px;
-            margin-top: 4px;
-        };
-
-        .edit-datasource{ font-size: 0.7em; padding-right: 4px; margin-top: 9px; cursor: pointer; }
+        li { background: rgba(128, 128, 128, 0.23); padding-left: 5px; margin-top: 4px; };
+        .action-button{ font-size: 0.7em; padding-right: 4px; margin-top: 9px; cursor: pointer; }
+    }
+    .database-plan-list { 
+        padding: 5px 0px; .action-button{ margin-top: 4px !important; padding-right: 10px; display: flex; gap: 6px; padding-top: 4px; }
+        li { margin-top: 2px; padding: 7px 2px; };
+		.processed-1, .processed-0 { width: 10px; height: 10px; border-radius: 10px; border: 1px solid; }
+		.processed-1 { background: #059669; } .processed-0 { background: orange; }
     }
 
     .under-contruction-feature{
-        padding-bottom: 32px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        img{
-            width: 8em; padding-bottom: 70px; padding-top: 50px;
-        };
-        .feature-about{
-            font-size: 13px; letter-spacing: -.5px;  
-        }
+        padding-bottom: 32px; display: flex; flex-direction: column; align-items: center;
+        img{ width: 8em; padding-bottom: 70px; padding-top: 50px; };
+        .feature-about{ font-size: 13px; letter-spacing: -.5px; }
     }
 
     * {
@@ -666,14 +650,10 @@
         box-sizing: border-box;
     }
 
-    .left-menu-tabs {
-        font-family: 'Arial', sans-serif;
-        background-color: #f0f2f5;
-        display: flex;
-        min-height: 100vh;
-    }
+    .left-menu-tabs { font-family: 'Arial', sans-serif; background-color: #f0f2f5; display: flex; min-height: 100vh; }
 
-    .data-panel, .file-list-wrapper .tiny-menu, .database-catalog-list, .sample-prompts {
+    /** Set container max height */
+    .data-panel, .file-list-wrapper .tiny-menu, .database-catalog-list, .sample-prompts, .database-plan-list {
         width: 100%; overflow-y: scroll; max-height: 90vh; min-height: 300px;
     }
 
@@ -694,10 +674,7 @@
     }
 
 
-    .app-container {
-        display: flex;
-        width: 100%;
-    }
+    .app-container { display: flex; width: 100%; }
 
 
     .sidebar-container {
@@ -721,43 +698,20 @@
     }
 
 
-    .sidebar-toggle {
-        display: block;
-        text-align: right;
-        padding: 10px 10px;
-        cursor: pointer;
-        font-size: 24px;
-        color: #ecf0f1;
-        transition: color 0.3s ease;
+    .sidebar-toggle { display: block; text-align: right; padding: 10px 10px; cursor: pointer; font-size: 24px; color: #ecf0f1; transition: color 0.3s ease; }
+
+    .sidebar-toggle:hover { color: #3498db; }
+
+
+    .sidebar-menu { list-style: none; padding-top: 20px; }
+
+
+    .sidebar-menu li label { 
+        display: flex; align-items: center; padding: 15px 10px; color: #ecf0f1; text-decoration: none; 
+        transition: all 0.3s ease; white-space: nowrap; cursor: pointer;
     }
 
-    .sidebar-toggle:hover {
-        color: #3498db;
-    }
-
-
-    .sidebar-menu {
-        list-style: none;
-        padding-top: 20px;
-    }
-
-
-    .sidebar-menu li label {
-        display: flex;
-        align-items: center;
-        padding: 15px 10px;
-        color: #ecf0f1;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        white-space: nowrap;
-        cursor: pointer;
-    }
-
-    .sidebar-menu li label:hover {
-        background-color: #34495e;
-        border-left: 4px solid #3498db;
-        color: white;
-    }
+    .sidebar-menu li label:hover { background-color: #34495e; border-left: 4px solid #3498db; color: white; }
 
 
     .sidebar-menu li .icon {
@@ -774,11 +728,7 @@
         margin-right: 15px;
     }
 
-    .sidebar-menu li .text {
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.1s ease;
-    }
+    .sidebar-menu li .text { opacity: 0; visibility: hidden; transition: opacity 0.1s ease; }
 
     #nav-toggle:checked~.app-container .sidebar-container .text {
         opacity: 1;
@@ -788,39 +738,21 @@
     #tab-outputs:checked~.app-container .sidebar-menu label[for="tab-outputs"],
     #tab-data-source:checked~.app-container .sidebar-menu label[for="tab-data-source"],
     #tab-diagram:checked~.app-container .sidebar-menu label[for="tab-diagram"],
+    #tab-pipeline-plan:checked~.app-container .sidebar-menu label[for="tab-pipeline-plan"],
     #tab-data-files:checked~.app-container .sidebar-menu label[for="tab-data-files"],
     #tab-api-catalog:checked~.app-container .sidebar-menu label[for="tab-api-catalog"],
     #tab-logs:checked~.app-container .sidebar-menu label[for="tab-logs"],
     #tab-script-ppline:checked~.app-container .sidebar-menu label[for="tab-script-ppline"],
     #tab-ai:checked~.app-container .sidebar-menu label[for="tab-ai"] {
-        background-color: #3498db;
-        color: white;
-        border-left: 4px solid #2980b9;
+        background-color: #3498db; color: white; border-left: 4px solid #2980b9;
     }
 
-    .content {
-        flex-grow: 1;
-        padding: 40px;
-        line-height: 1.6;
-        color: #34495e;
-        position: relative;
-    }
+    .content { flex-grow: 1; padding: 40px; line-height: 1.6; color: #34495e; position: relative; }
 
     .content-panel {
-        position: absolute;
-        top: 10px;
-        left: 0;
-        right: 0;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-        background-color: white;
-        padding: 0;
-
-        h3 {
-            text-align: center;
-        }
-
+        position: absolute; top: 10px; left: 0; right: 0; opacity: 0; visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease; background-color: white; padding: 0;
+        h3 { text-align: center; }
     }
 
     .content-diagram { border-left: 1px solid; }
@@ -828,7 +760,7 @@
     #tab-outputs:checked~.app-container .content-outputs,
     #tab-data-source:checked~.app-container .content-data-source,
     #tab-diagram:checked~.app-container .content-diagram,
-    #tab-pipeline-plane:checked~.app-container .content-pipeline-plane,
+    #tab-pipeline-plan:checked~.app-container .content-pipeline-plan,
     #tab-data-files:checked~.app-container .content-data-files,
     #tab-api-catalog:checked~.app-container .content-api-catalog,
     #tab-logs:checked~.app-container .data-viz,
@@ -838,10 +770,7 @@
         visibility: visible;
     }
 
-    .content h2 {
-        color: #2c3e50;
-        margin-bottom: 20px;
-    }
+    .content h2 { color: #2c3e50; margin-bottom: 20px; }
 
 
     /* * Tooltip styling.

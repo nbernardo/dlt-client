@@ -59,11 +59,16 @@
 		.save-plan-btn[disabled]{ color: rgb(147, 147, 147); background: none !important; background: none !important; opacity: 0.4; }
 		.plan-inputs1 input[disabled]::placeholder{ color: black; }
 		.pipeline-plan-item{ 
-			background: #ababab; padding: 0px 4px; color: black; border-radius: 2px; font-size: 12px; display: flex; justify-content: space-between; flex-direction: row !important;
+			background: #d4d4d4; padding: 0px 4px; color: black; border-radius: 2px; font-size: 12px; display: flex; justify-content: space-between; flex-direction: row !important;
 			.view-plan { cursor: pointer; } .view-plan:hover { color: white; }
 		}
 		.plan-wrapper.view span:first-child{ display: flex; flex-direction: column; gap: 3px; }
 		.diagram-action-btn { border: none; padding: 7px; color: white; border-radius: 4px; cursor: pointer; }
+		.plan-view-and-status{
+			display: flex; flex-direction: row !important; align-items: center; gap: 10px !important;
+			.processed-1, .processed-0 { width: 10px; height: 10px; border-radius: 10px; border: 1px solid; }
+			.processed-1 { background: #059669; } .processed-0 { background: orange; }
+		}
 	}
 </style>
 
@@ -138,7 +143,10 @@
 				<span (forEach)="pipelinePlans">
 					<span each="item" class="pipeline-plan-item">
 						{item.name}
-						<span class="view-plan" onclick="controller.selectPlanView('review','{item.name}')">view</span>
+						<span class="plan-view-and-status">
+							<div class="processed-{item.processed}"></div>
+							<span class="view-plan" onclick="controller.selectPlanView('review','{item.name}')">view</span>
+						</span>
 					</span>
 				</span>
 			</div>

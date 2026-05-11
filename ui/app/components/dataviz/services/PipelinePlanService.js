@@ -37,13 +37,19 @@ export class PipelinePlanService extends BaseService {
         AppTemplate.toast.error('Plan saving error: '+result.result)
     }
 
-    static async getPipelinePlans(){
+    static async getPipelinePlans(planId){
         const namespace = await BIService.getNamespace();
-        const url = `/analytics/${namespace}/pipeline/plan`;
+        const url = `/analytics/${namespace}/pipeline/plan${planId ? '/'+planId : ''}`;
         const response = await $still.HTTPClient.get(url);
         if (response.ok && !response.error)
             return await response.json();
         return null;
+    }
+
+    static async getPlanById(planId){
+		const result = await PipelinePlanService.getPipelinePlans(planId);
+		const planContent = { pipelineCode: JSON.parse(result.result[0].plan_setting) };
+        return { planContent, id: result.result[0].id, pipelineName: result.result[0].pipeline_lbl, processed: result.result[0].processed  }
     }
 
 }

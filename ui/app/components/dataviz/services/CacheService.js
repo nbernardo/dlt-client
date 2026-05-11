@@ -72,4 +72,11 @@ export class CacheService {
         });
     }
 
+    static async clearAll() {
+        indexedDB.deleteDatabase("LargeDataCache");
+    }
+
 }
+
+window.addEventListener('pagehide', () => CacheService.clearAll());
+window.addEventListener('load', () => CacheService.clearAll());
