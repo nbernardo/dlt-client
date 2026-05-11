@@ -89,11 +89,12 @@ def query_sql_rdbms(namespace):
 @bi_controller.route('/analytics/<namespace>/pipeline/plan', methods=['POST'])
 def create_pipeline_plan(namespace):
     payload = request.get_json()
-    result = PipelinePlan.create_new_plan(namespace, payload.get('settings'))
+    result = PipelinePlan.create_new_plan(namespace, payload.get('settings'), payload.get('update'), payload.get('id'))
     return result
 
 
 @bi_controller.route('/analytics/<namespace>/pipeline/plan', methods=['GET'])
-def get_pipeline_plan(namespace):
-    result = PipelinePlan.get_plans(namespace)
+@bi_controller.route('/analytics/<namespace>/pipeline/plan/<id>', methods=['GET'])
+def get_pipeline_plan(namespace, id = None):
+    result = PipelinePlan.get_plans(namespace, id)
     return { 'error': False, 'result': result }

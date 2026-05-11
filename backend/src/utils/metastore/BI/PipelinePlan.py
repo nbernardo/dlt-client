@@ -103,12 +103,13 @@ class PipelinePlan:
 
 
     @staticmethod
-    def get_plans(namespace = None):
+    def get_plans(namespace = None, id = None):
         try:
+            and_where = f'and id={id}' if id != None else ''
             tbl = PipelinePlan._get_pipeline_plan()
             return tbl.search()\
-                    .select({ 'id': 'cast(id as string)', 'plan_setting': 'plan_setting', 'pipeline_lbl': 'pipeline_lbl' })\
-                    .where(f"namespace = '{namespace}'").to_list()
+                    .select({ 'id': 'cast(id as string)', 'plan_setting': 'plan_setting', 'pipeline_lbl': 'pipeline_lbl', 'processed': 'processed' })\
+                    .where(f"namespace = '{namespace}' {and_where}").to_list()
             
         except Exception as e:
             print(f"Pipeline plan fetch failed: {str(e)}")
