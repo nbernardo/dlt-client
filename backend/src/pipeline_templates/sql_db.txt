@@ -33,7 +33,6 @@ table_to_schema_map, additionals = {}, {}
 
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()
-
     %destination_settings%
 
     # Bellow mapping: original_tables = SqlDBComponent.source_tables
@@ -44,7 +43,7 @@ def load_select_tables_from_db():
     
     logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(original_tables)})
     tables, pks, rels, meta, ddls, big_query = normalize_table_names(secret, original_tables, original_tables_pk)
-    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'rels': rels, 'perf_optmzd': '%perf_optmzd%' }
+    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'rels': rels, 'perf_optmzd': %perf_optmzd% }
     additionals = { **additionals, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query, 'use_existing_dw': '%use_existing_dw%' }
 
     short_query = Helper.short_query(big_query)
@@ -53,33 +52,35 @@ def load_select_tables_from_db():
     # Bellow mapping: schema = SqlDBComponent.schema
     schema = %schema%
 
-    logger.info("Setting up data source", extra={
-        'stage': 'data_source_setup', 'table_count': len(tables), 'has_schema': schema is not None, 'schema': schema
-    })
+    logger.info("Setting up data source", extra={'stage': 'data_source_set', 'table_count': len(tables), 'schema': schema})
     
+    tbl_stage = additionals.get('perf_optmzd')
+    staged_table = tbl_stage in [2,3]
     if schema:
         source = []
         for idx in range(len(tables)):
             schema_name, table_name = tables[idx].split('.')
             table_to_schema_map[f'{schema_name}_{table_name}'] = original_tables[idx]
             logger.debug("Processing table with schema", extra={
-                'stage': 'table_processing', 'table_name': table_name, 'schema_name': schema_name,
-                'primary_key': pks[idx], 'table_index': idx + 1, 'total_tables': len(tables)
+                'stage': 'table_processing', 'table_name': table_name, 'schema_name': schema_name, 'primary_key': pks[idx], 'table_index': idx + 1, 'total_tables': len(tables)
             })
             
             db_table = sql_table(table=table_name,  credentials=credentials, schema=schema_name)
             source.append(converts_field_type(db_table, pks[idx]))
+            if staged_table: # In case the tables will be in stage area
+                db_table.apply_hints(table_name=Helper.prefix_and_suffix_table(table_name, tbl_stage))
 
     else:
         logger.info("Creating SQL database source without schema", extra={'stage': 'data_source_setup'})
         source = sql_database(table_names=tables, credentials=credentials, resolve_foreign_keys=True)
         for idx in range(len(tables)):
             logger.debug("Processing table without schema", extra={
-                'stage': 'table_processing', 'table_name': tables[idx], 'primary_key': pks[idx],
-                'table_index': idx + 1, 'total_tables': len(tables)
+                'stage': 'table_processing', 'table_name': tables[idx], 'primary_key': pks[idx], 'table_index': idx + 1, 'total_tables': len(tables)
             })
             
-            table = getattr(source, tables[idx]).apply_hints(primary_key=pks[idx])
+            table = getattr(source, tables[idx]).apply_hints(
+                primary_key=pks[idx], table_name=Helper.prefix_and_suffix_table(table_name, tbl_stage) if staged_table else table_name
+            )
             converts_field_type(table, pks[idx])
 
     print('Starting pipeline run', flush=True)
@@ -92,8 +93,7 @@ def load_select_tables_from_db():
             'dataset_name': getattr(info, 'dataset_name', 'unknown'), 'template_type': 'sql_db'
         })
     else:
-        extra = { 'stage': 'pipeline_completion', 'table_count': len(tables), 'template_type': 'sql_db' }
-        logger.info("SQL database pipeline execution completed", extra=extra)
+        logger.info("SQL database pipeline execution completed", extra={ 'stage': 'pipeline_completion', 'table_count': len(tables), 'template_type': 'sql_db' })
     
     catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
     Helper.wrapup_run(catalog_table_path, src_path, pipeline, info, additionals)

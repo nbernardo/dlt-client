@@ -67,15 +67,16 @@ class PipelineHelper:
         tbls = additionals['tbls']
         loads_ids = info.loads_ids if type(info.loads_ids) == list else []
         loads_ids_str = ','.join([f"'{val}'" for val in loads_ids])
-        perf_optmzd = additionals.get('perf_optmzd', False)
+        perf_optmzd = additionals.get('perf_optmzd', 0)
         
         try:
             MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals)
 
-            if perf_optmzd == 'yes':
+            if perf_optmzd in [1,'1']:
+                perf_optmzd = int(perf_optmzd)
                 table_name = pipeline.pipeline_name.split('_at_', 1)[1]
                 con = duckdb.connect(dest.config_params['credentials'])
-                big_table = PipelineHelper.prefix_and_suffix_table(table_name)
+                big_table = PipelineHelper.prefix_and_suffix_table(table_name, perf_optmzd)
                 exists = con.execute(f"SELECT table_name FROM information_schema.tables WHERE table_name = '{big_table}'").fetchone()
 
                 if exists != None:
@@ -214,5 +215,10 @@ class PipelineHelper:
         return f'SELECT * FROM {big_query.split('FROM ')[1].replace('\n',' ')}' if big_query.__contains__('FROM ') else ''
     
 
-    def prefix_and_suffix_table(table_name):
-        return f'_e2e_domain_{table_name}_data_'
+    def prefix_and_suffix_table(table_name, type = None):
+        if type in [1, None]:
+            return f'_e2e_domain_{table_name}_data_'
+        if type == 2:
+            return f'_e2e_domain_{table_name}_stage_1_'
+        if type == 3:
+            return f'_e2e_domain_{table_name}_stage_2_'

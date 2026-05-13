@@ -199,6 +199,6 @@ class PipelineMetadata:
         self.destination_config = ''
         self.source_config = ''
         self.referenced_secrets = ''
-        self.domain_pipeline = False
+        self.domain_pipeline = ''
         self.existing_wd = None
         self.pipline_plan_id = None
