@@ -1,12 +1,11 @@
-import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
-import { AppTemplate } from "../../../../config/app-template.js";
 import { Grid } from "../bi/grid/Grid.js";
 import { DatabaseDiagram } from "../diagram/DatabaseDiagram.js";
 import { BIService } from "../services/BIService.js";
 import { PipelinePlanPayload, PipelinePlanService } from "../services/PipelinePlanService.js";
 import { BIController } from "./BIController.js";
+import { DataQualityController as DQController } from "./DataQualityController.js";
 
 export class DBDiagramController extends BaseController {
     
@@ -102,6 +101,7 @@ export class DBDiagramController extends BaseController {
         return returnModule === true ? [fieldPath.length > pathSize ? fieldPath[0] : null, field] : field;
     }
 
+    syncSqlCount = 0;
     syncSqlEditor() {
         const selectedEntries = Array.from(this.selectedTablesMap.entries());
         if (selectedEntries.length === 0) 
@@ -138,14 +138,32 @@ export class DBDiagramController extends BaseController {
         });
 
         let selectClause = "*";
-        const validFields = Array.from(this.selectedFieldsSet).map(this.parseFieldMap).filter(f => processed.has(f.split('.')[0]));
+        const validFields = Array.from(this.selectedFieldsSet)
+            .map(fPath => {
+                const parsedPath = this.parseFieldMap(fPath);                 
+                const rule = DQController.fromContext().columnQualityRules.get(parsedPath.split(' ')[0]);
+                
+                if (rule) {
+                    const [tbl, field] = parsedPath.split('.');
+                    const cleanField = field.split(' ')[0];
+
+                    if (rule === 'TRIM') return `TRIM(${tbl}.${cleanField}) AS ${cleanField}`;
+                    if (rule === 'UPPER') return `UPPER(${tbl}.${cleanField}) AS ${cleanField}`;
+                    if (rule === 'LOWER') return `LOWER(${tbl}.${cleanField}) AS ${cleanField}`;
+                    if (rule === 'COALESCE') return `COALESCE(${tbl}.${cleanField}, '') AS ${cleanField}`;
+                }
+                return parsedPath;
+            })
+            .filter(f => processed.has(f.includes(' AS ') ? f.split(' AS ')[0].split('.')[0].split('(')[1] : f.split('.')[0]));
         
         if (validFields.length > 0)
-            selectClause = validFields.map(itm => itm.split(' ')[0] /** To address primary keys */).join(',\n       ');
+            selectClause = validFields.map(itm => itm.includes(' AS ') ? itm :  itm.split(' ')[0]).join(',\n       ');
+        if(this.syncSqlCount > 0 && this.editorSelectedCode !== null) this.editorSelectedCode = null;
         
-        const sqlCode = this.editorSelectedCode 
-                || [`-- Auto-generated Business Query`,`SELECT ${selectClause}`,`FROM ${baseTable}`,joins.length > 0 ? `    ${joins.join('\n    ')}` : '','LIMIT 100;'].filter(v => v.trim()).join('\n')
-        this.editor.setValue(sqlCode);        
+        const sqlCode = this.editorSelectedCode
+                || [`-- Auto-generated Business Query`,`SELECT ${selectClause}`,`FROM ${baseTable}`,joins.length > 0 ? `    ${joins.join('\n    ')}` : '','LIMIT 100;'].filter(v => v.trim()).join('\n');
+        this.syncSqlCount++;
+        this.editor.setValue(sqlCode);
     }
 
     static initCustomDBNode() {
@@ -224,6 +242,10 @@ export class DBDiagramController extends BaseController {
         sorted.forEach(row => {
             const [level, parentTable, childTable, fullPath, sCol, tCol, , allFields] = row;
             
+            if([parentTable,childTable].includes("sale_order_option")){
+                console.log(`FOUND WHAT YOU SEARCH: `, { level, parentTable, childTable, allFields });
+            }
+
             if(level == 2) this.pipelineTableFields.set(parentTable, allFields.split(','));
             else this.pipelineTableFields.set(childTable, allFields.split(','));
             
@@ -500,10 +522,8 @@ export class DBDiagramController extends BaseController {
             this.obj.container.querySelector(`.expand-table-columns-${tableName}`).textContent = '▼';
             
             if(fieldsContainer.style.display == 'none'){
-                // In case the fields were listed before
                 fieldsContainer.style.display = '';
-            }else{
-
+            } else {
                 let fields = this.pipelineTableFields.get(tableName);
                 if(!fields){
                     const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase(), this.selectedConnection, true);                    
@@ -516,19 +536,44 @@ export class DBDiagramController extends BaseController {
                 fieldsContainer.innerHTML = fields.map(fld => {
                     fld = fld.trim();
                     const isPk = fld.toLowerCase().includes('(pk)'), value = fld.split(' ')[0]?.trim();
+                    const fieldPath = `${tableName}.${fld}`;
+                    
+                    const hasQuality = this.columnQualityRules && this.columnQualityRules.has(fieldPath);
 
                     return this.obj.parseEvents(`
-                        <div>
-                            <input type="checkbox" 
-                                value="${value}" 
-                                ${selectedFields.includes(value) && 'checked'}
-                                ${isPk ? `class="plan-pipeline-pk-${tableName}" disabled` : ''} onclick="controller.selectColumn('${tableName}.${fld}','${moduleName}')"> ${fld}
+                        <div class="field-item-container" style="position: relative; border-bottom: 1px solid #eee;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0;">
+                                <div style="display: flex; align-items: center;">
+                                    <input type="checkbox"  value="${value}"  ${selectedFields.includes(value) ? 'checked' : ''}
+                                        ${isPk ? `class="plan-pipeline-pk-${tableName}" disabled checked` : ''}  onclick="controller.selectColumn('${fieldPath}','${moduleName}')"> 
+                                    <span style="margin-left: 4px; font-size: 11px;">${fld}</span>
+                                </div>
+                                
+                                <span class="dq-gear-icon" 
+                                    style="cursor: pointer; font-size: 10px; margin-right: 5px; opacity: ${hasQuality ? '1' : '0.4'}; color: ${hasQuality ? '#22c55e' : '#6b7280'}"
+                                    onclick="controller('DataQualityController').toggleDQMenu(event, '${fieldPath}')">
+                                    ⚙️
+                                </span>
+                            </div>
+
+                            <div id="dq-menu-${fieldPath.replace(/[^a-zA-Z0-9]/g, '_')}" class="dq-dropdown" style="display: none; background: #fff; border: 1px solid #ccc; position: absolute; right: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); width: 120px; border-radius: 4px;">
+                                <div style="padding: 5px; font-size: 10px; font-weight: bold; border-bottom: 1px solid #eee; background: #f9f9f9;">Transform</div>
+                                ${['TRIM', 'UPPER', 'LOWER', 'COALESCE'].map(rule => `
+                                    <div class="dq-option" style="padding: 4px 8px; font-size: 10px; cursor: pointer;" 
+                                        onclick="controller('DataQualityController').applyRule('${fieldPath}', '${rule}', '${tableName}', '${moduleName}')">
+                                        ${rule}
+                                    </div>
+                                `).join('')}
+                                <div class="dq-option" style="padding: 4px 8px; font-size: 10px; cursor: pointer; color: red; border-top: 1px solid #eee;" 
+                                    onclick="controller('DataQualityController').applyRule('${fieldPath}', null, '${tableName}', '${moduleName}')">
+                                    Clear
+                                </div>
+                            </div>
                         </div>
                     `);
                 }).join('');
             }
-
-        }else{
+        } else {
             this.obj.container.querySelector(`.expand-table-columns-${tableName}`).textContent = '▶';
             fieldsContainer.style.display = 'none';
         }
@@ -537,11 +582,9 @@ export class DBDiagramController extends BaseController {
     clearReview(plannerMode, force){
         if((this.plannerMode !== plannerMode && this.plannerMode !== 'review') || force === true){
             this.rvewPlanSlctdFieldByTbl.clear(), this.obj.graph.clear();
-            this.pipelineName = null;
-            this.pipelineTables.clear(), this.selectedTablesMap.clear();
-            this.editorSelectedCode = null, this.selectedPlanId = null, this.obj.saveBtnLabel = 'Save';
-            this.obj.container.querySelector('.plan-inputs1 input').value = '';
-            this.obj.container.querySelector(`.DatabaseDiagram-app-controls select`).value = '';
+            this.pipelineTables.clear(), this.selectedTablesMap.clear(), this.selectedFieldsSet.clear();
+            this.editorSelectedCode = null, this.selectedPlanId = null, this.obj.saveBtnLabel = 'Save', this.pipelineName = null;;
+            this.obj.container.querySelector('.plan-inputs1 input').value = '', this.obj.container.querySelector(`.DatabaseDiagram-app-controls select`).value = '';
             this.obj.container.querySelector('.planner-item').innerHTML = '', this.obj.container.querySelector('.save-plan-btn').disabled = true;
             this.editor.setValue(`-- Write your query here. \n-- Or Add/Select tables in the diagram to the query.`);
         }
@@ -570,6 +613,7 @@ export class DBDiagramController extends BaseController {
             
             Object.entries(dataSource.tables).map(this.parseFieldMap).forEach(([tblField, selFlds]) => this.togglePipelineTable(tblField, {}, undefined, selFlds, true));
             this.editorSelectedCode = reviewData.goldQuery, this.selectedPlanId = this.listOfPlans.get(planName).id;
+            this.syncSqlCount = 0;
         }
 
         if(name === 'view'){

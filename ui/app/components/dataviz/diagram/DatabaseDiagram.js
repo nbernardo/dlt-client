@@ -2,6 +2,7 @@ import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { BIUserInterfaceComponent } from "../bi/main/BIUserInterfaceComponent.js";
+import { DataQualityController } from "../controllers/DataQualityController.js";
 import { DBDiagramController } from "../controllers/DBDiagramController.js";
 
 /** This component used the G6 library (https://g6.antv.antgroup.com/en/manual/introduction) which
@@ -22,11 +23,17 @@ export class DatabaseDiagram extends ViewComponent {
 
 	/** @Prop */ showDiagram = true;
 
+    // This is the main controller of this component, 
+    // hence annotated with @Controller
 	/**
-	 * @Controller
-	 * @Path components/dataviz/controllers/
+	 * @Controller @Path components/dataviz/controllers/
 	 * @type { DBDiagramController }
 	*/ controller;
+
+    /**
+     * @Inject @Path components/dataviz/controllers/
+     * @type { DataQualityController }
+     */ dqController;
 
     secretList;
     pipelineTablesList;
@@ -50,6 +57,7 @@ export class DatabaseDiagram extends ViewComponent {
 			this.controller.bindToolbar();
             await this.controller.loadCodeEditor();
 		});
+        this.dqController.on('load', () => this.dqController.dbDiagramObj = this);
         this.existingModels = this.$parent.domainPipelinesList.value || [];
         this.$parent.domainPipelinesList.onChange((value) => this.dbDiagramProxy.existingModels = value);
 	}

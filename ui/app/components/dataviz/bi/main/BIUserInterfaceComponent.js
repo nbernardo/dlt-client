@@ -11,6 +11,7 @@ import { mockDataTables, mockDepartments, mockTitles } from "../mock.js";
 import { FilterUtil } from "../pivot/FilterUtil.js";
 import { PivotCreateComponent } from "../pivot/PivotCreateComponent.js";
 import { BiUiUtil } from "../util.js";
+import { BIController2 } from "../../controllers/BIController2.js";
 
 
 export class BIUserInterfaceComponent extends ModalWindowComponent {
@@ -59,10 +60,14 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 	/** @Prop */ analyticsChatStateEnum = { OPENED: 'Expanded', CLOSED: 'Minimized' };
 
 	/** 
-	 * @Controller
-	 * @Path components/dataviz/controllers/
+	 * @Controller @Path components/dataviz/controllers/
 	 * @type { BIController }  */ 
 	controller;
+
+	/** 
+	 * @Inject @Path components/dataviz/controllers/
+	 * @type { BIController2 }  */ 
+	secController;
 
 	/** @Prop @type { BIChatController } */ chatController;
 
@@ -143,6 +148,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 			setTimeout(async () => this.setData(await this.genData()).init(), 500);
 		});
 		
+		this.secController.on('load', () => this.secController.obj = this);
+
 		this.chatController = new BIChatController(this.popup);
 		if(this.runningOnOdoo){
 			this.showPopup();

@@ -87,7 +87,7 @@ export class PivotTableController extends BaseController {
         this.obj.activeFilterField = f;
         
         const modal = this.obj.container.querySelector('#filter-modal');
-        const parentContainer = document.getElementById('global-filter-drawer').parentNode;
+        const parentContainer = document.querySelector('.drawer-inner-container').parentNode;
 
         modal.style.position = 'absolute';
         modal.style.display = 'block';

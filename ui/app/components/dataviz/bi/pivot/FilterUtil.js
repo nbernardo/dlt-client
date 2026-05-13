@@ -28,13 +28,13 @@ export class FilterUtil {
     }
 
     toggleFilterDrawer(hideIt = true) {
-        if(hideIt) this.$('.global-filter-drawer-wrap').style.zIndex = 1000;
+        if(hideIt) this.$('.filter-settings-drawer').style.zIndex = 1000;
 
-        const drawer = this.$('#global-filter-drawer');
+        const drawer = this.$('.filter-settings-drawer').querySelector('.drawer-inner-container');
         if(hideIt) drawer.classList.toggle('open');
 
         if(!drawer.classList.contains('open'))
-            this.$('.global-filter-drawer-wrap').style.zIndex = -1;
+            this.$('.filter-settings-drawer').style.zIndex = -1;
     }
 
     initDrawerPicker() {

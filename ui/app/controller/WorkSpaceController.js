@@ -75,7 +75,7 @@ export class WorkSpaceController extends BaseController {
     static typeOfImportSource = null;
     static importtablesFieldMap = null;
     static importDataSource = null;
-    static isCurrentPipelineOptimized = null;
+    static isCurrentPipelineOptimized = 0;
     static usedExistingDW = null;
     static pipelinePlanId = null;
 
@@ -136,8 +136,8 @@ export class WorkSpaceController extends BaseController {
     }
 
     unmarkOptimizedPipeline = () => {
-        document.querySelector('.analyticsOptimizedPipeline').checked = false;
-        WorkSpaceController.isCurrentPipelineOptimized = false;
+        document.querySelector('.analyticsOptimizedPipeline').value = '';
+        WorkSpaceController.isCurrentPipelineOptimized = 0;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */

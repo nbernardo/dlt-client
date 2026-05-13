@@ -289,7 +289,7 @@
 .bi-user-interface-component-body { 
     
 /* --- Pivot Filter implementation --- */
-#global-filter-drawer {
+.drawer-inner-container {
     position: absolute;
     top: 40;
     left: 0;
@@ -307,7 +307,7 @@
     transform: translateX(-100%); /* Default: Collapsed */
 }
 
-#global-filter-drawer.open {
+.drawer-inner-container.open {
     transform: translateX(0); /* Expanded */
 }
 
@@ -338,7 +338,7 @@
     transition: left 0.3s ease;
 }
 
-#global-filter-drawer.open ~ .drawer-toggle {
+.drawer-inner-container.open ~ .drawer-toggle {
     left: 295px; /* Pushes the button out when open */
 }
 /* --- End Pivot Filter implementation --- */

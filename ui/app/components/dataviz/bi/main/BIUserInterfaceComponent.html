@@ -9,7 +9,7 @@
 	.this-is-the-bi-view { .topbar { height: 67px; } .sidebar { height: 90.8vh; margin-top: 14px; } }
 	.minimize-analytics-log { right: 20px; margin-top: -49px; }
 	.this-is-the-bi-view .gragable-field-list { height: 280px; }
-	#global-filter-drawer { height: 100%; }
+	.drawer-inner-container { height: 100%; }
 
 	/** Dot Mini Loader */
 	.mini-loader-container { width: 13px; height: 13px; display: flex; align-items: center; justify-content: center; gap: 2px; }
@@ -25,7 +25,7 @@
 <style>
 	.minimize-analytics-log { right: 13px; margin-top: 2px; }
 	.this-is-the-bi-view {  .popup-mov-window{ width: 115%; } .chart-builder { height: 64vh; }  .tableContainer { height: 59vh; } }
-	#global-filter-drawer { height: 94.7%; }
+	.drawer-inner-container { height: 94.7%; }
 	.bi-ui-container{ height: 106% !important; top: 46% !important; left: 39% !important; }
 	.bi-user-interface-component-body  { height: 90vh; .shell { height: 103% !important; } }
 </style>
@@ -64,10 +64,24 @@
 						<button onclick="closeFilter()" style="width: 100%; cursor: pointer;">Apply</button>
 					</div>
 
+					<button class="drawer-toggle tables-drawer-toggle" onclick="controller('BIController2').toggleTablesDrawer()" style="bottom: 80px; background: #2c3e50;">📊</button>
+
 					<button class="drawer-toggle" onclick="controller.toggleFilterDrawer()">⚙️</button>
     
-					<div class="global-filter-drawer-wrap" style="overflow: hidden; position: absolute; height: 100%; width: 280px; z-index: -1;">
-						<div id="global-filter-drawer">
+					<div class="global-filter-drawer-wrap tables-explorer-drawer" style="overflow: hidden; position: absolute; height: 100%; width: 280px; z-index: -1;">
+						<div class="drawer-inner-container">
+							<div class="drawer-header" style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background: var(--surface2);">
+								<h3 style="margin:0; font-size: 13px; color: var(--text); font-weight: 600;">DATABASE EXPLORER</h3>
+								<button onclick="controller('BIController2').toggleTablesDrawer()" style="background:none; border:none; font-size:22px; cursor:pointer; color: var(--muted);">&times;</button>
+							</div>
+							<div class="drawer-body" style="flex:1; overflow-y:auto; padding: 15px;">
+								<div id="generic-tables-list"></div>
+							</div>
+						</div>
+					</div>
+
+					<div class="global-filter-drawer-wrap filter-settings-drawer" style="overflow: hidden; position: absolute; height: 100%; width: 280px; z-index: -1;">
+						<div class="drawer-inner-container">
 							<div class="drawer-header" style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
 								<h3 style="margin:0;">Global Filters</h3>
 								<button onclick="controller.toggleFilterDrawer()" style="background:none; border:none; font-size:20px; cursor:pointer;">×</button>

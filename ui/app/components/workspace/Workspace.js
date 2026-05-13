@@ -340,7 +340,7 @@ export class Workspace extends ViewComponent {
 
 	}
 
-	resetWorkspace(alertReset = true) {
+	resetWorkspace(alertReset = true, cb = () => {}) {
 		const self = this;
 		if(this.isAnyDiagramActive === true || this.controller.isTemplating === true && alertReset === true){
 			this.controller.clearActiveDiagramAlert(() => resetWorkspaceCallBack());
@@ -359,6 +359,7 @@ export class Workspace extends ViewComponent {
 			self.wasDiagramSaved = false;
 			self.isAnyDiagramActive = false;
 			self.isAnyDiagramActive = false;
+			(async () => await cb())();
 		}
 	}
 
