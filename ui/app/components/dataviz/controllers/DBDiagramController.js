@@ -5,6 +5,7 @@ import { DatabaseDiagram } from "../diagram/DatabaseDiagram.js";
 import { BIService } from "../services/BIService.js";
 import { PipelinePlanPayload, PipelinePlanService } from "../services/PipelinePlanService.js";
 import { BIController } from "./BIController.js";
+import { BIController2 } from "./BIController2.js";
 import { DataQualityController as DQController } from "./DataQualityController.js";
 
 export class DBDiagramController extends BaseController {
@@ -227,12 +228,14 @@ export class DBDiagramController extends BaseController {
         return context.measureText(text || '').width;
     }
 
+    nodeMap = new Map()
+    anchorNode = null;
     listToTree(data, moduleName, relations = []) {
         const prefix = `${moduleName.toLowerCase()}_`;
-        const moduleRootPath = moduleName.toUpperCase();
-        const nodeMap = new Map();        
-        const sorted = [...data].sort((a, b) => a[0] - b[0]);
 
+        this.nodeMap = new Map();
+        const sorted = [...data].sort((a, b) => a[0] - b[0]);
+        
         const getRelationLabel = (sCol, tCol) => {
             if (!sCol || !tCol) return {};
             const cardinality = (tCol === 'id') ? 'N:1' : '1:1';
@@ -240,44 +243,32 @@ export class DBDiagramController extends BaseController {
         };
 
         sorted.forEach(row => {
-            const [level, parentTable, childTable, fullPath, sCol, tCol, , allFields] = row;
-            
-            if([parentTable,childTable].includes("sale_order_option")){
-                console.log(`FOUND WHAT YOU SEARCH: `, { level, parentTable, childTable, allFields });
-            }
+            const [level, parentTable, childTable, fullPath, sCol, tCol, , allFields, anchor] = row;
+            if(parentTable === '(root)') return;          
 
-            if(level == 2) this.pipelineTableFields.set(parentTable, allFields.split(','));
+            if(level == 1) this.pipelineTableFields.set(parentTable, allFields.split(','));
             else this.pipelineTableFields.set(childTable, allFields.split(','));
             
-            if (level !== 2 || !parentTable?.startsWith(prefix)) return;
+            //if (level !== 2 || !parentTable?.startsWith(prefix)) return;
             
-            const key = `${moduleRootPath} -> ${parentTable}`;
-            if (!nodeMap.has(key)) {
-                nodeMap.set(key, { id: key, label: parentTable, children: [], collapsed: true, allFields, ...getRelationLabel(sCol, tCol), moduleName });
+            const key = level == 0 ? fullPath : `${fullPath}`.split(' -> ').slice(0, -1).join(' -> ');
+            const item = { id: fullPath, label: childTable, children: [], collapsed: true, allFields, ...getRelationLabel(sCol, tCol), moduleName, anchor, clickable: true };
+            let /** @type { { children: Array } } */ parent = this.nodeMap.get(key);
+
+            if (parent === undefined) {
+                this.nodeMap.set(key, { id: key, label: parentTable, children: [], collapsed: !(level === 0), allFields, ...getRelationLabel(sCol, tCol), moduleName, anchor, clickable: true });
+                parent = this.nodeMap.get(key);
+                if(parentTable === anchor && level === 1) this.anchorNode = parent;
+            }
+
+            if(level > 0) {
+                this.nodeMap.set(fullPath, item);
+                const child = this.nodeMap.get(fullPath);
+                parent.children.push(child);
             }
         });
-
-        sorted.forEach(row => {
-            const [level, parentTable, childTable, fullPath, sCol, tCol, , allFields] = row;
-            if (level < 3 || !fullPath || !childTable) return;
-
-            const segments = fullPath.split(' -> ');
-            const parentPathKey = segments.slice(0, -1).join(' -> ');
-
-            if (!nodeMap.has(fullPath)) {
-                nodeMap.set(fullPath, { 
-                    id: fullPath, label: childTable, children: [], collapsed: true, allFields, isExternal: !childTable.startsWith(prefix), 
-                    ...getRelationLabel(sCol, tCol), moduleName 
-                });
-            }
-            
-            const parentNode = nodeMap.get(parentPathKey);
-            if (parentNode && !parentNode.children.find(c => c.id === fullPath)) {
-                parentNode.children.push(nodeMap.get(fullPath));
-            }
-        });
-
-        return Array.from(nodeMap.values()).filter(node => node.id.split(' -> ').length === 2);
+        
+        return Array.from(this.nodeMap.values()).filter(node => node.id.split(' -> ').length === 1);
     }
 
     async loadMonacoEditorDependencies(){
@@ -297,16 +288,18 @@ export class DBDiagramController extends BaseController {
 
     }
 
+    diagramContainer = () => BIService.getDBDiagramContainer();
+
     async selectConnectionName(connectionName){
         this.toggleView('diagram');
-        const container = this.obj.container.querySelector('#mountNode');
-        BIController.fromContext().addLoadingOnContainer(container, 'Loading database diagram');
+        BIController.fromContext().addLoadingOnContainer(this.diagramContainer(), 'Loading database diagram');
         const result = await BIService.getModulesWhenOdoo(connectionName);
-  
-        this.obj.updateGraphData(result?.modules);
-        this.selectedConnection = connectionName, this.selectedDatabase = result?.db_name;
+        
+        //this.obj.updateGraphData(result?.modules);
+        BIController2.fromContext().renderExplorerTables(result?.tables);
+        BIService.selectedConnection = connectionName, this.selectedDatabase = result?.db_name;
         this.selectedConnectionHost = result?.db_host, this.selectedConnectionEngine = result?.db_engine;
-        BIController.fromContext().removeLoadingFromContainer(container);
+        BIController.fromContext().removeLoadingFromContainer(this.diagramContainer());
     }
 
     async loadCodeEditor(){
@@ -324,7 +317,7 @@ export class DBDiagramController extends BaseController {
         const container = this.obj.container.querySelector('.sqlDataExploratio');
         BIController.fromContext().addLoadingOnContainer(container, 'Fetching/Processing data');
 
-        const result = await BIService.runSQLQuery(this.editor.getValue(), this.selectedConnection);
+        const result = await BIService.runSQLQuery(this.editor.getValue());
         const fields = result.fields || [], rows = result.result;
         
         if(!this.datagridInstance){
@@ -368,16 +361,12 @@ export class DBDiagramController extends BaseController {
                 return graph.layout();
             }
 
-            if (model.id.startsWith('folder:')) {
-                const moduleName = model.label; 
+            if (model.clickable) {
+                const moduleName = model.label, anchor = model.anchor; 
                 graph.updateItem(item, { label: `${moduleName} (Loading...)` });
 
                 try {
-                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase(), this.selectedConnection);                    
-                    this.compileRelations(result.relations);                    
-                    const children = this.listToTree(result.tables, moduleName, result.relations);
-                    graph.updateItem(item, { label: moduleName, children, collapsed: false });
-                    graph.layout();
+                    await this.renderGraph(moduleName.toLowerCase(), anchor);
                 } catch (err) {
                     console.error('Failed to load module tables:', err);
                     graph.updateItem(item, { label: moduleName });
@@ -385,6 +374,14 @@ export class DBDiagramController extends BaseController {
             }
         });
 
+    }
+
+    async renderGraph(tableName, anchor){
+        const result = await BIService.getTablesWhenOdoo(anchor || tableName);
+        this.compileRelations(result.relations);
+        const children = this.listToTree(result.tables, tableName, result.relations);
+        this.obj.graph.updateItem(item, { label: tableName, children, collapsed: false });
+        this.obj.graph.layout();
     }
 
     rvewPlanSlctdFieldByTbl = new Map();
@@ -526,7 +523,7 @@ export class DBDiagramController extends BaseController {
             } else {
                 let fields = this.pipelineTableFields.get(tableName);
                 if(!fields){
-                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase(), this.selectedConnection, true);                    
+                    const result = await BIService.getTablesWhenOdoo(moduleName.toLowerCase(), true);                    
                     this.compileRelations(result.relations);                    
                     this.listToTree(result.tables, moduleName, result.relations);
                     fields = this.pipelineTableFields.get(tableName);

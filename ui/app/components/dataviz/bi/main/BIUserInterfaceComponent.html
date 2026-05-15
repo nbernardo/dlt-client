@@ -68,14 +68,14 @@
 
 					<button class="drawer-toggle" onclick="controller.toggleFilterDrawer()">⚙️</button>
     
-					<div class="global-filter-drawer-wrap tables-explorer-drawer" style="overflow: hidden; position: absolute; height: 100%; width: 280px; z-index: -1;">
-						<div class="drawer-inner-container">
+					<div class="global-filter-drawer-wrap tables-explorer-drawer" style="overflow: hidden; position: absolute; height: 100%; width: 350px; z-index: -1;">
+						<div class="drawer-inner-container" style="width: 350px;">
 							<div class="drawer-header" style="padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background: var(--surface2);">
 								<h3 style="margin:0; font-size: 13px; color: var(--text); font-weight: 600;">DATABASE EXPLORER</h3>
 								<button onclick="controller('BIController2').toggleTablesDrawer()" style="background:none; border:none; font-size:22px; cursor:pointer; color: var(--muted);">&times;</button>
 							</div>
-							<div class="drawer-body" style="flex:1; overflow-y:auto; padding: 15px;">
-								<div id="generic-tables-list"></div>
+							<div class="drawer-body" style="flex:1; overflow-y:auto; padding: 5px;">
+								<div each="item" id="generic-tables-list"></div>
 							</div>
 						</div>
 					</div>

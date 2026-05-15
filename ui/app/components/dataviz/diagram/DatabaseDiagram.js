@@ -103,30 +103,31 @@ export class DatabaseDiagram extends ViewComponent {
         this.controller.setGraphOnClickEvt(this.graph);
     }
 
-    async updateGraphData(summaryRows) {
+    async updateGraphData(summaryRows, tableName) {
         this.graph.clear();
         if(summaryRows){
             if (!this.graph) return setTimeout(() => this.updateGraphData(summaryRows), 50);
-            if (!summaryRows || summaryRows.length === 0) return;
+            if (!summaryRows || !summaryRows?.tables || summaryRows?.tables?.length === 0) return;
     
             const container = this.container.querySelector('#mountNode');
             if (container) this.graph.changeSize(container.scrollWidth, container.scrollHeight);
-            
-            const moduleNodes = summaryRows.map(row => ({
-                id: `folder:${row[2].toUpperCase()}`, label: row[2].toUpperCase(), level: 1, children: [], collapsed: true
-            }));
     
-            this.graph.data({ id: 'root', label: 'Odoo modules', isRoot: true, children: moduleNodes });
+            this.controller.listToTree(summaryRows.tables, tableName, summaryRows.relations, 0);
+            this.graph.data(this.controller.anchorNode);
             this.graph.render();
-            this.graph.fitView([20, 20, 20, 20]);
+        
+            this.graph.fitView([40, 40, 40, 40]);
+            this.graph.zoomTo(2.0, { x: this.graph.getWidth() / 2, y: this.graph.getHeight() / 2 });
 
             const width = this.graph.getWidth();
             this.graph.translate(-(width / 5), 0);
-            
-            if(this.initCount == 0){
-                await sleepForSec(200);
-                this.initCount++, await this.updateGraphData(summaryRows);
-            }
+
+            setTimeout(() => {
+                const item = this.graph.findById(this.controller.anchorNode.id); //Anchor item/table
+                if (item)
+                    this.graph.emit('node:click', { item, target: item.getContainer().get('children')[0] });
+            }, 100);
+
         }
     }
 

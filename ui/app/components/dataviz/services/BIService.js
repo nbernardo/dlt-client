@@ -4,6 +4,7 @@ import { HTTPHeaders } from "../../../../@still/helper/http.js";
 import { StillAppSetup } from "../../../../config/app-setup.js";
 import { AppTemplate } from "../../../../config/app-template.js";
 import { AIUtil } from "../../../util/AIUtil.js";
+import { DBDiagramController } from "../controllers/DBDiagramController.js";
 import { CacheService } from "./CacheService.js";
 
 
@@ -14,7 +15,10 @@ export class BIService extends BaseService {
     static pivotBaseFields = [];
     static dashboardChartsMap = new Set();
     static activePipeline = null;
+    static selectedConnection;
 
+    static getDBDiagramContainer = () => DBDiagramController.fromContext().obj.container.querySelector('#mountNode');
+    
     static setDashboardDataPointer(data){
         const pointerId = Date.now() + Math.random().toString().slice(2);
         BIService.dashboardData[pointerId] = data;
@@ -117,7 +121,7 @@ export class BIService extends BaseService {
         return [];
     }
 
-    static async getTablesWhenOdoo(moduleName, connectioName) {
+    static async getTablesWhenOdoo(moduleName) {
         const isCached = await CacheService.hasKey(moduleName);
         if(isCached)
             return await CacheService.get(moduleName);
@@ -125,8 +129,8 @@ export class BIService extends BaseService {
         const namespace = await BIService.getNamespace();
         let url = `/analytics/integration/odootables/${moduleName}/${namespace}`;
 
-        if(connectioName){
-            var response = await $still.HTTPClient.post(url, JSON.stringify({ connectioName }), HTTPHeaders.JSON);
+        if(BIService.selectedConnection){
+            var response = await $still.HTTPClient.post(url, JSON.stringify({ connectioName: BIService.selectedConnection }), HTTPHeaders.JSON);
         }else
             var response = await $still.HTTPClient.get(`${url}/${BIService.activePipeline}`);
       
@@ -172,11 +176,11 @@ export class BIService extends BaseService {
     }
 
     /** @returns { { result: { result } } } */
-    static async runSQLQuery(query, connectionName) {
+    static async runSQLQuery(query) {
         const namespace = await BIService.getNamespace();
         const url = '/analytics/sql_query/' + namespace;
 
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ query, connectionName }), HTTPHeaders.JSON);
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ query, connectionName: BIService.selectedConnection }), HTTPHeaders.JSON);
         if (response.ok && !response.error)
             return await response.json();
         return null;

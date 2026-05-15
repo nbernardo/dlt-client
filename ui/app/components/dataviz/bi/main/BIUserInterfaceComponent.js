@@ -48,6 +48,8 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	domainPipelinesList = [];
 
+	mainTablesList = [];
+
  	/** @Prop */
 	state = new State();
  	
@@ -90,8 +92,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 				}
 				
 				if(result?.result?.dashboards.length) {
-					this.dashboardList = [];
-					this.state.dashboards = [];
+					this.dashboardList = [], this.state.dashboards = [];
 				}
 
 				for(const dashboard of result?.result?.dashboards){
@@ -110,7 +111,6 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 							chart = { ...chart, ...chart.config };
 							delete chart.config;
 						}
-
 						return { ...chart, title: chart.name, config: config.config || config };
 					});
 					this.dashboardList.push({ dashboard_name });
@@ -128,9 +128,7 @@ export class BIUserInterfaceComponent extends ModalWindowComponent {
 
 	async stOnRender(){
 		if(this.runningOnOdoo){
-			setTimeout(async () => {
-				await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/chart.js', type: 'js' });
-			});
+			setTimeout(async () => await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/chart.js', type: 'js' }));
 		}
 		await Assets.import({ path: `${this.appPath}/app/components/dataviz/styles/bi-user-intercace-component.css` });		
 	}

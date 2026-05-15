@@ -80,7 +80,7 @@
 	<div class="diagram-toolbar">
 		<div class="DatabaseDiagram-app-controls">
 			<span style="font-weight: bold; font-size: 12px;">Data source:</span>
-			<select (forEach)="secretList" onchange="controller.selectConnectionName(this.value)">
+			<select (forEach)="secretList" onchange="controller.selectConnectionName(this.value, true)">
 				<option each="item" value="{item.name}">{item.name}</option>
 			</select>
 		</div>
