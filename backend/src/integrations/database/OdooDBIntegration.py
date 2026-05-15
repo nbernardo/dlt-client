@@ -2,22 +2,15 @@ from utils.DestinationQueryUtil import DestinationQueryUtil
 from utils.metastore.PipelineMedatata import PipelineMedatata
 
 class OdooDBIntegration:
-
+        
     @staticmethod
-    def get_modules(namespace, connection_name = None, pipeline = None):
+    def get_db_tables(namespace, connection_name = None, pipeline = None):
         query = '''
-            -- FETCH ALL UNIQUE MODULES AS ENTRY POINTS (ULTIMATE FILTER)
-            WITH RawModules AS (
-                SELECT DISTINCT UPPER(split_part(model, '.', 1)) AS module_name
-                FROM ir_model WHERE transient = false AND state = 'base'
-            )
-            SELECT 
-                1 AS level, NULL::text AS parent_table, module_name AS table_name, module_name AS path
-            FROM RawModules
-            WHERE module_name NOT SIMILAR TO '(IR|BASE|MAIL|BUS|REPORT|SMS|SNAILMAIL|CALENDAR|SPREADSHEET|WEB|WIZARD|PORTAL|L10N|DIGEST|AUTH|AVATAR|BARCODE|BARCODES|DECIMAL|FETCHMAIL|GOOGLE|IAP|IMAGE|PHONE|PRIVACY|PUBLISHER|RESOURCE|SEQUENCE|TEMPLATE|UOM|UTM|RES|WEB_EDITOR|WEB_TOUR|FORMAT|UNKNOWN|UTM|VENDOR|BANK|ANALYTIC|ACCOUNT_FOLLOWUP|PAYMENT|RATING|UTM|CRM_IAP|BASE_IMPORT|ONBOARDING).*'
-            AND module_name NOT LIKE 'IR_ACTIONS%' AND module_name NOT LIKE 'L10N_%'
-            AND module_name ~ '^[A-Z]' AND length(module_name) > 2
-            ORDER BY table_name;
+            SELECT  n.nspname AS schema_name, c.relname AS table_name, split_part(c.relname, '_', 1) AS module_prefix
+            FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relkind = 'r'
+            AND c.relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|report_|sms_|snailmail_|calendar_|spreadsheet_|web_|wizard_|portal_|l10n_|digest_|res_).*'            
+            ORDER BY c.relname;
         '''
         try:
             if connection_name == None:
@@ -51,82 +44,92 @@ class OdooDBIntegration:
     @staticmethod
     def get_tables_by_module(module_name: str, namespace, connection_name, pipeline):
         query = f'''
-            WITH RECURSIVE TableHierarchy AS (
-                -- Anchor: Fetch core tables for the module
-                SELECT 
-                    1 AS level,
-                    NULL::text COLLATE "default" AS parent_table,
-                    relname::text COLLATE "default" AS physical_table,
-                    UPPER('{module_name}')::text COLLATE "default" AS path, 
-                    NULL::text COLLATE "default" AS source_column, 
-                    NULL::text COLLATE "default" AS target_column  
+                WITH RECURSIVE fk_tree AS (
+
+                SELECT
+                    c.oid AS table_oid,
+                    n.nspname AS schema,
+                    c.relname AS "table",
+                    NULL::oid AS parent_oid,
+                    NULL::text COLLATE "C" AS parent_schema,
+                    NULL::text COLLATE "C" AS parent_table,
+                    NULL::text COLLATE "C" AS fk_column,
+                    NULL::text COLLATE "C" AS ref_column,
+                    0 AS depth,
+                    ARRAY[c.oid] AS path_oids,
+                    ARRAY[c.relname] AS path_names
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE n.nspname = 'public' 
-                AND c.relkind = 'r'
-                AND relname LIKE '{module_name.lower()}_%' 
-                AND relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|report_|sms_|snailmail_|calendar_|spreadsheet_|web_|wizard_|portal_|l10n_|digest_|res_).*'
+                WHERE c.relname = '{module_name.lower()}'
+                    AND n.nspname = 'public'
 
                 UNION ALL
 
-                -- Recursive: Trace relations
-                SELECT 
-                    th.level + 1,
-                    th.physical_table,
-                    ref_cl.relname::text COLLATE "default",
-                    (th.path || ' -> ' || ref_cl.relname)::text COLLATE "default",
-                    (SELECT a.attname FROM pg_attribute a WHERE a.attrelid = con.conrelid AND a.attnum = con.conkey[1])::text COLLATE "default" AS source_column,
-                    (SELECT a.attname FROM pg_attribute a WHERE a.attrelid = con.confrelid AND a.attnum = con.confkey[1])::text COLLATE "default" AS target_column
-                FROM TableHierarchy th
-                JOIN pg_class child_cl ON child_cl.relname = th.physical_table
-                JOIN pg_constraint con ON con.conrelid = child_cl.oid  
-                JOIN pg_class ref_cl ON ref_cl.oid = con.confrelid    
-                WHERE con.contype = 'f' 
-                AND th.level < 5
-                AND ref_cl.relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|sms_|snailmail_|calendar_|web_|spreadsheet_|portal_|l10n_|digest_|report_|wizard_|res_).*'
-            )
-            SELECT DISTINCT ON (path)
-                level,
-                parent_table,
-                physical_table AS table_name,
-                path,
-                source_column,
-                target_column,
-                CASE 
-                    WHEN source_column IS NOT NULL THEN source_column || ' ➔ ' || target_column 
-                    ELSE '' 
-                END AS relation_label,
-                (
-                    SELECT string_agg(
-                        a.attname || CASE WHEN pk.contype IS NOT NULL THEN ' (PK)' ELSE '' END, 
-                        ', '
-                    )
+                SELECT
+                    child_cl.oid AS table_oid,
+                    child_ns.nspname AS schema,
+                    child_cl.relname AS "table",
+                    fk.table_oid AS parent_oid,
+                    fk.schema AS parent_schema,
+                    fk."table" AS parent_table,
+                    child_att.attname AS fk_column,
+                    par_att.attname AS ref_column,
+                    fk.depth + 1 AS depth,
+                    fk.path_oids || child_cl.oid,
+                    fk.path_names || (child_cl.relname)
+                FROM fk_tree fk
+                JOIN pg_constraint con ON con.confrelid = fk.table_oid
+                                        AND con.contype = 'f'
+                JOIN pg_class child_cl ON child_cl.oid = con.conrelid
+                JOIN pg_namespace child_ns ON child_ns.oid = child_cl.relnamespace
+                JOIN pg_attribute child_att ON child_att.attrelid = con.conrelid
+                                            AND child_att.attnum = con.conkey[1]
+                JOIN pg_attribute par_att ON par_att.attrelid = con.confrelid
+                                            AND par_att.attnum = con.confkey[1]
+                WHERE fk.depth < 5
+                    AND NOT child_cl.oid = ANY(fk.path_oids)
+
+                ),
+                table_columns AS (
+
+                    -- Collect all columns with PK flag for every table touched by the tree
+                    SELECT
+                        a.attrelid AS table_oid,
+                        string_agg(
+                            a.attname || CASE WHEN pk.attnum IS NOT NULL THEN ' (PK)' ELSE '' END,
+                            ','
+                            ORDER BY a.attnum
+                        ) AS columns
                     FROM pg_attribute a
-                    JOIN pg_class c ON c.oid = a.attrelid
-                    -- Standard PK check for the table identified in this specific row
-                    LEFT JOIN pg_constraint pk ON pk.conrelid = c.oid 
-                        AND pk.contype = 'p' 
-                        AND a.attnum = ANY(pk.conkey)
-                    WHERE c.relname = physical_table -- Use the current row's table name directly
-                    AND a.attnum > 0 
-                    AND NOT a.attisdropped
-                ) AS all_fields
-            FROM TableHierarchy
-            WHERE 
-                physical_table NOT LIKE 'ir_%' AND
-                physical_table NOT LIKE 'mail_%' AND
-                physical_table NOT LIKE 'sms_%' AND
-                physical_table NOT LIKE 'report_%' AND
-                physical_table NOT LIKE 'l10n_%' AND
-                
-                (parent_table IS NULL OR (
-                    parent_table NOT LIKE 'ir_%' AND
-                    parent_table NOT LIKE 'mail_%' AND
-                    parent_table NOT LIKE 'sms_%' AND
-                    parent_table NOT LIKE 'report_%' AND
-                    parent_table NOT LIKE 'l10n_%'
-                ))
-            ORDER BY path, level;
+                    LEFT JOIN (
+                        SELECT conrelid, unnest(conkey) AS attnum
+                        FROM pg_constraint
+                        WHERE contype = 'p'
+                    ) pk ON pk.conrelid = a.attrelid AND pk.attnum = a.attnum
+                    WHERE a.attnum > 0
+                        AND NOT a.attisdropped
+                        AND a.attrelid IN (SELECT table_oid FROM fk_tree)
+                    GROUP BY a.attrelid
+
+                )
+                SELECT
+                    fk.depth,
+                    COALESCE(fk.parent_table, '(root)') AS parent,
+                    fk."table",
+                    array_to_string(fk.path_names, ' -> ') AS path,
+                    fk.ref_column,
+                    fk.fk_column,
+                    fk.ref_column || ' ➔ ' || fk.fk_column as relation_label,
+                    CASE
+                        WHEN fk.depth = 0 THEN tc.columns
+                        WHEN fk.depth = 1 THEN pc.columns
+                        ELSE tc.columns
+                    END AS columns,
+                    '{module_name.lower()}' as anchor
+                FROM fk_tree fk
+                LEFT JOIN table_columns tc ON tc.table_oid = fk.table_oid
+                LEFT JOIN table_columns pc ON pc.table_oid = fk.parent_oid
+                ORDER BY fk.path_oids;
         '''
 
         try:

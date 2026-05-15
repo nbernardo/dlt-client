@@ -61,10 +61,10 @@ def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
 @bi_controller.route('/analytics/integration/odoomodules/<namespace>', methods=['POST'])
 def get_odoo_modules(namespace, pipeline = None):
     payload = request.get_json()
-    result = BIService.get_odoo_modules(namespace, payload.get('connectioName'), pipeline)
+    result = BIService.get_db_tables(namespace, payload.get('connectioName'), pipeline)
     return { 
         'result': { 
-            'modules': result.get('result', []), 'db_name': result.get('db_name'), 
+            'tables': result.get('result', []), 'db_name': result.get('db_name'), 
             'db_host': result.get('db_host'), 'db_engine': result.get('db_engine')
         }, 
         'error': False 
