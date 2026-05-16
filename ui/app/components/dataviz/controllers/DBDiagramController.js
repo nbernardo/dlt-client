@@ -427,15 +427,16 @@ export class DBDiagramController extends BaseController {
 
     selectColumn(fieldPath, moduleName) {
         let shouldKeepTable, tableName = fieldPath.split('.')[0], container = this.obj.container;
+        const fieldPrefix = `${(moduleName && !(fieldPath.split('.').length > 1)) ? moduleName+'.' : ''}`;
         let pkPresent = [...this.selectedFieldsSet].map(this.parseFieldMap).find(itm => itm.startsWith(tableName) && itm.toLowerCase().includes('(pk)'));
-        const newFieldPath = `${moduleName ? moduleName+'.' : ''}`+fieldPath;
+        const newFieldPath = `${fieldPrefix}`+fieldPath;
 
         if (this.selectedFieldsSet.has(newFieldPath)) {
             this.selectedFieldsSet.delete(newFieldPath);
         } else {
             if(!container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.contains('addedkey')){
                 const tablePk = this.pipelineTableFields.get(tableName).find(itm => itm.toLowerCase().includes('(pk)'));
-                this.selectedFieldsSet.add(`${moduleName ? moduleName+'.' : ''}${tableName}.${tablePk}`);
+                this.selectedFieldsSet.add(`${fieldPrefix}${tableName}.${tablePk}`);
                 container.querySelector(`.list-of-tables-in-plan-${tableName}`).classList.add('addedkey');
             }
             

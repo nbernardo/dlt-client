@@ -112,6 +112,7 @@ export class DatabaseDiagram extends ViewComponent {
             const container = this.container.querySelector('#mountNode');
             if (container) this.graph.changeSize(container.scrollWidth, container.scrollHeight);
     
+            this.controller.compileRelations(summaryRows.relations);
             this.controller.listToTree(summaryRows.tables, tableName, summaryRows.relations, 0);
             this.graph.data(this.controller.anchorNode);
             this.graph.render();
