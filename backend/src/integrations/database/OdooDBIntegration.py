@@ -42,7 +42,7 @@ class OdooDBIntegration:
     
 
     @staticmethod
-    def get_tables_by_module(module_name: str, namespace, connection_name, pipeline):
+    def get_tables_hierarchy(anchor_table: str, namespace, connection_name, pipeline):
         query = f'''
                 WITH RECURSIVE fk_tree AS (
 
@@ -60,7 +60,7 @@ class OdooDBIntegration:
                     ARRAY[c.relname] AS path_names
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE c.relname = '{module_name.lower()}'
+                WHERE c.relname = '{anchor_table.lower()}'
                     AND n.nspname = 'public'
 
                 UNION ALL
@@ -125,7 +125,7 @@ class OdooDBIntegration:
                         WHEN fk.depth = 1 THEN pc.columns
                         ELSE tc.columns
                     END AS columns,
-                    '{module_name.lower()}' as anchor
+                    '{anchor_table.lower()}' as anchor
                 FROM fk_tree fk
                 LEFT JOIN table_columns tc ON tc.table_oid = fk.table_oid
                 LEFT JOIN table_columns pc ON pc.table_oid = fk.parent_oid

@@ -71,11 +71,11 @@ def get_odoo_modules(namespace, pipeline = None):
     }
 
 
-@bi_controller.route('/analytics/integration/odootables/<module_name>/<namespace>/<pipeline>', methods=['GET'])
-@bi_controller.route('/analytics/integration/odootables/<module_name>/<namespace>', methods=['POST'])
-def get_odoo_tables(module_name, namespace, pipeline = None):
+@bi_controller.route('/analytics/integration/odootables/<anchor_table>/<namespace>/<pipeline>', methods=['GET'])
+@bi_controller.route('/analytics/integration/odootables/<anchor_table>/<namespace>', methods=['POST'])
+def get_odoo_tables(anchor_table, namespace, pipeline = None):
     payload = request.get_json()
-    tables_and_relations = BIService.get_odoo_tables_by_module(module_name, namespace, payload.get('connectioName'), pipeline)
+    tables_and_relations = BIService.get_odoo_tables_hierarchy(anchor_table, namespace, payload.get('connectioName'), pipeline)
     return { 'result':  tables_and_relations, 'error': False }
 
 

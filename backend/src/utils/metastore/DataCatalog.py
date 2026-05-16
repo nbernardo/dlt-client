@@ -179,7 +179,7 @@ class DataCatalog:
 
         finally:
             if con: con.close()
-            if perf_optmzd != 'yes': sys.exit(0)
+            if perf_optmzd not in [1,2,3]: sys.exit(0)
 
 
     @staticmethod

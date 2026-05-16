@@ -14,6 +14,8 @@ def set_dlt_pipeline_schema_naming():
 
 set_dlt_pipeline_schema_naming()
 
+def prefx(table_name, type = None): return PipelineHelper.prefix_and_suffix_table(table_name, type)
+
 
 def parse_aggregation(df: DataFrame, aggregation_list: list) -> DataFrame:
 
@@ -68,14 +70,18 @@ class PipelineHelper:
         loads_ids = info.loads_ids if type(info.loads_ids) == list else []
         loads_ids_str = ','.join([f"'{val}'" for val in loads_ids])
         perf_optmzd = additionals.get('perf_optmzd', 0)
-        
+        con = None
+
         try:
             MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals)
+
+            if perf_optmzd in [1,2,3]:
+                con = duckdb.connect(dest.config_params['credentials'])
+                PipelineHelper.add_tables_contrains(con, tbls, additionals, perf_optmzd)
 
             if perf_optmzd in [1,'1']:
                 perf_optmzd = int(perf_optmzd)
                 table_name = pipeline.pipeline_name.split('_at_', 1)[1]
-                con = duckdb.connect(dest.config_params['credentials'])
                 big_table = PipelineHelper.prefix_and_suffix_table(table_name, perf_optmzd)
                 exists = con.execute(f"SELECT table_name FROM information_schema.tables WHERE table_name = '{big_table}'").fetchone()
 
@@ -84,9 +90,39 @@ class PipelineHelper:
                 else:
                     PipelineHelper._create_analytics_storage(con, big_query, big_table, db_name, meta, tbls)
 
+        except Exception as err:
+            print('Error on running here: ', str(err))
+            print()
+
         finally:
             sys.exit(0) # Gracefully terminates the sub-process
 
+
+    @staticmethod
+    def add_tables_contrains(con, tbls, adtnls, optmz_typ):
+        contraints = adtnls.get('rels')
+
+        for tbl_name in tbls:
+            table_path = tbl_name.split('.')
+            tbl_name = table_path[1] if len(table_path) > 1 else tbl_name
+            stg_tbl = prefx(tbl_name, optmz_typ)
+
+            con.execute("CREATE SCHEMA IF NOT EXISTS dwhperformance_meta")
+
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS dwhperformance_meta.fk_map (
+                    table_name VARCHAR, fk_col VARCHAR, ref_table VARCHAR, ref_col VARCHAR, PRIMARY KEY (table_name, fk_col)
+                )
+            """)
+
+            con.executemany(
+                """ INSERT OR REPLACE INTO dwhperformance_meta.fk_map (table_name, fk_col, ref_table, ref_col) VALUES (?, ?, ?, ?) """,
+                [
+                    (stg_tbl, r["columns"][0], prefx(r["referred_table"], optmz_typ), r["referred_columns"][0]) 
+                    for r in contraints[tbl_name]
+                ]
+            )
+            
 
     @staticmethod
     def _create_analytics_storage(con, ready_query, big_table, db_name, meta, tbls):
