@@ -81,7 +81,7 @@
 		<div class="DatabaseDiagram-app-controls">
 			<span style="font-weight: bold; font-size: 12px;">Data source:</span>
 			<select (forEach)="secretList" onchange="controller.selectConnectionName(this.value, true)">
-				<option each="item" value="{item.name}">{item.name}</option>
+				<option each="item" value="{item.id}">{item.name}</option>
 			</select>
 		</div>
 		<button type="button" id="btnDiagram" class="view-btn active">Diagram</button>

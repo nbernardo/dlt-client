@@ -33,8 +33,7 @@ export class BIService extends BaseService {
     }
 
     static async saveDashboardConfig(charts, name, id){
-        const namespace = await BIService.getNamespace();
-        const url = `/analytics/dashboard/${namespace}`;
+        const url = `/analytics/dashboard/${(await BIService.getNamespace())}`;
         const response = await $still.HTTPClient.post(
             url, JSON.stringify({ charts, name, id }), 
             HTTPHeaders.JSON
@@ -45,8 +44,7 @@ export class BIService extends BaseService {
 
     static async saveChartConfig(config, pipeline, title, dataSource, chartId){
 
-        const namespace = await BIService.getNamespace();
-        const url = `/analytics/chart/${namespace}`;
+        const url = `/analytics/chart/${(await BIService.getNamespace())}`;
         const response = await $still.HTTPClient.post(
             url, JSON.stringify({ config, context: pipeline, title, dataSource, chartId }), 
             HTTPHeaders.JSON
@@ -69,20 +67,23 @@ export class BIService extends BaseService {
     }
 
     static async getDashboardDetails() {
-        const namespace = await BIService.getNamespace();
-        const url = '/analytics/ppline/domains/' + namespace;
+        const url = '/analytics/ppline/domains/' + (await BIService.getNamespace());
         const response = await $still.HTTPClient.get(url);
-        if (response.ok)
-            return await response.json();
+        if (response.ok) return await response.json();
         return [];
     }
 
     static async getDWPipelines() {
-        const namespace = await BIService.getNamespace();
-        const url = '/analytics/ppline/dwh/' + namespace;
+        const url = '/analytics/ppline/dwh/' + (await BIService.getNamespace());
         const response = await $still.HTTPClient.get(url);
-        if (response.ok)
-            return await response.json();
+        if (response.ok) return await response.json();
+        return [];
+    }
+
+    static async getStagedData() {
+        const url = '/analytics/ppline/dwh/staged' + (await BIService.getNamespace());
+        const response = await $still.HTTPClient.get(url);
+        if (response.ok) return await response.json();
         return [];
     }
 
@@ -108,8 +109,7 @@ export class BIService extends BaseService {
     }
 
     static async getModulesWhenOdoo(connectioName) {
-        const namespace = await BIService.getNamespace();
-        let url = `/analytics/integration/odoomodules/${namespace}`;
+        let url = `/analytics/integration/odoomodules/${(await BIService.getNamespace())}`;
 
         if(connectioName){
             var response = await $still.HTTPClient.post(url, JSON.stringify({ connectioName }), HTTPHeaders.JSON);
@@ -136,17 +136,18 @@ export class BIService extends BaseService {
       
         if (response.ok){
             const result = (await response.json())?.result;
-            await CacheService.add(moduleName, result);
-            return result;
+            if(!result.error){
+                await CacheService.add(moduleName, result);
+                return result;
+            }
         }
         return [];
     }
 
     /** @returns { { result: { result } } } */
     static async sendAnalyticsRequest(fields, pipeline, dataRange) {
-        let namespace = await BIService.getNamespace();
         
-        const url = `/workspace/analytics/${namespace}/${pipeline}`;
+        const url = `/workspace/analytics/${(await BIService.getNamespace())}/${pipeline}`;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ fields, dataRange }), HTTPHeaders.JSON);
         if (response.ok && !response.error)
             return await response.json();
@@ -155,9 +156,8 @@ export class BIService extends BaseService {
 
     /** @returns { { result: { result } } } */
     static async getAnalyticsRangeFields(fields, pipeline) {
-        let namespace = await BIService.getNamespace();
         
-        const url = `/workspace/analytics/rangefields/${namespace}/${pipeline}`;
+        const url = `/workspace/analytics/rangefields/${(await BIService.getNamespace())}/${pipeline}`;
         const response = await $still.HTTPClient.get(url);
         if (response.ok && !response.error)
             return await response.json();
@@ -177,8 +177,7 @@ export class BIService extends BaseService {
 
     /** @returns { { result: { result } } } */
     static async runSQLQuery(query) {
-        const namespace = await BIService.getNamespace();
-        const url = '/analytics/sql_query/' + namespace;
+        const url = '/analytics/sql_query/' + (await BIService.getNamespace());
 
         const response = await $still.HTTPClient.post(url, JSON.stringify({ query, connectionName: BIService.selectedConnection }), HTTPHeaders.JSON);
         if (response.ok && !response.error)
@@ -196,22 +195,23 @@ export class BIService extends BaseService {
     static async listSecrets() {
         try {
             
-            const namespace = await BIService.getNamespace();
-            const response = await $still.HTTPClient.get('/secret/' + namespace);
-    
+            const response = await $still.HTTPClient.get('/secret/' + (await BIService.getNamespace()));    
             if (response.ok && !response.error){
-    
-                let secretList = (await response.json()).result, secretAndServerList;
-    
-                if(Array.isArray(secretList?.db_secrets)){
+                
+                const snakeToCamel = (val='') => val.split('_').map(c => c.charAt(0).toUpperCase()+`${c.slice(1)}`).join(' ');
+
+                let secretList = (await response.json()).result, secretAndServerList = [];
+                if(Array.isArray(secretList?.secret_names?.db_secrets)){
                     const secretNames = [];
-                    secretAndServerList = secretList.db_secrets.map(secret => {
-                        if(!secretList.metadata[secret]) secretNames.push(secret);
-                        return { name: secret, host: secretList.metadata[secret] || 'None' };
+                    secretAndServerList = secretList.secret_names.db_secrets.map(secret => {
+                        if(!secretList.secret_names.metadata[secret]) secretNames.push(secret);
+                        return { name: secret, host: secretList.secret_names.metadata[secret] || 'None',id: secret };
                     });
                 }
                 
-                return (secretAndServerList || []).length > 0 ? secretAndServerList : [];
+                const stagedData = secretList?.staged_data?.map(itm => ({ name: snakeToCamel(itm[0]), id: `${itm[0]}.${itm[1]}` })) || [];
+                const result = (secretAndServerList || []).length > 0 ? secretAndServerList : [];
+                return [...result, ...stagedData];
     
             } else {
                 const result = await response.json();

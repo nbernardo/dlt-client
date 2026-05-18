@@ -118,6 +118,7 @@ export class DBDiagramController extends BaseController {
         const [baseTable] = selectedEntries[0];
         const processed = new Set([baseTable]);
         const joins = [], relations = Array.from(this.relationRegistry.values());
+        const tblSchema = this.isDuckdbConnection ? `${this.selectedDatabase}.` : '';
 
         selectedEntries.slice(1).forEach(([currentTable]) => {
             if (!activeTables.has(currentTable)) return;
@@ -133,7 +134,7 @@ export class DBDiagramController extends BaseController {
                 const lCol = isSource ? connection.targetColumn : connection.sourceColumn;
                 const rCol = isSource ? connection.sourceColumn : connection.targetColumn;
 
-                joins.push(`LEFT JOIN ${currentTable} ON ${currentTable}.${rCol} = ${lTab}.${lCol}`);
+                joins.push(`LEFT JOIN ${tblSchema}${currentTable} AS ${currentTable} ON ${currentTable}.${rCol} = ${lTab}.${lCol}`);
                 processed.add(currentTable);
             }
         });
@@ -162,7 +163,7 @@ export class DBDiagramController extends BaseController {
         if(this.syncSqlCount > 0 && this.editorSelectedCode !== null) this.editorSelectedCode = null;
         
         const sqlCode = this.editorSelectedCode
-                || [`-- Auto-generated Business Query`,`SELECT ${selectClause}`,`FROM ${baseTable}`,joins.length > 0 ? `    ${joins.join('\n    ')}` : '','LIMIT 100;'].filter(v => v.trim()).join('\n');
+                || [`-- Auto-generated Business Query`,`SELECT ${selectClause}`,`FROM ${tblSchema}${baseTable} AS ${baseTable}`,joins.length > 0 ? `    ${joins.join('\n    ')}` : '','LIMIT 100;'].filter(v => v.trim()).join('\n');
         this.syncSqlCount++;
         this.editor.setValue(sqlCode);
     }
@@ -230,7 +231,7 @@ export class DBDiagramController extends BaseController {
 
     nodeMap = new Map()
     anchorNode = null;
-    listToTree(data, moduleName, relations = []) {
+    listToTree(data, moduleName, relations = [], reqLevel) {
         const prefix = `${moduleName.toLowerCase()}_`;
 
         this.nodeMap = new Map();
@@ -243,11 +244,16 @@ export class DBDiagramController extends BaseController {
         };
 
         sorted.forEach(row => {
-            const [level, parentTable, childTable, fullPath, sCol, tCol, , allFields, anchor] = row;
-            if(parentTable === '(root)') return;          
+            let [level, parentTable, childTable, fullPath, sCol, tCol, , allFields, anchor] = row;
+            this.pipelineTableFields.set(childTable, allFields.split(','));
 
-            if(level == 1) this.pipelineTableFields.set(parentTable, allFields.split(','));
-            else this.pipelineTableFields.set(childTable, allFields.split(','));
+            if(parentTable === '(root)' && sorted.length > 1)
+                return this.pipelineTableFields.set(childTable, allFields.split(','));
+
+            this.anchorNode = reqLevel === 0 ? null : this.anchorNode;
+            parentTable = parentTable !== '(root)' ? parentTable : childTable;
+            
+            if(parentTable.includes('.')) parentTable = parentTable.split('.')[1];
             
             //if (level !== 2 || !parentTable?.startsWith(prefix)) return;
             
@@ -267,7 +273,7 @@ export class DBDiagramController extends BaseController {
                 parent.children.push(child);
             }
         });
-        
+        if(this.anchorNode === null) this.anchorNode = Array.from(this.nodeMap.values())[0];
         return Array.from(this.nodeMap.values()).filter(node => node.id.split(' -> ').length === 1);
     }
 
@@ -285,16 +291,16 @@ export class DBDiagramController extends BaseController {
             });
             window.monaco
         });
-
     }
 
     diagramContainer = () => BIService.getDBDiagramContainer();
+    isDuckdbConnection = null;
 
     async selectConnectionName(connectionName){
         this.toggleView('diagram');
         BIController.fromContext().addLoadingOnContainer(this.diagramContainer(), 'Loading database diagram');
         const result = await BIService.getModulesWhenOdoo(connectionName);
-        
+        this.isDuckdbConnection = connectionName.includes('.') ? true : false;
         //this.obj.updateGraphData(result?.modules);
         BIController2.fromContext().renderExplorerTables(result?.tables);
         BIService.selectedConnection = connectionName, this.selectedDatabase = result?.db_name;

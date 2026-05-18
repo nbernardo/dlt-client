@@ -33,7 +33,7 @@ export class BIController2 extends BaseController {
     renderExplorerTables(tables) {
         const listContainer = this.$('#generic-tables-list');
                 
-        listContainer.innerHTML = tables.map(table => this.obj.parseEvents(`
+        listContainer.innerHTML = (tables || []).map(table => this.obj.parseEvents(`
             <div class="drawer-table-item" 
                 style="padding: 10px 0px; border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: space-between;"
                 onclick="controller('BIController2').fetchRootAndLevel1Tables('${table[1]}')">
@@ -43,12 +43,18 @@ export class BIController2 extends BaseController {
                             <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
                         </svg>
                     </span>
-                    <span style="font-size: 12px; font-weight: 500;">${table[1]}</span>
+                    <span style="font-size: 12px; font-weight: 500;">${this.parseStagedTableName(table[1])}</span>
                 </div>
             </div>
         `)).join('');
 
         listContainer.style.display = '';
+    }
+
+    parseStagedTableName(tableName = ''){
+        if(tableName.startsWith('_e2e_domain_') && (tableName.endsWith('_stage_1_') ||tableName.endsWith('_stage_2_')))
+            return tableName.replace(/_e2e_domain_|_stage_1_|_stage_2_/g,'');
+        return tableName;
     }
 
     filterExplorerTables(query) {
@@ -62,7 +68,6 @@ export class BIController2 extends BaseController {
         const container = BIService.getDBDiagramContainer();
         BIController.fromContext().addLoadingOnContainer(container, 'Loading database diagram');
         const result = await BIService.getTablesWhenOdoo(tableName.toLowerCase());
-        //console.log(`THE TABLE NAME ARE: `, result.tables.filter(row => [0,1].includes(row[0])));
         //const summaryRows = (result.tables || []).filter(row => [0,1].includes(row[0]))
         BIController.fromContext().removeLoadingFromContainer(container);
         this.obj.dbDiagramProxy.updateGraphData(result, tableName);
