@@ -38,6 +38,11 @@ def get_domain_pipeline_list(namespace):
     return PipelineMedatata.get_domain_pipelines(namespace)
 
 
+@bi_controller.route('/analytics/ppline/dwh/staged', methods=['GET'])
+def get_staged_data(namespace):
+    return PipelineMedatata.get_stage_data(namespace)
+
+
 from utils.duckdb_util import DuckdbUtil
 import platform
 from controller.pipeline import BasePipeline
@@ -59,14 +64,15 @@ def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
 
 @bi_controller.route('/analytics/integration/odoomodules/<namespace>/<pipeline>', methods=['GET'])
 @bi_controller.route('/analytics/integration/odoomodules/<namespace>', methods=['POST'])
-def get_odoo_modules(namespace, pipeline = None):
+def get_odoo_modules(namespace, pipeline = None, dataset_name = None):
+    # duckDBFile = pipeline, hence the same param is used for both scenario 
     payload = request.get_json()
     result = BIService.get_db_tables(namespace, payload.get('connectioName'), pipeline)
     return { 
         'result': { 
             'tables': result.get('result', []), 'db_name': result.get('db_name'), 
             'db_host': result.get('db_host'), 'db_engine': result.get('db_engine')
-        }, 
+        },
         'error': False 
     }
 

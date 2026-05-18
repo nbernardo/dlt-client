@@ -3,7 +3,6 @@ from utils.duckdb_util import DuckdbUtil
 import duckdb
 from utils.db.lancedb import LanceConnectionFactory
 from lancedb import Table
-import asyncio
 
 PIPELINE_METADATA_SCHEMA = pa.schema([
     pa.field("pipeline_run_id", pa.string()),
@@ -111,6 +110,22 @@ class PipelineMedatata:
         try:
             con = PipelineMedatata._get_duckdb_conn(False, db_path)
             return con.execute(f'SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline = true AND namespace = ?', [namespace]).fetchall()
+
+        except Exception as err:
+            if str(err).__contains__('Extension'):
+                print(f'ERROR: Duckdb missing Extension - The lancedb extension for Duckdb is not installed: {err}')
+                print(f'Please install this extentions according to the documentation on https://duckdb.org/docs/current/core_extensions/lance')
+                return []
+            else:
+                print(f'Error while loading catalog: {err}')
+            return err
+
+
+    @staticmethod
+    def get_stage_data(namespace: str, stage = 2):
+        try:
+            con = PipelineMedatata._get_duckdb_conn()
+            return con.execute(f'SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline = ? AND namespace = ?', [str(stage), namespace]).fetchall()
 
         except Exception as err:
             if str(err).__contains__('Extension'):

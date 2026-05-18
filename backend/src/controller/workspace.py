@@ -488,14 +488,15 @@ def create_seret(namespace):
 
 @workspace.route('/secret/<namespace>', methods=['GET'])
 def list_serets(namespace):
-
+    from utils.metastore.PipelineMedatata import PipelineMedatata
     try:
 
         secret_names = SecretManager.list_secret_names(namespace)
+        staged_data = PipelineMedatata.get_stage_data(namespace)
         if secret_names == None:
             return { 'error': True, 'result': 'No secrete found for current namespace' }
         else:
-            return { 'error': False, 'result': secret_names }
+            return { 'error': False, 'result': { 'secret_names': secret_names, 'staged_data': staged_data } }
     except Exception as err:
         print('Error while fetching secrets list: '+str(err))
         print(err)

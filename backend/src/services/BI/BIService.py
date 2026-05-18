@@ -1,6 +1,20 @@
 from utils.metastore.meta_storage import MetaStore
 from integrations.database.OdooDBIntegration import OdooDBIntegration
 from utils.DestinationQueryUtil import DestinationQueryUtil
+from utils.duckdb_util import DuckdbUtil
+from integrations.database.DuckdbStage import DuckdbStage
+
+
+def handle_duckdb_path(connection_name, namespace):
+    import platform
+    from controller.pipeline import BasePipeline
+    [tbl_catalog, dataset] = str(connection_name).split('.')
+    sep = '/' if platform.system() != 'Windows' else '\\\\'
+    db_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{tbl_catalog}.duckdb'
+
+    return db_path, dataset, tbl_catalog
+
+
 
 class BIService:
 
@@ -26,14 +40,43 @@ class BIService:
 
     @staticmethod
     def get_db_tables(namespace, connection_name, pipeline):
-        return OdooDBIntegration.get_db_tables(namespace, connection_name, pipeline)
+        if(str(connection_name).__contains__('.')):
+            db_path, dataset, _ = handle_duckdb_path(connection_name, namespace)
+            result = DuckdbStage.get_duckdb_tables(db_path, dataset)
+            return result
+            
+        else:
+            return OdooDBIntegration.get_db_tables(namespace, connection_name, pipeline)
     
 
     @staticmethod
     def get_odoo_tables_hierarchy(anchor_table, namespace, connection_name, pipeline):
-        return OdooDBIntegration.get_tables_hierarchy(anchor_table, namespace, connection_name, pipeline)    
+        if(str(connection_name).__contains__('.')):
+            db_path, dataset, tbl_catalog = handle_duckdb_path(connection_name, namespace)
+            result = BIService.get_duckdb_tables_hererarchy(db_path, tbl_catalog, anchor_table, dataset)
+            return result
+            ...
+        else:
+            return OdooDBIntegration.get_tables_hierarchy(anchor_table, namespace, connection_name, pipeline)    
 
 
     @staticmethod
     def query_sql_rdbms(query, namespace, connection_name):
-        return DestinationQueryUtil.query_sql_database(query, namespace, connection_name)
+        if(str(connection_name).__contains__('.')):
+            db_path, dataset, _ = handle_duckdb_path(connection_name, namespace)
+            result = DuckdbStage.run_sql_query_on_stage_tables(db_path, query)
+            return result
+            ...
+        else:
+            return DestinationQueryUtil.query_sql_database(query, namespace, connection_name)
+    
+
+    @staticmethod
+    def get_duckdb_tables_hererarchy(db_file, tbl_catalog, table, dataset):
+
+        try:
+            return DuckdbStage.get_tables_hierarchy(db_file, table, tbl_catalog, dataset)
+            
+        except Exception as error:
+            result = f'Erro while running analytics query. {str(error)}'
+            return result

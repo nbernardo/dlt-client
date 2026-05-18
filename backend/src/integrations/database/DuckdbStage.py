@@ -1,12 +1,37 @@
+from utils.duckdb_util import DuckdbUtil
+
 class DuckdbStage:
     ''''
     This class handle different scenario concerning to data which was put in stage 
     in Duckdb database so to address integration from different data sources 
     '''
 
-    def get_tables_hierarchy(stg_table, stg_db):
-        query = f''''
-            WITH RECURSIVE fk_tree AS (
+    def _tables_rel_query():
+        return '''
+            SELECT
+                m.table_name || '_' || m.fk_col || '_fkey' AS constraint_name,
+                m.fk_col AS source_column,
+                m.table_name AS source_table,
+                m.ref_col AS target_column,
+                m.ref_table AS target_table
+            FROM dwhperformance_meta.fk_map m
+        '''
+
+    @staticmethod
+    def get_duckdb_tables(database_path, dataset):
+        query = f"FROM information_schema.tables SELECT table_schema, table_name, '' as module WHERE table_schema = '{dataset}' AND table_name NOT LIKE '_dlt_%'"
+        with DuckdbUtil.get_connection_for(database_path).execute(query) as con:
+            result = con.execute(query).fetchall()
+        
+        return { 'result': result, 'db_name': dataset }
+
+
+    def get_tables_hierarchy(dbfile, stg_table, stg_db, data_set):
+        try:
+
+            query = f'''
+            
+                WITH RECURSIVE fk_tree AS (
 
                 SELECT
                     t.table_schema AS schema,
@@ -18,8 +43,7 @@ class DuckdbStage:
                     0 AS depth,
                     ARRAY[t.table_schema || '.' || t.table_name] AS path_names
 
-                FROM information_schema.tables t
-                WHERE t.table_name = '{stg_table}' AND t.table_schema = 'novastage'
+                FROM information_schema.tables t WHERE t.table_name = '{stg_table}' AND t.table_schema = '{data_set}'
 
                 UNION ALL
 
@@ -39,28 +63,43 @@ class DuckdbStage:
                     AND NOT list_contains(fk.path_names, fk.schema || '.' || m.table_name)
                     AND EXISTS (
                     SELECT 1 FROM information_schema.tables t
-                    WHERE t.table_name = m.table_name
+                    WHERE t.table_name    = m.table_name
                         AND t.table_schema  = fk.schema
                         AND t.table_catalog = '{stg_db}'
                         AND t.table_schema NOT LIKE '%_staging'
                     )
-            ),
-            table_columns AS (
+
+                ),
+                table_columns AS (
 
                 SELECT
-                    c.table_schema, c.table_name, string_agg(c.column_name, ', ' ORDER BY c.ordinal_position) AS columns
+                    c.table_schema,
+                    c.table_name,
+                    string_agg(
+                    c.column_name || CASE WHEN pk.pk_col IS NOT NULL THEN ' (PK)' ELSE '' END,
+                    ', '
+                    ORDER BY c.ordinal_position
+                    ) AS columns
                 FROM information_schema.columns c
-                WHERE 
-                    (c.table_schema, c.table_name) IN (
-                        SELECT schema, "table" FROM fk_tree
-                        UNION
-                        SELECT parent_schema, parent_table FROM fk_tree WHERE parent_table IS NOT NULL
-                    )
+                LEFT JOIN (
+                    SELECT DISTINCT ref_table AS table_name, ref_col AS pk_col
+                    FROM dwhperformance_meta.fk_map
+                    UNION
+                    SELECT DISTINCT table_name, ref_col AS pk_col
+                    FROM dwhperformance_meta.fk_map
+                ) pk
+                    ON pk.table_name = c.table_name
+                AND pk.pk_col     = c.column_name
+                WHERE (c.table_schema, c.table_name) IN (
+                    SELECT schema, "table" FROM fk_tree
+                    UNION
+                    SELECT parent_schema, parent_table FROM fk_tree WHERE parent_table IS NOT NULL
+                )
                     AND c.table_catalog = '{stg_db}' AND c.table_schema NOT LIKE '%_staging'
                 GROUP BY c.table_schema, c.table_name
-            )
 
-            SELECT
+                )
+                SELECT
                 fk.depth,
                 COALESCE(fk.parent_schema || '.' || fk.parent_table, '(root)') AS parent,
                 fk."table",
@@ -69,11 +108,35 @@ class DuckdbStage:
                 fk.fk_column,
                 fk.ref_column || ' ➔ ' || fk.fk_column AS relation_label,
                 tc.columns
-            FROM fk_tree fk
-            LEFT JOIN table_columns tc ON tc.table_schema = fk.schema AND tc.table_name = fk."table"
-            ORDER BY fk.path_names;
-        '''
-    
+                FROM fk_tree fk
+                LEFT JOIN table_columns tc ON tc.table_schema = fk.schema AND tc.table_name = fk."table"
+                ORDER BY fk.path_names;
+
+            '''
+            result, relations = [], []
+            with DuckdbUtil.get_connection_for(dbfile).execute(query) as con:
+                result = con.execute(query).fetchall()
+                relations = con.execute(DuckdbStage._tables_rel_query()).fetchall()
+
+            return { 'tables': result, 'relations': relations }
+            
+        except Exception as err:
+            return { 'error': True, 'result': str(err) }
+
+
+
+    def run_sql_query_on_stage_tables(dbfile, query):
+        try:
+
+            result, fields = [],[]
+            with DuckdbUtil.get_connection_for(dbfile).execute(query) as con:
+                result = con.execute(query)
+                rows = result.fetchall()
+                fields = [field[0] for field in result.description]
+            return { 'result': rows, 'fields': fields, 'db_engine': 'duckdb' }
+            
+        except Exception as err:
+            return { 'error': True, 'result': str(err) }
 
 
     
