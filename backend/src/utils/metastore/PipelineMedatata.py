@@ -109,7 +109,7 @@ class PipelineMedatata:
     def get_domain_pipelines(namespace: str = None, db_path: str = None):
         try:
             con = PipelineMedatata._get_duckdb_conn(False, db_path)
-            return con.execute(f'SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline = true AND namespace = ?', [namespace]).fetchall()
+            return con.execute(f"SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline::string = 'true' AND namespace = ?", [namespace]).fetchall()
 
         except Exception as err:
             if str(err).__contains__('Extension'):
