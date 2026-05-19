@@ -360,8 +360,8 @@ export class BIController extends BaseController {
 
     renderChartTypeGrid() {
         const { state, CHART_TYPES, parseEvents } = this.obj;
-        
-        this.obj.popup.querySelector('.chartTypeGrid').innerHTML = CHART_TYPES.map(
+        const container = this.obj.popup?.querySelector('.chartTypeGrid');
+        container.innerHTML = CHART_TYPES.map(
             (t) => parseEvents(
                 `<div class="chart-type-btn ${t.id === state.chartType ? "active" : ""}" onclick="controller.selectChartType('${t.id}')"><span class="chart-type-icon">${t.icon}</span>${t.label}</div>`
             )
@@ -870,22 +870,23 @@ export class BIController extends BaseController {
     }
 
     shrinkChatLogs(elm, unshrink){
-        const hasFirstMessage = this.obj.popup.querySelector('.message-bubble')
+        const hasFirstMessage = this.obj.popup?.querySelector('.message-bubble');
+        const logsContainer = this.obj.popup?.querySelector('.ai-analytics-chat-logs');
         if(hasFirstMessage) this.obj.popup.querySelector('.message-bubble').style.visibility = 'hidden';
 
         if(elm?.title == this.obj.analyticsChatStateEnum.OPENED || unshrink){
             elm.title = this.obj.analyticsChatStateEnum.CLOSED, elm.innerHTML = '&ndash;';
-            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.width = '35%';
-            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.height = '270px';
-            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.overflowY = 'scroll';
+            if(logsContainer){
+                logsContainer.style.width = '35%', logsContainer.style.height = '270px', logsContainer.style.overflowY = 'scroll';
+            }
             if(hasFirstMessage) this.obj.popup.querySelector('.message-bubble').style.visibility = 'visible';
             
         }else{
             if(elm?.title)
                 elm.title = this.obj.analyticsChatStateEnum.OPENED, elm.innerHTML = '&plus;';
-            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.width = '25px';
-            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.height = '25px';
-            this.obj.popup.querySelector('.ai-analytics-chat-logs').style.overflow = 'hidden';
+            if(logsContainer){
+                logsContainer.style.height = '25px', logsContainer.style.width = '25px', logsContainer.style.overflow = 'hidden';
+            }
             if(hasFirstMessage) this.obj.popup.querySelector('.message-bubble').style.visibility = 'hidden';
         }
     }

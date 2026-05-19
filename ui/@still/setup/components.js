@@ -1919,8 +1919,12 @@ export class Components {
     static runAfterInit(cmp, params = {}) {
         setTimeout(async () => {
             await cmp.stOnDOMUpdate();
-            if(!(cmp['#stIsTopLvlCmp'] === true && cmp['stSetDelay']?.init))
-                setTimeout(async () => await cmp.stAfterInit(params),20);
+            if(!(cmp['#stIsTopLvlCmp'] === true && cmp['stSetDelay']?.init)){
+                setTimeout(async () => {
+                    try { await cmp.stAfterInit(params) } 
+                    catch (error) {}
+                },20);
+            }
         } ,10);
         if ('stillDevidersCmp' in cmp) {
             Components.obj().setVertDivider(cmp);

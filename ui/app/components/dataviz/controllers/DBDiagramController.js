@@ -134,30 +134,47 @@ export class DBDiagramController extends BaseController {
                 const lCol = isSource ? connection.targetColumn : connection.sourceColumn;
                 const rCol = isSource ? connection.sourceColumn : connection.targetColumn;
 
-                joins.push(`LEFT JOIN ${tblSchema}${currentTable} AS ${currentTable} ON ${currentTable}.${rCol} = ${lTab}.${lCol}`);
+                const dq = DQController.fromContext();
+                const leftHand = dq.getFormattedField(`${lTab}.${lCol}`, lCol, dq.columnQualityRules.get(`${lTab}.${lCol}`)) || `${lTab}.${lCol}`;
+                const rightHand = dq.getFormattedField(`${currentTable}.${rCol}`, rCol, dq.columnQualityRules.get(`${currentTable}.${rCol}`)) || `${currentTable}.${rCol}`;
+
+                const leftExpr = leftHand.split(' AS ')[0], rightExpr = rightHand.split(' AS ')[0];
+
+                joins.push(`LEFT JOIN ${tblSchema}${currentTable} AS ${currentTable} ON ${rightExpr} = ${leftExpr}`);
                 processed.add(currentTable);
             }
         });
 
-        let selectClause = "*";
+        let selectClause = "*";        
+        const dqController = DQController.fromContext();
         const validFields = Array.from(this.selectedFieldsSet)
-            .map(fPath => {
-                const parsedPath = this.parseFieldMap(fPath);                 
-                const rule = DQController.fromContext().columnQualityRules.get(parsedPath.split(' ')[0]);
-                
-                if (rule) {
+                .map(fPath => {
+                    const parsedPath = this.parseFieldMap(fPath);                 
+                    const ruleEntry = dqController.columnQualityRules.get(parsedPath.split(' ')[0]);
+                    
                     const [tbl, field] = parsedPath.split('.');
                     const cleanField = field.split(' ')[0];
+                    const fullCol = `${tbl}.${cleanField}`;
 
-                    if (rule === 'TRIM') return `TRIM(${tbl}.${cleanField}) AS ${cleanField}`;
-                    if (rule === 'UPPER') return `UPPER(${tbl}.${cleanField}) AS ${cleanField}`;
-                    if (rule === 'LOWER') return `LOWER(${tbl}.${cleanField}) AS ${cleanField}`;
-                    if (rule === 'COALESCE') return `COALESCE(${tbl}.${cleanField}, '') AS ${cleanField}`;
-                }
-                return parsedPath;
-            })
-            .filter(f => processed.has(f.includes(' AS ') ? f.split(' AS ')[0].split('.')[0].split('(')[1] : f.split('.')[0]));
+                    const transformedField = dqController.getFormattedField(fullCol, cleanField, ruleEntry);
+                    return transformedField || parsedPath;
+                })
+                .filter(f => {
+                    const match = f.match(/([a-zA-Z0-9_]+)\./);
+                    const targetTbl = match ? match[1] : f.split('.')[0];
+                    return processed.has(targetTbl);
+                });
+
         
+        if (this.virtualColumns) {
+            this.virtualColumns.forEach((config) => {
+                if (processed.has(config.tableName)) {
+                    validFields.push(`${config.expression} AS ${config.alias}`);
+                }
+            });
+        }
+
+
         if (validFields.length > 0)
             selectClause = validFields.map(itm => itm.includes(' AS ') ? itm :  itm.split(' ')[0]).join(',\n       ');
         if(this.syncSqlCount > 0 && this.editorSelectedCode !== null) this.editorSelectedCode = null;
@@ -221,6 +238,36 @@ export class DBDiagramController extends BaseController {
                 return keyShape;
             }
         });
+        DBDiagramController.handlesNewTableConnectiom();
+    }
+
+    static handlesNewTableConnectiom(){
+        G6.registerNode('join-bridge', {
+            draw: (cfg, group) => {
+                const div = document.createElement('div');
+                div.id = cfg.id;
+                Object.assign(div.style, {
+                    width: '140px', padding: '8px', background: '#fff', border: '2px solid #1890ff', borderRadius: '4px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '10px'
+                });
+
+                const sourceCols = cfg.sourceCols || [], targetCols = cfg.targetCols || [];
+                div.innerHTML = `
+                    <div style="font-weight: bold; color: #1890ff; margin-bottom: 2px;">Manual Handshake</div>
+                    <select class="s-select" style="width: 100%; font-size: 10px;">
+                        ${sourceCols.map(c => `<option value="${c}" ${c === cfg.sField ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+                    <select class="t-select" style="width: 100%; font-size: 10px;">
+                        ${targetCols.map(c => `<option value="${c}" ${c === cfg.tField ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+                `;
+
+                div.querySelector('.s-select').onchange = (e) => cfg.onUpdate(e.target.value, 'source');
+                div.querySelector('.t-select').onchange = (e) => cfg.onUpdate(e.target.value, 'target');
+
+                return group.addShape('dom', { attrs: { width: 150, height: 100, html: div.outerHTML }, name: 'bridge-shape'});
+            }
+        }, 'html');
     }
 
     static calculateTextWidth(text, font = '8px Arial') {
@@ -543,6 +590,7 @@ export class DBDiagramController extends BaseController {
                     const fieldPath = `${tableName}.${fld}`;
                     
                     const hasQuality = this.columnQualityRules && this.columnQualityRules.has(fieldPath);
+                    const dqTypes = ['TRIM', 'UPPER', 'LOWER', 'COALESCE', 'DISTINCT', 'NULL_TO_ZERO', 'TO_TEXT', 'TO_INT', 'DATE_FORMAT', 'LPAD', 'RPAD']
 
                     return this.obj.parseEvents(`
                         <div class="field-item-container" style="position: relative; border-bottom: 1px solid #eee;">
@@ -562,15 +610,17 @@ export class DBDiagramController extends BaseController {
 
                             <div id="dq-menu-${fieldPath.replace(/[^a-zA-Z0-9]/g, '_')}" class="dq-dropdown" style="display: none; background: #fff; border: 1px solid #ccc; position: absolute; right: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); width: 120px; border-radius: 4px;">
                                 <div style="padding: 5px; font-size: 10px; font-weight: bold; border-bottom: 1px solid #eee; background: #f9f9f9;">Transform</div>
-                                ${['TRIM', 'UPPER', 'LOWER', 'COALESCE'].map(rule => `
-                                    <div class="dq-option" style="padding: 4px 8px; font-size: 10px; cursor: pointer;" 
-                                        onclick="controller('DataQualityController').applyRule('${fieldPath}', '${rule}', '${tableName}', '${moduleName}')">
-                                        ${rule}
+                                <div class="data-quality-types-popup">
+                                    ${dqTypes.map(rule => `
+                                        <div class="dq-option" style="padding: 4px 8px; font-size: 10px; cursor: pointer;" 
+                                            onclick="controller('DataQualityController').applyRule('${fieldPath}', '${rule}', '${tableName}', '${moduleName}')">
+                                            ${rule}
+                                        </div>
+                                    `).join('')}
+                                    <div class="dq-option" style="padding: 4px 8px; font-size: 10px; cursor: pointer; color: red; border-top: 1px solid #eee;" 
+                                        onclick="controller('DataQualityController').applyRule('${fieldPath}', null, '${tableName}', '${moduleName}')">
+                                        Clear
                                     </div>
-                                `).join('')}
-                                <div class="dq-option" style="padding: 4px 8px; font-size: 10px; cursor: pointer; color: red; border-top: 1px solid #eee;" 
-                                    onclick="controller('DataQualityController').applyRule('${fieldPath}', null, '${tableName}', '${moduleName}')">
-                                    Clear
                                 </div>
                             </div>
                         </div>
@@ -667,4 +717,35 @@ export class DBDiagramController extends BaseController {
         await (new PipelinePlanService(settings)).save(this.obj.saveBtnLabel.value === 'Update', this.selectedPlanId);
         saveBtn.disabled = false;
     }
+
+    addManualRelation(sourcePath, targetPath) {
+        const [sTab, sCol] = sourcePath.split('.');
+        const [tTab, tCol] = targetPath.split('.');
+
+        const linkId = `manual_${sTab}_${tTab}`;
+        this.relationRegistry.set(linkId, {sourceTable: sTab, sourceColumn: sCol, targetTable: tTab, targetColumn: tCol, isVirtual: true});
+        this.syncSqlEditor();
+        //this.obj.updateGraphWithVirtualLinks();
+    }
+
+    createCompositeFromUI(tableName, selectedFields) {
+        const alias = prompt("Enter name for this combined field:", "new_composite_key");
+        if (alias) {
+            this.generateCompositeKey(tableName, selectedFields, alias);
+            this.syncSqlEditor();
+        }
+    }
+
+    virtualColumns = new Map(); 
+
+    generateCompositeKey(tableName, columnArray, alias) {
+        const combined = columnArray
+            .map(col => `CAST(${tableName}."${col}" AS TEXT)`)
+            .join(" || '-' || ");
+        
+        this.virtualColumns.set(`${tableName}.${alias}`, {
+            expression: `(${combined})`, tableName: tableName, alias: alias
+        });
+    }
+
 }

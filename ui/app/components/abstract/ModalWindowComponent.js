@@ -4,7 +4,7 @@ export class ModalWindowComponent extends ViewComponent {
 
     	setOnMouseMoveContainer() {
 
-		const container = document.getElementById('container-'+this.uniqueId);
+		const container = document.getElementById('container-'+this.uniqueId) || Object;
 		const self = this;
 
 		container.onmousemove = e => {
@@ -39,32 +39,27 @@ export class ModalWindowComponent extends ViewComponent {
 	}
 
 	setOnPopupResize() {
-
-		// Dragging
-		this.popup.querySelector('.popup-mov-window-header-'+this.uniqueId).onmousedown = e => {
-			if (this.isMaximized) return;
-			this.util.isDragging = true;
-			this.dragStart = { x: e.clientX - this.popup.offsetLeft, y: e.clientY - this.popup.offsetTop };
-		};
-
-		// Dragging
-		this.popup.querySelector('.popup-mov-window-header-'+this.uniqueId).onmouseup = e => {
-			this.util.isDragging = false;			
-		};
+		const container = this.popup?.querySelector('.popup-mov-window-header-'+this.uniqueId);
+		if(container){
+			// Dragging
+			container.onmousedown = e => {
+				if (this.isMaximized) return;
+				this.util.isDragging = true;
+				this.dragStart = { x: e.clientX - this.popup.offsetLeft, y: e.clientY - this.popup.offsetTop };
+			};
+			// Dragging
+			container.onmouseup = e => this.util.isDragging = false;
+		}
 
 		// Resizing
-		this.popup.querySelectorAll('.resize-handle').forEach(handle => {
+		(this.popup?.querySelectorAll('.resize-handle') || []).forEach(handle => {
 			handle.onmousedown = e => {
 				if (this.isMaximized || this.isMinimized) return;
 				e.stopPropagation();
 				this.isResizing = handle.className.split(' ')[1];
 				this.resizeStart = {
-					x: e.clientX,
-					y: e.clientY,
-					w: this.popup.offsetWidth,
-					h: this.popup.offsetHeight,
-					left: this.popup.offsetLeft,
-					top: this.popup.offsetTop
+					x: e.clientX, y: e.clientY, w: this.popup.offsetWidth, h: this.popup.offsetHeight,
+					left: this.popup.offsetLeft, top: this.popup.offsetTop
 				};
 			};
 		});

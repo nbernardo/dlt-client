@@ -8,8 +8,17 @@ export class DataQualityController extends BaseController {
 
     // Rule Definitions
     dqRules = {
-        TRIM: (f) => `TRIM(${f})`, DISTINCT: (f) => `DISTINCT ${f}`,
-        NULL_TO_ZERO: (f) => `COALESCE(${f}, 0)`, LOWER: (f) => `LOWER(${f})`
+        TRIM: (f) => `TRIM(${f})`, 
+        LOWER: (f) => `LOWER(${f})`, 
+        UPPER: (f) => `UPPER(${f})`,
+        COALESCE: (f) => `COALESCE(${f}, '')`,
+        DISTINCT: (f) => `DISTINCT ${f}`, 
+        NULL_TO_ZERO: (f) => `COALESCE(${f}, 0)`, 
+        TO_TEXT: (f) => `CAST(${f} AS TEXT)`, 
+        TO_INT: (f) => `CAST(${f} AS INTEGER)`,
+        DATE_FORMAT: (f, fmt) => `TO_CHAR(${f}, '${fmt}')`,
+        LPAD: (f, len) => `LPAD(${f}::text, ${len || 10}, '0')`,
+        RPAD: (f, len) => `RPAD(${f}::text, ${len || 10}, '0')`
     };
 
     /** @type { Map<string, object> } */ 
@@ -74,6 +83,19 @@ export class DataQualityController extends BaseController {
 
         this.dbDiagramObj.controller.syncSqlEditor();
         //this.dbDiagramObj.controller.toggleTableFields(tableName, moduleName);
+    }
+
+    getFormattedField(fullCol, cleanField, ruleEntry) {
+        if (!ruleEntry) return null;
+        
+        const ruleKey = typeof ruleEntry === 'object' ? ruleEntry.rule : ruleEntry;
+        const params = typeof ruleEntry === 'object' ? ruleEntry.params : null;
+        
+        if (this.dqRules[ruleKey]) {
+            const transformed = params ? this.dqRules[ruleKey](fullCol, params) : this.dqRules[ruleKey](fullCol);
+            return `${transformed} AS ${cleanField}`;
+        }
+        return null;
     }
 
 }

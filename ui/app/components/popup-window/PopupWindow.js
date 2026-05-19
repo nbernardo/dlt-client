@@ -76,21 +76,20 @@ export class PopupWindow extends ViewComponent {
 	}
 
 	setOnPopupResize() {
-
-		// Dragging
-		this.popup.querySelector('.popup-mov-window-header-'+this.uniqueId).onmousedown = e => {
-			if (this.isMaximized) return;
-			this.util.isDragging = true;
-			this.dragStart = { x: e.clientX - this.popup.offsetLeft, y: e.clientY - this.popup.offsetTop };
-		};
-
-		// Dragging
-		this.popup.querySelector('.popup-mov-window-header-'+this.uniqueId).onmouseup = e => {
-			this.util.isDragging = false;			
-		};
+		const container = this.popup?.querySelector('.popup-mov-window-header-'+this.uniqueId);
+		if(container){	
+			// Dragging
+			container.onmousedown = e => {
+				if (this.isMaximized) return;
+				this.util.isDragging = true;
+				this.dragStart = { x: e.clientX - this.popup.offsetLeft, y: e.clientY - this.popup.offsetTop };
+			};
+			// Dragging
+			container.onmouseup = e => this.util.isDragging = false;
+		}
 
 		// Resizing
-		this.popup.querySelectorAll('.resize-handle').forEach(handle => {
+		(this.popup?.querySelectorAll('.resize-handle') || []).forEach(handle => {
 			handle.onmousedown = e => {
 				if (this.isMaximized || this.isMinimized) return;
 				e.stopPropagation();
@@ -110,7 +109,7 @@ export class PopupWindow extends ViewComponent {
 
 	setOnMouseMoveContainer() {
 
-		const container = document.getElementById('container-'+this.uniqueId);
+		const container = document.getElementById('container-'+this.uniqueId) || Object;
 		const self = this;
 
 		container.onmousemove = e => {

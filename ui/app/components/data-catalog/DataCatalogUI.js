@@ -45,7 +45,8 @@ export class DataCatalogUI extends ModalWindowComponent {
   async stAfterInit(){
 
     this.popup = document.getElementById(this.uniqueId);
-    this.pipelineComboBox = document.querySelector('.catalog-list-of-pipelines').querySelector('select');
+    if(document?.querySelector('.catalog-list-of-pipelines'))
+      this.pipelineComboBox = document?.querySelector('.catalog-list-of-pipelines')?.querySelector('select');
 		this.setOnMouseMoveContainer();
 		this.setOnPopupResize();
     this.util = new PopupUtil();
@@ -107,13 +108,14 @@ export class DataCatalogUI extends ModalWindowComponent {
   renderSidebar() {
     const list = document.getElementById('tableList');
     if (!this.currentPipeline || !this.PIPELINES[this.currentPipeline]) {
-      list.innerHTML = '<div class="empty" style="padding:24px 20px"><div class="empty-text">Select a pipeline</div></div>';
-      document.getElementById('tableCount').textContent = '0';
+      if(list)
+        list.innerHTML = '<div class="empty" style="padding:24px 20px"><div class="empty-text">Select a pipeline</div></div>';
+      if(document.getElementById('tableCount')) document.getElementById('tableCount').textContent = '0';
       return;
     }
     const tables = this.PIPELINES[this.currentPipeline].tables;
     const names = Object.keys(tables);
-    document.getElementById('tableCount').textContent = names.length;
+    if(document.getElementById('tableCount')) document.getElementById('tableCount').textContent = names.length;
     list.innerHTML = names.map(name => {
       const cols = tables[name].columns;
       const active = cols.filter(c => !c.deleted).length;
@@ -194,7 +196,9 @@ export class DataCatalogUI extends ModalWindowComponent {
 
   renderColumns() {
     const tbody = document.getElementById('colTableBody');
-    document.getElementById('panelTableName').textContent = this.currentTable || 'Select a table';
+    if(document.getElementById('panelTableName'))
+      document.getElementById('panelTableName').textContent = this.currentTable || 'Select a table';
+    
     const cols = this.getFilteredCols();
     if (!this.currentTable || cols.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">◈</div><div class="empty-text">${!this.currentTable ? 'Select a table' : 'No columns match filter'}</div></div></td></tr>`;
