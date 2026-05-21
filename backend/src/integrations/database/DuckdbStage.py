@@ -19,7 +19,22 @@ class DuckdbStage:
 
     @staticmethod
     def get_duckdb_tables(database_path, dataset):
-        query = f"FROM information_schema.tables SELECT table_schema, table_name, '' as module WHERE table_schema = '{dataset}' AND table_name NOT LIKE '_dlt_%'"
+        query = f"""
+            SELECT
+                t.table_schema, t.table_name, '' AS module,
+                string_agg(c.column_name || CASE WHEN pk.pk_col IS NOT NULL THEN ' (PK)' ELSE '' END, ', ' ORDER BY c.ordinal_position) AS columns
+            FROM information_schema.tables t
+            JOIN information_schema.columns c
+                ON c.table_schema = t.table_schema AND c.table_name = t.table_name
+            LEFT JOIN (
+                SELECT DISTINCT ref_table AS table_name, ref_col AS pk_col FROM dwhperformance_meta.fk_map
+                UNION
+                SELECT DISTINCT table_name, ref_col AS pk_col FROM dwhperformance_meta.fk_map
+            ) pk
+                ON pk.table_name = t.table_name AND pk.pk_col = c.column_name
+            WHERE t.table_schema = '{dataset}' AND t.table_name NOT LIKE '_dlt_%'
+            GROUP BY t.table_schema, t.table_name ORDER BY t.table_name;
+        """
         with DuckdbUtil.get_connection_for(database_path).execute(query) as con:
             result = con.execute(query).fetchall()
         
