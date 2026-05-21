@@ -98,4 +98,52 @@ export class DataQualityController extends BaseController {
         return null;
     }
 
+    addStandaloneTable(tableName) {
+        const graph = this.dbDiagramObj.graph;
+        if (!graph || graph.get('destroyed')) return;
+
+        if (graph.findById(tableName))
+            return console.warn(`Table ${tableName} is already present on the canvas.`);
+
+        const rawFields = this.dbDiagramObj.controller.pipelineTableFields.get(tableName) || [];
+        const columns = Array.isArray(rawFields) ? rawFields.join(', ') : rawFields;
+
+        const mountNode = this.dbDiagramObj.container.querySelector('#mountNode');
+        const containerWidth  = mountNode?.scrollWidth  || 800;
+        const containerHeight = mountNode?.scrollHeight || 600;
+        const center = graph.getPointByCanvas(containerWidth / 2, containerHeight / 2);
+        const offset = graph.findAll('node', n => n.getModel().isStandalone).length * 60;
+
+        graph.addItem('node', {
+            id: tableName, label: tableName, tableName: tableName, columns, isStandalone: true,
+            isExternal: true, level: 2, depth: 1, x: center.x + offset, y: center.y + offset,
+        });
+
+        graph.get('canvas').draw();
+    }
+
+    connectModeActive = false;
+
+    toggleConnectMode(btn) {
+        const graph = this.dbDiagramObj.graph;
+        this.connectModeActive = !this.connectModeActive;
+
+        if (this.connectModeActive) {
+            graph.setMode('connect');
+            btn.classList.add('active');
+            btn.textContent = '✕ Disable table connect';
+            // Show visual hint on all standalone nodes
+            graph.findAll('node', n => n.getModel().isStandalone).forEach(node => {
+                graph.updateItem(node, { connectMode: true });
+            });
+        } else {
+            graph.setMode('default');
+            btn.classList.remove('active');
+            btn.textContent = '⊟ Enable table connect';
+            graph.findAll('node', n => n.getModel().isStandalone).forEach(node => {
+                graph.updateItem(node, { connectMode: false });
+            });
+        }
+    }
+
 }

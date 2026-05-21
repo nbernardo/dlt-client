@@ -71,10 +71,11 @@ export class DatabaseDiagram extends ViewComponent {
 		const graph = new G6.TreeGraph({
 			container: 'mountNode', width, height, animate: true, fitView: false, fitCenter: true, cursor: 'grab', renderer: 'svg',
             modes: {
-                default: [
-                    'drag-canvas', 'zoom-canvas', 
-                    { type: 'create-edge', trigger: 'drag', edgeConfig: { type: 'cubic-horizontal', style: { stroke: '#1890ff', lineDash: [5, 5] } }}
-                ]
+                default: ['drag-canvas', 'zoom-canvas', 'drag-node'],
+                connect: [
+                    'zoom-canvas',
+                    { type: 'create-edge', trigger: 'drag', edgeConfig: { type: 'cubic-horizontal', style: { stroke: '#1890ff', lineDash: [5, 5] } } }
+                ],
             },
 			layout: {
 				type: 'compactBox', direction: 'LR', getId: (d) => d.id, getHeight: () => 20, getVGap: () => 15, 
@@ -153,7 +154,7 @@ export class DatabaseDiagram extends ViewComponent {
         overlay.querySelector('.bridge-close').addEventListener('click', () => this._removeBridgeOverlay(graph, bridgeId));
 
         const syncRelation = () => {
-            const sCol = overlay.querySelector('.s-sel').value, tCol = overlay.querySelector('.t-sel').value;
+            const sCol = overlay.querySelector('.s-sel').value, tCol = overlay.querySelector('.t-sel').value;            
             this.controller.addManualRelation(`${sourceModel.tableName}.${sCol}`,`${targetModel.tableName}.${tCol}`);
         };
         overlay.querySelector('.s-sel').addEventListener('change', syncRelation);
@@ -177,7 +178,6 @@ export class DatabaseDiagram extends ViewComponent {
     _removeBridgeOverlay(graph, bridgeId) {
         if(this.bridgeOverlays[bridgeId]){
             const { overlay, rpostion } = this.bridgeOverlays[bridgeId];
-            if (!entry) return;
             overlay.remove();
             graph.off('afterlayout', rpostion), graph.off('viewportchange', rpostion), graph.off('wheel', rpostion), graph.off('canvas:drag', rpostion);
             delete this.bridgeOverlays[bridgeId];
@@ -191,27 +191,44 @@ export class DatabaseDiagram extends ViewComponent {
         this.graph.data({ id: 'root', label: 'e2e-Data Platform', isRoot: true, children: [] });
         this.graph.render();
         this.controller.setGraphOnClickEvt(this.graph);
+
+        this.graph = this.initGraph();
+        if (!this.graph) return;
+
+        const contnr = this.container.querySelector('#mountNode');
+        if (contnr) this.graph.changeSize(contnr.scrollWidth || 800, contnr.scrollHeight || 600);
+
+        this.graph.data({ id: 'root', label: 'e2e-Data Platform', isRoot: true, children: [] });
+        this.graph.render();
+        this.controller.setGraphOnClickEvt(this.graph);
     }
 
     async updateGraphData(summaryRows, tableName) {
+        const standaloneNodes = this.graph.findAll('node', n => n.getModel().isStandalone).map(n => ({ ...n.getModel() }));
+
         this.graph.clear();
-        if(summaryRows){
+
+        if (summaryRows) {
             if (!this.graph) return setTimeout(() => this.updateGraphData(summaryRows), 50);
-            if (!summaryRows || !summaryRows?.tables || summaryRows?.tables?.length === 0) return;
-    
+            if (!summaryRows?.tables || summaryRows.tables.length === 0) return;
+
             const container = this.container.querySelector('#mountNode');
             if (container) this.graph.changeSize(container.scrollWidth, container.scrollHeight);
-    
+
             this.controller.compileRelations(summaryRows.relations);
             this.controller.listToTree(summaryRows.tables, tableName, summaryRows.relations, 0);
             this.graph.data(this.controller.anchorNode);
             this.graph.render();
-        
+
             this.graph.fitView([40, 40, 40, 40]);
             this.graph.zoomTo(2.0, { x: this.graph.getWidth() / 2, y: this.graph.getHeight() / 2 });
 
             const width = this.graph.getWidth();
             this.graph.translate(-(width / 5), 0);
+
+            standaloneNodes.forEach(model => !this.graph.findById(model.id) ? this.graph.addItem('node', model) : '');
+
+            if (standaloneNodes.length > 0) this.graph.get('canvas').draw();
 
             setTimeout(() => {
                 const item = this.graph.findById(this.controller.anchorNode.id);
