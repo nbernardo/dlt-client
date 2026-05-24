@@ -1,10 +1,9 @@
 from sqlalchemy import create_engine, inspect, MetaData, Table, text
 from sqlalchemy.engine import reflection
-from sqlalchemy.exc import NoInspectionAvailable
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import traceback
 import platform
-from utils.SQLServerUtil import column_type_conversion
+from datetime import datetime, timezone
 
 class SQLDatabase:
 
@@ -403,6 +402,7 @@ def generate_join_query(target_tables: dict = {}, relationships = {}, schema_met
     query = f"{select_clause}\nFROM {primary_table}"
     joined_tables, seen_rels = {primary_table}, set()
     tables_list = target_tables.keys()
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
 
     added = True
     while added:
@@ -422,7 +422,7 @@ def generate_join_query(target_tables: dict = {}, relationships = {}, schema_met
                 if (table in joined_tables and ref_table not in joined_tables) or \
                    (ref_table in joined_tables and table not in joined_tables):
                     join_target = ref_table if table in joined_tables else table
-                    query += f"\nFULL OUTER JOIN {join_target} ON {on_clause}"
+                    query += f"\nFULL OUTER JOIN {join_target} ON {on_clause} AND {join_target}._e2e_ts >= '{ts}'"
                     joined_tables.add(join_target)
                     seen_rels.add(rel_key)
                     added = True
@@ -451,7 +451,7 @@ def _normalize_table_names_backward(secrets, tables, primary_keys=None):
     return actual_tables, actual_pks
 
 
-def normalize_table_names(secrets, tables, primary_keys=None, db_name = {}):
+def additional_parse(secrets, tables, primary_keys=None, db_name = {}):
     dbengine = secrets.get('dbengine', 'postgres')
     connection_url = secrets.get('connection_url')
     schema = secrets.get('schema', 'public')
@@ -500,21 +500,31 @@ def normalize_table_names(secrets, tables, primary_keys=None, db_name = {}):
             ddls[table] = f"CREATE TABLE {table} (\n" + ",\n".join(column_defs) + "\n);"
 
     final_big_query = generate_join_query(actual_tables, relationships, schema_metadata, db_name)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+    return tables, actual_pks, relationships, schema_metadata, ddls, final_big_query, ts
 
-    return tables, actual_pks, relationships, schema_metadata, ddls, final_big_query
+
+def new_pk(row, pk, source_col = 'NOT_SET'):
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+    return { **row, "_e2e_ingtegration_source": source_col, "_e2e_pk": f"{row[pk]}__{source_col}", "_e2e_ts": ts }
 
 
-def converts_field_type(table, pk):
+def converts_field_type(table, pk, additionals = {}, source_col = 'NO_SET'):
     columns_config = {}
     
-    for col_name, col_info in table.compute_table_schema().get("columns", {}).items():
-        if(col_name.lower() == pk.lower()):
-            if col_info.get("data_type") == "double":
-                columns_config[col_name] = {"data_type": "text"}
-                print(f"Converting {table.name}.{col_name}: double → text")
+    if str(additionals.get('perf_optmzd')) == '1':
+        table.add_map(lambda k: new_pk(k, pk, source_col))
+        table.apply_hints(primary_key="_e2e_pk")
+
+    else:
+        for col_name, col_info in table.compute_table_schema().get("columns", {}).items():
+            if(col_name.lower() == pk.lower()):
+                if col_info.get("data_type") == "double":
+                    columns_config[col_name] = {"data_type": "text"}
+                    print(f"Converting {table.name}.{col_name}: double → text")
     
-    if columns_config:
-        table.apply_hints(columns=columns_config)
+        if columns_config:
+            table.apply_hints(columns=columns_config)
     
     table.apply_hints(schema_contract={"tables": "evolve", "columns": "evolve"})
     table = table.apply_hints(additional_table_hints={"x-dlt-materialize-schema": True})

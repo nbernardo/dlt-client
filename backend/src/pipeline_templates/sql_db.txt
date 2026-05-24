@@ -10,7 +10,7 @@ logger.info("Starting SQL database pipeline", extra={'stage': 'initialization', 
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
-from src.utils.SQLDatabase import normalize_table_names, converts_field_type
+from src.utils.SQLDatabase import additional_parse, converts_field_type
 
 # Bellow mapping: namespace = SqlDBComponent.namespace
 namespace = %namespace%
@@ -42,8 +42,8 @@ def load_select_tables_from_db():
     original_tables_pk = %primary_keys%
     
     logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(original_tables)})
-    tables, pks, rels, meta, ddls, big_query = normalize_table_names(secret, original_tables, original_tables_pk)
-    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'rels': rels, 'perf_optmzd': %perf_optmzd% }
+    tables, pks, rels, meta, ddls, big_query, time_stmp = additional_parse(secret, original_tables, original_tables_pk)
+    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'rels': rels, 'perf_optmzd': %perf_optmzd%, 'ts': time_stmp }
     additionals = { **additionals, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query, 'use_existing_dw': '%use_existing_dw%' }
 
     short_query = Helper.short_query(big_query)
@@ -66,7 +66,7 @@ def load_select_tables_from_db():
             })
             
             db_table = sql_table(table=table_name,  credentials=credentials, schema=schema_name)
-            source.append(converts_field_type(db_table, pks[idx]))
+            source.append(converts_field_type(db_table, pks[idx], additionals, '%original_pipeline_name%'))
             if staged_table: # In case the tables will be in stage area
                 db_table.apply_hints(table_name=Helper.prefix_and_suffix_table(table_name, tbl_stage))
 
@@ -81,7 +81,7 @@ def load_select_tables_from_db():
             table = getattr(source, tables[idx]).apply_hints(
                 primary_key=pks[idx], table_name=Helper.prefix_and_suffix_table(table_name, tbl_stage) if staged_table else table_name
             )
-            converts_field_type(table, pks[idx])
+            converts_field_type(table, pks[idx], additionals, '%original_pipeline_name%')
 
     print('Starting pipeline run', flush=True)
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})

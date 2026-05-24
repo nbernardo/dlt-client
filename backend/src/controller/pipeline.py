@@ -34,6 +34,7 @@ def create():
     context.pipeline_metadata.domain_pipeline = payload['analyticOptimized']
     context.pipeline_metadata.existing_wd = payload.get('usedExistingDW')
     context.pipeline_metadata.pipline_plan_id = payload.get('pipelinePlanId')
+    context.pipeline_metadata.original_pipeline_name = payload.get('activeGrid')
 
     duckdb_path, ppline_path, diagrm_path = handle_user_tenancy_folders(payload, context)
     start_node_id, node_params, sql_destinations = pepeline_init_param(payload)
@@ -355,8 +356,9 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('__current.PIPELINE_NAME', f"'{pipeline_name}'")
     template = template.replace('%User_folder%', payload['user'])
     template = template.replace('%namespace%', f"'{payload['user']}'")
-    template = template.replace('%perf_optmzd%', context.pipeline_metadata.domain_pipeline)
+    template = template.replace('%perf_optmzd%', str(context.pipeline_metadata.domain_pipeline))
     template = template.replace('%use_existing_dw%', 'yes' if context.pipeline_metadata.existing_wd != None else 'no')
+    template = template.replace('%original_pipeline_name%', context.pipeline_metadata.original_pipeline_name)
     # %table_format% replace might be preceeded by the DLTCodeOutput node type which
     # means that if this was stated at the node level, this one won't take any effect 
     template = template.replace('%table_format%', '')

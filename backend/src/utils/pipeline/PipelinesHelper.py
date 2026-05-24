@@ -4,6 +4,7 @@ from os import getenv as env
 import sys
 import threading
 import duckdb
+from duckdb import DuckDBPyConnection
 
 PipelineLogger = PL
 
@@ -70,7 +71,7 @@ class PipelineHelper:
         loads_ids = info.loads_ids if type(info.loads_ids) == list else []
         loads_ids_str = ','.join([f"'{val}'" for val in loads_ids])
         perf_optmzd = additionals.get('perf_optmzd', 0)
-        con = None
+        con: DuckDBPyConnection = None
 
         try:
             MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals)
@@ -86,7 +87,8 @@ class PipelineHelper:
                 exists = con.execute(f"SELECT table_name FROM information_schema.tables WHERE table_name = '{big_table}'").fetchone()
 
                 if exists != None:
-                    PipelineHelper._update_analytics_storage(con, big_query, big_table, db_name, meta, tbls, loads_ids_str)
+                    ts = additionals['ts']
+                    PipelineHelper._update_analytics_storage(con, big_query, big_table, db_name, meta, tbls, loads_ids_str, ts)
                 else:
                     PipelineHelper._create_analytics_storage(con, big_query, big_table, db_name, meta, tbls)
 
@@ -95,6 +97,7 @@ class PipelineHelper:
             print()
 
         finally:
+            if con != None: con.close()
             sys.exit(0) # Gracefully terminates the sub-process
 
 
@@ -169,20 +172,20 @@ class PipelineHelper:
 
 
     @staticmethod
-    def _update_analytics_storage(con, ready_query, big_table, db_name, meta, tbls, loads_ids_str):
+    def _update_analytics_storage(con, ready_query, big_table, db_name, meta, tbls, loads_ids_str, ts):
         '''
             This method handles Schema evolution for existing bigtable on the Datawarehouse or
             pipeline re-run (run count > 1) targeting a big table that was generated in the first run
         ''' 
 
-        def run_transform(con, big_table, big_query, done_event):
+        def run_transform(con, big_table, big_query, done_event, ts):
             try:
                 con.execute(f"SET search_path = '{db_name}';")
 
                 # new_columns -> Extract the new columns to be added in the big_table for Schema evolution
                 # insert_cols_str -> Extract the new fields separated by comma to which data should be inserted
                 # were_clause -> Where clause filters
-                new_columns, insert_cols_str, were_clause = PipelineHelper.get_new_columns_and_filter(con, meta, tbls, big_table, loads_ids_str)
+                new_columns, insert_cols_str, were_clause = PipelineHelper.get_new_columns_and_filter(con, meta, tbls, big_table, loads_ids_str, ts)
                 new_cols_str = '\n'.join([f"ALTER TABLE {big_table} ADD COLUMN {c} {str(type).replace('()','')};" for c, type in new_columns.items()])
                 insert_query = f'INSERT INTO {big_table} {big_query} WHERE {were_clause}'
 
@@ -201,7 +204,7 @@ class PipelineHelper:
                 done_event.set()
 
         done_event = threading.Event()
-        t = threading.Thread(target=run_transform, args=(con, big_table, ready_query, done_event))
+        t = threading.Thread(target=run_transform, args=(con, big_table, ready_query, done_event, ts))
         t.start()
 
         while not done_event.is_set():
@@ -211,15 +214,18 @@ class PipelineHelper:
         print('BI Table Created (Balanced Mode).')
 
 
-    def get_new_columns_and_filter(con, meta, tbls, big_table, loads_ids_str):
+    def get_new_columns_and_filter(con, meta, tbls, big_table, loads_ids_str, time_stmp):
         '''
             This extracts the new columns to be inserted as well as the where 
             clause of the data to be filtered to load into the bigtable
         '''
         columns_to_add, insert_columns, were_clauses = {}, '', []
+        fact_tbl = None
         for tbl in tbls:
             cols = ''
             tbl = tbl.split('.')[1]
+            if fact_tbl == None: fact_tbl = tbl
+            # To filter only the records of the last load_id registered by dlt
             were_clauses.append(f"{tbl}._dlt_load_id IN ({loads_ids_str})")
 
             for c, _ in meta[tbl].items():
@@ -242,8 +248,9 @@ class PipelineHelper:
                     columns_to_add[c] = meta[tbl][real_column_name]                
         
         insert_columns = insert_columns[0:-1]
-
-        where_clauses_str = ' OR '.join(were_clauses)
+        # {tbls[0]}._e2e_ts >= '{time_stmp} -> Will only fetch the records loaded form the timestamp which
+        # the pipeline ran started, combined with dlt-load it'll prevent from loading data from another pipeline 
+        where_clauses_str = f"{fact_tbl}._e2e_ts >= '{time_stmp}'" #AND (" + (' OR '.join(were_clauses)) + ")"
         return columns_to_add, insert_columns, where_clauses_str
 
 

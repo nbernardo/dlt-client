@@ -202,3 +202,4 @@ class PipelineMetadata:
         self.domain_pipeline = ''
         self.existing_wd = None
         self.pipline_plan_id = None
+        self.original_pipeline_name = None

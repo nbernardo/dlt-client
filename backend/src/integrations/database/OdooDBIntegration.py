@@ -6,10 +6,19 @@ class OdooDBIntegration:
     @staticmethod
     def get_db_tables(namespace, connection_name = None, pipeline = None):
         query = '''
-            SELECT  n.nspname AS schema_name, c.relname AS table_name, split_part(c.relname, '_', 1) AS module_prefix
-            FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-            WHERE n.nspname = 'public' AND c.relkind = 'r'
+            SELECT  
+                n.nspname AS schema_name, c.relname AS table_name, split_part(c.relname, '_', 1) AS module_prefix,
+                string_agg(CASE WHEN a.attnum = ANY(i.indkey) THEN a.attname || ' (PK)' ELSE a.attname END,  ', ' ORDER BY a.attnum) AS columns_list
+            FROM pg_class c 
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            JOIN pg_attribute a ON a.attrelid = c.oid
+            LEFT JOIN pg_index i ON i.indrelid = c.oid AND i.indisprimary = true
+            WHERE n.nspname = 'public' 
+                AND c.relkind = 'r'
+                AND a.attnum > 0 
+                AND NOT a.attisdropped
             AND c.relname NOT SIMILAR TO '(ir_|base_|mail_|bus_|report_|sms_|snailmail_|calendar_|spreadsheet_|web_|wizard_|portal_|l10n_|digest_|res_).*'            
+            GROUP BY n.nspname, c.relname, c.oid
             ORDER BY c.relname;
         '''
         try:
