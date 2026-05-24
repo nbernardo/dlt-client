@@ -14,7 +14,7 @@ valid_imports = [
     'from src.utils import SQLServerUtil',
     'from dlt.sources.sql_database import sql_database, sql_table',
     'from os import getenv as env',
-    'from src.utils.SQLDatabase import normalize_table_names, converts_field_type',
+    'from src.utils.SQLDatabase import additional_parse, converts_field_type',
     'from sqlalchemy import create_engine',
     'from kafka import KafkaConsumer',
     'from certifi import where',

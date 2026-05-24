@@ -88,8 +88,7 @@ def get_odoo_tables(anchor_table, namespace, pipeline = None):
 @bi_controller.route('/analytics/sql_query/<namespace>', methods=['POST'])
 def query_sql_rdbms(namespace):
     payload = request.get_json()
-    tables_and_relations = BIService.query_sql_rdbms(payload['query'], namespace, payload['connectionName'])
-    return { **tables_and_relations, 'error': False }
+    return BIService.query_sql_rdbms(payload.get('query'), namespace, payload.get('connectionName'))
 
 
 @bi_controller.route('/analytics/<namespace>/pipeline/plan', methods=['POST'])

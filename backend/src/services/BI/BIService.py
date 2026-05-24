@@ -62,13 +62,29 @@ class BIService:
 
     @staticmethod
     def query_sql_rdbms(query, namespace, connection_name):
+        result = None
+        if not connection_name:
+            return { 'result': 'Invalid data source', 'error': True }
+        
+        line_count, invalid_query = 0, False
+        for query_line in str(query).split('\n'):
+            if line_count > 0: break
+            if str(query_line).strip().startswith('--') or str(query_line).strip() == '':
+                continue
+            if not str(query_line).strip().lower().startswith('select'):
+                invalid_query = True
+            line_count += 1
+
+        if(invalid_query):
+            return { 'result': 'Invalid type of query', 'error': True }
+        
         if(str(connection_name).__contains__('.')):
             db_path, dataset, _ = handle_duckdb_path(connection_name, namespace)
             result = DuckdbStage.run_sql_query_on_stage_tables(db_path, query)
-            return result
-            ...
         else:
-            return DestinationQueryUtil.query_sql_database(query, namespace, connection_name)
+            result = DestinationQueryUtil.query_sql_database(query, namespace, connection_name)
+
+        return { **result, 'error': result.get('error', False) }
     
 
     @staticmethod

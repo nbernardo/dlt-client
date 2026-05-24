@@ -120,7 +120,7 @@ class DestinationQueryUtil:
         except Exception as err:
             print(f'Error querying SQL database: {str(err)}')
             print(f'Connection: {connection_name}, Namespace: {namespace}')
-            raise
+            return { 'error': True, 'result': str(err) }
 
 
     @staticmethod

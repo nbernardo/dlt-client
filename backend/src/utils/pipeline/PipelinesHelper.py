@@ -187,7 +187,7 @@ class PipelineHelper:
                 # were_clause -> Where clause filters
                 new_columns, insert_cols_str, were_clause = PipelineHelper.get_new_columns_and_filter(con, meta, tbls, big_table, loads_ids_str, ts)
                 new_cols_str = '\n'.join([f"ALTER TABLE {big_table} ADD COLUMN {c} {str(type).replace('()','')};" for c, type in new_columns.items()])
-                insert_query = f'INSERT INTO {big_table} {big_query} WHERE {were_clause}'
+                insert_query = f'INSERT INTO {big_table} {big_query}'
 
                 if len(new_cols_str):
                     new_cols_str = str(new_cols_str).lower().replace('jsonb','json')
@@ -250,7 +250,7 @@ class PipelineHelper:
         insert_columns = insert_columns[0:-1]
         # {tbls[0]}._e2e_ts >= '{time_stmp} -> Will only fetch the records loaded form the timestamp which
         # the pipeline ran started, combined with dlt-load it'll prevent from loading data from another pipeline 
-        where_clauses_str = f"{fact_tbl}._e2e_ts >= '{time_stmp}'" #AND (" + (' OR '.join(were_clauses)) + ")"
+        where_clauses_str = ''#f"{fact_tbl}._e2e_ts >= '{time_stmp}'" AND (" + (' OR '.join(were_clauses)) + ")"
         return columns_to_add, insert_columns, where_clauses_str
 
 

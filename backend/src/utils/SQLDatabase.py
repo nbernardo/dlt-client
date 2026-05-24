@@ -426,6 +426,8 @@ def generate_join_query(target_tables: dict = {}, relationships = {}, schema_met
                     joined_tables.add(join_target)
                     seen_rels.add(rel_key)
                     added = True
+
+    query = f" WHERE {tables_list[0]}._e2e_ts >= '{ts}'"
     return query
 
 
