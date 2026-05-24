@@ -34,7 +34,7 @@ export class BIController2 extends BaseController {
         const listContainer = this.$('#generic-tables-list');
         listContainer.innerHTML = (tables || []).map(table => {
 
-            DBDiagramController.fromContext().pipelineTableFields.set(table[1], table[3].split(','))    
+            DBDiagramController.fromContext().pipelineTableFields.set(table[1], (table[3] || '').split(','))    
             return this.obj.parseEvents(`
                 <div class="drawer-table-item">
                     <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
@@ -43,7 +43,7 @@ export class BIController2 extends BaseController {
                                 <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/>
                             </svg>
                         </span>
-                        <span style="font-size: 12px; font-weight: 500; display: block; width: 70%;">${this.parseStagedTableName(table[1])}</span>
+                        <span style="font-size: 12px; font-weight: 500; display: block; width: 79.5%;" class="truncate-text">${this.parseStagedTableName(table[1])}</span>
                         <div class="table-buttons">
                             <span title="Load table schema" onclick="controller('BIController2').fetchRootAndLevel1Tables('${table[1]}')">
                                 <img src="/app/assets/imgs/share.png">
