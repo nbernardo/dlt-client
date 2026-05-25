@@ -4,9 +4,9 @@ import { SqlDBComponent } from "../SqlDBComponent.js";
 /**
  * @param { SqlDBComponent } self 
  */
-export function addSQLComponentTableField(self, tableId, value = '', pkValue = '', disabled = false, isOld = false){
+export function addSQLComponentTableField(self, tableId, value = '', pkValue = '', disabled = false, isOld = false, incrByFieldVal = ''){
     
-    let tblFieldName = `tableName` + tableId, placeholder = 'Enter table ' + tableId + ' name', pkFieldName;
+    let tblFieldName = `tableName` + tableId, placeholder = 'Enter table ' + tableId + ' name', pkFieldName, incrByFieldName;
     const table = FormHelper
         .newField(self, self.formRef, tblFieldName, value)
         .input({ required: true, placeholder, validator: 'text', value, disabled, className: `dynamic-db-table-field ${tblFieldName}` })
@@ -20,6 +20,17 @@ export function addSQLComponentTableField(self, tableId, value = '', pkValue = '
         .input({ required: true, placeholder, validator: 'text', value, disabled, className: `dynamic-db-table-field ${pkFieldName}` })
         .element;
 
+    incrByFieldName = 'incrementCol' + tableId, placeholder = 'Increment by Field';
+    let iniStyle = 'float: right;';
+    const className = `dynamic-db-table-field ${incrByFieldName} increment-by-field`
+    
+    if(self.showIncrementalByFields === true) iniStyle += 'display: flex;';
+
+    const incrementByField = FormHelper
+        .newField(self, self.formRef, incrByFieldName, incrByFieldVal)
+        .input({ required: false, placeholder, validator: 'text', value, disabled, className, style: `${iniStyle}` })
+        .element;
+
     let div = document.createElement('div'), delBtn;
     
     if(!isOld){
@@ -30,6 +41,7 @@ export function addSQLComponentTableField(self, tableId, value = '', pkValue = '
         function removeMe() {
             FormHelper.delField(self, self.formRef, pkFieldName);
             FormHelper.delField(self, self.formRef, tblFieldName);
+            FormHelper.delField(self, self.formRef, incrByFieldName);
             delete self.selectedTablesName[tblFieldName];
             div.remove();
         }
@@ -39,7 +51,8 @@ export function addSQLComponentTableField(self, tableId, value = '', pkValue = '
 
     div.style.marginTop = '3px';
     div.className = 'table-detailes';
-    div.innerHTML = `${table}${pkField}`;
+    div.style.alignItems = 'center';
+    div.innerHTML = `${table}${pkField}${incrementByField}`;
 
     if(!isOld) div.insertAdjacentElement('beforeend', delBtn);
 
@@ -47,7 +60,7 @@ export function addSQLComponentTableField(self, tableId, value = '', pkValue = '
 
     //Add the filter result list
     setTimeout(() => {
-        self.handleTableFieldsDropdown(`.${tblFieldName}`, `.${pkFieldName}`);
+        self.handleTableFieldsDropdown(`.${tblFieldName}`, `.${pkFieldName}`, undefined, undefined, `.${incrByFieldName}`);
     }, 600);
 
 }

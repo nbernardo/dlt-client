@@ -372,19 +372,19 @@ export class DBDiagramController extends BaseController {
 
         const result = await BIService.runSQLQuery(this.editor.getValue());
         const fields = result.fields || [], rows = result.result;
-        
+            
         if(!this.datagridInstance){
             const { template: gridUI, component: gridComponent } = await Components.new(Grid, { fields, data: rows });
             this.datagridInstance = gridComponent;
             this.obj.container.querySelector('.queryResultPLaceholder').innerHTML = gridUI;
-            this.datagridInstance.onLoad(() => {
-                this.datagridInstance.loadGrid();
-                BIController.fromContext().removeLoadingFromContainer(container);
-            });
+            this.datagridInstance.onLoad(() => this.datagridInstance.loadGrid());
         }else{
-            this.datagridInstance.setGridData(fields, rows).loadGrid();
-            BIController.fromContext().removeLoadingFromContainer(container);
+            if(result.error) {
+                this.datagridInstance.setGridData(['Error'], [[`<span style='color:red;'>${result.result}</span>`]]).loadGrid()
+            }else
+                this.datagridInstance.setGridData(fields, rows).loadGrid();
         }
+        BIController.fromContext().removeLoadingFromContainer(container);
     }
 
     setGraphOnClickEvt(graph){

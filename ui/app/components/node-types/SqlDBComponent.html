@@ -47,10 +47,23 @@
 					</select>
 				-->
 				<p style="font-weight: bold; margin-top: 10px;">Database: &nbsp;<span style="font-weight: normal; word-wrap: anywhere;">@database</span></p>
-				<p style="font-weight: bold; margin-top: 10px;">Tables list:</p>
+				<p style="font-weight: bold; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+					Tables list:
+                    <span style="font-size: 12px; font-weight: normal;">
+                        Incremental update
+                        <label class="e2e-switch">
+                            <input
+                                class="filterSchedulePPlineToggle" 
+                                type="checkbox"
+                                oninput="component.incrementallyUpdate(this.checked);">
+                            <span class="e2e-slider round"></span>
+                        </label>
+                    </span>
+				</p>
 				<div>
 					<input type="text" data-id="firstTable" (required)="true" (value)="tableName" placeholder="Enter table 1 name">
 					<input type="text" data-id="firstPK" (value)="primaryKey" placeholder="PK Field">
+					<input type="text" data-id="firstIncrementCol" (value)="incrementCol" placeholder="Increment by Field">
 				</div>
 			</form>
 			<button onclick="component.addField()" class="add-table-buttons add-btn-primary" style="padding: 5px;">+ Table field</button>
@@ -60,7 +73,8 @@
 </div>
 <style>
 	.add-table-buttons { margin-top: 5px; }
-	.parent-node .SqlDBComponent { width: 275px; z-index: 1; }
+	.parent-node .SqlDBComponent { width: 275px; z-index: 1;  }
+	.parent-node .expandedSqlDBComponent { width: 480 !important; }
 	.SqlDBComponent input:not([placeholder="PK Field"]){ width: 129px; font-size: 12px; }
 	.SqlDBComponent input[placeholder="PK Field"]{ width: 100px; font-size: 12px; padding-left: 3px; }
 	.SqlDBComponent select[data-dropdown]{ width: 100%; padding-left: 3px; margin-top: 5px; }
@@ -73,6 +87,7 @@
 		margin-top: -23px;
 		font-weight: bold;
 		color: red;
-		cursor: pointer; 
+		cursor: pointer;
   	}
+	input[data-id="firstIncrementCol"], .increment-by-field{ display: none; padding-left: 3px; float: right; }
 </style>

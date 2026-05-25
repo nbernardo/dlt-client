@@ -180,6 +180,8 @@ export class BIService extends BaseService {
         const url = '/analytics/sql_query/' + (await BIService.getNamespace());
 
         const response = await $still.HTTPClient.post(url, JSON.stringify({ query, connectionName: BIService.selectedConnection }), HTTPHeaders.JSON);
+        if(response.error) 
+            return { result: response.result, error: true }
         if (response.ok && !response.error)
             return await response.json();
         return null;

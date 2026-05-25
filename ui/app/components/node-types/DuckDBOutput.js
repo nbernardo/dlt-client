@@ -1,5 +1,4 @@
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
-import { PipelineService } from "../../services/PipelineService.js";
 import { BIService } from "../dataviz/services/BIService.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
@@ -61,11 +60,14 @@ export class DuckDBOutput extends AbstractNode {
 			this.newDBInput.setAttribute('required', true);
 			this.userExistingDW = false;
 			WorkSpaceController.usedExistingDW = null;
-		} else {
-			WorkSpaceController.usedExistingDW = dwName;
-			this.userExistingDW = true;
-			this.newDBInput.removeAttribute('required');
+			document.querySelector('.analyticsOptimizedPipeline').value = '';
+			return WorkSpaceController.fromContext().markAnalyticsOptimizedPipeline(0);
 		}
+		WorkSpaceController.usedExistingDW = dwName;
+		this.userExistingDW = true;
+		this.newDBInput.removeAttribute('required');
+		document.querySelector('.analyticsOptimizedPipeline').value = '1';
+		WorkSpaceController.fromContext().markAnalyticsOptimizedPipeline(1);
 	}
 
 	async stAfterInit(){
@@ -93,7 +95,7 @@ export class DuckDBOutput extends AbstractNode {
 		}
 
 		setTimeout(async () => {
-			const pipelines = await BIService.getDWPipelines();
+			const pipelines = await BIService.getDWPipelines();			
 			this.targetDataWarehouses = (pipelines || []).map(itm => ({ dwname: itm[1], table: itm[0] }));
 		});
 	}

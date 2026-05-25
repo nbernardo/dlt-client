@@ -30,7 +30,7 @@ export const FormHelper = {
             /** @param { InParams } params  */
             input(params){
                 if(formRef === undefined) return;
-                const {className, id, datasets = {}, type, placeholder, min, max, required, validator, warn, value, disabled} = params;
+                const {className, id, datasets = {}, type, placeholder, min, max, required, validator, warn, value, disabled, style} = params;
                 const datafields = Object.entries(datasets).map(([f,v]) => (`data-${f}="${v}"`)).join(' ');
                 const ftype=`type="${type || 'text'}"`, isOptList = ['radio','checkbox'].includes(type);
                 const hint = `${placeholder ? `placeholder="${placeholder}"` : ''}`;
@@ -48,6 +48,7 @@ export const FormHelper = {
                 const input = `
                     <input ${datafields} ${disabled ? 'disabled="true"' : ''} data-st-field-name="${fName}"
                         class="${genInputsClasses(validatorClass, cmpId, fName, val, isOptList)} ${cmp.cmpInternalId}-${fName} ${className || ''}"
+                        style="${style}"
                         ${ftype} ${val} ${_id} ${req.trim()} ${wrn} ${hint} ${mn} ${mx} ${validateEvt} ${vlidtor} ${checked}>
                 `;
                 return {

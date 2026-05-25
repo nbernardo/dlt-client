@@ -38,12 +38,14 @@ export class SqlDBComponent extends AbstractNode {
 	selectedDbEngineDescription = 'Not selected';
 	selectedSecret;
 	primaryKey;
+	incrementCol;
 	secretList = [];
 	hostName = 'None';
 	nodeCount = '';
 
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
+	/** @Prop @type { HTMLElement } */ container;
 
 	/** @Prop @type { STForm } */ anotherForm;
 	/** @Prop */ showLoading = false;
@@ -54,7 +56,9 @@ export class SqlDBComponent extends AbstractNode {
 	// An existing pipeline by calling the API
 	/** @Prop @type { Map } */ tables;
 	/** @Prop @type { Map } */ primaryKeys;
+	/** @Prop @type { Map } */ incrementCols;
 	/** @Prop */ importFields;
+	/** @Prop */ showIncrementalByFields;
 
 	/**
 	 * @Inject @Path services/
@@ -67,13 +71,17 @@ export class SqlDBComponent extends AbstractNode {
 	 * will be passed
 	 * */
 	stOnRender(data){		
-		const { nodeId, isImport, tables, primaryKeys, database, dbengine, connectionName, aiGenerated, asTemplate, fromPlan } = data;		
+		const { 
+			nodeId, isImport, tables, primaryKeys, database, dbengine, isIncremental,
+			connectionName, aiGenerated, asTemplate, fromPlan, incrementCols 
+		} = data;		
 		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
 		this.tables = tables;
 		this.primaryKeys = primaryKeys;	
-		this.importFields = { database, dbengine, connectionName, asTemplate, changeCount: 0, fromPlan };
+		this.incrementCols = incrementCols;	
+		this.importFields = { database, dbengine, connectionName, asTemplate, changeCount: 0, fromPlan, isIncremental };
 		this.selectedSecret = this.importFields.connectionName;
 		if(data?.host) this.importFields.host = data.host;
 	}
@@ -82,6 +90,7 @@ export class SqlDBComponent extends AbstractNode {
 		await this.getDBSecrets();
 		this.isOldUI = this.templateUrl?.includes('SqlDBComponent_old.html');
 		this.selectedSecretTableList = [], this.selectedTablesName = {};
+		this.container = document.querySelector(`.${this.cmpInternalId}`);
 
 		this.dynamicFields = new TableAndPKType();
 		this.setupOnChangeListen();
@@ -90,9 +99,13 @@ export class SqlDBComponent extends AbstractNode {
 		if(this.aiGenerated === true) this.handleAiGenerated();
 		
 		const htmlTableInputSelector = 'input[data-id="firstTable"]', 
-			  htmlPkInputSelector = 'input[data-id="firstPK"]';
+			  htmlPkInputSelector = 'input[data-id="firstPK"]',
+			  htmlIncrementColInputSelector = 'input[data-id="firstIncrementCol"]';
 
-		if(!this.isOldUI) this.handleTableFieldsDropdown(htmlTableInputSelector, htmlPkInputSelector);
+		if(!this.isOldUI) this.handleTableFieldsDropdown(htmlTableInputSelector, htmlPkInputSelector, undefined, undefined, htmlIncrementColInputSelector);
+		
+		if(this.importFields.isIncremental === true) 
+			document.querySelector(`.${this.cmpInternalId}`).parentElement.parentElement.style.width = '408px';
 
 	}
 
@@ -107,18 +120,23 @@ export class SqlDBComponent extends AbstractNode {
 		const disable = this.wSpaceController.shouldDisableNodeFormInputs;
 		const allTables = isItPlanned ? Object.keys(this.tables).map(this.extractTableName) : Object.values(this.tables);
 		const allKeys = Object.values(this.primaryKeys);
+		const allIncrementCols = Object.values(this.incrementCols);
 		const data = WorkSpaceController.getNode(this.nodeId).data;
 
 		// Assign the first table
 		this.tableName = isItPlanned ? allTables[0] : this.tables['tableName'];
 		this.primaryKey = allKeys[0];
+		this.incrementCol = allIncrementCols[0];
+
 		// Assign remaining tables if more than one in the pipeline
-		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable, allKeys[idx+1]));
+		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable, allKeys[idx+1], allIncrementCols[idx+1]));
 		this.dbInputCounter = allTables.length, this.hostName = this.importFields.host || 'None'
 		this.selectedDbEngine = this.importFields.dbengine;
 		this.setDBIcon(this.selectedDbEngine);
 		document.querySelector('.add-table-buttons').disabled = this.wSpaceController.shouldDisableNodeFormInputs;
-		data['database'] = this.database.value, data['dbengine'] = this.selectedDbEngine.value, data['host'] = this.hostName.value;		
+		data['database'] = this.database.value, data['dbengine'] = this.selectedDbEngine.value, data['host'] = this.hostName.value;
+		
+		this.showHideIncrementByField(this.importFields.isIncremental);
 	}
 
 	extractTableName = (tblPath) => {
@@ -128,11 +146,13 @@ export class SqlDBComponent extends AbstractNode {
 
 	handleAiGenerated = () => this.selectedSecret = this.importFields.connectionName || '';
 
-	handleTableFieldsDropdown(tableSelecter, pkSelecter, tableFieldName, pkFieldName){
+	handleTableFieldsDropdown(tableSelecter, pkSelecter, tableFieldName, pkFieldName, incrementCol){
 
 		const pkField = InputDropdown.new({ 
 			inputSelector: pkSelecter, dataSource: this.selectedTableList.value, boundComponent: this, componentFieldName: pkFieldName
 		});
+
+		const incrementField = InputDropdown.new({  inputSelector: incrementCol, dataSource: this.selectedTableList.value, boundComponent: this });
 
 		const tableField = InputDropdown.new({
 			inputSelector: tableSelecter, 
@@ -140,14 +160,19 @@ export class SqlDBComponent extends AbstractNode {
 			boundComponent: this,
 			componentFieldName: tableFieldName,
 			onSelect: async (table, self) => {
-				const data = this.tablesFieldsMap[table], pkRelatedField = self.relatedFields[0];
+				const data = this.tablesFieldsMap[table], pkRelatedField = self.relatedFields[0], 
+					  incrRelatedField = (self.relatedFields.length > 1 ? self.relatedFields[1] : null);
 				this.selectedTablesName[self.componentFieldName] = table;
 				pkRelatedField.setDataSource(data.map(col => col.column));
+
+				if(incrRelatedField) incrRelatedField.setDataSource(data.map(col => col.column));
+
 				self.relatedFields[0].filterInput.value = '';
 			}
 		});
 
 		tableField.relatedFields.push(pkField);
+		tableField.relatedFields.push(incrementField);
 		this.dynamicFields.tables.push(tableField);
 		this.dynamicFields.fields.push(pkField);
 	}
@@ -196,15 +221,13 @@ export class SqlDBComponent extends AbstractNode {
 	}
 
 	setDBIcon = (db) => {
-		if(document.querySelector(`.${this.cmpInternalId}`)){
-			document.querySelector(`.${this.cmpInternalId}`)
-				.querySelector('.database-icon').src = databaseIcons[db == '' ? 'generic' : db];
-		}
+		if(this.container)
+			this.container.querySelector('.database-icon').src = databaseIcons[db == '' ? 'generic' : db];
 	}
 	
 	clearSelectedTablesAndPk(){
 		this.getDynamicFieldNames().forEach(field => this[field] = '');
-		this.tableName = '', this.primaryKey = '';
+		this.tableName = '', this.primaryKey = '', this.incrementCol = '';
 	}
 
 	/** Brings the existing Databases secret */
@@ -227,8 +250,8 @@ export class SqlDBComponent extends AbstractNode {
 		this.newTableField(tableId);
 	}
 
-	newTableField = (tableId, value = '', disabled = false, pkValue = '') => 
-		addSQLComponentTableField(this, tableId, value, pkValue, disabled, this.isOldUI);
+	newTableField = (tableId, value = '', disabled = false, pkValue = '', incrementByVal = '') => 
+		addSQLComponentTableField(this, tableId, value, pkValue, disabled, this.isOldUI, incrementByVal);
 
 	async getTables(){
 		//getDynamicFields is a map of all fields (with respective values) created through FormHelper.newField 
@@ -237,37 +260,51 @@ export class SqlDBComponent extends AbstractNode {
 
 		const tables = { tableName: this.tableName.value };
 		const pkFields = { pkName: this.primaryKey.value };
+		const incrementCol = { incrementCol: this.incrementCol.value };
 		
 		for(const [field, val] of Object.entries(dynFields)){
 			if(field.trim().startsWith('tableName'))
 				tables[field.trim()] = val;
+			else if(field.trim().startsWith('incrementCol'))
+				incrementCol[field.trim()] = val;
 			else
 				pkFields[field.trim()] = val;
 		}
 
 		data['tables'] = tables;
 		data['primaryKeys'] = pkFields;
+		data['incrementCols'] = incrementCol;
 		data['namespace'] = await UserService.getNamespace();
 		data['connectionName'] = this.selectedSecret.value;
-	}
-
-	async showTable(){
-		await this.formRef.validate();
-		console.log(this.formRef.errorCount);
+		data['isIncremental'] = this.showIncrementalByFields;
 	}
 
 	onOutputConnection(){
 		SqlDBComponent.handleOutputConnection(this);
 		return {
 			tables: this.selectedSecretTableList?.value?.map(table => ({ name: table, file: table })),
-			sourceNode: this,
-			nodeCount: this.nodeCount.value
+			sourceNode: this, nodeCount: this.nodeCount.value
 		};
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
 		SqlDBComponent.handleInputConnection(this, data, type);
+	}
+
+	incrementallyUpdate(state){
+		const nodeContainer = document.querySelector(`.${this.cmpInternalId}`).parentElement.parentElement;
+		
+		if(state === true) nodeContainer.style.width = '408px';
+		else nodeContainer.style.width = '275px';
+
+		this.showHideIncrementByField(state);
+	}
+
+	showHideIncrementByField(state){
+		const inputs = this.container.querySelectorAll('input[data-id="firstIncrementCol"], .increment-by-field');		
+		inputs.forEach(elm => elm.style.display = state ? 'flex' : 'none');
+		this.showIncrementalByFields = state;
 	}
 
 }
