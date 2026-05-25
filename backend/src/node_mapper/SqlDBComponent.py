@@ -57,6 +57,10 @@ class SqlDBComponent(TemplateNodeType):
 
         # primary_keys fields is mapped in /pipeline_templates/sql_db.txt
         self.primary_keys = [key for key in list(data['primaryKeys'].values()) if key != None]
+        
+        self.increment_by_fields = []
+        if data['isIncremental']:
+            self.increment_by_fields = [key for key in list(data['incrementCols'].values()) if key != None]
 
         # source_database fields is mapped in /pipeline_templates/sql_db.txt
         self.source_database = data['database']

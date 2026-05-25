@@ -402,6 +402,9 @@ def generate_join_query(target_tables: dict = {}, relationships = {}, schema_met
     query = f"{select_clause}\nFROM {primary_table}"
     joined_tables, seen_rels = {primary_table}, set()
     tables_list = target_tables.keys()
+
+    if(type(tables_list).__name__ == 'dict_keys'): tables_list = list(tables_list)
+
     ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
 
     added = True
@@ -426,8 +429,8 @@ def generate_join_query(target_tables: dict = {}, relationships = {}, schema_met
                     joined_tables.add(join_target)
                     seen_rels.add(rel_key)
                     added = True
-
-    query = f" WHERE {tables_list[0]}._e2e_ts >= '{ts}'"
+    print(f"The filter will be: WHERE {tables_list[0]}._e2e_ts >= '{ts}'")
+    query += f" WHERE {tables_list[0]}._e2e_ts >= '{ts}'"
     return query
 
 
