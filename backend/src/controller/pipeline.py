@@ -356,7 +356,7 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('__current.PIPELINE_NAME', f"'{pipeline_name}'")
     template = template.replace('%User_folder%', payload['user'])
     template = template.replace('%namespace%', f"'{payload['user']}'")
-    template = template.replace('%perf_optmzd%', str(context.pipeline_metadata.domain_pipeline))
+    template = template.replace('%stage%', str(context.pipeline_metadata.domain_pipeline))
     template = template.replace('%use_existing_dw%', 'yes' if context.pipeline_metadata.existing_wd != None else 'no')
     template = template.replace('%original_pipeline_name%', context.pipeline_metadata.original_pipeline_name)
     # %table_format% replace might be preceeded by the DLTCodeOutput node type which

@@ -388,8 +388,9 @@ class SQLConnection:
         )
 
 
-def generate_join_query(target_tables: dict = {}, relationships = {}, schema_metadata = {}, db_name = ''):
+def generate_join_query(target_tables: dict = {}, relationships = {}, schema_metadata = {}, ppline_names = ''):
     if not target_tables: return ""
+    from utils.pipeline.PipelinesHelper import PipelineHelper
 
     select_parts = []
     for table in target_tables.keys():
@@ -397,9 +398,11 @@ def generate_join_query(target_tables: dict = {}, relationships = {}, schema_met
             select_parts.append(f"{table}.{col} AS {table}_{col}")
     
     select_clause = "SELECT\n  " + ",\n  ".join(select_parts)
-    
+        
     primary_table = list(target_tables.keys())[0]
-    query = f"{select_clause}\nFROM {primary_table}"
+    rename_primary_table = PipelineHelper.prefix_and_suffix_table(primary_table, 100, ppline_names['ppline_name'])
+    
+    query = f"{select_clause}\nFROM {rename_primary_table} AS {primary_table}"
     joined_tables, seen_rels = {primary_table}, set()
     tables_list = target_tables.keys()
 
@@ -425,11 +428,13 @@ def generate_join_query(target_tables: dict = {}, relationships = {}, schema_met
                 if (table in joined_tables and ref_table not in joined_tables) or \
                    (ref_table in joined_tables and table not in joined_tables):
                     join_target = ref_table if table in joined_tables else table
-                    query += f"\nFULL OUTER JOIN {join_target} ON {on_clause} AND {join_target}._e2e_ts >= '{ts}'"
+                    rename_join_target = PipelineHelper.prefix_and_suffix_table(join_target, 100, ppline_names['ppline_name'])
+
+                    query += f"\nFULL OUTER JOIN {rename_join_target} AS {join_target} ON {on_clause} AND {join_target}._e2e_ts >= '{ts}'"
                     joined_tables.add(join_target)
                     seen_rels.add(rel_key)
                     added = True
-    print(f"The filter will be: WHERE {tables_list[0]}._e2e_ts >= '{ts}'")
+
     query += f" WHERE {tables_list[0]}._e2e_ts >= '{ts}'"
     return query
 
@@ -456,7 +461,7 @@ def _normalize_table_names_backward(secrets, tables, primary_keys=None):
     return actual_tables, actual_pks
 
 
-def additional_parse(secrets, tables, primary_keys=None, db_name = {}):
+def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
     dbengine = secrets.get('dbengine', 'postgres')
     connection_url = secrets.get('connection_url')
     schema = secrets.get('schema', 'public')
@@ -504,22 +509,22 @@ def additional_parse(secrets, tables, primary_keys=None, db_name = {}):
 
             ddls[table] = f"CREATE TABLE {table} (\n" + ",\n".join(column_defs) + "\n);"
 
-    final_big_query = generate_join_query(actual_tables, relationships, schema_metadata, db_name)
+    final_big_query = generate_join_query(actual_tables, relationships, schema_metadata, pplines_names)
     ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
     return tables, actual_pks, relationships, schema_metadata, ddls, final_big_query, ts
 
 
 def new_pk(row, pk, source_col = 'NOT_SET'):
     ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
-    return { **row, "_e2e_ingtegration_source": source_col, "_e2e_pk": f"{row[pk]}__{source_col}", "_e2e_ts": ts }
+    return { **row, "_e2e_integration_source": source_col, "_e2e_pk": f"{row[pk]}__{source_col}", "_e2e_ts": ts }
 
 
-def converts_field_type(table, pk, additionals = {}, source_col = 'NO_SET'):
+def convert_fields_type(table, pk, additionals = {}, source_col = 'NO_SET'):
     columns_config = {}
     
-    if str(additionals.get('perf_optmzd')) == '1':
+    if str(additionals.get('stage')) == '1':
         table.add_map(lambda k: new_pk(k, pk, source_col))
-        table.apply_hints(primary_key="_e2e_pk")
+        table.apply_hints(primary_key="_e2e_pk", write_disposition='merge')
 
     else:
         for col_name, col_info in table.compute_table_schema().get("columns", {}).items():

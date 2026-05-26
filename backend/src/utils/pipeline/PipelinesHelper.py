@@ -70,21 +70,24 @@ class PipelineHelper:
         tbls = additionals['tbls']
         loads_ids = info.loads_ids if type(info.loads_ids) == list else []
         loads_ids_str = ','.join([f"'{val}'" for val in loads_ids])
-        perf_optmzd = additionals.get('perf_optmzd', 0)
+        stage = additionals.get('stage', 0)
         con: DuckDBPyConnection = None
 
         try:
             MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals)
 
-            if perf_optmzd in [1,2,3]:
+            if stage in [1,2,3]:
                 con = duckdb.connect(dest.config_params['credentials'])
-                PipelineHelper.add_tables_contrains(con, tbls, additionals, perf_optmzd)
+                PipelineHelper.add_tables_contrains(con, tbls, additionals, stage)
 
-            if perf_optmzd in [1,'1']:
-                perf_optmzd = int(perf_optmzd)
-                table_name = pipeline.pipeline_name.split('_at_', 1)[1]
-                big_table = PipelineHelper.prefix_and_suffix_table(table_name, perf_optmzd)
+            if stage in [1,'1']:
+                stage = int(stage)
+                source_pipeline = pipeline.pipeline_name.split('_at_', 1)[1]
+                table_name = additionals.get('analytics_storage', source_pipeline)
+                big_table = PipelineHelper.prefix_and_suffix_table(table_name, stage)
                 exists = con.execute(f"SELECT table_name FROM information_schema.tables WHERE table_name = '{big_table}'").fetchone()
+
+                big_query = str(big_query).replace('SELECT\n',f"SELECT\n'{source_pipeline}' AS _e2e_intgrtion_src_,\n ",1)
 
                 if exists != None:
                     ts = additionals['ts']
@@ -258,10 +261,12 @@ class PipelineHelper:
         return f'SELECT * FROM {big_query.split('FROM ')[1].replace('\n',' ')}' if big_query.__contains__('FROM ') else ''
     
 
-    def prefix_and_suffix_table(table_name, type = None):
+    def prefix_and_suffix_table(table_name, type = None, source_ppline = ''):
         if type in [1, None]:
             return f'_e2e_domain_{table_name}_data_'
         if type == 2:
             return f'_e2e_domain_{table_name}_stage_1_'
         if type == 3:
             return f'_e2e_domain_{table_name}_stage_2_'
+        if type == 100:
+            return f'{table_name}_e2e_from_{source_ppline}'

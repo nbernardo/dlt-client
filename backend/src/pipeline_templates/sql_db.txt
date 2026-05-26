@@ -10,10 +10,10 @@ logger.info("Starting SQL database pipeline", extra={'stage': 'initialization', 
 
 from src.services.workspace.Workspace import Workspace
 from src.services.workspace.SecretManager import SecretManager
-from src.utils.SQLDatabase import additional_parse, converts_field_type
+from src.utils.SQLDatabase import additional_parse, convert_fields_type
 
 # Bellow mapping: namespace = SqlDBComponent.namespace
-namespace = %namespace%
+namespace, original_pipeline_name = %namespace%, '%original_pipeline_name%'
 
 # Bellow mapping: connection_name = SqlDBComponent.connection_name
 connection_name = %connection_name%
@@ -44,17 +44,19 @@ def load_select_tables_from_db():
     # Bellow mapping: increment_by_fields = SqlDBComponent.increment_by_fields
     increment_by_fields = %increment_by_fields%
     
+    pplines = { 'analytics_storage': ppline_name, 'ppline_name': original_pipeline_name }
+
     logger.info("Normalizing table names", extra={'stage': 'data_preparation', 'table_count': len(original_tables)})
-    tables, pks, rels, meta, ddls, big_query, time_stmp = additional_parse(secret, original_tables, original_tables_pk)
-    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'rels': rels, 'perf_optmzd': %perf_optmzd%, 'ts': time_stmp }
-    additionals = { **additionals, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query, 'use_existing_dw': '%use_existing_dw%' }
+    tables, pks, rels, meta, ddls, big_query, time_stmp = additional_parse(secret, original_tables, original_tables_pk, pplines)
+    additionals = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'rels': rels, 'stage': %stage%, 'ts': time_stmp }
+    additionals = { **additionals, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query, 'use_existing_dw': '%use_existing_dw%', **pplines }
 
     short_query = Helper.short_query(big_query)
     print(f'SHORT_QUERY=__e2e_short_query_:{short_query}')
 
     logger.info("Setting up data source", extra={'stage': 'data_source_set', 'table_count': len(tables), 'schema': %schema%})
     
-    [source, tbl_stage] = [[], additionals.get('perf_optmzd')]
+    [source, tbl_stage] = [[], additionals.get('stage')]
     staged_table = tbl_stage in [2,3]
 
     for idx in range(len(tables)):
@@ -63,11 +65,18 @@ def load_select_tables_from_db():
         logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
         
         db_table = sql_table(table=table,  credentials=credentials, schema=schema)
-        source.append(converts_field_type(db_table, pks[idx], additionals, '%original_pipeline_name%'))
+        db_table = db_table.with_name(f"{table}_{original_pipeline_name}")
+        db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name)
+
         if staged_table: # In case the tables will be in stage area
-            db_table.apply_hints(table=Helper.prefix_and_suffix_table(table, tbl_stage))
-        if increment_by_fields[idx] != '':
-            db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx]))
+            db_table.apply_hints(table_name=Helper.prefix_and_suffix_table(table, tbl_stage))
+        if(len(increment_by_fields) > 0):
+            if increment_by_fields[idx] != '':
+                db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx]))
+        
+        dest_table = Helper.prefix_and_suffix_table(table, 100, pplines['ppline_name'])
+        db_table.apply_hints(table_name=dest_table)
+        source.append(db_table)
 
     print('Starting pipeline run', flush=True)
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})

@@ -104,7 +104,7 @@ class DataCatalog:
         source_clean = table_source.replace('"', '')
         pipeline_run_id = str(getattr(pipeline._last_trace, 'transaction_id', ''))
         
-        [rels, meta, ddls, perf_optmzd] = [add['rels'], add['meta'], add['ddls'], add.get('perf_optmzd', False)]
+        [rels, meta, ddls, stage] = [add['rels'], add['meta'], add['ddls'], add.get('stage', False)]
 
         all_updates = []
         for table_name, table_meta in pipeline.default_schema.tables.items():
@@ -179,7 +179,7 @@ class DataCatalog:
 
         finally:
             if con: con.close()
-            if perf_optmzd not in [1,2,3]: sys.exit(0)
+            if stage not in [1,2,3]: sys.exit(0)
 
 
     @staticmethod
