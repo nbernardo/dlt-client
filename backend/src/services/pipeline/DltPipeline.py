@@ -110,7 +110,9 @@ class DltPipeline:
             does_have_metadata = True if (context and context.bucket_source and context.is_code_destination) else False
 
         filename_suffixe = ''
-        if context and context.is_duck_destination != True:
+        if context.pipeline_metadata.existing_wd:
+            filename_suffixe = '__withmetadata__'
+        elif context and context.is_duck_destination != True:
             filename_suffixe = '__withmetadata__' if does_have_metadata or context.is_code_destination else ''
             if(filename_suffixe == ''):
                 filename_suffixe = '__toschedule__' if context.pipeline_action == 'onlysave' else ''
@@ -423,6 +425,7 @@ class DltPipeline:
         socket_id = DuckdbUtil.get_socket_id(namespace)
         context = RequestContext(None, socket_id)
         job_execution_id = uuid.uuid4()
+        logger = None
 
         try:
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{file_path}.duckdb')
@@ -533,6 +536,8 @@ class DltPipeline:
             
             context.emit_ppline_job_trace(message,error=True)
             context.emit_ppline_job_trace(err.with_traceback,error=True)
+            handle_pipeline_log(error_message, logger, True)
+            handle_pipeline_log(err.with_traceback, logger, True)
 
 
     @staticmethod

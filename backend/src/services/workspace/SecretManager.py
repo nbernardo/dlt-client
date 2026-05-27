@@ -188,7 +188,7 @@ class SecretManager(SecretManagerType):
             data = secrets['data']['data']
         except Exception as err:
             print('Error on getting the secrets: ', str(err))
-            ...
+            raise err
         return data
     
     
