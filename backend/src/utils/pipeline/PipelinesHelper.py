@@ -63,24 +63,28 @@ class PipelineHelper:
         info=None, 
         additionals={}
     ):
-        dest = additionals['dest']
-        big_query = additionals.get('big_query', '')
-        db_name = additionals['db_name']
-        meta = additionals['meta']
-        tbls = additionals['tbls']
+        [dest, db_name] = [additionals['dest'], additionals['db_name']]
+        [meta, tbls] = [additionals['meta'], additionals['tbls']]
+        [stage, big_query] = [additionals.get('stage', 0), additionals.get('big_query', '')]
+        
         loads_ids = info.loads_ids if type(info.loads_ids) == list else []
         loads_ids_str = ','.join([f"'{val}'" for val in loads_ids])
-        stage = additionals.get('stage', 0)
-        con: DuckDBPyConnection = None
+        con: DuckDBPyConnection = duckdb.connect(dest.config_params['credentials'])
+
+        # TODO: Implement the flow to activate/deactivate bigtable generation
+        generate_big_table = False
 
         try:
-            MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals)
+            pipeline_name = pipeline.pipeline_name
+            namespace, original_pipeline_name = pipeline_name.split('_at_', 1)
+            metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
+
+            MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals, len(metadatas) > 1)
 
             if stage in [1,2,3]:
-                con = duckdb.connect(dest.config_params['credentials'])
                 PipelineHelper.add_tables_contrains(con, tbls, additionals, stage)
 
-            if stage in [1,'1']:
+            if stage in [1,'1'] and generate_big_table:
                 stage = int(stage)
                 source_pipeline = pipeline.pipeline_name.split('_at_', 1)[1]
                 table_name = additionals.get('analytics_storage', source_pipeline)
@@ -97,10 +101,9 @@ class PipelineHelper:
 
         except Exception as err:
             print('Error on running here: ', str(err))
-            print()
 
         finally:
-            if con != None: con.close()
+            con.close()
             sys.exit(0) # Gracefully terminates the sub-process
 
 
@@ -175,20 +178,20 @@ class PipelineHelper:
 
 
     @staticmethod
-    def _update_analytics_storage(con, ready_query, big_table, db_name, meta, tbls, loads_ids_str, ts):
+    def _update_analytics_storage(con: DuckDBPyConnection, ready_query, big_table, db_name, meta, tbls, loads_ids_str, ts):
         '''
             This method handles Schema evolution for existing bigtable on the Datawarehouse or
             pipeline re-run (run count > 1) targeting a big table that was generated in the first run
         ''' 
 
-        def run_transform(con, big_table, big_query, done_event, ts):
+        def run_transform(con: DuckDBPyConnection, big_table, big_query, done_event, ts):
             try:
                 con.execute(f"SET search_path = '{db_name}';")
 
                 # new_columns -> Extract the new columns to be added in the big_table for Schema evolution
                 # insert_cols_str -> Extract the new fields separated by comma to which data should be inserted
                 # were_clause -> Where clause filters
-                new_columns, insert_cols_str, were_clause = PipelineHelper.get_new_columns_and_filter(con, meta, tbls, big_table, loads_ids_str, ts)
+                new_columns, insert_cols_str, where_clause = PipelineHelper.get_new_columns_and_filter(con, meta, tbls, big_table, loads_ids_str, ts)
                 new_cols_str = '\n'.join([f"ALTER TABLE {big_table} ADD COLUMN {c} {str(type).replace('()','')};" for c, type in new_columns.items()])
                 insert_query = f'INSERT INTO {big_table} {big_query}'
 
@@ -197,7 +200,7 @@ class PipelineHelper:
                     con.execute(f'BEGIN;\n{new_cols_str}\nCOMMIT;')
 
                 con.execute(f'SET threads TO {env('AN_TOTAL_THREADS')};')
-                con.execute(f"SET max_memory TO '{env('AN_MAX_MEMORY')}';")                    
+                con.execute(f"SET max_memory TO '{env('AN_MAX_MEMORY')}';")
                 con.execute(insert_query)
 
             except Exception as err:

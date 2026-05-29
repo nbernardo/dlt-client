@@ -74,8 +74,7 @@ def load_select_tables_from_db():
             if increment_by_fields[idx] != '':
                 db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx]))
         
-        dest_table = Helper.prefix_and_suffix_table(table, 100, pplines['ppline_name'])
-        db_table.apply_hints(table_name=dest_table)
+        db_table.apply_hints(table_name=table)
         source.append(db_table)
 
     print('Starting pipeline run', flush=True)

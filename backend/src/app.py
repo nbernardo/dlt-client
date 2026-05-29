@@ -63,4 +63,4 @@ SecretManager.db_secrete_obj = database_secret
 SQLDatabase.secret_manager = SecretManager
 
 port=env('APP_SRV_ADDR').split(':')[-1]
-socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
+socketio.run(app, host="0.0.0.0", port=port)

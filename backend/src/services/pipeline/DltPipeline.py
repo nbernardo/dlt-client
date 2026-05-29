@@ -484,7 +484,7 @@ class DltPipeline:
             #if result.returncode == 0 and context is not None and pipeline_exception == False:
             #    context.emit_ppsuccess()
 
-            result.kill()
+            # result.kill()
             
             if pipeline_exception == True:
                 message = f'Runtime Pipeline ({context.pipeline_name}) with execution_id {context.pipeline_execution_id} failed, check the logs for details'

@@ -322,4 +322,15 @@ class DataCatalog:
             return result
         except Exception as err:
             print(f'Error on fetching pipeline catalog: {str(err)}')
+            return None    
+
+
+    @staticmethod
+    def get_pipeline_catalog(pipeline_name, namespace, dbs_path):
+        try:
+            dbs_path = None if dbs_path is None else f'{dbs_path}/dbs/files/'
+            result = DataCatalog._get_duckdb_conn(dbs_path).execute("SELECT * FROM column_catalog WHERE pipeline = ?", [namespace.replace('-','_')+'_at_'+pipeline_name])
+            return result.fetchone()
+        except Exception as err:
+            print(f'Error on fetching pipeline catalog: {str(err)}')
             return None

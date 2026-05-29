@@ -11,7 +11,7 @@ class MetaStore:
 
 
     @staticmethod
-    def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info=None, additionals={}):
+    def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info=None, additionals={}, catalog_exist = False):
         """Persists column catalog to LanceDB. Concurrent writes via MVCC — This is called from the pipeline run itself"""
         
         print(f'DATA=__dlt__destination__datasetname__:{pipeline.config.dataset_name}', flush=True)
@@ -19,7 +19,14 @@ class MetaStore:
         print(load_info, flush=True) # Print pipeline completion details for main process and UI
         print('RUN_SUCCESSFULLY', flush=True) # Notify the main process about pipeline run completion
         print(f'Analyzing/Generating the data catalog for pipeline with transaction_id {getattr(pipeline._last_trace, 'transaction_id')}')
-        DataCatalog.persist_catalog(table_source, dbs_path, pipeline, load_info, table_source, additionals)
+        
+        if not catalog_exist:
+            DataCatalog.persist_catalog(table_source, dbs_path, pipeline, load_info, table_source, additionals)
+
+
+    @staticmethod
+    def get_pipeline_catalog(pipeline_name, metadata, src_path = None):
+        return DataCatalog.get_pipeline_catalog(pipeline_name, metadata, src_path)
 
 
     @staticmethod
