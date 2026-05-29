@@ -82,7 +82,6 @@ export class SqlDBComponent extends AbstractNode {
 		this.primaryKeys = primaryKeys;	
 		this.incrementCols = incrementCols;	
 		this.importFields = { database, dbengine, connectionName, asTemplate, changeCount: 0, fromPlan, isIncremental };
-		this.selectedSecret = this.importFields.connectionName;
 		if(data?.host) this.importFields.host = data.host;
 	}
 
@@ -127,6 +126,7 @@ export class SqlDBComponent extends AbstractNode {
 		this.tableName = isItPlanned ? allTables[0] : this.tables['tableName'];
 		this.primaryKey = allKeys[0];
 		this.incrementCol = allIncrementCols[0];
+		this.selectedSecret = this.importFields.connectionName;
 
 		// Assign remaining tables if more than one in the pipeline
 		allTables.slice(1).forEach((tblName, idx) => this.newTableField(idx + 2, tblName, disable, allKeys[idx+1], allIncrementCols[idx+1]));
@@ -136,7 +136,7 @@ export class SqlDBComponent extends AbstractNode {
 		document.querySelector('.add-table-buttons').disabled = this.wSpaceController.shouldDisableNodeFormInputs;
 		data['database'] = this.database.value, data['dbengine'] = this.selectedDbEngine.value, data['host'] = this.hostName.value;
 		
-		this.showHideIncrementByField(this.importFields.isIncremental);
+		this.showHideIncrementByField(this.importFields.isIncremental, true);
 	}
 
 	extractTableName = (tblPath) => {
@@ -301,10 +301,11 @@ export class SqlDBComponent extends AbstractNode {
 		this.showHideIncrementByField(state);
 	}
 
-	showHideIncrementByField(state){
+	showHideIncrementByField(state, dynamic){
 		const inputs = this.container.querySelectorAll('input[data-id="firstIncrementCol"], .increment-by-field');		
 		inputs.forEach(elm => elm.style.display = state ? 'flex' : 'none');
 		this.showIncrementalByFields = state;
+		if(dynamic && state) this.container.querySelector('.incrementalUpdateToggle').checked = true;
 	}
 
 }
