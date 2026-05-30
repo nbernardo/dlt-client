@@ -1,0 +1,140 @@
+import pyarrow as pa
+from utils.duckdb_util import DuckdbUtil
+import duckdb
+from utils.db.lancedb import LanceConnectionFactory
+from lancedb import Table
+from datetime import datetime
+from utils.pipeline.Enums import Checkpoint
+
+PIPELINE_CHECKPOINT_SCHEMA = pa.schema([
+    pa.field("id", pa.string()),
+    pa.field("pipeline", pa.string()),
+    pa.field("status", pa.string()),
+    pa.field("start_time", pa.string()),
+    pa.field("update_time", pa.string()),
+    pa.field("storage_path", pa.string())
+])
+
+table = 'pipeline_checkpoint'
+
+class PipelineCheckpoint:
+
+
+    @staticmethod
+    def _get_lance_conn() -> str:
+        return LanceConnectionFactory.get()
+
+
+    @staticmethod
+    def _get_table() -> Table:
+        """Opens or creates the LanceDB pipeline_checkpoint table"""
+        try:
+            return PipelineCheckpoint._get_lance_conn().open_table(table)
+        except Exception:
+            try:
+                return PipelineCheckpoint._get_lance_conn().create_table(table, schema=PIPELINE_CHECKPOINT_SCHEMA)
+            except Exception:
+                return PipelineCheckpoint._get_lance_conn().open_table(table)    
+
+
+    @staticmethod
+    def _get_duckdb_conn(db_path = None) -> duckdb.DuckDBPyConnection:
+        """Returns a DuckDB connection with a catalog view over the LanceDB files."""
+        lance_path = f'{db_path if db_path != None else DuckdbUtil.workspacedb_path}/catalog.lance'
+        con = duckdb.connect()
+        con.execute("LOAD lance")
+        con.execute(f"CREATE VIEW {table} AS SELECT * FROM '{lance_path}/{table}.lance'")
+        return con
+
+
+    @staticmethod
+    def persist(pipeline, status, start_time, update_time, storage_path):
+        """Persists the pipeline metadata — This is called from the pipeline run itself"""
+        try:
+            tbl = PipelineCheckpoint._get_table()
+            PipelineCheckpoint.migrate(tbl)
+
+            rows_to_insert = [{ 'pipeline': pipeline, 'status': status, 'start_time': start_time, 'update_time': update_time, 'storage_path': storage_path }]
+
+            tbl.add(rows_to_insert)
+            if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
+
+        except Exception as e:
+            print(f"PipelineCheckpoint Update Failed: {str(e)}")
+            raise RuntimeError(f'PipelineCheckpoint persist Failed: {str(e)}')
+        return pipeline, storage_path, start_time
+
+
+    @staticmethod
+    def update(pipeline, storage_path, start_time, status):
+        """Update pipeline checkpoint"""
+
+        try:
+            tbl = PipelineCheckpoint._get_table()
+            PipelineCheckpoint.migrate(tbl)
+
+            filter = f"start_time='{start_time}' AND storage_path='{storage_path}' AND pipeline='{pipeline}'"
+            tbl.update(where=f'{filter}', values_sql={ 'status': f'{status}', 'update_time': f'{datetime.now().timestamp()}' })
+
+        except Exception as e:
+            print(f"PipelineCheckpoint Update Failed: {str(e)}")
+            raise RuntimeError(f'PipelineCheckpoint update Failed: {str(e)}')
+
+
+    @staticmethod
+    def check_dest_storge_usage(storage_path):
+        """Update pipeline checkpoint"""
+
+        try:
+            tbl = PipelineCheckpoint._get_table()
+            PipelineCheckpoint.migrate(tbl)
+            records = tbl.search().where(f"storage_path='{storage_path}' AND status !='{Checkpoint.DONE}'").select(['pipeline']).limit(1).to_list()
+
+            return records[0]['pipeline'] if records else None
+
+        except Exception as e:
+            print(f"PipelineCheckpoint Update Failed: {str(e)}")
+            raise RuntimeError(f'PipelineCheckpoint update Failed: {str(e)}')
+
+
+    @staticmethod
+    def check_delayed_pipeline(storage_path):
+        """Update pipeline checkpoint"""
+
+        try:
+            tbl = PipelineCheckpoint._get_table()
+            PipelineCheckpoint.migrate(tbl)
+            records = tbl.search().where(f"storage_path='{storage_path}' AND status !='{Checkpoint.DELAY}'").select(['pipeline']).limit(1).to_list()
+
+            return records[0]['pipeline'] if records else None
+
+        except Exception as e:
+            print(f"PipelineCheckpoint Update Failed: {str(e)}")
+            raise RuntimeError(f'PipelineCheckpoint update Failed: {str(e)}')
+
+
+    def migrate(tbl):
+        """This is used to add a new checkpoint field in case it didn't exist"""
+        try:
+            existing_cols = tbl.schema.names
+
+            new_fields = {}
+
+            for col, expr in new_fields.items():
+                if col not in existing_cols:
+                    tbl.add_columns({col: expr})
+                    print(f'pipeline_checkpoint.{col} added')
+                else:
+                    print(f'pipeline_checkpoint.{col} already exists — skipped')
+
+        except Exception as e:
+            print(f'pipeline_checkpoint migration failed: {e}')    
+
+
+    @staticmethod
+    def compact_metadata(older_than_days=30):
+        from datetime import timedelta
+        tbl = PipelineCheckpoint._get_table()
+        tbl.cleanup_old_versions(older_than=timedelta(days=older_than_days))
+        tbl.compact_files()
+        print("✅ Catalog compacted")

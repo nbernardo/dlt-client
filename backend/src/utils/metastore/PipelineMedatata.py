@@ -109,7 +109,9 @@ class PipelineMedatata:
     def get_domain_pipelines(namespace: str = None, db_path: str = None):
         try:
             con = PipelineMedatata._get_duckdb_conn(False, db_path)
-            return con.execute(f"SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline::string IN ('true','1') AND namespace = ?", [namespace]).fetchall()
+            result = con.execute(f"SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline::string IN ('true','1') AND namespace = ?", [namespace]).fetchall()
+            con.close()
+            return result
 
         except Exception as err:
             if str(err).__contains__('Extension'):
@@ -125,7 +127,9 @@ class PipelineMedatata:
     def get_stage_data(namespace: str, stage = 2):
         try:
             con = PipelineMedatata._get_duckdb_conn()
-            return con.execute(f'SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline = ? AND namespace = ?', [str(stage), namespace]).fetchall()
+            result = con.execute(f'SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline = ? AND namespace = ?', [str(stage), namespace]).fetchall()
+            con.close()
+            return result
 
         except Exception as err:
             if str(err).__contains__('Extension'):
@@ -143,13 +147,14 @@ class PipelineMedatata:
         tbl = PipelineMedatata._get_table()
         tbl.cleanup_old_versions(older_than=timedelta(days=older_than_days))
         tbl.compact_files()
-        print("✅ Catalog compacted")
+        print("✅ Pipeline metadata compacted")
 
     
     @staticmethod
     def get_pipeline_source_destination_type(namespace):
         try:
-            return PipelineMedatata._get_duckdb_conn(include_catalog=True).execute("""
+            con = PipelineMedatata._get_duckdb_conn(include_catalog=True)
+            result = con.execute("""
                     SELECT JSON_GROUP_ARRAY(
                         JSON_OBJECT(
                             'sourceType', source_type, 'destType', dest_type, 'pipeline', pipeline, 'sourceSecretName', source_secret_name, 
@@ -158,13 +163,16 @@ class PipelineMedatata:
                         )
                     )
                     FROM pipeline_metadata WHERE namespace = ?""", [namespace]).fetchone()[0]
+            con.close()
+            return result
         except: None
 
     
     @staticmethod
     def get_pipeline_source_destination_meta(namespace):
         try:
-            return PipelineMedatata._get_duckdb_conn(include_catalog=True).execute("""
+            con = PipelineMedatata._get_duckdb_conn(include_catalog=True)
+            result = con.execute("""
                     SELECT 
                         json_group_object(pipeline, metadata_list) as final_json
                     FROM (
@@ -173,6 +181,8 @@ class PipelineMedatata:
                         FROM pipeline_metadata WHERE namespace = ?
                         GROUP BY pipeline
                     )""", [namespace]).fetchone()[0]
+            con.close()
+            return result
         except: return None
 
 

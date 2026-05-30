@@ -279,7 +279,8 @@ class DataCatalog:
     @staticmethod
     def get_namespace_fields_by_pipeline(namespace):
         try:
-            result = DataCatalog._get_duckdb_conn().execute("""
+            con = DataCatalog._get_duckdb_conn()
+            result = con.execute("""
                 SELECT  json_group_object(pipeline, tables_json) as final_json
                 FROM (
                     SELECT pipeline, json_group_object(table_name, columns_list) as tables_json
@@ -290,7 +291,7 @@ class DataCatalog:
                     ) GROUP BY pipeline
                 )
             """, [namespace.replace('-','_')])
-
+            con.close()
             return result.fetchall()
         except: return None
     
@@ -298,7 +299,8 @@ class DataCatalog:
     @staticmethod
     def get_fields_by_pipeline(pipeline_name, namespace):
         try:
-            result = DataCatalog._get_duckdb_conn().execute("""
+            con = DataCatalog._get_duckdb_conn()
+            result = con.execute("""
                 SELECT 
                     json_group_object(table_name, columns_array) as final_json
                 FROM (
@@ -319,6 +321,7 @@ class DataCatalog:
                 );
             """, [namespace.replace('-','_')+'_at_'+pipeline_name])
             result = result.fetchall()
+            con.close()
             return result
         except Exception as err:
             print(f'Error on fetching pipeline catalog: {str(err)}')
@@ -329,8 +332,10 @@ class DataCatalog:
     def get_pipeline_catalog(pipeline_name, namespace, dbs_path):
         try:
             dbs_path = None if dbs_path is None else f'{dbs_path}/dbs/files/'
-            result = DataCatalog._get_duckdb_conn(dbs_path).execute("SELECT * FROM column_catalog WHERE pipeline = ?", [namespace.replace('-','_')+'_at_'+pipeline_name])
-            return result.fetchone()
+            con = DataCatalog._get_duckdb_conn(dbs_path)
+            result = con.execute("SELECT * FROM column_catalog WHERE pipeline = ?", [namespace.replace('-','_')+'_at_'+pipeline_name]).fetchone()
+            con.close()
+            return result
         except Exception as err:
             print(f'Error on fetching pipeline catalog: {str(err)}')
             return None

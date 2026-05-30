@@ -15,3 +15,11 @@ class DestinationType(StrEnum):
 class ProviderURL(StrEnum):
     GOOGLE_BIG_QUERY = 'https://www.googleapis.com/auth/bigquery'
     GOOGLE_API_AUTH0_ENDPOINT = 'https://oauth2.googleapis.com/token'
+
+
+class Checkpoint(StrEnum):
+    INIT = 'INIT'
+    DONE = 'DONE'
+    DELAY = 'DELAYED'
+    FAILED = 'FAILED'
+
