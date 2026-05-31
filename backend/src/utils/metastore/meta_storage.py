@@ -47,6 +47,11 @@ class MetaStore:
 
 
     @staticmethod
+    def update_metadata(namespace: str, pipeline: str, dataset_name: str, short_query: str):
+        return PipelineMedatata.update_metadata(namespace, pipeline, dataset_name, short_query)
+
+
+    @staticmethod
     def save_analytics_chart(namespace, config_details, context, chart_name, data_source, chart_id):
         try:
             DashboardConfig.persist_chart_config(namespace, config_details, context, chart_name, data_source, chart_id)

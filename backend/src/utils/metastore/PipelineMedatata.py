@@ -86,14 +86,29 @@ class PipelineMedatata:
 
 
     @staticmethod
+    def update_metadata(namespace = None, pipeline=None, dataset_name: str = '', short_query: str = ''):
+        """Update the pipeline metadata only touching the shortquery and the dataset_name"""
+        try:
+            tbl = PipelineMedatata._get_table()
+            PipelineMedatata._migrate_pipeline_metadata(tbl)
+            filter = f"pipeline='{pipeline}' AND namespace='{namespace}'"
+            tbl.update(where=filter, values_sql={ 'short_query': f"'{short_query}'", 'dataset_name': f"'{dataset_name}'" })
+
+        except Exception as e:
+            print(f"Catalog Evolution Update Failed: {str(e)}")
+
+
+    @staticmethod
     def get_pipeline_metadata(pipeline: str, namespace: str = None, db_path: str = None):
         try:
             con = PipelineMedatata._get_duckdb_conn(False, db_path)
             more_filter = f"and namespace = '{namespace}'" if namespace != None else ''
-            return con.execute(f"""
+            result = con.execute(f"""
                 SELECT pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, source_type, dest_type, dataset_name
                 FROM pipeline_metadata WHERE pipeline = ? {more_filter}
             """, [pipeline]).fetchone()
+            con.close()
+            return result
 
         except Exception as err:
             if str(err).__contains__('Extension'):

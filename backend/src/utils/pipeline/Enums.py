@@ -22,4 +22,9 @@ class Checkpoint(StrEnum):
     DONE = 'DONE'
     DELAY = 'DELAYED'
     FAILED = 'FAILED'
+    TABLE_COMMIT = 'COMMIT'
+    TAKING_CONTROL = 'BASTION_PASSED'
 
+    TIME_UNSET = 'UNSET'
+    # Means that the pipeline run status was update from bastion, but no real time was set yeat
+    TIME_FROM_BASTION = 'FROM_BASTION'

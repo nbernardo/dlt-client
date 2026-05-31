@@ -28,8 +28,7 @@ connection_string = secret['connection_url']
 database_to_connect = %source_database%
 logger.info("Establishing database connection", extra={'stage': 'database_connection', 'database': database_to_connect})
 
-credentials = ConnectionStringCredentials(connection_string)
-table_to_schema_map, additionals = {}, {}
+credentials, additionals = ConnectionStringCredentials(connection_string), {}
 
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()
@@ -61,7 +60,6 @@ def load_select_tables_from_db():
 
     for idx in range(len(tables)):
         schema, table = tables[idx].split('.')
-        table_to_schema_map[f'{schema}_{table}'] = original_tables[idx]
         logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
         
         db_table = sql_table(table=table,  credentials=credentials, schema=schema)

@@ -98,9 +98,6 @@ class DltPipeline:
 
 
     def create_v1(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
-        """
-        This is the pipeline new version creation
-        """
         try:
             check_invalid_code(data)
         except RuntimeError as err:
@@ -135,6 +132,9 @@ class DltPipeline:
 
         if context and context.pipeline_action == 'onlysave':
             context.emit_ppsuccess()
+            MetaStore.persist_pipeline_metadata(
+                context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), None, '', context.pipeline_metadata.pipline_plan_id
+            )
             return { 'status': True, 'message': 'Pipeline created successfully' }
 
         # Run pipeline generater above by passing the python file
@@ -144,15 +144,13 @@ class DltPipeline:
                                     text=True,
                                     bufsize=1
                                 )
-        pipeline_exception = False
 
         # TODO: If needed, flag can be assigned with proper logic so UI logs will only came in 
         #  specific situation like will only print if the ppline has transformation or if it's
         #  ppline update, otherwise flag = True will print the log in any scenario
         #  flag = context.transformation is not None or context.action_type == 'UPDATE'
-        flag, dataset_name, short_query = True, None, ''
-
-        logger = DltPipeline.get_pipeline_logger(context)
+        flag = True
+        logger, refs = DltPipeline.get_pipeline_logger(context), {}
 
         if(flag):
             while True:
@@ -161,67 +159,24 @@ class DltPipeline:
                 
                 if line == '' or line.strip() == 'import pkg_resources' or line.strip().__contains__('import pkg_resources'): 
                     continue
-                if not line: break
-                line = line.strip()
-                
-                if(line.startswith('SHORT_QUERY=__e2e_short_query_:')):
-                    short_query = line.split(':')[1]
-                    continue
-
-                if(line.startswith('DATA=__dlt__destination__datasetname__:')):
-                    dataset_name = line.split(':')[1]
+                if DltPipeline._handle_pipeline_trace(line, refs, context, logger) == False or not line: 
                     break
-
-                is_transformation_step = (line.endswith('Transformation')\
-                                           and line.startswith('dynamic-_cmp'))
-                
-                if (line == 'RUN_SUCCESSFULLY'):
-                    if context:
-                        context.emit_ppsuccess()
-                    pipeline_exception = False if pipeline_exception == False else pipeline_exception
-                    break
-
-                else:
-                    if(is_transformation_step and pipeline_exception == False):
-                        component_ui_id = line
-                        if context:
-                            Transformation(None, context, component_ui_id).notify_completion_to_ui()
-
-                    elif(line.startswith('RUNTIME_WARNING:') or is_SAWarning(line)):
-                        warning_message = line.replace('RUNTIME_WARNING:','')
-                        handle_pipeline_log(warning_message, logger, False, True)
-                        if context:
-                            context.emit_ppline_trace(warning_message, warn=True)
-                        
-                    elif(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or pipeline_exception == True):
-                        pipeline_exception = True
-                        error_message = line.replace('RUNTIME_ERROR:','')
-                        handle_pipeline_log(error_message, logger, True)
-                        if context:
-                            context.emit_ppline_trace(error_message, error=True)
-                        
-                        if line.startswith('ERROR:'): break
-
-                    else:
-                        if context:
-                            ui_log = str(line).replace('[PIPELINE_LOG]:','').replace('[DLT]:','').replace(' |+| ','')
-                            context.emit_ppline_trace(ui_log)
-                            handle_pipeline_log(line, logger)
             
         #result.kill() # Each process will be responsible to kill/exit ifself
         MetaStore.persist_pipeline_metadata(
-            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), dataset_name, short_query, 
+            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), refs.get('dataset_name'), refs.get('short_query'), 
             context.pipeline_metadata.pipline_plan_id
         )
 
-        if pipeline_exception == True:
+        if refs.get('pipeline_exception') == True:
             handle_pipeline_log(f'PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
             return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
 
         message, status = SUCCESS_RUN_MESSAGE, True
         
         error_messages, warning_status = None, False
-        if result.returncode != 0 and not (context and context.action_type == 'UPDATE' and result.returncode == 2):
+        if (result.returncode != 0 and result.returncode != None)\
+              and not (context and context.action_type == 'UPDATE' and result.returncode == 2):
             error_messages = result.stderr.read().split('\n')
             if str(error_messages).__contains__('[WARNING]'):
                 if context:
@@ -230,11 +185,10 @@ class DltPipeline:
                 warning_status = True
             else:
                 message, status = '\n'.join(error_messages[1:]), False
-                if message.__contains__('import pkg_resources') or pipeline_exception == False:
+                if message.__contains__('import pkg_resources') or refs.get('pipeline_exception') == False:
                     message, status = SUCCESS_RUN_MESSAGE, True
                 elif context and status == False:
                     context.emit_ppline_trace(message, error=True)
-                
 
         if context:
             context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
@@ -404,31 +358,48 @@ class DltPipeline:
         return new_file_name_version
     
 
-    def handle_pipeline_trace(line, refs: dict, context: RequestContext, logger: logging.Logger):
+    def _handle_pipeline_trace(line, refs: dict, context: RequestContext, logger: logging.Logger):
         line = line.strip()
-                
-        if (line == 'RUN_SUCCESSFULLY'):
-            context.emit_ppsuccess()
-            refs.get('pipeline_exception') = False if refs.get('pipeline_exception') == False else refs.get('pipeline_exception')
-            return False  
         
-        elif(line.startswith('RUNTIME_WARNING:') or is_SAWarning(line)):
-            refs['warning_message'] = line.replace('RUNTIME_WARNING:','')
-            handle_pipeline_log(refs['warning_message'], logger, False, True)
-            if context:
-                context.emit_ppline_trace(refs['warning_message'], warn=True)
+        if(line.startswith('DATA=__dlt__destination__datasetname__:')):
+            refs['dataset_name'] = line.split(':')[1]
+            return False # No error, just pipeline completion
+        
+        if(line.startswith('SHORT_QUERY=__e2e_short_query_:')):
+            refs['short_query'] = line.split(':')[1]
+            return True
+        
+        refs['transf_step'] = (line.endswith('Transformation') and line.startswith('dynamic-_cmp'))
 
-            else: 
-                if(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or refs.get('pipeline_exception') == True):
+        if (line == 'RUN_SUCCESSFULLY'):
+            if context: context.emit_ppsuccess()
+            refs['pipeline_exception'] = False if refs.get('pipeline_exception', False) == False else refs.get('pipeline_exception')
+            return False # No error, just pipeline completion
+        
+        else:
+            if(refs['transf_step'] and refs.get('pipeline_exception', False) == False):
+                component_ui_id = line
+                if context:
+                    Transformation(None, context, component_ui_id).notify_completion_to_ui()
+
+            elif(line.startswith('RUNTIME_WARNING:') or is_SAWarning(line)):
+                refs['warning_message'] = line.replace('RUNTIME_WARNING:','')
+                handle_pipeline_log(refs['warning_message'], logger, False, True)
+                if context:
+                    context.emit_ppline_trace(refs['warning_message'], warn=True)
+
+            elif(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or refs.get('pipeline_exception') == True):
                     refs['pipeline_exception'] = True
                     refs['error_message'] = line.replace('RUNTIME_ERROR:','').replace('ERROR:','')
                     handle_pipeline_log(refs['error_message'], logger, True)
                     context.emit_ppline_job_trace(refs['error_message'], error=True)
                     if line.startswith('ERROR:'): return False
-                else:
-                    if(type(line) == str):
-                        if(line.__contains__('Files/Bucket loaded')):
-                            if(has_ppline_job('start',job_execution_id)): return True
+            else:
+                if(type(line) == str):
+                    if(line.__contains__('Files/Bucket loaded')):
+                        if(has_ppline_job('start',refs.get('job_execution_id'))): return True
+                
+                if context:
                     refs['ui_log'] = str(line).replace('[PIPELINE_LOG]:','').replace('[DLT]:','').replace(' |+| ','')
                     context.emit_ppline_job_trace(refs['ui_log'])
                     handle_pipeline_log('Scheduled-Job-log -> '+line, logger)
@@ -472,17 +443,8 @@ class DltPipeline:
         clear_job_transaction_id(job_execution_id)
 
 
-    processed_job = { 'start': {}, 'end': {} }
     @staticmethod
-    def run_pipeline_job(file_path, namespace):
-        ppline_file = f'{destinations_dir}/{file_path}.py'
-        pipeline = file_path.replace(f'{namespace}/','')
-        pipeline_metadata = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
-        # In case it an integration pipeline, it'll use a 
-        # shared storage (Duckdb) file set in the file_path
-        if pipeline_metadata[7].__contains__('.'):
-            file_path = f'{namespace}/{pipeline_metadata[7].split('.')[1]}'
-
+    def _get_scheduled_pipeline_file(ppline_file, file_path):
         if not(os.path.exists(ppline_file)):
             # Try new format (double underscore)
             ppline_file = f'{destinations_dir}/{file_path}__toschedule__.py'
@@ -494,11 +456,29 @@ class DltPipeline:
             if not(os.path.exists(ppline_file)):
                 ppline_file = f'{destinations_dir}/{file_path}_withmetadata_.py'
 
+        return ppline_file
+
+
+
+    processed_job = { 'start': {}, 'end': {} }
+    @staticmethod
+    def run_pipeline_job(file_path, namespace):
+        ppline_file = f'{destinations_dir}/{file_path}.py'
+        pipeline = file_path.replace(f'{namespace}/','')
+        pipeline_metadata = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
+        # In case it an integration pipeline, it'll use a 
+        # shared storage (Duckdb) file set in the file_path
+        if pipeline_metadata[7] != None:
+            if pipeline_metadata[7].__contains__('.'):
+                file_path = f'{namespace}/{pipeline_metadata[7].split('.')[1]}'
+
+        ppline_file = DltPipeline._get_scheduled_pipeline_file(ppline_file, file_path)
+
         socket_id = DuckdbUtil.get_socket_id(namespace)
         context = RequestContext(None, socket_id)
         logger = DltPipeline.get_pipeline_logger(context)
 
-        pipeline_using_storage = PipelineCheckpoint.check_dest_storge_usage(file_path)
+        pipeline_using_storage = PipelineCheckpoint.check_dest_storge_usage(file_path, pipeline)
         # In case another pipeline is using the same destination storage (in case of Duckdb)
         if(pipeline_using_storage != None):
             handle_pipeline_log(f'Delaying {pipeline} execution due to {pipeline_using_storage} being using the storage', logger)
@@ -506,7 +486,7 @@ class DltPipeline:
 
         db_root_path = destinations_dir.replace('pipeline','duckdb')
         # DB Lock in the pplication level
-        if not(ppline_file.endswith('withmetadata|.py') and ppline_file.endswith('withmetadata|.py')):
+        if not(ppline_file.endswith('withmetadata__.py') and ppline_file.endswith('withmetadata__.py')):
             DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
 
         try:
@@ -519,17 +499,17 @@ class DltPipeline:
             [env_vars, PIPE] = [DltPipeline.prepare_pipeline_env_vars(), subprocess.PIPE]
             
             proc = subprocess.Popen(['python', ppline_file], stdout=PIPE, stderr=PIPE, text=True, bufsize=1, env=env_vars)
-            refs, job_start_time = {}, datetime.now().timestamp()
+            refs, job_start_time = { 'job_execution_id': job_execution_id }, datetime.now().timestamp()
             
             # Register pipeline run initiation and start time
-            pipeline, storage_path, _ = PipelineCheckpoint.persist(pipeline, Checkpoint.INIT, job_start_time, 'UNSET', file_path)
+            pipeline, storage_path, _ = PipelineCheckpoint.persist(pipeline, Checkpoint.INIT, job_start_time, Checkpoint.TIME_UNSET, file_path)
 
             while True:
-                time.sleep(0.1)
+                time.sleep(0.2)
                 line = proc.stdout.readline()
 
                 if line == '': continue
-                if DltPipeline.handle_pipeline_trace(line, refs, context, logger) == False or not line: 
+                if DltPipeline._handle_pipeline_trace(line, refs, context, logger) == False or not line: 
                     break
 
             #if proc.returncode == 0 and context is not None and pipeline_exception == False: context.emit_ppsuccess()
@@ -537,17 +517,21 @@ class DltPipeline:
             pipeline_exception, error_message = refs.get('pipeline_exception'), refs.get('error_message')
             DltPipeline.handle_job_final_state(context, pipeline_exception, line, job_execution_id, proc, logger)
 
-            dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            [short_query, dataset_name] = [refs.get('short_query'), refs.get('dataset_name')]
+
             ppline_name = str(file_path).replace(f'{namespace}/','')
             DltPipeline.update_pipline_runtime(namespace,ppline_name,dt)
 
-            # Register pipeline run completion and end time
-            PipelineCheckpoint.update(pipeline, storage_path, job_start_time, Checkpoint.DONE)
+            delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
+            # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
+            PipelineCheckpoint.update(pipeline, delayed_pipeline, storage_path, job_start_time, Checkpoint.DONE)
+            MetaStore.update_metadata(namespace, pipeline, dataset_name, short_query)
 
-            if(PipelineCheckpoint.check_delayed_pipeline(storage_path)):
-                #TODO: Pass the bastion to the delayed pipeline run
-                return
-
+            if(delayed_pipeline):
+                # Pass the bastion to the delayed pipeline run. storage_path = file_path
+                return DltPipeline.run_pipeline_job(storage_path, namespace)
+            
             # DB Lock release in the pplication level
             DuckDBCache.remove(f'{db_root_path}/{file_path}.duckdb')
         

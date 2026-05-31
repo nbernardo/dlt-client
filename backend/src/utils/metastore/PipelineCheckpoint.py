@@ -66,15 +66,20 @@ class PipelineCheckpoint:
 
 
     @staticmethod
-    def update(pipeline, storage_path, start_time, status):
-        """Update pipeline checkpoint"""
+    def update(pipeline, delayed_pipeline, storage_path, start_time, update_status):
+        """Update pipeline checkpoint - In case there is a delayed pipeline competing for the same storage is now passes as active"""
 
         try:
-            tbl = PipelineCheckpoint._get_table()
+            tbl, cp = PipelineCheckpoint._get_table(), Checkpoint
             PipelineCheckpoint.migrate(tbl)
 
+            if delayed_pipeline:
+                [status, strt_time, updte_time] = [cp.TAKING_CONTROL, cp.TIME_FROM_BASTION, cp.TIME_UNSET]
+                filter = f"status='{cp.DELAY}' AND pipeline='{delayed_pipeline}'"
+                tbl.update(where=f"{filter}", values_sql={ 'status': f"'{status}'", 'update_time': f"'{updte_time}'", 'start_time': f"'{strt_time}'" })
+
             filter = f"start_time='{start_time}' AND storage_path='{storage_path}' AND pipeline='{pipeline}'"
-            tbl.update(where=f'{filter}', values_sql={ 'status': f'{status}', 'update_time': f'{datetime.now().timestamp()}' })
+            tbl.update(where=f'{filter}', values_sql={ 'status': f"'{update_status}'", 'update_time': f"'{datetime.now().timestamp()}'" })
 
         except Exception as e:
             print(f"PipelineCheckpoint Update Failed: {str(e)}")
@@ -82,13 +87,14 @@ class PipelineCheckpoint:
 
 
     @staticmethod
-    def check_dest_storge_usage(storage_path):
+    def check_dest_storge_usage(storage_path, pipeline):
         """Update pipeline checkpoint"""
 
         try:
             tbl = PipelineCheckpoint._get_table()
             PipelineCheckpoint.migrate(tbl)
-            records = tbl.search().where(f"storage_path='{storage_path}' AND status !='{Checkpoint.DONE}'").select(['pipeline']).limit(1).to_list()
+            filter = f"storage_path='{storage_path}' AND pipeline != '{pipeline}' AND status NOT IN ('{Checkpoint.DONE}', '{Checkpoint.DELAY}')"
+            records = tbl.search().where(f'{filter}').select(['pipeline']).limit(1).to_list()
 
             return records[0]['pipeline'] if records else None
 
@@ -98,13 +104,13 @@ class PipelineCheckpoint:
 
 
     @staticmethod
-    def check_delayed_pipeline(storage_path):
+    def check_delayed_pipeline(storage_path, pipeline):
         """Update pipeline checkpoint"""
 
         try:
             tbl = PipelineCheckpoint._get_table()
             PipelineCheckpoint.migrate(tbl)
-            records = tbl.search().where(f"storage_path='{storage_path}' AND status !='{Checkpoint.DELAY}'").select(['pipeline']).limit(1).to_list()
+            records = tbl.search().where(f"storage_path='{storage_path}' AND pipeline != '{pipeline}' AND status !='{Checkpoint.DELAY}'").select(['pipeline']).limit(1).to_list()
 
             return records[0]['pipeline'] if records else None
 

@@ -6,7 +6,8 @@ datacatalog_path = Path(__file__).parent / "../../dbs/files/catalog.lance/column
 metadata_path = Path(__file__).parent / "../../dbs/files/catalog.lance/pipeline_metadata.lance"
 charts_path = Path(__file__).parent / "../../dbs/files/catalog.lance/chart_config.lance"
 dashboard_path = Path(__file__).parent / "../../dbs/files/catalog.lance/dashboard_config.lance"
-pipeline_plan = Path(__file__).parent / "../../dbs/files/catalog.lance/pipeline_plan.lance"
+pipeline_plan = Path(__file__).parent / "../../dbs/files/catalog.lance/pipeline_checkpoint.lance"
+pipeline_checkpoint = Path(__file__).parent / "../../dbs/files/catalog.lance/pipeline_checkpoint.lance"
 
 con = duckdb.connect()
 con.execute("LOAD lance")
@@ -15,6 +16,7 @@ con.execute(f"CREATE VIEW pipeline_metadata AS SELECT * FROM '{metadata_path.res
 con.execute(f"CREATE VIEW chart_config AS SELECT * FROM '{charts_path.resolve()}'")
 con.execute(f"CREATE VIEW dashboard_config AS SELECT * FROM '{dashboard_path.resolve()}'")
 con.execute(f"CREATE VIEW pipeline_plan AS SELECT * FROM '{pipeline_plan.resolve()}'")
+con.execute(f"CREATE VIEW pipeline_checkpoint AS SELECT * FROM '{pipeline_checkpoint.resolve()}'")
 
 print(f"✅ Connected to LanceDB tables: column_catalog and pipeline_metadata")
 print("📊 Opening DuckDB UI at http://localhost:4213")

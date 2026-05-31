@@ -364,7 +364,8 @@ def call_scheduled_job():
             time.sleep(2)
             while True:
                 response = requests.post(f'{env('APP_SRV_ADDR')}/workcpace/ppline/job/schedule/')
-                response.raise_for_status()
+                if hasattr(response, 'raise_for_status'):
+                    response.raise_for_status()
                 if response.status_code == 200 or response.status_code == 204:
                     break
                 time.sleep(.5)

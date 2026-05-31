@@ -5,8 +5,10 @@ import sys
 import threading
 import duckdb
 from duckdb import DuckDBPyConnection
+from utils.pipeline.Enums import Checkpoint
 
 PipelineLogger = PL
+ChkPoint = Checkpoint
 
 def set_dlt_pipeline_schema_naming():
     import os

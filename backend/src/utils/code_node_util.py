@@ -52,6 +52,7 @@ valid_imports = [
     'import traceback',
     'import re',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, ChkPoint',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
