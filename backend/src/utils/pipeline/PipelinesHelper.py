@@ -325,4 +325,5 @@ def send_ppline_completion_email(
     tbls_email_content = f'<span style="font-size: 13px;">{header}</span><p>{row_sep}</p><table style="font-size: 13px;" border="1">{tbls_email_content}</table>'
     subject = f'{sbjct_prfix} e2e-Data Pipeline ({pipeline_name}) {sbjct_sffix}'         
 
-    SimpleAPIMailer.send_email('nakassony@gmail.com', 'Nakassony Bernardo', tbls_email_content, subject)
+    receiver_email, receiver_name = env('PPLINE_RESULT_EMAIL'), env('PPLINE_RESULT_EMAIL_RCVR')
+    SimpleAPIMailer.send_email(receiver_email, receiver_name, tbls_email_content, subject)

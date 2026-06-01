@@ -23,6 +23,8 @@ from utils.metastore.meta_storage import MetaStore
 from utils.metastore.PipelineMedatata import PipelineMedatata
 from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
 from utils.pipeline.Enums import Checkpoint
+from services.email.SimpleAPIMailer import SimpleAPIMailer
+from internationalization.email import labels
 
 
 root_dir = str(Path(__file__).parent.parent.parent)
@@ -136,26 +138,26 @@ class DltPipeline:
                 context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), None, '', context.pipeline_metadata.pipline_plan_id
             )
             return { 'status': True, 'message': 'Pipeline created successfully' }
+        
+        PIPE = subprocess.PIPE
 
         # Run pipeline generater above by passing the python file
-        result = subprocess.Popen(['python', ppline_file],
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE,
-                                    text=True,
-                                    bufsize=1
-                                )
+        result = subprocess.Popen(['python', ppline_file], stdout=PIPE, stdin=PIPE, stderr=PIPE, text=True, bufsize=1)
+        start_time = str(datetime.now().timestamp())
 
-        # TODO: If needed, flag can be assigned with proper logic so UI logs will only came in 
-        #  specific situation like will only print if the ppline has transformation or if it's
-        #  ppline update, otherwise flag = True will print the log in any scenario
-        #  flag = context.transformation is not None or context.action_type == 'UPDATE'
+        # TODO: If needed, flag can be assigned with proper logic so UI logs will only came in  specific situation like will 
+        # only print if the ppline has transformation or if it's ppline update, otherwise flag = True will print the log in 
+        # any scenario flag = context.transformation is not None or context.action_type == 'UPDATE'
         flag = True
         logger, refs = DltPipeline.get_pipeline_logger(context), {}
+
+        result.stdin.write(start_time+'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process 
+        result.stdin.flush()
 
         if(flag):
             while True:
                 line = result.stdout.readline()
-                time.sleep(0.1)
+                time.sleep(0.15)
                 
                 if line == '' or line.strip() == 'import pkg_resources' or line.strip().__contains__('import pkg_resources'): 
                     continue
@@ -189,6 +191,7 @@ class DltPipeline:
                     message, status = SUCCESS_RUN_MESSAGE, True
                 elif context and status == False:
                     context.emit_ppline_trace(message, error=True)
+                    DltPipeline.send_fail_email(start_time, context)
 
         if context:
             context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
@@ -358,6 +361,17 @@ class DltPipeline:
         return new_file_name_version
     
 
+    def send_fail_email(start_time, context: RequestContext):
+        start_dt, end_dt = datetime.fromtimestamp(float(start_time)), datetime.now()
+        intl = labels[env('APP_LANG')]
+        content = intl['PPLINE_FAIL_TXT'].replace('{pp_name}', context.pipeline_name).replace('{sdate}', start_dt).replace('{tstamp}', end_dt)
+        [exec_fail_sbj_pfx, exec_fail_sbj_sfx] = [intl['PPLINE_FAIL_EXEC_SBJ_PFX'], intl['PPLINE_FAIL_EXEC_SBJ_SFX']]
+
+        subject = f'{exec_fail_sbj_pfx} ({context.pipeline_name}) {exec_fail_sbj_sfx}'
+        SimpleAPIMailer.send_email(env('PPLINE_RESULT_EMAIL'), env('PPLINE_RESULT_EMAIL_RCVR'), content, subject)
+
+
+
     def _handle_pipeline_trace(line, refs: dict, context: RequestContext, logger: logging.Logger):
         line = line.strip()
         
@@ -406,11 +420,14 @@ class DltPipeline:
         return True
 
 
-    def handle_job_final_state(context: RequestContext, pipeline_exception, line, job_execution_id, result, logger: logging.Logger):
+    def handle_job_final_state(context: RequestContext, pipeline_exception, line, job_execution_id, result, logger: logging.Logger, start_time):
         if pipeline_exception == True:
             message = f'Runtime Pipeline ({context.pipeline_name}) with execution_id {context.pipeline_execution_id} failed, check the logs for details'
             handle_pipeline_log(f'SCHEDULE PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
             context.emit_ppline_job_trace(message, error=True)
+            DltPipeline.send_fail_email(start_time, context)
+
+
         else:
             if(line.__contains__(SUCCESS_RUN_MESSAGE)):
                 if(has_ppline_job('end',job_execution_id)):
@@ -489,7 +506,7 @@ class DltPipeline:
         if not(ppline_file.endswith('withmetadata__.py') and ppline_file.endswith('withmetadata__.py')):
             DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
 
-        refs = { 'job_execution_id': uuid.uuid4() }
+        refs, job_start_time = { 'job_execution_id': uuid.uuid4() }, None
         try:
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{file_path}.duckdb')
             print('####### WILL RUN JOB FOR '+file_path)
@@ -507,7 +524,7 @@ class DltPipeline:
             proc.stdin.flush()
 
             while True:
-                time.sleep(0.2)
+                time.sleep(0.15)
                 line = proc.stdout.readline()
 
                 if line == '': continue
@@ -517,7 +534,7 @@ class DltPipeline:
             #if proc.returncode == 0 and context is not None and pipeline_exception == False: context.emit_ppsuccess()
             # proc.kill()
             pipeline_exception = refs.get('pipeline_exception')
-            DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger)
+            DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger, job_start_time)
 
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             [short_query, dataset_name] = [refs.get('short_query'), refs.get('dataset_name')]
@@ -546,6 +563,7 @@ class DltPipeline:
             context.emit_ppline_job_trace(err.with_traceback,error=True)
             handle_pipeline_log(refs.get('error_message'), logger, True)
             handle_pipeline_log(err.with_traceback, logger, True)
+            DltPipeline.send_fail_email(job_start_time, context)
 
 
     @staticmethod

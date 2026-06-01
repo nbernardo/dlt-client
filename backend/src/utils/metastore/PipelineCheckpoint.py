@@ -57,7 +57,7 @@ class PipelineCheckpoint:
             rows_to_insert = [{ 'pipeline': pipeline, 'status': status, 'start_time': start_time, 'update_time': update_time, 'storage_path': storage_path }]
 
             tbl.add(rows_to_insert)
-            if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
+            #if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
 
         except Exception as e:
             print(f"PipelineCheckpoint Update Failed: {str(e)}")
