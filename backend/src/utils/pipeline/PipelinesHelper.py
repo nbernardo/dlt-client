@@ -6,6 +6,9 @@ import threading
 import duckdb
 from duckdb import DuckDBPyConnection
 from utils.pipeline.Enums import Checkpoint
+from services.email.SimpleAPIMailer import SimpleAPIMailer
+from datetime import datetime
+
 
 PipelineLogger = PL
 ChkPoint = Checkpoint
@@ -65,6 +68,11 @@ class PipelineHelper:
         info=None, 
         additionals={}
     ):
+
+        start_time = str(sys.stdin.readline())
+        ppline_strt_dt, ppline_end_dt = datetime.fromtimestamp(float(start_time)), datetime.now()
+        ppline_time = { 'ts': start_time, 'start': ppline_strt_dt, 'end': ppline_end_dt }
+
         [dest, db_name] = [additionals['dest'], additionals['db_name']]
         [meta, tbls] = [additionals['meta'], additionals['tbls']]
         [stage, big_query] = [additionals.get('stage', 0), additionals.get('big_query', '')]
@@ -79,8 +87,11 @@ class PipelineHelper:
         try:
             pipeline_name = pipeline.pipeline_name
             namespace, original_pipeline_name = pipeline_name.split('_at_', 1)
-            metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
+            
+            [tbls, ts, skma] = [list(additionals['ddls'].keys()), additionals['ts'], additionals['db_name']]
+            send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time)
 
+            metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
             MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals, len(metadatas) > 1)
 
             if stage in [1,2,3]:
@@ -275,3 +286,43 @@ class PipelineHelper:
             return f'_e2e_domain_{table_name}_stage_2_'
         if type == 100:
             return f'{table_name}_e2e_from_{source_ppline}'
+        
+
+
+def send_ppline_completion_email(
+    con: DuckDBPyConnection,
+    pipeline_name: str,
+    skma: str,
+    ts: str,
+    tbls: list,
+    ppline_time: dict
+):
+    from internationalization.email import labels
+
+    ppline_strt_dt, ppline_end_dt, start_time = ppline_time.get('start'), ppline_time.get('end'), ppline_time.get('ts')
+    count_query = '\n UNION \n'.join([f"SELECT '{tbl}' as tbl, COUNT(*) as count FROM {skma}.{tbl} WHERE _e2e_ts = '{ts}'" for tbl in tbls])
+    total_record_per_table = con.execute(count_query).fetchall()
+    
+    style, row_sep = 'style="padding: 0 8px; text-align: center;"', '=' * 50
+    intl = labels[env('APP_LANG')]
+
+    table_main_lbl = intl['TBL_MAIN_HEAD']
+    table_lbl = intl['TBL_TABLE_HEAD_LBL']
+    records_lbl = intl['TBL_REC_HEAD_LBL']
+    st_dt_lbl = intl['PPLINE_START']
+    end_dt_lbl = intl['PPLINE_END']
+    start_time_lbl = intl['PPLINE_TIME']
+    sbjct_prfix = intl['SBJCT_PREFX']
+    sbjct_sffix = intl['SBJCT_SFFIX']
+    _success_execution = intl['PPLINE_SUCCESS']
+
+    tbls_email_content = ''.join([f'<tr><td {style}>{tbl[0]}</td><td {style}>{tbl[1]}</td></tr>' for tbl in list(total_record_per_table)])
+    tbls_email_content = f'<tr style="font-weight: bold; text-align: center;"><td>{table_lbl}</td><td>{records_lbl}</td></tr>{tbls_email_content}'
+    tbls_email_content = f'<tr><td style="font-weight: bold;  text-align: center;" colspan="2">{table_main_lbl}</td></tr>{tbls_email_content}'
+
+    success_txt, spce = f'<h2>{_success_execution}</h2>', '<br>&nbsp;&nbsp;&nbsp;&nbsp;- '
+    header = f'{success_txt}{spce}<b>Pipeline: </b>{pipeline_name}{spce}<b>{st_dt_lbl}</b> {ppline_strt_dt}{spce}<b>{end_dt_lbl}</b> {ppline_end_dt}{spce}<b>{start_time_lbl}</b> {start_time}'
+    tbls_email_content = f'<span style="font-size: 13px;">{header}</span><p>{row_sep}</p><table style="font-size: 13px;" border="1">{tbls_email_content}</table>'
+    subject = f'{sbjct_prfix} e2e-Data Pipeline ({pipeline_name}) {sbjct_sffix}'         
+
+    SimpleAPIMailer.send_email('nakassony@gmail.com', 'Nakassony Bernardo', tbls_email_content, subject)

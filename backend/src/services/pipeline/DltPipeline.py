@@ -489,8 +489,8 @@ class DltPipeline:
         if not(ppline_file.endswith('withmetadata__.py') and ppline_file.endswith('withmetadata__.py')):
             DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
 
+        refs = { 'job_execution_id': uuid.uuid4() }
         try:
-            job_execution_id = uuid.uuid4()
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{file_path}.duckdb')
             print('####### WILL RUN JOB FOR '+file_path)
 
@@ -498,11 +498,13 @@ class DltPipeline:
             # Pass environment variables including Vault credentials
             [env_vars, PIPE] = [DltPipeline.prepare_pipeline_env_vars(), subprocess.PIPE]
             
-            proc = subprocess.Popen(['python', ppline_file], stdout=PIPE, stderr=PIPE, text=True, bufsize=1, env=env_vars)
-            refs, job_start_time = { 'job_execution_id': job_execution_id }, datetime.now().timestamp()
+            proc = subprocess.Popen(['python', ppline_file], stdout=PIPE, stdin=PIPE, stderr=PIPE, text=True, bufsize=1, env=env_vars)
+            job_start_time = datetime.now().timestamp()
             
             # Register pipeline run initiation and start time
             pipeline, storage_path, _ = PipelineCheckpoint.persist(pipeline, Checkpoint.INIT, job_start_time, Checkpoint.TIME_UNSET, file_path)
+            proc.stdin.write(str(job_start_time)+'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process 
+            proc.stdin.flush()
 
             while True:
                 time.sleep(0.2)
@@ -514,8 +516,8 @@ class DltPipeline:
 
             #if proc.returncode == 0 and context is not None and pipeline_exception == False: context.emit_ppsuccess()
             # proc.kill()
-            pipeline_exception, error_message = refs.get('pipeline_exception'), refs.get('error_message')
-            DltPipeline.handle_job_final_state(context, pipeline_exception, line, job_execution_id, proc, logger)
+            pipeline_exception = refs.get('pipeline_exception')
+            DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger)
 
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             [short_query, dataset_name] = [refs.get('short_query'), refs.get('dataset_name')]
@@ -542,7 +544,7 @@ class DltPipeline:
             
             context.emit_ppline_job_trace(message,error=True)
             context.emit_ppline_job_trace(err.with_traceback,error=True)
-            handle_pipeline_log(error_message, logger, True)
+            handle_pipeline_log(refs.get('error_message'), logger, True)
             handle_pipeline_log(err.with_traceback, logger, True)
 
 
