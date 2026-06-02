@@ -359,6 +359,7 @@ export class Workspace extends ViewComponent {
 			self.wasDiagramSaved = false;
 			self.isAnyDiagramActive = false;
 			self.isAnyDiagramActive = false;
+			self.service.curImportedPipelineJSON = null;
 			(async () => await cb())();
 		}
 	}
@@ -575,6 +576,11 @@ export class Workspace extends ViewComponent {
 			btnPipelineSchedule.disabled = true;
 			this.schedulePeriodicitySelected = val, this.scheduleTime = '';
 			handleBtnEnabling(this);
+			const timeSetting = document.querySelector('input[class="time-setting-input"]');
+			if(val == 'daily')
+				if(timeSetting) timeSetting.type = 'time';
+			else
+				if(timeSetting) timeSetting.type = 'number';
 		});
 
 		this.scheduleTimeType.onChange(() => handleBtnEnabling(this));

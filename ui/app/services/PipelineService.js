@@ -3,6 +3,7 @@ import { BaseService, ServiceEvent } from "../../@still/component/super/service/
 import { AppTemplate } from "../../config/app-template.js";
 import { DataCatalogUI } from "../components/data-catalog/DataCatalogUI.js";
 import { WorkSpaceController } from "../controller/WorkSpaceController.js";
+import { StringUtil } from "../util/StringUtil.js";
 import { UserService } from "./UserService.js";
 
 export class PipelineService extends BaseService {
@@ -16,6 +17,7 @@ export class PipelineService extends BaseService {
     static pipelineReferencedSecrets = null;
     static pipelineDestinationConfig = null;
     static pipelineDestinationDB = null;
+    static storePipelineShortList = [];
 
     async createOrUpdatePipeline(content = null, update = false, actionType = '') {
 
@@ -31,7 +33,7 @@ export class PipelineService extends BaseService {
         }
     }
 
-    static async getPipelinesNames(){
+    static async getPipelinesNames(describe){
         const namespace = await UserService.getNamespace();
         const url = '/workspace/pipelines/list/' + namespace;
         const response = await $still.HTTPClient.post(url, null, {
@@ -40,7 +42,23 @@ export class PipelineService extends BaseService {
         const { db_path: _, pipeline_sources_and_destinations, ...tables } = await response.json();
         PipelineService.tableListStore = tables;
 
-        return Object.keys(PipelineService.tableListStore).map( name => ({name}));
+        if(describe) 
+            return Object.keys(tables).map(name => ({ name, lbl: StringUtil.snakeToCamel(name) }));
+        return Object.keys(tables).map(name => ({name}));
+    }
+
+    static async getPipelinesShortList(){
+        const namespace = await UserService.getNamespace();
+        const url = '/ppline/shortlist/' + namespace;
+        const response = await $still.HTTPClient.get(url);
+        const { result } = await response.json();
+
+        const getRelatedParent = (dsName) => String(dsName).includes('.') ? dsName.split('.')[0] : null;
+        PipelineService.storePipelineShortList = result.result.map(it => ({ 
+            name: it.pipeline, lbl: StringUtil.snakeToCamel(it.pipeline), relateTo: getRelatedParent(it.dataset_name) 
+        }));
+
+        return PipelineService.storePipelineShortList;
     }
 
     static async getDataCatalog(pipeline){

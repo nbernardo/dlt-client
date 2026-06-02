@@ -4,6 +4,7 @@ import { HTTPHeaders } from "../../../../@still/helper/http.js";
 import { StillAppSetup } from "../../../../config/app-setup.js";
 import { AppTemplate } from "../../../../config/app-template.js";
 import { AIUtil } from "../../../util/AIUtil.js";
+import { StringUtil } from "../../../util/StringUtil.js";
 import { DBDiagramController } from "../controllers/DBDiagramController.js";
 import { CacheService } from "./CacheService.js";
 
@@ -200,8 +201,6 @@ export class BIService extends BaseService {
             const response = await $still.HTTPClient.get('/secret/' + (await BIService.getNamespace()));    
             if (response.ok && !response.error){
                 
-                const snakeToCamel = (val='') => val.split('_').map(c => c.charAt(0).toUpperCase()+`${c.slice(1)}`).join(' ');
-
                 let secretList = (await response.json()).result, secretAndServerList = [];
                 if(Array.isArray(secretList?.secret_names?.db_secrets)){
                     const secretNames = [];
@@ -210,8 +209,7 @@ export class BIService extends BaseService {
                         return { name: secret, host: secretList.secret_names.metadata[secret] || 'None',id: secret };
                     });
                 }
-                
-                const stagedData = secretList?.staged_data?.map(itm => ({ name: snakeToCamel(itm[0]), id: `${itm[0]}.${itm[1]}` })) || [];
+                const stagedData = secretList?.staged_data?.map(itm => ({ name: StringUtil.snakeToCamel(itm[0]), id: `${itm[0]}.${itm[1]}` })) || [];
                 const result = (secretAndServerList || []).length > 0 ? secretAndServerList : [];
                 return [...result, ...stagedData];
     

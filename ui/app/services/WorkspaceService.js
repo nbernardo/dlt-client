@@ -20,6 +20,7 @@ import { constructTablePath } from "./DestinationUtil.js";
 import { PipelineService } from "./PipelineService.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
 import { AIUtil } from "../util/AIUtil.js";
+import { PipelineStepTrigger } from "../components/node-types/trigger/PipelineStepTrigger.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -48,6 +49,8 @@ export class WorkspaceService extends BaseService {
     static currentSelectedPpelineStatus = null;
     /** @type { Workspace } */
     component;
+
+    curImportedPipelineJSON = null;
 
     static DISCONECT_DB = 'DISCONECT';
     static CONNECT_DB = 'CONNECT';
@@ -83,6 +86,7 @@ export class WorkspaceService extends BaseService {
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/duckdb-icon.svg', label: 'Duckdb (.duckdb)', typeName: DuckDBOutput.name },
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Out - DLT code', typeName: DLTCodeOutput.name, name: 'DLTOutput' },
+        { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/time.png', label: 'Step Trigger', typeName: PipelineStepTrigger.name, disable: 'false' },
         //fas fa-chevron-circle-right
     ];
 
@@ -226,8 +230,9 @@ export class WorkspaceService extends BaseService {
 
     async readDiagramFile(namespace, fileName) {
         const response = await $still.HTTPClient.get('/ppline/diagram/' + namespace + '/' + fileName);
+        this.curImportedPipelineJSON = await response.text();
         if (response.ok)
-            return await response.text();
+            return this.curImportedPipelineJSON;
         return null;
     }
 

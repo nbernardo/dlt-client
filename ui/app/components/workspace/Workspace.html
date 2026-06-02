@@ -109,7 +109,7 @@
 													<select (value)="schedulePeriodicity">
 														<option value="" disabled selected>Select an option...</option>
 														<option value="every">Every</option>
-														<option disabled value="daily">Daily</option>
+														<option value="daily">Daily</option>
 														<option disabled value="weekly">Weekly</option>
 														<option disabled value="monthly">Monthly</option>
 													</select>
@@ -120,8 +120,8 @@
 													<div class="time-setting" style="display: flex;">
 
 														<span (showIf)="self.schedulePeriodicitySelected == 'every'">
-															<div style="display: flex;">
-																<input class="form-input" type="number" (value)="scheduleTime" placeholder="e.g. 10">
+															<div style="display: flex; gap: 3px;">
+																<input class="time-setting-input form-input" type="number" (value)="scheduleTime" placeholder="e.g. 10">
 																<select (value)="scheduleTimeType">
 																	<option value="min">Min</option>
 																	<option value="hour">Hour</option>

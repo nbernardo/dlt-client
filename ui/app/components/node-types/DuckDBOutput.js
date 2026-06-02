@@ -27,7 +27,7 @@ export class DuckDBOutput extends AbstractNode {
 	/** @Prop */
 	inConnectors = 1;
 	/** @Prop */
-	outConnectors = 0;
+	outConnectors = 1;
 
 	/** @Prop */ isImport = false;
 	/** @Prop */ formWrapClass = '_'+UUIDUtil.newId();
@@ -49,6 +49,8 @@ export class DuckDBOutput extends AbstractNode {
 	 * */
 	stOnRender(data){
 		const { nodeId, isImport, aiGenerated, database, table } = data;
+		console.log(`THE DATA IS: `, data);
+		
 		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
@@ -126,5 +128,10 @@ export class DuckDBOutput extends AbstractNode {
 
 	stOnUnload(){
 		this.wSpaceController.isDuckDBDest = false;
+	}
+
+	onOutputConnection(){
+		DuckDBOutput.handleOutputConnection(this);
+		return { nodeCount: this.nodeCount.value, datasetName: this.database.value };
 	}
 }

@@ -1,0 +1,75 @@
+<div class="@cmpInternalId">
+	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
+	<div class="title-box pipeline-node-type-title-box">
+		<div class="node-header-grouper">
+			<!-- <div class="reload-icon-wrapper">
+				<img 
+					onclick="component.reloadMe()"
+					src="app/assets/imgs/refresh-svgrepo-com.svg" 
+					class="reload-loc-node-btn" 
+					alt="">
+			</div> -->
+			<img src="app/assets/imgs/time.png" width="20">
+			@label
+		</div>
+		<div class="statusicon">@nodeCount</div>
+	</div>
+	<st-loader 
+		small center
+		(showIf)="self.showLoading" 
+		topPadding="50"
+		(label)="Fetching API catalog..."/>
+	<span>
+		
+	</span>
+	<div class="box @formWrapClass">
+		<span (showIf)="!self.showLoading">
+			<span (showIf)="!self.showOptions">Link the source node to show configurations. <br><br>Only <b>DuckdbOutput</b> is supported for now.</span>
+			<span (showIf)="self.showOptions">
+				<form (formRef)="formRef">
+					<div>
+						<b>After:</b> 
+						<div style="color: rgb(32, 32, 107); padding-top: 3px; word-wrap: break-word; display: flex; gap: 3px;">
+							<select (forEach)="triggerAfterValues" placeholder="Length" onchange="component.setTriggerTime(this.value)">
+								<option each="item" value="{item.label}">{item.label}</option>
+							</select>
+							<select onchange="component.setTimeUnit(this.value)">
+								<option value="">Time unity</option>
+								<option value="sec">Sec</option>
+								<option value="min">Min</option>
+								<option value="hour">Hours</option>
+							</select>
+						</div>
+					</div>
+					<div>
+						<div style="display: flex; justify-content: space-between; padding-bottom: 5px; margin-top: 15px;">
+							<b>Run:</b>
+							<span style="font-size: 12px; font-weight: normal;">
+								Related only
+								<label class="e2e-switch">
+									<input class="relatedOnly" type="checkbox" oninput="component.filterRelated(this.checked);">
+									<span class="e2e-slider round"></span>
+								</label>
+							</span>
+						</div>
+						<select (forEach)="pipelineList" placeholder="Select the pipeline" onchange="component.setTargetPipeline(this.value)">
+							<option each="item" value="{item.name}">{item.lbl}</option>
+						</select>
+					</div>
+					<div>
+						<button onclick="component.addPipelineTrigger()" class="add-table-buttons add-btn-primary" style="padding: 5px; margin-top: 6px;">
+							<i class='fas fa-code-branch' style='color: white;'></i>
+							<span style="padding-left: 14px;">Link trigger</span>
+						</button>
+					</div>
+				</form>
+			</span>
+		</span>
+	</div>
+</div>
+<style>
+	select{ font-size: 13px !important; }
+	select[placeholder="Length"]{ width: 66px; }
+	.parent-node .InputAPI { width: 200px; z-index: 1; }
+	.input-endpoint-data { padding-top: 5px; }
+</style>

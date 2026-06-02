@@ -141,7 +141,11 @@ export const stillRoutesMap = {
             DatabaseDiagram: {
                 path: "app/components/dataviz/diagram",
                 url: "/database-diagram"
-            }
+            },
+            PipelineStepTrigger: {
+                path: "app/components/node-types/trigger",
+                url: "/pipeline-trigger"
+            },
         },
         lazyInitial: {}
     }
