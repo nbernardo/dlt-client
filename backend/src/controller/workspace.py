@@ -18,6 +18,9 @@ from utils.BucketConnector import BucketConnector
 from utils.workspace_util import handle_conversasion_turn_limit
 from utils.pipeline.Enums import DestinationType
 from services.agents.Enums import AgentFlow
+from services.pipeline.DltPipeline import DltPipeline
+from utils.metastore.PipelineMedatata import PipelineMedatata
+import json
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -41,7 +44,6 @@ def run_code(user):
 @workspace.route('/workcpace/duckdb/list/<namespace>/<socket_id>', methods=['POST'])
 @workspace.route('/workspace/pipelines/list/<namespace>', methods=['POST'])
 def list_pipelines(namespace, socket_id = None):
-    from services.pipeline.DltPipeline import DltPipeline
     ppelines_path = BasePipeline.folder+'/pipeline/'+namespace+'/'
     duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+namespace+'/'
 
@@ -50,8 +52,6 @@ def list_pipelines(namespace, socket_id = None):
         return { **ppelines }
     else:
         from utils.metastore.DataCatalog import DataCatalog
-        from utils.metastore.PipelineMedatata import PipelineMedatata
-        import json
 
         metadata = PipelineMedatata.get_pipeline_source_destination_meta(namespace)
         catalog = DataCatalog.get_namespace_fields_by_pipeline(namespace)
@@ -147,8 +147,6 @@ def update_socket_id(namespace, socket_id):
 
 @workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['POST'])
 def create_ppline_schedule(namespace):
-    import json
-    from services.pipeline.DltPipeline import DltPipeline
     import schedule
 
     ppline_name = None
@@ -159,17 +157,18 @@ def create_ppline_schedule(namespace):
         type, periodicity, time = settings['type'], settings['periodicity'], settings['time']
         # socket_id = payload['socket_id']
 
-        Workspace.create_ppline_schedule(
-            ppline_name, json.dumps(settings), namespace, type, periodicity, time
-        )
+        Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace, type, periodicity, time)
         file_path = f'{namespace}/{ppline_name}'
         tag_name = f'{namespace}_{ppline_name}'
         Workspace.schedule_jobs[file_path] = True
 
-        if(type == 'min'):
-            schedule.every(int(time)).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
-        if(type == 'hour'):
-            schedule.every(int(time)).hours.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
+        if periodicity == 'daily':
+            schedule.every().day.at(time).do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
+        else:
+            if(type == 'min'):
+                schedule.every(int(time)).minutes.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
+            if(type == 'hour'):
+                schedule.every(int(time)).hours.do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
 
         schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
         print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
@@ -489,7 +488,6 @@ def create_seret(namespace):
 
 @workspace.route('/secret/<namespace>', methods=['GET'])
 def list_serets(namespace):
-    from utils.metastore.PipelineMedatata import PipelineMedatata
     try:
 
         secret_names = SecretManager.list_secret_names(namespace)

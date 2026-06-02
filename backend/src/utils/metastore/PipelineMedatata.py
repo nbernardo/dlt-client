@@ -225,4 +225,10 @@ class PipelineMedatata:
                     print(f'pipeline_metadata.{col} already exists — skipped')
 
         except Exception as e:
-            print(f'pipeline_metadata migration failed: {e}')    
+            print(f'pipeline_metadata migration failed: {e}')
+
+    
+    def get_pipeline_short_list(namespace):
+        tbl = PipelineMedatata._get_table()
+        result = tbl.search().where(f"namespace='{namespace}'").select(['pipeline','dataset_name']).to_list()
+        return result

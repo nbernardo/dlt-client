@@ -10,6 +10,7 @@ from utils.workspace_util import handle_conversasion_turn_limit
 import traceback
 from services.agents import AgentFactory
 from utils.metastore.meta_storage import MetaStore
+from utils.metastore.PipelineMedatata import PipelineMedatata
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -633,6 +634,15 @@ def update_pipeline_pause(namespace, pipeline, status):
     try:
         DltPipeline.update_pipline_pause_status(namespace, pipeline, status)
         return { 'error': False, 'result': { 'result': 'Pipeline job paused' } }
+    except Exception as err:
+        return { 'error': True, 'result': { 'result': err } }
+    
+
+@pipeline.route('/ppline/shortlist/<namespace>', methods=['GET'])
+def short_pipeline_list(namespace):
+    try:
+        pipeline_list = PipelineMedatata.get_pipeline_short_list(namespace)
+        return { 'error': False, 'result': { 'result': pipeline_list } }
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }
     
