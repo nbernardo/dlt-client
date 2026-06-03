@@ -212,7 +212,7 @@ class DltPipeline:
         return { 'status': status, 'message': message }
 
 
-    def save_diagram(self, diagrm_path, file_name, content, pipeline_lbl, is_update = None, write_log = True):
+    def save_diagram(self, diagrm_path, file_name, content, pipeline_lbl, is_update: bool|str = None, write_log = True):
         """
         Save pipeline diagram.
         """
@@ -224,10 +224,18 @@ class DltPipeline:
                 f'{diagrm_path}/{file_name}.json', json.dumps(pipeline_code), 'updating transformation', write_log
             )
         else:
-            diagrm_file, file_open_flag = f'{diagrm_path}/{file_name}.json', 'x+'
-            with open(diagrm_file, file_open_flag) as file:
-                file.write(json.dumps(pipeline_code))
+            from utils.pipeline.Enums import FileOperation
+            diagrm_file = f'{diagrm_path}/{file_name}.json'
+
+            if is_update == FileOperation.REPLACE:
+                with open(diagrm_file,'w') as file:
+                    file.write(json.dumps(pipeline_code))
+            else:
+                with open(diagrm_file, 'x+') as file:
+                    file.write(json.dumps(pipeline_code))
+            
     
+
     def update(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
         """
         This is the pipeline update and pipeline code

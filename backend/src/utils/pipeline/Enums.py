@@ -28,3 +28,11 @@ class Checkpoint(StrEnum):
     TIME_UNSET = 'UNSET'
     # Means that the pipeline run status was update from bastion, but no real time was set yeat
     TIME_FROM_BASTION = 'FROM_BASTION'
+
+
+class FileOperation(StrEnum):
+    REPLACE = 'R'
+
+
+class Trigger(StrEnum):
+    STATUS_ACTIVE = 'ACTIVE'

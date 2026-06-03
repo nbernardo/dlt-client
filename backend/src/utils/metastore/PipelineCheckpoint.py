@@ -1,6 +1,4 @@
 import pyarrow as pa
-from utils.duckdb_util import DuckdbUtil
-import duckdb
 from utils.db.lancedb import LanceConnectionFactory
 from lancedb import Table
 from datetime import datetime
@@ -35,16 +33,6 @@ class PipelineCheckpoint:
                 return PipelineCheckpoint._get_lance_conn().create_table(table, schema=PIPELINE_CHECKPOINT_SCHEMA)
             except Exception:
                 return PipelineCheckpoint._get_lance_conn().open_table(table)    
-
-
-    @staticmethod
-    def _get_duckdb_conn(db_path = None) -> duckdb.DuckDBPyConnection:
-        """Returns a DuckDB connection with a catalog view over the LanceDB files."""
-        lance_path = f'{db_path if db_path != None else DuckdbUtil.workspacedb_path}/catalog.lance'
-        con = duckdb.connect()
-        con.execute("LOAD lance")
-        con.execute(f"CREATE VIEW {table} AS SELECT * FROM '{lance_path}/{table}.lance'")
-        return con
 
 
     @staticmethod
@@ -143,4 +131,4 @@ class PipelineCheckpoint:
         tbl = PipelineCheckpoint._get_table()
         tbl.cleanup_old_versions(older_than=timedelta(days=older_than_days))
         tbl.compact_files()
-        print("✅ Catalog compacted")
+        print("✅ PipelineCheckpoint compacted")

@@ -531,6 +531,29 @@ def update_ppline(user, filename):
     return ''
 
    
+@pipeline.route('/trigger/<namespace>', methods=['POST'])
+def add_pipeline_trigger(namespace):
+
+    from utils.pipeline.Enums import FileOperation
+    from utils.metastore.PipelineTrigger import PipelineTrigger
+
+    try:
+        payload = request.get_json()
+        source_ppline = payload['activeGrid'] if 'activeGrid' in payload else ''
+        pipeline_lbl = payload['pplineLbl'] if 'pplineLbl' in payload else ''
+        settings = payload['settings']
+        
+        
+        pipeline_instance, diagrm_path = DltPipeline(), BasePipeline.folder+'/code/'+namespace
+        pipeline_instance.save_diagram(diagrm_path, source_ppline, payload['drawflow'], pipeline_lbl, is_update=FileOperation.REPLACE)
+
+        PipelineTrigger.persist(namespace, source_ppline, settings)
+        
+        return { 'error': False, 'result': 'Pipeline trigger added/updated successfully' }
+    except Exception as err:
+        return { 'error': True, 'result': f'Error while adding/updating pipeline trigger - {str(err)}' }
+
+   
 @pipeline.route('/ppline/diagram/<namespace>/<filename>', methods=['GET'])
 def read_diagram_content(namespace, filename):
 
