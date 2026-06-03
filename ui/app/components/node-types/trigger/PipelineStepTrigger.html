@@ -24,16 +24,16 @@
 	</span>
 	<div class="box @formWrapClass">
 		<span (showIf)="!self.showLoading">
-			<span (showIf)="!self.showOptions">Link the source node to show configurations. <br><br>Only <b>DuckdbOutput</b> is supported for now.</span>
-			<span (showIf)="self.showOptions">
+			<span (showIf)="!self.showSettings">Link the source node to show configurations. <br><br>Only <b>DuckdbOutput</b> is supported for now.</span>
+			<span (showIf)="self.showSettings">
 				<form (formRef)="formRef">
 					<div>
 						<b>After:</b> 
 						<div style="color: rgb(32, 32, 107); padding-top: 3px; word-wrap: break-word; display: flex; gap: 3px;">
-							<select (forEach)="triggerAfterValues" placeholder="Length" onchange="component.setTriggerTime(this.value)">
+							<select (value)="triggerValue" (forEach)="triggerAfterValues" placeholder="Length">
 								<option each="item" value="{item.label}">{item.label}</option>
 							</select>
-							<select onchange="component.setTimeUnit(this.value)">
+							<select (value)="timeUnit">
 								<option value="">Time unity</option>
 								<option value="sec">Sec</option>
 								<option value="min">Min</option>
@@ -52,7 +52,7 @@
 								</label>
 							</span>
 						</div>
-						<select (forEach)="pipelineList" placeholder="Select the pipeline" onchange="component.setTargetPipeline(this.value)">
+						<select (value)="targetPipeline" (forEach)="pipelineList" placeholder="Select the pipeline">
 							<option each="item" value="{item.name}">{item.lbl}</option>
 						</select>
 					</div>

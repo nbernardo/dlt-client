@@ -1,5 +1,6 @@
 import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService, ServiceEvent } from "../../@still/component/super/service/BaseService.js";
+import { HTTPHeaders } from "../../@still/helper/http.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { DataCatalogUI } from "../components/data-catalog/DataCatalogUI.js";
 import { WorkSpaceController } from "../controller/WorkSpaceController.js";
@@ -18,6 +19,7 @@ export class PipelineService extends BaseService {
     static pipelineDestinationConfig = null;
     static pipelineDestinationDB = null;
     static storePipelineShortList = [];
+    static storePipelineTriggers = [];
 
     async createOrUpdatePipeline(content = null, update = false, actionType = '') {
 
@@ -125,6 +127,16 @@ export class PipelineService extends BaseService {
             return { error: result.result };
         }
         return { ...result, error: null };
+    }
+
+    static async addTrigger(code) {
+        const user = await UserService.getNamespace();
+        let response = await $still.HTTPClient.post('/trigger/' + user, JSON.stringify(code), HTTPHeaders.JSON);
+        response = await response.json();
+
+        if (!response.error)
+            return AppTemplate.toast.success(response.result);
+        AppTemplate.toast.error(response.result);
     }
 
 }

@@ -24,12 +24,17 @@ export class PipelineStepTrigger extends AbstractNode {
 	nodeCount = '';
 	triggerAfterValues = [];
 	pipelineList = [];
+	triggerValue;
+	timeUnit;
+	targetPipeline;
 
 	/** @Prop */ aiGenerated;
 	/** @Prop */ isImport;
 	/** @Prop */ importData = null;
 	/** @Prop */ leaderDataSource = null;
-	/** @Prop */ showOptions = false;
+	/** @Prop */ showSettings = false;
+	/** @Prop */ triggerOrder;
+	/** @Prop */ settings = null;
 
 	/** @type { Workspace } */ $parent;
 
@@ -48,42 +53,77 @@ export class PipelineStepTrigger extends AbstractNode {
 
 	async stAfterInit(){
 		this.showLoading = false;
-		this.triggerAfterValues = Array.from({ length: 60 }, (_, label) => ({label: label + 1}));
+		this.triggerAfterValues = Array.from({ length: 61 }, (_, label) => ({label}));
 		this.pipelineList = (await PipelineService.getPipelinesShortList());
 
-		
+		this.triggerValue.onChange(val => this.setData('time', val));
+		this.timeUnit.onChange(val => this.setData('timeUnit', val));
+		this.targetPipeline.onChange(val => this.setData('targetPipeline', val));
 
-		if(this.importData?.isImport) this.notifyReadiness();
+		if(this.importData?.isImport) {			
+			this.showSettings = true;
+			this.notifyReadiness();
+			const { time, timeUnit, targetPipeline } = this.importData;
+			setTimeout(() => document.querySelector(`select[placeholder="Select the pipeline"]`).value = targetPipeline, 50);
+			this.triggerValue = time, this.timeUnit = timeUnit;
+		}
 	}
 
-	setTimeUnit = (val) => WorkSpaceController.getNode(this.nodeId).data['timeUnit'] = val;
-	setTriggerTime = (val) => WorkSpaceController.getNode(this.nodeId).data['time'] = val;
-	setTargetPipeline = (val) => WorkSpaceController.getNode(this.nodeId).data['targetPipeline'] = val;
+	setData(field, val){ this.setNodeData(field, val); this.updateSettings(); }
 
 	onOutputConnection(){
 		PipelineStepTrigger.handleOutputConnection(this);
-		return { nodeCount: this.nodeCount.value };
+		return { nodeCount: this.nodeCount.value, order: Number(this.triggerOrder) + 1 };
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
-		if(type === DuckDBOutput.name) this.showOptions = true;
+		if(type === DuckDBOutput.name || type === PipelineStepTrigger.name) {
+			// If the source node is another trigger then the order will be set by it (source)
+			this.triggerOrder = type === DuckDBOutput.name ? 1 : data.order;
+			this.showSettings = true;
+			PipelineService.storePipelineTriggers.push(this);
+			this.setData('order', this.triggerOrder);
+		}
 		this.leaderDataSource = data.datasetName;
 		PipelineStepTrigger.handleInputConnection(this, data, type);
 	}
 
 	onConectionDelete = () => {
-		if(this.showOptions !== false) this.showOptions = false;
+		if(this.showSettings !== false) this.showSettings = false;
+		PipelineService.storePipelineTriggers.splice(this.triggerOrder - 1, 1);
+	}
+
+	stOnUnload(){
+		PipelineService.storePipelineTriggers.splice(this.triggerOrder - 1, 1);
+	}
+
+	updateSettings(){
+		const { targetPipeline, triggerValue, timeUnit, triggerOrder } = this;
+		this.settings = { ppline: targetPipeline.value, triggerValue: triggerValue.value, timeUnit: timeUnit.value, order: triggerOrder };
 	}
 
 	addPipelineTrigger(){
-		const curretDiagram = this.$parent.editor.export().drawflow.Home;
-		const originalDiagram = JSON.parse(this.$parent.service.curImportedPipelineJSON).pipelineCode.content.Home;		
-		const nodes = Object.keys(curretDiagram.data);
+		const currentDiagram = this.$parent.editor.export().drawflow.Home;
+		let originalDiagram = JSON.parse(this.$parent.service.curImportedPipelineJSON).pipelineCode;
+		const pplineLbl = originalDiagram.pipeline_lbl;
+		originalDiagram = originalDiagram.content.Home;
+		// This is the actuall pipline script filename
+		const activeGrid = this.$parent.activeGrid.value.toLowerCase().replace(/\s/g, '_');
+
+		const nodes = Object.keys(currentDiagram.data);
 		for(const node of nodes){
 			if(!(node in originalDiagram.data))
-				originalDiagram.data[node] = curretDiagram.data[node];
+				originalDiagram.data[node] = currentDiagram.data[node];
+			else{
+				originalDiagram.data[node].outputs = currentDiagram.data[node].outputs;
+				originalDiagram.data[node].inputs = currentDiagram.data[node].inputs;
+			}
 		}
+		const diagram = { Home: { data: originalDiagram.data } };
+		const payload = { drawflow: diagram, activeGrid, pplineLbl, settings: PipelineService.storePipelineTriggers.map(trg => trg.settings) };
+
+		PipelineService.addTrigger(payload)
 	}
 	
 }

@@ -375,7 +375,7 @@ export class WorkSpaceController extends BaseController {
             }
         }
         this.idCounter = nodeId;
-        setTimeout(() => {
+        setTimeout(() => {            
             Object.keys(inOutputMapping).forEach(nodeId => {
                 const { outputs } = inOutputMapping[nodeId];
                 outputs?.output_1?.connections.forEach((link) => {

@@ -360,6 +360,7 @@ export class Workspace extends ViewComponent {
 			self.isAnyDiagramActive = false;
 			self.isAnyDiagramActive = false;
 			self.service.curImportedPipelineJSON = null;
+			PipelineService.storePipelineShortList = [], PipelineService.storePipelineTriggers = [];			
 			(async () => await cb())();
 		}
 	}
