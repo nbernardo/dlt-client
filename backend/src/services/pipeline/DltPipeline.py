@@ -25,6 +25,7 @@ from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
 from utils.pipeline.Enums import Checkpoint
 from services.email.SimpleAPIMailer import SimpleAPIMailer
 from internationalization.email import labels
+import asyncio
 
 
 root_dir = str(Path(__file__).parent.parent.parent)
@@ -484,58 +485,73 @@ class DltPipeline:
         return ppline_file
 
 
-
     processed_job = { 'start': {}, 'end': {} }
+    job_refs = {}
+
     @staticmethod
-    def run_pipeline_job(file_path, namespace):
-        ppline_file = f'{destinations_dir}/{file_path}.py'
-        pipeline = file_path.replace(f'{namespace}/','')
-        pipeline_metadata = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
-        # In case it an integration pipeline, it'll use a 
-        # shared storage (Duckdb) file set in the file_path
-        if pipeline_metadata[7] != None:
-            if pipeline_metadata[7].__contains__('.'):
-                file_path = f'{namespace}/{pipeline_metadata[7].split('.')[1]}'
+    def run_pipeline_job_sync(file_path, namespace, leade_pipeline = None):
+        asyncio.run(DltPipeline.run_pipeline_job(file_path, namespace, leade_pipeline))
 
-        ppline_file = DltPipeline._get_scheduled_pipeline_file(ppline_file, file_path)
 
+    @staticmethod
+    async def run_pipeline_job(file_path, namespace, leade_pipeline = None, triggers = None):
+        
         socket_id = DuckdbUtil.get_socket_id(namespace)
         context = RequestContext(None, socket_id)
         logger = DltPipeline.get_pipeline_logger(context)
 
-        pipeline_using_storage = PipelineCheckpoint.check_dest_storge_usage(file_path, pipeline)
+        if(triggers != None):
+            handle_pipeline_log(f'Trigger for {file_path} from {leade_pipeline}', logger, False)
+
+        [ppline_file, pipeline] = [f'{destinations_dir}/{file_path}.py', file_path.replace(f'{namespace}/','')]
+        [pipeline_metadata, db_file] = [PipelineMedatata.get_pipeline_metadata(pipeline, namespace), file_path]
+
+        # In case it an integration pipeline, it'll use a 
+        # shared storage (Duckdb) file set in the file_path
+        if pipeline_metadata[7] != None:
+            if pipeline_metadata[7].__contains__('.'):
+                db_file = f'{namespace}/{pipeline_metadata[7].split('.')[1]}'
+                file_path = db_file if triggers != None else file_path
+
+        ppline_file = DltPipeline._get_scheduled_pipeline_file(ppline_file, file_path)
+        # pipeline_using_storage = PipelineCheckpoint.check_dest_storge_usage(file_path, pipeline)
         # In case another pipeline is using the same destination storage (in case of Duckdb)
-        if(pipeline_using_storage != None):
-            handle_pipeline_log(f'Delaying {pipeline} execution due to {pipeline_using_storage} being using the storage', logger)
-            return PipelineCheckpoint.persist(pipeline, Checkpoint.DELAY, datetime.now().timestamp(), 'UNSET', file_path)
+        #if(pipeline_using_storage != None):
+        #    handle_pipeline_log(f'Delaying {pipeline} execution due to {pipeline_using_storage} being using the storage', logger)
+        #    return PipelineCheckpoint.persist(pipeline, Checkpoint.DELAY, datetime.now().timestamp(), 'UNSET', file_path)
 
         db_root_path = destinations_dir.replace('pipeline','duckdb')
         # DB Lock in the pplication level
         if not(ppline_file.endswith('withmetadata__.py') and ppline_file.endswith('withmetadata__.py')):
-            DuckDBCache.set(f'{db_root_path}/{file_path}.duckdb','lock')
+            DuckDBCache.set(f'{db_root_path}/{db_file}.duckdb','lock')
+
+        from utils.metastore.PipelineTrigger import PipelineTrigger
 
         refs, job_start_time = { 'job_execution_id': uuid.uuid4() }, None
+        triggers = triggers if triggers != None else PipelineTrigger.find_all(namespace, pipeline)
+
         try:
-            DuckdbUtil.check_pipline_db(f'{db_root_path}/{file_path}.duckdb')
-            print('####### WILL RUN JOB FOR '+file_path)
+            DuckdbUtil.check_pipline_db(f'{db_root_path}/{db_file}.duckdb')
+            handle_pipeline_log(f'####### WILL RUN JOB FOR {file_path}', logger, False)
 
             # Run pipeline generater above by passing the python file
             # Pass environment variables including Vault credentials
-            [env_vars, PIPE] = [DltPipeline.prepare_pipeline_env_vars(), subprocess.PIPE]
+            [env_vars, PIPE] = [DltPipeline.prepare_pipeline_env_vars(), asyncio.subprocess.PIPE]
             
-            proc = subprocess.Popen(['python', ppline_file], stdout=PIPE, stdin=PIPE, stderr=PIPE, text=True, bufsize=1, env=env_vars)
             job_start_time = datetime.now().timestamp()
+            proc = await asyncio.create_subprocess_exec('python', ppline_file, stdout=PIPE, stdin=PIPE, stderr=PIPE, env=env_vars)
+            proc.stdin.write(str(job_start_time).encode() + b'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process
             
             # Register pipeline run initiation and start time
-            pipeline, storage_path, _ = PipelineCheckpoint.persist(pipeline, Checkpoint.INIT, job_start_time, Checkpoint.TIME_UNSET, file_path)
-            proc.stdin.write(str(job_start_time)+'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process 
-            proc.stdin.flush()
+            pipeline, storage_path, _ = PipelineCheckpoint.persist(pipeline, Checkpoint.INIT, job_start_time, Checkpoint.TIME_UNSET, db_file) 
+            await proc.stdin.drain()
 
             while True:
-                time.sleep(0.15)
-                line = proc.stdout.readline()
+                line = await proc.stdout.readline()
 
-                if line == '': continue
+                if not line: break
+                
+                line = line.decode().strip()  
                 if DltPipeline._handle_pipeline_trace(line, refs, context, logger) == False or not line: 
                     break
 
@@ -547,7 +563,7 @@ class DltPipeline:
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             [short_query, dataset_name] = [refs.get('short_query'), refs.get('dataset_name')]
 
-            ppline_name = str(file_path).replace(f'{namespace}/','')
+            ppline_name = str(db_file).replace(f'{namespace}/','')
             DltPipeline.update_pipline_runtime(namespace,ppline_name,dt)
 
             delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
@@ -555,17 +571,28 @@ class DltPipeline:
             PipelineCheckpoint.update(pipeline, delayed_pipeline, storage_path, job_start_time, Checkpoint.DONE)
             MetaStore.update_metadata(namespace, pipeline, dataset_name, short_query)
 
-            if(delayed_pipeline):
-                # Pass the bastion to the delayed pipeline run. storage_path = file_path
-                return DltPipeline.run_pipeline_job(storage_path, namespace)
+            if len(triggers) > 0:
+                curr_trigger = triggers.pop(0)
+                unity, wait_time = curr_trigger['time'], int(curr_trigger['unity'])
+                target_pipeline = f'{namespace}/{curr_trigger['pipeline']}'
+
+                if(unity == 'sec'): await asyncio.sleep(wait_time)    
+                if(unity == 'min'): await asyncio.sleep(int(wait_time) * 60)
+
+                await DltPipeline.run_pipeline_job(target_pipeline, namespace, pipeline, triggers)
+                return
+
+            #if(delayed_pipeline):
+                # Pass the bastion to the delayed pipeline run. storage_path = db_file
+                # return DltPipeline.run_pipeline_job(storage_path, namespace)
             
             # DB Lock release in the pplication level
-            DuckDBCache.remove(f'{db_root_path}/{file_path}.duckdb')
+            DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
         
         except Exception as err:
             # DB Lock release in the pplication level
-            DuckDBCache.remove(f'{db_root_path}/{file_path}.duckdb')
-            message = f'Error while running job for {file_path.split('/')[1]} pipeline'
+            DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
+            message = f'Error while running job for {db_file.split('/')[1]} pipeline'
             
             context.emit_ppline_job_trace(message,error=True)
             context.emit_ppline_job_trace(err.with_traceback,error=True)

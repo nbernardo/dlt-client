@@ -54,7 +54,7 @@ class PipelineTrigger:
                 sttus = Trigger.STATUS_ACTIVE
 
                 is_existing_trigger = PipelineTrigger.find_all(namespace, leader_pipeline, order=order)
-                if(is_existing_trigger):
+                if(len(is_existing_trigger) > 0):
                     filter = f"namespace='{namespace}' AND order='{order}' AND leader_pipeline='{leader_pipeline}'"
                     tbl.update(where=f'{filter}', values_sql={ 'status': f"'{sttus}'", 'unity': f"'{unity}'", 'time': f"'{time}'", 'pipeline': f"'{pipeline}'" })
                 else:
@@ -86,9 +86,9 @@ class PipelineTrigger:
             if order:
                 filter += f" AND order='{order}'"
 
-            records = tbl.search().where(f'{filter}').select(['status', 'unity', 'time']).to_list()
+            records = tbl.search().where(f'{filter}').select(['pipeline', 'namespace', 'status', 'unity', 'time']).to_list()
 
-            return records[0]['time'] if records else None
+            return records if records else []
 
         except Exception as e:
             print(f"Error while fetching PipelineTrigger: {str(e)}")

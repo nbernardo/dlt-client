@@ -644,14 +644,14 @@ class Workspace:
                 tag_name = f'{_namespace}_{ppline_name}'
 
                 if periodicity == 'daily':
-                    schedule.every().day.at(sched['time']).do(DltPipeline.run_pipeline_job, file_path, namespace).tag(tag_name)
+                    schedule.every().day.at(sched['time']).do(DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
                 else:
                     time = int(sched['time'])
                     if(Workspace.schedule_jobs.get(file_path,None) != True):
                         if(type == 'min'):
-                            schedule.every(time).minutes.do(DltPipeline.run_pipeline_job, file_path, _namespace).tag(tag_name)
+                            schedule.every(time).minutes.do(DltPipeline.run_pipeline_job_sync, file_path, _namespace).tag(tag_name)
                         if(type == 'hour'):
-                            schedule.every(time).hours.do(DltPipeline.run_pipeline_job, file_path, _namespace).tag(tag_name)
+                            schedule.every(time).hours.do(DltPipeline.run_pipeline_job_sync, file_path, _namespace).tag(tag_name)
 
                         print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
                         Workspace.schedule_jobs[file_path] = True
