@@ -92,7 +92,7 @@ class PipelineHelper:
             send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time)
 
             metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
-            MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals, len(metadatas) > 1)
+            MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals, len(metadatas) > 1 if metadatas else 0)
 
             if stage in [1,2,3]:
                 PipelineHelper.add_tables_contrains(con, tbls, additionals, stage)
@@ -127,22 +127,15 @@ class PipelineHelper:
         for tbl_name in tbls:
             table_path = tbl_name.split('.')
             tbl_name = table_path[1] if len(table_path) > 1 else tbl_name
-            stg_tbl = prefx(tbl_name, optmz_typ)
+            stg_tbl = tbl_name #prefx(tbl_name, optmz_typ)
 
             con.execute("CREATE SCHEMA IF NOT EXISTS dwhperformance_meta")
-
-            con.execute("""
-                CREATE TABLE IF NOT EXISTS dwhperformance_meta.fk_map (
-                    table_name VARCHAR, fk_col VARCHAR, ref_table VARCHAR, ref_col VARCHAR, PRIMARY KEY (table_name, fk_col)
-                )
-            """)
+            tbl_schema = 'table_name VARCHAR, fk_col VARCHAR, ref_table VARCHAR, ref_col VARCHAR, PRIMARY KEY (table_name, fk_col)'
+            con.execute(f"CREATE TABLE IF NOT EXISTS dwhperformance_meta.fk_map ({tbl_schema})")
 
             con.executemany(
                 """ INSERT OR REPLACE INTO dwhperformance_meta.fk_map (table_name, fk_col, ref_table, ref_col) VALUES (?, ?, ?, ?) """,
-                [
-                    (stg_tbl, r["columns"][0], prefx(r["referred_table"], optmz_typ), r["referred_columns"][0]) 
-                    for r in contraints[tbl_name]
-                ]
+                [(stg_tbl, r["columns"][0], r["referred_table"], r["referred_columns"][0])  for r in contraints[tbl_name]]
             )
             
 
@@ -327,3 +320,87 @@ def send_ppline_completion_email(
 
     receiver_email, receiver_name = env('PPLINE_RESULT_EMAIL'), env('PPLINE_RESULT_EMAIL_RCVR')
     SimpleAPIMailer.send_email(receiver_email, receiver_name, tbls_email_content, subject)
+
+
+
+def get_join_query_from_tables(tables, db_path, db_file, schema):
+    
+    query = f'''
+        WITH target_tables AS ( SELECT * FROM ( VALUES {tables}) AS t(table_name)),
+        base_table AS (
+            SELECT m.table_name
+            FROM {db_file}.dwhperformance_meta.fk_map m
+            JOIN target_tables t ON m.table_name = t.table_name
+            GROUP BY m.table_name
+            ORDER BY COUNT(*) DESC
+            LIMIT 1
+        ),
+        raw_joins AS (
+            SELECT DISTINCT
+                b.table_name AS base_table_name,
+                CASE 
+                    WHEN m.table_name = b.table_name THEN m.ref_table
+                    ELSE m.table_name
+                END AS join_target_table,
+                CASE 
+                    WHEN m.table_name = b.table_name 
+                    -- Unique alias format: ref_table__via__fk_col
+                    THEN 'INNER JOIN {schema}.' || m.ref_table || ' AS ' || m.ref_table || '__via__' || m.fk_col || ' ON {schema}.' || m.table_name || '.' || m.fk_col || ' = ' || m.ref_table || '__via__' || m.fk_col || '.' || m.ref_col
+                    ELSE 'INNER JOIN {schema}.' || m.table_name || ' AS ' || m.table_name || '__via__' || m.fk_col || ' ON {schema}.' || b.table_name || '.' || m.ref_col || ' = ' || m.table_name || '__via__' || m.fk_col || '.' || m.fk_col
+                END AS join_string
+            FROM {db_file}.dwhperformance_meta.fk_map m
+            CROSS JOIN base_table b
+            JOIN target_tables t1 ON m.table_name = t1.table_name
+            JOIN target_tables t2 ON m.ref_table = t2.table_name
+            WHERE m.table_name = b.table_name OR m.ref_table = b.table_name
+        )
+        SELECT 
+            'SELECT * FROM {schema}.' || b.table_name || ' ' || STRING_AGG(j.join_string, ' ') AS generated_sql
+        FROM base_table b
+        JOIN raw_joins j ON b.table_name = j.base_table_name
+        GROUP BY b.table_name;
+    '''
+    result = None
+    with duckdb.connect(db_path) as con:
+        result = con.query(query).fetchall()
+    return result[0][0] if result else None
+
+
+
+def get_table_columns(db_path, db_name):
+    con = duckdb.connect(db_path)
+    query = f'''
+        WITH unique_columns AS (
+            SELECT 
+                table_name,
+                column_name,
+                data_type,
+                ordinal_position,
+                COLUMN_COMMENT
+            FROM information_schema.columns 
+            WHERE table_catalog = '{db_name}' 
+            AND table_schema NOT IN ('dwhperformance_meta')
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY table_name, column_name ORDER BY ordinal_position) = 1
+        )
+        SELECT 
+            json_group_object(table_name, columns_array) as final_json
+        FROM (
+            SELECT 
+                table_name, 
+                json_group_array(
+                    json_object(
+                        'original_column_name', column_name,
+                        'column_name', column_name,
+                        'data_type', data_type,
+                        'semantic_concept', column_name,
+                        'confidence_score', ordinal_position,
+                        'description', COLUMN_COMMENT
+                    )
+                ) as columns_array
+            FROM unique_columns
+            GROUP BY table_name
+        ) AS table_subquery;
+    '''
+    result = con.query(query).fetchall()
+    return result
+    ...

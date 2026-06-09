@@ -429,7 +429,10 @@ class DltPipeline:
         return True
 
 
-    def handle_job_final_state(context: RequestContext, pipeline_exception, line, job_execution_id, result, logger: logging.Logger, start_time):
+    async def handle_job_final_state(context: RequestContext, pipeline_exception, line, job_execution_id, result, logger: logging.Logger, start_time):
+        if isinstance(line, bytes):
+            line = line.decode().strip()
+
         if pipeline_exception == True:
             message = f'Runtime Pipeline ({context.pipeline_name}) with execution_id {context.pipeline_execution_id} failed, check the logs for details'
             handle_pipeline_log(f'SCHEDULE PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
@@ -445,8 +448,11 @@ class DltPipeline:
         
         error_messages, status = None, True
         if result.returncode != 0:
-            err = str(result.stderr.read())
-            
+            if isinstance(result, asyncio.subprocess.Process):
+                err = (await result.stderr.read()).decode()
+            else:
+                err = str(result.stderr.read()) 
+                           
             if(err.__contains__('Could not set lock on file')):
                 pass
 
@@ -558,7 +564,7 @@ class DltPipeline:
             #if proc.returncode == 0 and context is not None and pipeline_exception == False: context.emit_ppsuccess()
             # proc.kill()
             pipeline_exception = refs.get('pipeline_exception')
-            DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger, job_start_time)
+            await DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger, job_start_time)
 
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             [short_query, dataset_name] = [refs.get('short_query'), refs.get('dataset_name')]

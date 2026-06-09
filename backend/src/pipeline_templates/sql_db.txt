@@ -64,7 +64,7 @@ def load_select_tables_from_db():
         
         db_table = sql_table(table=table,  credentials=credentials, schema=schema)
         db_table = db_table.with_name(f"{table}_{original_pipeline_name}")
-        db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name)
+        db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
 
         if staged_table: # In case the tables will be in stage area
             db_table.apply_hints(table_name=Helper.prefix_and_suffix_table(table, tbl_stage))

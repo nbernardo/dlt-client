@@ -50,13 +50,15 @@ from controller.pipeline import BasePipeline
 @bi_controller.route('/analytics/ppline/domains/catalog/<namespace>/<pipeline>/<datawarehouse>', methods=['GET'])
 def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
     from utils.metastore.DataCatalog import DataCatalog
+    from utils.pipeline.PipelinesHelper import get_table_columns
 
     sep = '/' if platform.system() != 'Windows' else '\\\\'
     database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
 
     table_path = f'{pipeline}.{datawarehouse}'
     range_fields_data = DuckdbUtil.get_range_columns_data(database_path, table_path)
-    all_fields = DataCatalog.get_fields_by_pipeline(pipeline, namespace)
+    #all_fields = DataCatalog.get_fields_by_pipeline(pipeline, namespace)
+    all_fields = get_table_columns(database_path, pipeline)
 
     return { 'result': { 'range_fields_data': range_fields_data if range_fields_data != None else [], 'all_fields': all_fields }, 'error': False }
 

@@ -283,11 +283,16 @@ def run_analytics(namespace, table):
         payload = request.get_json()
         fields = payload['fields']
         data_range = payload.get('dataRange', {})
-        
-        sep = '/' if platform.system() != 'Windows' else '\\\\'
-        database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{table.split('.')[1]}.duckdb'
+        tables = payload.get('tables', None)
+        total_tables = payload.get('totalTable', None)
+        schema, storage_file = table.split('.')
 
-        return { 'error': True, 'result': DuckdbUtil.run_analytics_query(database_path, fields, table, data_range) }
+        sep = '/' if platform.system() != 'Windows' else '\\\\'
+        database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{storage_file}.duckdb'
+        db_vars = { 'schema': schema, 'tables': tables, 'total_tables': total_tables, 'storage_file': storage_file }
+        result = DuckdbUtil.run_join_analytics_query(database_path, fields, data_range, db_vars)
+
+        return { 'error': True, 'result': result }
         
     except Exception as error:
         result = f'Erro while running analytics query. {str(error)}'

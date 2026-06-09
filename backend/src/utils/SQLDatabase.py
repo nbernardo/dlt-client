@@ -516,15 +516,16 @@ def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
     return tables, actual_pks, relationships, schema_metadata, ddls, final_big_query, ts
 
 
-def new_pk(row, pk, source_col = 'NOT_SET', ts = None):
-    return { **row, "_e2e_integration_source": source_col, "_e2e_pk": f"{row[pk]}__{source_col}", "_e2e_ts": ts }
+def new_pk(row, pk, source_col = 'NOT_SET', ts = None, db_name = None):
+    _e2e_pk = f"{row[pk]}__{source_col}"
+    return { **row, "_e2e_integration_source": source_col, "_e2e_pk": _e2e_pk, "_e2e_ts": ts, "_e2e_src_db": db_name }
 
 
-def convert_fields_type(table, pk, additionals = {}, source_col = 'NO_SET'):
+def convert_fields_type(table, pk, additionals = {}, source_col = 'NO_SET', db_name = None):
     columns_config = {}
     
     if str(additionals.get('stage')) == '1':
-        table.add_map(lambda k: new_pk(k, pk, source_col, additionals.get('ts')))
+        table.add_map(lambda k: new_pk(k, pk, source_col, additionals.get('ts'), db_name))
         table.apply_hints(primary_key="_e2e_pk", write_disposition='merge')
 
     else:

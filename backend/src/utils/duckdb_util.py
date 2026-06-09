@@ -269,6 +269,33 @@ class DuckdbUtil:
 
 
     @staticmethod
+    def run_join_analytics_query(db_path, fields, data_range, db_vars):
+
+        tables, schema = db_vars.get('tables'), db_vars.get('schema')
+        total_tables, db_name = db_vars.get('total_tables'), db_vars.get('storage_file')
+        try:
+            from utils.pipeline.PipelinesHelper import get_join_query_from_tables
+            if total_tables == 1:
+                query = f'SELECT {fields} FROM {schema}.{tables.split("'")[1]}'
+            else:
+                query = get_join_query_from_tables(tables, db_path, db_name, schema)
+
+            #filter_range, query = '', ''
+            #range_filter_details = list(data_range.items())
+            #schema, table = table.split('.')
+            
+            result = None
+            with duckdb.connect(db_path) as cnx:
+                cursor = cnx.cursor()
+                result = cursor.sql(query).fetch_arrow_table()
+            
+            return result.to_pylist() if result else result
+        except Exception as e:
+            print(f"Error while running analytics: {e}")
+
+
+
+    @staticmethod
     def check_dw_schema(db_path, table):
         try:
 
