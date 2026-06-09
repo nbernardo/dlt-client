@@ -119,6 +119,7 @@ export class DBDiagramController extends BaseController {
         const processed = new Set([baseTable]);
         const joins = [], relations = Array.from(this.relationRegistry.values());
         const tblSchema = this.isDuckdbConnection ? `${this.selectedDatabase}.` : '';
+        const dq = DQController.fromContext();
 
         selectedEntries.slice(1).forEach(([currentTable]) => {
             if (!activeTables.has(currentTable)) return;
@@ -134,7 +135,6 @@ export class DBDiagramController extends BaseController {
                 const lCol = isSource ? connection.targetColumn : connection.sourceColumn;
                 const rCol = isSource ? connection.sourceColumn : connection.targetColumn;
 
-                const dq = DQController.fromContext();
                 const leftHand = dq.getFormattedField(`${lTab}.${lCol}`, lCol, dq.columnQualityRules.get(`${lTab}.${lCol}`)) || `${lTab}.${lCol}`;
                 const rightHand = dq.getFormattedField(`${currentTable}.${rCol}`, rCol, dq.columnQualityRules.get(`${currentTable}.${rCol}`)) || `${currentTable}.${rCol}`;
 
@@ -146,18 +146,16 @@ export class DBDiagramController extends BaseController {
         });
 
         let selectClause = "*";        
-        const dqController = DQController.fromContext();
         const validFields = Array.from(this.selectedFieldsSet)
                 .map(fPath => {
                     const parsedPath = this.parseFieldMap(fPath);                 
-                    const ruleEntry = dqController.columnQualityRules.get(parsedPath.split(' ')[0]);
+                    const ruleEntry = dq.columnQualityRules.get(parsedPath.split(' ')[0]);
                     
                     const [tbl, field] = parsedPath.split('.');
                     const cleanField = field.split(' ')[0];
                     const fullCol = `${tbl}.${cleanField}`;
 
-                    const transformedField = dqController.getFormattedField(fullCol, cleanField, ruleEntry);
-                    return transformedField || parsedPath;
+                    return dq.getFormattedField(fullCol, cleanField, ruleEntry) || parsedPath;
                 })
                 .filter(f => {
                     const match = f.match(/([a-zA-Z0-9_]+)\./);
@@ -168,9 +166,8 @@ export class DBDiagramController extends BaseController {
         
         if (this.virtualColumns) {
             this.virtualColumns.forEach((config) => {
-                if (processed.has(config.tableName)) {
+                if (processed.has(config.tableName)) 
                     validFields.push(`${config.expression} AS ${config.alias}`);
-                }
             });
         }
 

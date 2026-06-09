@@ -86,6 +86,7 @@ export class BIController extends BaseController {
     }
 
     viewingTables = new Set();
+    tableToQuery = new Set();
     async loadTable(name, runAnalytics) {
         this.obj.state.activeTable = name;
         this.obj.state.filteredRows = [...(this.obj.gridDataSource || [])];
@@ -100,9 +101,11 @@ export class BIController extends BaseController {
 
             let colsDetails, columns = [];
             this.obj.popup.querySelector('#tableBody').innerHTML = `<tr><td>${this.dataProcessLoading()}</td></tr>`;
+            this.tableToQuery = this.viewingTables;
             for(const table of [...this.viewingTables]){
                 colsDetails = (BIController.currentTableList.filter(tbl => tbl.name == table)[0]?.cols || []);
-                columns.push(...colsDetails.map(itm => `${table}_${itm.column_name}`));
+                //columns.push(...colsDetails.map(itm => `${table}_${itm.column_name}`));
+                columns.push(...colsDetails.map(itm => `${itm.column_name} AS ${table}_${itm.column_name}`));
             }
 
             for(const fieldName of [...this.fieldNames]) columns.push(fieldName);
@@ -116,8 +119,9 @@ export class BIController extends BaseController {
         
     }
 
-    async runAnaliticsAndRenderSheet(fields, pipeline){
-        const result = await this.sendAnalyticsRequest(fields, pipeline, this.dataSourceRange);
+    async runAnaliticsAndRenderSheet(fields, pipeline){        
+        const result = await this.sendAnalyticsRequest(fields, pipeline, this.dataSourceRange, [...(this.tableToQuery || [])]);
+        this.tableToQuery = null;
         await this.obj.setData((result.result || [])).init();
         this.renderSheet();
         return result.result;
@@ -927,7 +931,7 @@ export class BIController extends BaseController {
     sendDataQueryAgentMessage = async(message) => BIService.sendDataQueryAgentMessage(message);
 
     /** @returns { { result: { result } } } */
-    sendAnalyticsRequest = async (fields, pipeline, dataRange) => BIService.sendAnalyticsRequest(fields, pipeline || this.obj.state.pipeline, dataRange);
+    sendAnalyticsRequest = async (fields, pipeline, dataRange, tables) => BIService.sendAnalyticsRequest(fields, pipeline || this.obj.state.pipeline, dataRange, tables);
 
     /** @returns { { result: { result } } } */
     getAnalyticsRangeFields = async (fields, pipeline) => BIService.getAnalyticsRangeFields(fields, pipeline || this.obj.state.pipeline);
