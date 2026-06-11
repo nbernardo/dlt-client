@@ -67,14 +67,15 @@ export class BIController extends BaseController {
 
     selectAnalyticsField(table, fieldName){
         
-        fieldName = `${table}_${fieldName}`;
+        fieldName = `${table}.${fieldName} AS ${table}_${fieldName}`;
         if(!this.selectedFieldsPerTable[table]) this.selectedFieldsPerTable[table] = 0;
 
         if(this.fieldNames.has(fieldName)) {
             this.fieldNames.delete(fieldName);
             this.selectedFieldsPerTable[table]--;
-        }
-        else {
+            if(this.selectedFieldsPerTable[table] < 1) 
+                delete this.selectedFieldsPerTable[table]
+        } else {
             this.fieldNames.add(fieldName);
             this.selectedFieldsPerTable[table]++;
         }
@@ -82,7 +83,7 @@ export class BIController extends BaseController {
         if(this.viewingTables.has(table)) {
             this.obj.popup.querySelector(`.check-table-selection-${table}`).checked = false;
             this.viewingTables.delete(table);
-        } 
+        }
     }
 
     viewingTables = new Set();
@@ -105,7 +106,7 @@ export class BIController extends BaseController {
             for(const table of [...this.viewingTables]){
                 colsDetails = (BIController.currentTableList.filter(tbl => tbl.name == table)[0]?.cols || []);
                 //columns.push(...colsDetails.map(itm => `${table}_${itm.column_name}`));
-                columns.push(...colsDetails.map(itm => `${itm.column_name} AS ${table}_${itm.column_name}`));
+                columns.push(...colsDetails.map(itm => `${table}.${itm.column_name} AS ${table}_${itm.column_name}`));
             }
 
             for(const fieldName of [...this.fieldNames]) columns.push(fieldName);
@@ -119,8 +120,11 @@ export class BIController extends BaseController {
         
     }
 
-    async runAnaliticsAndRenderSheet(fields, pipeline){        
-        const result = await this.sendAnalyticsRequest(fields, pipeline, this.dataSourceRange, [...(this.tableToQuery || [])]);
+    async runAnaliticsAndRenderSheet(fields, pipeline){
+        
+        const tables = [...Object.keys(this.selectedFieldsPerTable), ...(this.tableToQuery || [])];
+
+        const result = await this.sendAnalyticsRequest(fields, pipeline, this.dataSourceRange, tables);
         this.tableToQuery = null;
         await this.obj.setData((result.result || [])).init();
         this.renderSheet();
