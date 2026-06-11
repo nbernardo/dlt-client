@@ -323,17 +323,13 @@ def send_ppline_completion_email(
 
 
 
-def get_join_query_from_tables(tables, db_path, db_file, schema):
+def get_join_query_from_tables(tables, db_path, db_file, schema, fields):
     
     query = f'''
         WITH target_tables AS ( SELECT * FROM ( VALUES {tables}) AS t(table_name)),
-        base_table AS (
-            SELECT m.table_name
-            FROM {db_file}.dwhperformance_meta.fk_map m
+        base_table AS ( SELECT m.table_name FROM {db_file}.dwhperformance_meta.fk_map m
             JOIN target_tables t ON m.table_name = t.table_name
-            GROUP BY m.table_name
-            ORDER BY COUNT(*) DESC
-            LIMIT 1
+            GROUP BY m.table_name ORDER BY COUNT(*) DESC LIMIT 1
         ),
         raw_joins AS (
             SELECT DISTINCT
@@ -344,9 +340,18 @@ def get_join_query_from_tables(tables, db_path, db_file, schema):
                 END AS join_target_table,
                 CASE 
                     WHEN m.table_name = b.table_name 
-                    -- Unique alias format: ref_table__via__fk_col
-                    THEN 'INNER JOIN {schema}.' || m.ref_table || ' AS ' || m.ref_table || '__via__' || m.fk_col || ' ON {schema}.' || m.table_name || '.' || m.fk_col || ' = ' || m.ref_table || '__via__' || m.fk_col || '.' || m.ref_col
-                    ELSE 'INNER JOIN {schema}.' || m.table_name || ' AS ' || m.table_name || '__via__' || m.fk_col || ' ON {schema}.' || b.table_name || '.' || m.ref_col || ' = ' || m.table_name || '__via__' || m.fk_col || '.' || m.fk_col
+                    THEN 
+                        CASE 
+                            WHEN ROW_NUMBER() OVER (PARTITION BY m.ref_table ORDER BY m.fk_col) = 1 
+                            THEN 'INNER JOIN {schema}.' || m.ref_table || ' AS ' || m.ref_table || ' ON {schema}.' || m.table_name || '.' || m.fk_col || ' = ' || m.ref_table || '.' || m.ref_col
+                            ELSE 'INNER JOIN {schema}.' || m.ref_table || ' AS ' || m.ref_table || '__via__' || m.fk_col || ' ON {schema}.' || m.table_name || '.' || m.fk_col || ' = ' || m.ref_table || '__via__' || m.fk_col || '.' || m.ref_col
+                        END
+                    ELSE 
+                        CASE 
+                            WHEN ROW_NUMBER() OVER (PARTITION BY m.table_name ORDER BY m.fk_col) = 1 
+                            THEN 'INNER JOIN {schema}.' || m.table_name || ' AS ' || m.table_name || ' ON {schema}.' || b.table_name || '.' || m.ref_col || ' = ' || m.table_name || '.' || m.fk_col
+                            ELSE 'INNER JOIN {schema}.' || m.table_name || ' AS ' || m.table_name || '__via__' || m.fk_col || ' ON {schema}.' || b.table_name || '.' || m.ref_col || ' = ' || m.table_name || '__via__' || m.fk_col || '.' || m.fk_col
+                        END
                 END AS join_string
             FROM {db_file}.dwhperformance_meta.fk_map m
             CROSS JOIN base_table b
@@ -355,10 +360,8 @@ def get_join_query_from_tables(tables, db_path, db_file, schema):
             WHERE m.table_name = b.table_name OR m.ref_table = b.table_name
         )
         SELECT 
-            'SELECT * FROM {schema}.' || b.table_name || ' ' || STRING_AGG(j.join_string, ' ') AS generated_sql
-        FROM base_table b
-        JOIN raw_joins j ON b.table_name = j.base_table_name
-        GROUP BY b.table_name;
+            'SELECT {fields} FROM {schema}.' || b.table_name || ' ' || STRING_AGG(j.join_string, ' ') AS generated_sql FROM base_table b
+        JOIN raw_joins j ON b.table_name = j.base_table_name GROUP BY b.table_name;
     '''
     result = None
     with duckdb.connect(db_path) as con:

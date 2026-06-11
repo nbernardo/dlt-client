@@ -278,7 +278,7 @@ class DuckdbUtil:
             if total_tables == 1:
                 query = f'SELECT {fields} FROM {schema}.{tables.split("'")[1]}'
             else:
-                query = get_join_query_from_tables(tables, db_path, db_name, schema)
+                query = get_join_query_from_tables(tables, db_path, db_name, schema, fields)
 
             #filter_range, query = '', ''
             #range_filter_details = list(data_range.items())
