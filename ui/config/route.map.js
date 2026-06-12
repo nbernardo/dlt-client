@@ -146,6 +146,10 @@ export const stillRoutesMap = {
                 path: "app/components/node-types/trigger",
                 url: "/pipeline-trigger"
             },
+            GovernanceMainComponent: {
+                path: "app/components/governance",
+                url: "/governance-main"
+            }
         },
         lazyInitial: {}
     }

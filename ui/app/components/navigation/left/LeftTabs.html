@@ -5,6 +5,7 @@
     <input type="radio" id="tab-data-source" name="content-tabs">
     <input type="radio" id="tab-diagram" name="content-tabs" checked>
     <input type="radio" id="tab-pipeline-plan" name="content-tabs" style="display: none;">
+    <input type="radio" id="tab-data-governance" name="content-tabs" style="display: none;">
     <input type="radio" id="tab-script-ppline" name="content-tabs">
     <input type="radio" id="tab-data-files" name="content-tabs">
     <input type="radio" id="tab-api-catalog" name="content-tabs">
@@ -100,6 +101,15 @@
                             <img src="app/assets/imgs/left-menu/blueprint.png" width="23" alt="">
                         </span>
                         <span class="text">Planned Pipelines</span>
+                    </label>
+                </li>
+
+                <li class="left-menu-item" onclick="component.selectTab('content-data-governance')">
+                    <label for="tab-data-governance">
+                        <span class="icon">
+                            <img src="app/assets/imgs/left-menu/regulation.png" style="margin-left: -5px;" width="32" alt="">
+                        </span>
+                        <span class="text">Data Governance</span>
                     </label>
                 </li>
 
@@ -273,6 +283,10 @@
 
             <div class="content-panel data-viz">
                 <h3>Data Visualization</h3>
+            </div>
+
+            <div class="content-panel content-data-governance">
+                <h3>Data Governance Tab</h3>
             </div>
 
             <div class="content-panel content-ai">
@@ -739,6 +753,7 @@
     #tab-data-source:checked~.app-container .sidebar-menu label[for="tab-data-source"],
     #tab-diagram:checked~.app-container .sidebar-menu label[for="tab-diagram"],
     #tab-pipeline-plan:checked~.app-container .sidebar-menu label[for="tab-pipeline-plan"],
+    #tab-data-governance:checked~.app-container .sidebar-menu label[for="tab-data-governance"],
     #tab-data-files:checked~.app-container .sidebar-menu label[for="tab-data-files"],
     #tab-api-catalog:checked~.app-container .sidebar-menu label[for="tab-api-catalog"],
     #tab-logs:checked~.app-container .sidebar-menu label[for="tab-logs"],
@@ -761,6 +776,7 @@
     #tab-data-source:checked~.app-container .content-data-source,
     #tab-diagram:checked~.app-container .content-diagram,
     #tab-pipeline-plan:checked~.app-container .content-pipeline-plan,
+    #tab-data-governance:checked~.app-container .content-data-governance,
     #tab-data-files:checked~.app-container .content-data-files,
     #tab-api-catalog:checked~.app-container .content-api-catalog,
     #tab-logs:checked~.app-container .data-viz,

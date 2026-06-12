@@ -5,6 +5,7 @@ import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
 import { CatalogForm } from "../components/catalog/CatalogForm.js";
+import { GovernanceMainComponent } from "../components/governance/GovernanceMainComponent.js";
 import { LeftTabs } from "../components/navigation/left/LeftTabs.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
 import { IsString } from "../components/node-types/transform/util.js";
@@ -756,7 +757,6 @@ export class WorkSpaceController extends BaseController {
     }
 
     /**
-     * 
      * @param {*} message 
      * @param {{ type: 'confirm'|'ok', onConfirm: Function, onCancel: Function, title: String }} param1 
      */
@@ -796,9 +796,7 @@ export class WorkSpaceController extends BaseController {
         }
     }
 
-    /**
-     * @param {'save'|'update'} type 
-     */
+    /** @param {'save'|'update'} type */
     twiceDiagramSaveAlert(type = 'save'){
 		let message = 'You cannot load more than one pipelin at time, please clear the workspace to load another pipeline';
 		let title = 'Cannot save the pipeline twice.';
@@ -889,6 +887,12 @@ export class WorkSpaceController extends BaseController {
         const { template: catalogFormUI, component } = await Components.new(CatalogForm, { type }, parentId);
         this.catalogForm = component;
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = catalogFormUI;
+    }
+    
+    async createDataGovernanceUI(){
+        const parentId = this.wSpaceComponent.cmpInternalId;
+        const { template: uiContent, component } = await Components.new(GovernanceMainComponent, { }, parentId);
+        this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
     }
 
     async loadMonacoEditorDependencies(){

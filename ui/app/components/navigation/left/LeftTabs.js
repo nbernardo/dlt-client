@@ -248,6 +248,11 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	async selectTab(tab){
+
+		if(tab === 'content-data-governance'){
+			return this.$parent.controller.createDataGovernanceUI();
+		}
+
 		this.showLoading = ({ 'content-data-source': 1, 'content-api-catalog': 2, 'content-pipeline-plan': 3 })[tab];
 		if(tab === 'content-data-source')
 			setTimeout(async () => await this.$parent.controller.createCatalogForm(1),100);

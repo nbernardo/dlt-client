@@ -1,0 +1,277 @@
+<div class="governance-main-container @cmpInternalId">
+	<h2 class="sr-only">Data Dictionary and Role-Based Access Control Manager</h2>
+
+	<nav class="tabs">
+		<div class="tab active" onclick="controller.switchTab('dict',this)">Data dictionary</div>
+		<div class="tab" onclick="controller.switchTab('rbac',this)">Role-based access</div>
+	</nav>
+
+	<div style="padding:1.25rem 0">
+
+		<div id="sec-dict" class="section active">
+			<div class="toolbar">
+				<input type="text" class="search" placeholder="Search fields…" id="dict-search" oninput="controller.renderDict()">
+				<select id="dict-table-filter" onchange="controller.renderDict()" style="width:160px">
+					<option value="">All tables</option>
+				</select>
+				<div style="margin-left:auto;display:flex;gap:8px">
+					<button class="btn" onclick="controller.openAddGroup()"><i class="ti ti-table-plus" aria-hidden="true"></i> Add table group</button>
+					<button class="btn btn-primary" onclick="controller.openAddField()"><i class="ti ti-plus" aria-hidden="true"></i> Add field</button>
+				</div>
+			</div>
+			<div class="seg" style="margin-bottom:1rem;width:fit-content">
+				<button class="active" onclick="controller.setView('flat',this)">Flat list</button>
+				<button onclick="controller.setView('group',this)">By table</button>
+			</div>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th>Field name</th>
+							<th>Table</th>
+							<th>Translation</th>
+							<th>Description</th>
+							<th style="width:80px"></th>
+						</tr>
+					</thead>
+					<tbody id="dict-body"></tbody>
+				</table>
+			</div>
+		</div>
+
+		<div id="sec-rbac" class="section">
+			<div class="toolbar">
+				<input type="text" class="search" placeholder="Search fields…" id="rbac-search" oninput="controller.renderRbac()">
+				<select id="rbac-table-filter" onchange="controller.renderRbac()" style="width:160px">
+					<option value="">All tables</option>
+				</select>
+				<select id="rbac-role-filter" onchange="controller.renderRbac()" style="width:140px">
+					<option value="">All roles</option>
+				</select>
+				<div style="margin-left:auto;display:flex;gap:8px">
+					<button class="btn" onclick="controller.openManageRoles()"><i class="ti ti-users" aria-hidden="true"></i> Manage roles</button>
+					<button class="btn btn-primary" onclick="controller.openBulkAccess()"><i class="ti ti-shield-check" aria-hidden="true"></i> Set bulk access</button>
+				</div>
+			</div>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th>Field name</th>
+							<th>Table</th>
+							<th>Accessible by roles</th>
+							<th style="width:80px"></th>
+						</tr>
+					</thead>
+					<tbody id="rbac-body"></tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<div class="wrap" id="modals">
+
+		<div class="modal-bg" id="modal-field">
+			<div class="modal">
+				<div class="modal-header">
+					<h3 id="modal-field-title">Add field</h3>
+					<button class="icon-btn" onclick="controller.closeModal('modal-field')"><i class="ti ti-x"></i></button>
+				</div>
+				<div class="modal-body">
+					<label>Field name *</label>
+					<input type="text" id="f-name" placeholder="e.g. customer_id">
+					<label>Table</label>
+					<select id="f-table"><option value="">— no table —</option></select>
+					<label>Translation / label</label>
+					<input type="text" id="f-trans" placeholder="e.g. Customer ID">
+					<label>Description</label>
+					<input type="text" id="f-desc" placeholder="Brief description">
+				</div>
+				<div class="modal-footer">
+					<button class="btn" onclick="controller.closeModal('modal-field')">Cancel</button>
+					<button class="btn btn-primary" onclick="controller.saveField()">Save field</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal-bg" id="modal-group">
+			<div class="modal">
+				<div class="modal-header">
+					<h3>Add table group</h3>
+					<button class="icon-btn" onclick="controller.closeModal('modal-group')"><i class="ti ti-x"></i></button>
+				</div>
+				<div class="modal-body">
+					<label>Table name *</label>
+					<input type="text" id="g-name" placeholder="e.g. customers">
+				</div>
+				<div class="modal-footer">
+					<button class="btn" onclick="controller.closeModal('modal-group')">Cancel</button>
+					<button class="btn btn-primary" onclick="controller.saveGroup()">Add table</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal-bg" id="modal-roles">
+			<div class="modal">
+				<div class="modal-header">
+					<h3>Manage roles</h3>
+					<button class="icon-btn" onclick="controller.closeModal('modal-roles')"><i class="ti ti-x"></i></button>
+				</div>
+				<div class="modal-body">
+					<label>Add role</label>
+					<div style="display:flex;gap:8px">
+						<input type="text" id="r-new" placeholder="e.g. data_analyst" style="flex:1">
+						<button class="btn btn-primary" onclick="controller.addRole()">Add</button>
+					</div>
+					<label style="margin-top:16px">Existing roles</label>
+					<div id="roles-list" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn btn-primary" onclick="controller.closeModal('modal-roles');controller.renderAll()">Done</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal-bg" id="modal-access">
+			<div class="modal">
+				<div class="modal-header">
+					<h3 id="modal-access-title">Edit access</h3>
+					<button class="icon-btn" onclick="controller.closeModal('modal-access')"><i class="ti ti-x"></i></button>
+				</div>
+				<div class="modal-body">
+					<label>Field</label>
+					<input type="text" id="a-field" disabled style="background:#f5f5f3">
+					<label>Roles with access</label>
+					<div id="a-roles-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn" onclick="controller.closeModal('modal-access')">Cancel</button>
+					<button class="btn btn-primary" onclick="controller.saveAccess()">Save</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="modal-bg" id="modal-bulk">
+			<div class="modal">
+				<div class="modal-header">
+					<h3>Set bulk access</h3>
+					<button class="icon-btn" onclick="controller.closeModal('modal-bulk')"><i class="ti ti-x"></i></button>
+				</div>
+				<div class="modal-body">
+					<label>Table (apply to all fields in table)</label>
+					<select id="b-table" style="width:100%">
+						<option value="">All tables</option>
+					</select>
+					<label>Role</label>
+					<select id="b-role" style="width:100%"></select>
+					<label>Access</label>
+					<div style="display:flex;gap:8px;margin-top:6px">
+						<label style="display:flex;align-items:center;gap:6px;margin:0;font-size:13px;color:#1a1a1a">
+							<input type="radio" name="b-access" value="grant" checked> Grant access
+						</label>
+						<label style="display:flex;align-items:center;gap:6px;margin:0;font-size:13px;color:#1a1a1a">
+							<input type="radio" name="b-access" value="revoke"> Revoke access
+						</label>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn" onclick="controller.closeModal('modal-bulk')">Cancel</button>
+					<button class="btn btn-primary" onclick="controller.applyBulk()">Apply</button>
+				</div>
+			</div>
+		</div>
+
+	</div>
+</div>
+
+<style>
+	.governance-main-container { 
+		padding: 1rem 0; border: 1.5px solid #1A3D5C; position: absolute; z-index: 100; width: 100%; height: 100%;
+		background: #ffffff; font-family: inherit; font-size: 14px; color: #1a1a1a; box-sizing: border-box; overflow: visible !important;
+	}
+
+	.governance-main-container .tabs { display: flex; align-items: center; padding: 0 20px; background: #f5f5f3; border-bottom: 1px solid #e0ddd6; }
+	.governance-main-container .tab { 
+		padding: 14px 18px; font-size: 12px; font-weight: 500; color: #6b6b6b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none;
+	}
+	.governance-main-container .tab:hover { color: #1a1a1a; }
+	.governance-main-container .tab.active { color: #1A3D5C; border-bottom-color: #1A3D5C; }
+
+	.governance-main-container .section { display: none; }
+	.governance-main-container .section.active { display: block; }
+
+	.governance-main-container .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; padding: 0 1rem; }
+
+	.governance-main-container .btn {
+		padding: 6px 14px; border-radius: 6px; border: 0.5px solid #d1cec7; background: #ffffff; color: #1a1a1a; font-size: 13px; cursor: pointer;
+		display: inline-flex; align-items: center; gap: 6px; line-height: 1.4;
+	}
+	.governance-main-container .btn:hover { background: #f5f5f3; }
+	.governance-main-container .btn-primary { background: #1A3D5C; color: #fff; border-color: #1A3D5C; }
+	.governance-main-container .btn-primary:hover { background: #163351; }
+	.governance-main-container .btn-danger { color: #A32D2D; border-color: #d1cec7; }
+	.governance-main-container .btn-danger:hover { background: #FCEBEB; }
+
+	.governance-main-container input[type=text],
+	.governance-main-container select { height: 34px; padding: 0 10px; border-radius: 6px; border: 0.5px solid #d1cec7; background: #ffffff; color: #1a1a1a; font-size: 13px; outline: none; }
+	.governance-main-container input[type=text]:focus,
+	.governance-main-container select:focus { border-color: #1A3D5C; }
+	.governance-main-container .search { width: 200px; }
+
+	.governance-main-container .table-wrap { border: 0.5px solid #e0ddd6; border-radius: 8px; overflow: hidden; margin: 0 1rem; }
+	.governance-main-container table { width: 100%; border-collapse: collapse; font-size: 13px; }
+	.governance-main-container th { background: #f5f5f3; padding: 8px 14px; text-align: left; font-weight: 500; color: #6b6b6b; border-bottom: 0.5px solid #e0ddd6; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+	.governance-main-container td { padding: 9px 14px; border-bottom: 0.5px solid #e0ddd6; vertical-align: middle; color: #1a1a1a; }
+	.governance-main-container tr:last-child td { border-bottom: none; }
+	.governance-main-container tr:hover td { background: #f5f5f3; }
+
+	.governance-main-container .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+	.governance-main-container .badge-blue  { background: #E6F1FB; color: #0C447C; }
+	.governance-main-container .badge-teal  { background: #E1F5EE; color: #085041; }
+	.governance-main-container .badge-gray  { background: #F1EFE8; color: #5F5E5A; }
+	.governance-main-container .badge-amber { background: #FAEEDA; color: #633806; }
+
+	.governance-main-container .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; margin: 1px; }
+	.governance-main-container .access-cell { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+
+	.governance-main-container .group-header td { background: #E6F1FB; font-weight: 500; color: #0C447C; font-size: 12px; }
+
+	.governance-main-container .seg { display: flex; border: 0.5px solid #d1cec7; border-radius: 6px; overflow: hidden; margin: 0 1rem 1rem; }
+	.governance-main-container .seg button { padding: 5px 12px; font-size: 12px; border: none; background: none; cursor: pointer; color: #6b6b6b; }
+	.governance-main-container .seg button.active { background: #1A3D5C; color: #fff; }
+
+	.governance-main-container .icon-btn {
+		background: none; border: none; cursor: pointer; color: #6b6b6b; padding: 4px; border-radius: 4px;
+		line-height: 1; display: inline-flex; align-items: center;
+	}
+	.governance-main-container .icon-btn:hover { background: #f5f5f3; color: #1a1a1a; }
+
+	.governance-main-container .modal-bg {
+		display: none; position: fixed; top: 0;  left: 0;  width: 100vw !important;   height: 100vh !important; 
+		background: rgba(0, 0, 0, 0.45);  z-index: 999999 !important;  padding: 20px;       
+	}
+
+	.governance-main-container .modal-bg.open { display: flex !important; align-items: center !important; justify-content: center !important; }
+
+	.governance-main-container .modal {
+		display: none; background: #ffffff; border-radius: 8px; border: 0.5px solid #d1cec7; padding: 1.25rem; width: 460px;
+		max-width: 90%; box-sizing: border-box; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2); margin: 0 auto; position: relative; align-self: center !important;  height: auto !important;
+	}
+
+	.governance-main-container .modal-bg.open .modal { display: block !important; }
+
+	.governance-main-container .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+	.governance-main-container .modal-header h3 { font-size: 15px; font-weight: 500; margin: 0; }
+	.governance-main-container .modal-body label { display: block; font-size: 12px; color: #6b6b6b; margin-bottom: 4px; margin-top: 12px; }
+	.governance-main-container .modal-body input[type=text],
+	.governance-main-container .modal-body select { width: 100%; box-sizing: border-box; }
+	.governance-main-container .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; }
+
+	.governance-main-container .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 12px; border: 0.5px solid #d1cec7; cursor: pointer; }
+	.governance-main-container .chip.on  { background: #1A3D5C; color: #fff; border-color: #1A3D5C; }
+	.governance-main-container .chip.off { background: #f5f5f3; color: #6b6b6b; }
+
+	.governance-main-container .wrap { position: initial; min-height: 200px; }
+	.governance-main-container .empty { text-align: center; padding: 2rem; color: #6b6b6b; font-size: 13px; }
+	.governance-main-container .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+</style>
