@@ -74,6 +74,7 @@ export class BIService extends BaseService {
         return [];
     }
 
+    /** @returns {Array } */
     static async getDWPipelines() {
         const url = '/analytics/ppline/dwh/' + (await BIService.getNamespace());
         const response = await $still.HTTPClient.get(url);

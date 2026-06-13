@@ -5,19 +5,8 @@ export class DataGovernanceController extends BaseController {
 
     /** @type { GovernanceMainComponent } */ obj;
 
-	tables = ['customers','orders','products'];
-
-	fields = [
-		{id:1,name:'customer_id',table:'customers',trans:'Customer ID',desc:'Unique customer identifier'},
-		{id:2,name:'full_name',table:'customers',trans:'Full name',desc:'Customer full name'},
-		{id:3,name:'email',table:'customers',trans:'Email address',desc:'Contact email'},
-		{id:4,name:'created_at',table:'customers',trans:'Registration date',desc:'Account creation timestamp'},
-		{id:5,name:'order_id',table:'orders',trans:'Order ID',desc:'Unique order reference'},
-		{id:6,name:'total_amount',table:'orders',trans:'Total amount',desc:'Order grand total'},
-		{id:7,name:'status',table:'orders',trans:'Order status',desc:'Current fulfillment state'},
-		{id:8,name:'product_sku',table:'products',trans:'Product SKU',desc:'Stock-keeping unit'},
-		{id:9,name:'price',table:'products',trans:'Unit price',desc:'Listed price per unit'},
-	];
+	tables = [];
+	fields = [];
 
 	roles = ['admin','analyst','viewer','support'];
 	access = {1:['admin','analyst','support'],2:['admin','analyst','support'],3:['admin','support'],4:['admin','analyst'],5:['admin','analyst','viewer'],6:['admin','analyst'],7:['admin','analyst','viewer','support'],8:['admin','analyst','viewer'],9:['admin','viewer']};
@@ -25,6 +14,10 @@ export class DataGovernanceController extends BaseController {
 	viewMode = 'flat';
 	editingFieldId = null;
 	editingAccessId = null;
+    isAddingInline = false;
+    addingInlineTable = '';
+    pipeline;
+    changedFields = new Map();
 
     ROLE_COLORS = ['badge-blue','badge-teal','badge-amber','badge-gray'];
 
@@ -47,7 +40,7 @@ export class DataGovernanceController extends BaseController {
         this.viewMode = v;
         this.$$('.seg button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        this.renderDict();  // FIX: was bare renderDict()
+        this.renderDict();
     }
 
     populateTableSelects() {
@@ -77,45 +70,205 @@ export class DataGovernanceController extends BaseController {
         );
 
         const body = this.$('#dict-body');
-        if (!filtered.length) {
-            body.innerHTML = `<tr><td colspan="5" class="empty">No fields found</td></tr>`;
-            return;
-        }
 
         if (this.viewMode === 'group') {
             let rows = '';
             const grouped = {};
+            
+            this.tables.forEach(t => { grouped[t] = []; });
             filtered.forEach(f => {
                 const k = f.table || '(no table)';
-                (grouped[k] = grouped[k] || []).push(f);
+                if (!grouped[k]) grouped[k] = [];
+                grouped[k].push(f);
             });
+
             Object.keys(grouped).sort().forEach(t => {
-                rows += `<tr class="group-header">
+                rows += this.obj.parseEvents(`<tr class="group-header">
                     <td colspan="5">
                         <i class="ti ti-table" aria-hidden="true" style="margin-right:6px"></i>${t}
                         <span style="font-weight:400;opacity:.7">(${grouped[t].length} fields)</span>
+                        <button class="inline-add-btn" onclick="controller.setInlineAdd(true, '${t}')" style="float:right; background:none; border:none; color:#0C447C; cursor:pointer;"><i class="ti ti-plus"></i> Add row</button>
                     </td>
-                </tr>`;
-                grouped[t].forEach(f => { rows += this.fieldRow(f); }); // FIX: explicit arrow keeps `this`
+                </tr>`);
+                
+                grouped[t].forEach(f => { rows += this.fieldRow(f); });                
+                if (this.isAddingInline && this.addingInlineTable === t)
+                    rows += this.inlineInputRow(t);
+                
             });
             body.innerHTML = rows;
         } else {
-            body.innerHTML = filtered.map(f => this.fieldRow(f)).join(''); // FIX: was .map(this.fieldRow) — loses `this`
+            let html = filtered.map(f => this.fieldRow(f)).join('');
+
+            if (this.isAddingInline && !this.addingInlineTable)
+                html += this.inlineInputRow('');
+
+            if (!filtered.length && !this.isAddingInline) 
+                return body.innerHTML = `<tr><td colspan="5" class="empty">No fields found</td></tr>`;
+
+            body.innerHTML = html;
         }
     }
 
-    // FIX: converted to arrow function so `this` is always the controller instance
-    fieldRow = (f) => {
-        return `<tr>
-            <td><span style="font-family:var(--font-mono);font-size:12px">${f.name}</span></td>
-            <td>${f.table ? `<span class="badge badge-blue">${f.table}</span>` : '<span style="color:var(--color-text-secondary)">—</span>'}</td>
-            <td>${f.trans || '<span style="color:var(--color-text-secondary)">—</span>'}</td>
-            <td style="color:var(--color-text-secondary);font-size:12px">${f.desc || ''}</td>
-            <td style="white-space:nowrap">
-                <button class="icon-btn" onclick="controller.openEditField(${f.id})" title="Edit"><i class="ti ti-edit"></i></button>
-                <button class="icon-btn btn-danger" onclick="controller.deleteField(${f.id})" title="Delete"><i class="ti ti-trash"></i></button>
+    setInlineAdd(status, tableGroup = '') {
+        this.isAddingInline = status;
+        this.addingInlineTable = tableGroup;
+        this.renderDict();
+        if (status) 
+            setTimeout(() => this.$('#inline-f-name')?.focus(), 50);
+    }
+
+    inlineInputRow(assignedTable) {
+        const tableOptions = this.tables.map(t => `<option value="${t}" ${t === assignedTable ? 'selected' : ''}>${t}</option>`).join('');
+        const tableSelector = assignedTable 
+            ? `<span class="badge badge-blue">${assignedTable}</span>`
+            : `<select id="inline-f-table" class="inline-cell-select"><option value="">— no table —</option>${tableOptions}</select>`;
+
+        return this.obj.parseEvents(`<tr class="inline-insert-row">
+            <td><input type="text" id="inline-f-name" placeholder="Field name..." class="inline-input" onkeydown="if(event.key==='Enter') controller.saveInlineField()"></td>
+            <td>${tableSelector}</td>
+            <td><input type="text" id="inline-f-trans" placeholder="Translation..." class="inline-input" onkeydown="if(event.key==='Enter') controller.saveInlineField()"></td>
+            <td><input type="text" id="inline-f-desc" placeholder="Description..." class="inline-input" onkeydown="if(event.key==='Enter') controller.saveInlineField()"></td>
+            <td style="text-align: right;">
+                <button class="icon-btn" style="color:green" onclick="controller.saveInlineField()"><i class="ti ti-check"></i></button>
+                <button class="icon-btn" style="color:red" onclick="controller.setInlineAdd(false)"><i class="ti ti-x"></i></button>
             </td>
-        </tr>`;
+        </tr>`);
+    }
+    
+    saveInlineField() {
+        const name = this.$('#inline-f-name').value.trim();
+        if (!name) return;
+
+        const table = this.addingInlineTable || (this.$('#inline-f-table') ? this.$('#inline-f-table').value : '');
+        const trans = this.$('#inline-f-trans').value.trim();
+        const desc = this.$('#inline-f-desc').value.trim();
+
+        const nf = { id: this.nextId++, name, table, trans, desc, disabled: false };
+        this.fields.push(nf);
+        this.access[nf.id] = [];
+
+        this.isAddingInline = false;
+        this.addingInlineTable = '';
+        this.renderAll();
+    }
+
+    makeEditable(cell, fieldId) {
+        if (cell.querySelector('input')) return;
+        
+        const originalText = cell.textContent === '—' ? '' : cell.textContent;
+        cell.innerHTML = `<input type="text" class="inline-cell-input" value="${originalText}" style="width:100%; box-sizing:border-box; height:26px;">`;
+        
+        const input = cell.querySelector('input');
+        input.focus();
+        input.select();
+
+        const saveChanges = () => {
+            const val = input.value.trim();
+            const f = this.fields.find(x => x.id === fieldId);
+            if (f) {
+                f.trans = val;
+                this.changedFields.set(`${f.id}`, f);
+            }
+            cell.innerHTML = val || '—';
+            this.renderRbac();
+        };
+
+        input.onblur = saveChanges;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') saveChanges();
+            if (e.key === 'Escape') cell.innerHTML = originalText || '—';
+        };
+    }
+
+    fieldRow = (f) => {
+        const isDisabled = f.disabled === true;
+        const rowClass = isDisabled ? 'row-disabled' : '';
+        
+        return this.obj.parseEvents(`<tr class="${rowClass}" data-id="${f.id}">
+            <td class="editable-cell text-mono" onclick="controller.makeCellEditable(this, '${f.id}', 'name')">${f.name || '—'}</td>
+            
+            <td class="editable-cell" onclick="controller.makeTableSelectable(this, '${f.id}')">
+                ${f.table ? `<span class="badge badge-blue">${f.table}</span>` : '<span class="text-muted">—</span>'}
+            </td>
+            
+            <td class="editable-cell" onclick="controller.makeCellEditable(this, '${f.id}', 'trans')">${f.trans || '<span class="text-muted">—</span>'}</td>
+            <td class="editable-cell text-muted" onclick="controller.makeCellEditable(this, '${f.id}', 'desc')">${f.desc || '—'}</td>
+            
+            <td style="white-space:nowrap; text-align: right;">
+                ${f.trans ? `<button class="icon-btn btn-warning" onclick="event.stopPropagation(); controller.clearTranslation('${f.id}')" title="Clear Translation"><i class="ti ti-text-clear-formatting"></i></button>` : ''}
+                <button class="icon-btn ${!isDisabled ? 'btn-success' : 'btn-secondary'}" onclick="event.stopPropagation(); controller.toggleFieldStatus('${f.id}')" title="${isDisabled ? 'Enable Field' : 'Disable Field'}">
+                    <i class="fas fa-power-off"></i>
+                </button>
+                <button class="icon-btn btn-danger" onclick="event.stopPropagation(); controller.deleteField('${f.id}')" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`);
+    }
+
+    clearTranslation(fieldId) {
+        const f = this.fields.find(x => x.id === fieldId);
+        if (f) {
+            f.trans = '';
+            this.renderAll();
+        }
+    }
+
+    toggleFieldStatus(fieldId) {
+        const f = this.fields.find(x => x.id === fieldId);
+        if (f) {
+            f.disabled = !f.disabled;
+            this.renderAll();
+        }
+    }
+
+    makeCellEditable(cell, fieldId, property) {
+        if (cell.querySelector('input, select')) return; // Avoid double rendering
+        
+        const f = this.fields.find(x => x.id === fieldId);
+        if (!f) return;
+
+        const originalValue = f[property] || '';
+        cell.innerHTML = `<input type="text" class="inline-cell-input" value="${originalValue}" style="width:100%; box-sizing:border-box;">`;
+        
+        const input = cell.querySelector('input');
+        input.focus();
+        input.select();
+
+        const commitChanges = () => {
+            const currentVal = input.value.trim();
+            f[property] = currentVal;
+            this.changedFields.set(`${f.id}`, f);
+            
+            this.renderDict(), this.renderRbac();
+        };
+
+        input.onblur = commitChanges;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') commitChanges();
+            if (e.key === 'Escape') this.renderDict();
+        };
+    }
+
+    makeTableSelectable(cell, fieldId) {
+        if (cell.querySelector('select, input')) return;
+
+        const f = this.fields.find(x => x.id === fieldId);
+        if (!f) return;
+
+        let options = `<option value="">— no table —</option>`;
+        options += this.tables.map(t => `<option value="${t}" ${t === f.table ? 'selected' : ''}>${t}</option>`).join('');
+
+        cell.innerHTML = `<select class="inline-cell-select" style="width:100%; height:26px;">${options}</select>`;
+        const select = cell.querySelector('select');
+        select.focus();
+
+        const commitTable = () => {
+            f.table = select.value;
+            this.renderDict();
+            this.renderRbac();
+        };
+
+        select.onchange = commitTable, select.onblur = commitTable;
     }
 
     renderRbac() {
@@ -131,53 +284,40 @@ export class DataGovernanceController extends BaseController {
         });
 
         const body = this.$('#rbac-body');
-        if (!filtered.length) {
-            body.innerHTML = `<tr><td colspan="4" class="empty">No fields found</td></tr>`;
-            return;
-        }
+        if (!filtered.length)
+            return body.innerHTML = `<tr><td colspan="4" class="empty">No fields found</td></tr>`;
 
         body.innerHTML = filtered.map(f => {
             const ar = this.access[f.id] || [];
             const chips = ar.length
                 ? ar.map(r => `<span class="role-badge ${this.roleColor(r)}">${r}</span>`).join('')
                 : '<span style="color:var(--color-text-secondary);font-size:12px">No access</span>';
-            return `<tr>
+            return this.obj.parseEvents(`<tr>
                 <td><span style="font-family:var(--font-mono);font-size:12px">${f.name}</span></td>
                 <td>${f.table ? `<span class="badge badge-blue">${f.table}</span>` : '—'}</td>
                 <td><div class="access-cell">${chips}</div></td>
-                <td><button class="icon-btn" onclick="controller.openEditAccess(${f.id})" title="Edit access"><i class="ti ti-shield-half"></i></button></td>
-            </tr>`;
+                <td><button class="icon-btn" onclick="controller.openEditAccess('${f.id}')" title="Edit access"><i class="ti ti-shield-half"></i></button></td>
+            </tr>`);
         }).join('');
     }
 
-    renderAll() {
-        this.populateTableSelects();
-        this.renderDict();
-        this.renderRbac();
-    }
+    renderAll() { this.populateTableSelects(), this.renderDict(), this.renderRbac(); }
 
     openModal(id) { this.$('#' + id).classList.add('open'); }
     closeModal(id) { this.$('#' + id).classList.remove('open'); }
 
     openAddField() {
-        this.editingFieldId = null;
-        this.$('#modal-field-title').textContent = 'Add field';
-        ['f-name','f-trans','f-desc'].forEach(i => this.$('#' + i).value = '');
-        this.$('#f-table').value = '';
-        this.populateTableSelects();
-        this.openModal('modal-field');
+        this.switchTab('dict', this.$$('.tab')[0]);
+        this.setInlineAdd(true, '');
     }
 
-    openEditField(id) {
-        this.editingFieldId = id;  // FIX: was bare editingFieldId
-        const f = this.fields.find(x => x.id === id);  // FIX: was bare fields
-        this.$('#modal-field-title').textContent = 'Edit field';
-        this.$('#f-name').value = f.name;
-        this.$('#f-trans').value = f.trans;
-        this.$('#f-desc').value = f.desc;
-        this.populateTableSelects();  // FIX: was bare populateTableSelects()
-        this.$('#f-table').value = f.table || '';
-        this.openModal('modal-field');  // FIX: was bare openModal()
+    openAddGroup() {
+        this.switchTab('dict', this.$$('.tab')[0]);
+        const groupName = prompt("Enter new Table Group identifier:");
+        if (groupName && !this.tables.includes(groupName.trim())) {
+            this.tables.push(groupName.trim());
+            this.renderAll();
+        }
     }
 
     saveField() {
@@ -186,18 +326,11 @@ export class DataGovernanceController extends BaseController {
 
         if (this.editingFieldId) {
             const f = this.fields.find(x => x.id === this.editingFieldId);
-            f.name = name;
-            f.table = this.$('#f-table').value;
-            f.trans = this.$('#f-trans').value.trim();
-            f.desc = this.$('#f-desc').value.trim();
+            f.name = name, f.table = this.$('#f-table').value;
+            f.trans = this.$('#f-trans').value.trim(), f.desc = this.$('#f-desc').value.trim();
         } else {
-            const nf = {
-                id: this.nextId++,  // FIX: was bare nextId
-                name,
-                table: this.$('#f-table').value,
-                trans: this.$('#f-trans').value.trim(),
-                desc: this.$('#f-desc').value.trim()
-            };
+            const table = this.$('#f-table').value, trans = this.$('#f-trans').value.trim(), desc = this.$('#f-desc').value.trim()
+            const nf = { id: this.nextId++, name, table, trans, desc };
             this.fields.push(nf);
             this.access[nf.id] = [];
         }
@@ -225,20 +358,18 @@ export class DataGovernanceController extends BaseController {
     }
 
     openManageRoles() {
-        this.renderRolesList();
-        this.openModal('modal-roles');
+        this.renderRolesList(), this.openModal('modal-roles');
     }
 
     renderRolesList() {
         this.$('#roles-list').innerHTML = this.roles.map(r =>
-            `<span class="chip on">${r} <button onclick="controller.removeRole('${r}')" title="Remove">×</button></span>`
-            // FIX: was bare removeRole() — won't resolve in inline onclick
+            this.obj.parseEvents(`<span class="chip on">${r} <button onclick="controller.removeRole('${r}')" title="Remove">×</button></span>`)
         ).join('');
     }
 
     addRole() {
         const v = this.$('#r-new').value.trim();
-        if (v && !this.roles.includes(v)) {  // FIX: was bare roles.includes
+        if (v && !this.roles.includes(v)) {
             this.roles.push(v);
             this.$('#r-new').value = '';
         }
@@ -248,9 +379,7 @@ export class DataGovernanceController extends BaseController {
 
     removeRole(r) {
         this.roles = this.roles.filter(x => x !== r);
-        Object.keys(this.access).forEach(k => {
-            this.access[k] = (this.access[k] || []).filter(x => x !== r);
-        });
+        Object.keys(this.access).forEach(k => this.access[k] = (this.access[k] || []).filter(x => x !== r));
         this.renderRolesList();
         this.populateTableSelects();
     }
@@ -262,10 +391,10 @@ export class DataGovernanceController extends BaseController {
         this.$('#a-field').value = f.name;
 
         const cur = this.access[id] || [];
-        this.$('#a-roles-chips').innerHTML = this.roles.map(r => `
+        this.$('#a-roles-chips').innerHTML = this.roles.map(r => this.obj.parseEvents(`
             <span class="chip ${cur.includes(r) ? 'on' : 'off'}" id="chip-${r}" onclick="controller.toggleChip('${r}')">
                 <i class="ti ti-${cur.includes(r) ? 'eye' : 'eye-off'}" aria-hidden="true" style="font-size:12px"></i> ${r}
-            </span>`  // FIX: was bare toggleChip()
+            </span>`)
         ).join('');
 
         this.openModal('modal-access');
@@ -280,7 +409,6 @@ export class DataGovernanceController extends BaseController {
 
     saveAccess() {
         const sel = this.roles.filter(r => this.$('#chip-' + r)?.classList.contains('on'));
-        // FIX: was document.getElementById — must scope to container; was bare editingAccessId
         this.access[this.editingAccessId] = sel;
         this.closeModal('modal-access');
         this.renderRbac();
@@ -292,15 +420,14 @@ export class DataGovernanceController extends BaseController {
     }
 
     applyBulk() {
-        const t = this.$('#b-table').value;
-        const r = this.$('#b-role').value;
+        const t = this.$('#b-table').value, r = this.$('#b-role').value;
         const grant = this.$('input[name="b-access"]:checked').value === 'grant';
         if (!r) return;
 
         this.fields.filter(f => !t || f.table === t).forEach(f => {
             this.access[f.id] = this.access[f.id] || [];
             if (grant && !this.access[f.id].includes(r)) this.access[f.id].push(r);
-            if (!grant) this.access[f.id] = this.access[f.id].filter(x => x !== r);  // FIX: was bare access[f.id]
+            if (!grant) this.access[f.id] = this.access[f.id].filter(x => x !== r);
         });
         this.closeModal('modal-bulk');
         this.renderRbac();

@@ -10,13 +10,20 @@
 
 		<div id="sec-dict" class="section active">
 			<div class="toolbar">
+				<select class="list-of-pipelines" (forEach)="pipelines" onchange="component.loadTablesByPipeline(this.value)" style="width:160px">
+					<option each="item" value="{item.srcPipeline}.{item.srcPipeline}">{item.pipeline}</option>
+				</select>
+				&nbsp;&nbsp; - &nbsp;&nbsp;
 				<input type="text" class="search" placeholder="Search fields…" id="dict-search" oninput="controller.renderDict()">
 				<select id="dict-table-filter" onchange="controller.renderDict()" style="width:160px">
 					<option value="">All tables</option>
 				</select>
 				<div style="margin-left:auto;display:flex;gap:8px">
-					<button class="btn" onclick="controller.openAddGroup()"><i class="ti ti-table-plus" aria-hidden="true"></i> Add table group</button>
-					<button class="btn btn-primary" onclick="controller.openAddField()"><i class="ti ti-plus" aria-hidden="true"></i> Add field</button>
+					<!--
+						<button class="btn" onclick="controller.openAddGroup()"><i class="ti ti-table-plus" aria-hidden="true"></i> Add table group</button>
+						<button class="btn btn-primary" onclick="controller.openAddField()"><i class="ti ti-plus" aria-hidden="true"></i> Add field</button>
+					-->
+					<button class="btn btn-primary" onclick="component.saveDiactionary()()"><i class="fas fa-save" aria-hidden="true"></i> Save</button>
 				</div>
 			</div>
 			<div class="seg" style="margin-bottom:1rem;width:fit-content">
@@ -24,18 +31,20 @@
 				<button onclick="controller.setView('group',this)">By table</button>
 			</div>
 			<div class="table-wrap">
-				<table>
-					<thead>
-						<tr>
-							<th>Field name</th>
-							<th>Table</th>
-							<th>Translation</th>
-							<th>Description</th>
-							<th style="width:80px"></th>
-						</tr>
-					</thead>
-					<tbody id="dict-body"></tbody>
-				</table>
+				<div class="grid-scroll-container">
+					<table>
+						<thead>
+							<tr>
+								<th>Field name</th>
+								<th>Table</th>
+								<th>Translation</th>
+								<th>Description</th>
+								<th style="width:110px; text-align: right;">Actions</th>
+							</tr>
+						</thead>
+						<tbody id="dict-body"></tbody>
+					</table>
+				</div>
 			</div>
 		</div>
 
@@ -54,17 +63,19 @@
 				</div>
 			</div>
 			<div class="table-wrap">
-				<table>
-					<thead>
-						<tr>
-							<th>Field name</th>
-							<th>Table</th>
-							<th>Accessible by roles</th>
-							<th style="width:80px"></th>
-						</tr>
-					</thead>
-					<tbody id="rbac-body"></tbody>
-				</table>
+				<div class="grid-scroll-container">
+					<table>
+						<thead>
+							<tr>
+								<th>Field name</th>
+								<th>Table</th>
+								<th>Accessible by roles</th>
+								<th style="width:80px"></th>
+							</tr>
+						</thead>
+						<tbody id="rbac-body"></tbody>
+					</table>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -219,9 +230,19 @@
 	.governance-main-container .search { width: 200px; }
 
 	.governance-main-container .table-wrap { border: 0.5px solid #e0ddd6; border-radius: 8px; overflow: hidden; margin: 0 1rem; }
-	.governance-main-container table { width: 100%; border-collapse: collapse; font-size: 13px; }
-	.governance-main-container th { background: #f5f5f3; padding: 8px 14px; text-align: left; font-weight: 500; color: #6b6b6b; border-bottom: 0.5px solid #e0ddd6; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
-	.governance-main-container td { padding: 9px 14px; border-bottom: 0.5px solid #e0ddd6; vertical-align: middle; color: #1a1a1a; }
+	.governance-main-container table { width: 100%; border-collapse: separate; font-size: 13px; border-spacing: 0; }
+	.governance-main-container th { 
+		background: #f5f5f3; padding: 8px 14px; text-align: left; 
+		font-weight: 500; color: #6b6b6b;
+		font-size: 12px; text-transform: uppercase; letter-spacing: .03em; 
+
+		position: sticky;
+		top: 0;
+		z-index: 10;
+		border-bottom: 2px solid #1A3D5C !important;
+		box-shadow: inset 0 -1px 0 #d1cec7;
+	}
+	.governance-main-container td { padding: 9px 14px; border-bottom: 1px solid #e5e5e4; vertical-align: middle; color: #1a1a1a; }
 	.governance-main-container tr:last-child td { border-bottom: none; }
 	.governance-main-container tr:hover td { background: #f5f5f3; }
 
@@ -239,12 +260,6 @@
 	.governance-main-container .seg { display: flex; border: 0.5px solid #d1cec7; border-radius: 6px; overflow: hidden; margin: 0 1rem 1rem; }
 	.governance-main-container .seg button { padding: 5px 12px; font-size: 12px; border: none; background: none; cursor: pointer; color: #6b6b6b; }
 	.governance-main-container .seg button.active { background: #1A3D5C; color: #fff; }
-
-	.governance-main-container .icon-btn {
-		background: none; border: none; cursor: pointer; color: #6b6b6b; padding: 4px; border-radius: 4px;
-		line-height: 1; display: inline-flex; align-items: center;
-	}
-	.governance-main-container .icon-btn:hover { background: #f5f5f3; color: #1a1a1a; }
 
 	.governance-main-container .modal-bg {
 		display: none; position: fixed; top: 0;  left: 0;  width: 100vw !important;   height: 100vh !important; 
@@ -274,4 +289,96 @@
 	.governance-main-container .wrap { position: initial; min-height: 200px; }
 	.governance-main-container .empty { text-align: center; padding: 2rem; color: #6b6b6b; font-size: 13px; }
 	.governance-main-container .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+	.governance-main-container td.editable-cell {
+		cursor: pointer;
+		position: relative;
+		transition: background-color 0.15s ease;
+	}
+
+	.governance-main-container td.editable-cell:hover {
+		background-color: #f4f4f3 !important;
+		outline: 1px dashed #1A3D5C;
+	}
+
+	.governance-main-container .row-disabled td {
+		opacity: 0.45;
+		background-color: #fcfcfc !important;
+		text-decoration: line-through;
+	}
+
+	.governance-main-container .row-disabled td:last-child {
+		text-decoration: none !important; /* Keep icons clean and fully clickable */
+		opacity: 1;
+	}
+
+	.governance-main-container .inline-cell-input {
+		font-size: 13px;
+		padding: 2px 6px;
+		border: 1px solid #1A3D5C;
+		border-radius: 4px;
+		outline: none;
+		background: #ffffff;
+		height: 26px;
+		box-sizing: border-box;
+	}
+
+	.governance-main-container .inline-cell-select {
+		height: 26px;
+		padding: 0 4px;
+		font-size: 12px;
+		border: 1px solid #1A3D5C;
+		border-radius: 4px;
+		background: #ffffff;
+		box-sizing: border-box;
+	}
+
+	.governance-main-container .text-mono {
+		font-family: var(--font-mono, monospace);
+		font-size: 12px;
+	}
+
+	.governance-main-container .text-muted {
+		color: #8c8c8c;
+	}
+
+	.governance-main-container .btn-warning {
+		color: #e67e22;
+	}
+
+	.governance-main-container .btn-secondary {
+		color: #7f8c8d;
+	}
+
+	.governance-main-container .icon-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 4px 6px;
+		font-size: 16px;
+		transition: transform 0.1s ease;
+		display: inline-block;
+	}
+
+	.governance-main-container .icon-btn:hover {
+		transform: scale(1.15);
+	}
+
+	.governance-main-container .btn-warning { color: #f39c12; }
+	.governance-main-container .btn-secondary { color: #7f8c8d; }
+	.governance-main-container .btn-success { color: #2ecc71; }
+	.governance-main-container .btn-danger { color: #e74c3c; }
+
+	.governance-main-container .grid-scroll-container {
+		max-height: 480px;
+		overflow-y: auto;
+		border: 1px solid #d1cec7;
+		border-radius: 4px;
+		position: relative;
+	}
+
+	#roles-list span {
+		padding-right: 4px;
+		button { border-radius: 52%; height: 17px; width: 16px; border: none; }
+	}
 </style>
