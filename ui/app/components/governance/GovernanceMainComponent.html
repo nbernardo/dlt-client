@@ -163,34 +163,31 @@
 		</div>
 
 		<div class="modal-bg" id="modal-bulk">
-			<div class="modal">
-				<div class="modal-header">
-					<h3>Set bulk access</h3>
-					<button class="icon-btn" onclick="controller.closeModal('modal-bulk')"><i class="ti ti-x"></i></button>
-				</div>
-				<div class="modal-body">
-					<label>Table (apply to all fields in table)</label>
-					<select id="b-table" style="width:100%">
-						<option value="">All tables</option>
-					</select>
-					<label>Role</label>
-					<select id="b-role" style="width:100%"></select>
-					<label>Access</label>
-					<div style="display:flex;gap:8px;margin-top:6px">
-						<label style="display:flex;align-items:center;gap:6px;margin:0;font-size:13px;color:#1a1a1a">
-							<input type="radio" name="b-access" value="grant" checked> Grant access
-						</label>
-						<label style="display:flex;align-items:center;gap:6px;margin:0;font-size:13px;color:#1a1a1a">
-							<input type="radio" name="b-access" value="revoke"> Revoke access
-						</label>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button class="btn" onclick="controller.closeModal('modal-bulk')">Cancel</button>
-					<button class="btn btn-primary" onclick="controller.applyBulk()">Apply</button>
-				</div>
-			</div>
-		</div>
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>Set bulk access</h3>
+                    <button class="icon-btn" onclick="controller.closeModal('modal-bulk')"><i class="ti ti-x"></i></button>
+                </div>
+                <div class="modal-body">
+                    <label>Role</label>
+                    <select id="b-role" style="width:100%"></select>
+
+                    <label style="margin-top:12px; display:block;">Table</label>
+                    <select id="b-table" style="width:100%">
+                        <option value="">All tables</option>
+                    </select>
+
+                    <label style="margin-top:16px; display:block; font-weight:bold;">Fields Allocation State:</label>
+                    <div id="bulk-fields-container" style="max-height:180px; overflow-y:auto; border:1px solid #ddd; padding:8px; border-radius:4px; background:#fafafa; display:flex; flex-direction:column; gap:6px;">
+                        <p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" onclick="controller.closeModal('modal-bulk')">Cancel</button>
+                    <button class="btn btn-primary" onclick="controller.applyBulk()">Apply</button>
+                </div>
+            </div>
+        </div>
 
 	</div>
 </div>
@@ -380,5 +377,22 @@
 	#roles-list span {
 		padding-right: 4px;
 		button { border-radius: 52%; height: 17px; width: 16px; border: none; }
+	}
+
+	.governance-main-container .bulk-toggle-btn {
+		background: #f1f2f6;
+		color: #7f8c8d;
+	}
+
+	/* Green Highlight for Active Grants */
+	.governance-main-container .bulk-toggle-btn.active-allow {
+		background-color: #2ecc71 !important;
+		color: #ffffff !important;
+	}
+
+	/* Red Highlight for Column Blockades */
+	.governance-main-container .bulk-toggle-btn.active-deny {
+		background-color: #e74c3c !important;
+		color: #ffffff !important;
 	}
 </style>
