@@ -2,6 +2,8 @@ from flask import Blueprint, request
 from services.BI.BIService import BIService
 from utils.metastore.BI.PipelinePlan import PipelinePlan
 
+def get_sep(): return '/' if platform.system() != 'Windows' else '\\\\'
+
 bi_controller = Blueprint('bi_controller', __name__)
 
 @bi_controller.route('/analytics/chart/<namespace>', methods=['POST'])
@@ -52,7 +54,7 @@ def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
     from utils.metastore.DataCatalog import DataCatalog
     from utils.pipeline.PipelinesHelper import get_table_columns
 
-    sep = '/' if platform.system() != 'Windows' else '\\\\'
+    sep = get_sep()
     database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
 
     table_path = f'{pipeline}.{datawarehouse}'
@@ -105,3 +107,17 @@ def create_pipeline_plan(namespace):
 def get_pipeline_plan(namespace, id = None):
     result = PipelinePlan.get_plans(namespace, id)
     return { 'error': False, 'result': result }
+
+
+@bi_controller.route('/pipeline/dictionary/<namespace>/<pipeline>', methods=['POST'])
+def upsert_dictionary(namespace, pipeline):
+
+    from utils.pipeline.DataDictionary import DataDictionary
+    payload = request.get_json()
+    pipeline = pipeline.split('.')[0] if pipeline.__contains__('.') else pipeline
+    
+    sep = get_sep()
+    database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
+
+    result = DataDictionary.upsert_dictionary(database_path, payload.get('values',[]))
+    return { 'error': False, 'result': '' }

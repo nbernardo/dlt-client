@@ -370,40 +370,60 @@ def get_join_query_from_tables(tables, db_path, db_file, schema, fields):
 
 
 
-def get_table_columns(db_path, db_name):
+def get_table_columns(db_path, db_name, schema_name = None):
+
+    from utils.pipeline.DataDictionary import DataDictionary
+
     con = duckdb.connect(db_path)
-    query = f'''
-        WITH unique_columns AS (
+
+    try:
+        DataDictionary.create_disctionary_map_table(con)
+
+        query = f'''
+            WITH unique_columns AS (
+
+                SELECT
+                    c.table_name,
+                    c.column_name,
+                    c.data_type,
+                    c.ordinal_position,
+                    c.column_comment,
+                    fd.translation,
+                    fd.description,
+                    fd.status
+                FROM information_schema.columns c
+                LEFT JOIN dwhperformance_meta.field_dictionary fd ON c.table_name = fd.table_name AND c.column_name = fd.field_name
+                WHERE 
+                    c.table_schema <> 'dwhperformance_meta' 
+                    AND (c.table_catalog = '{db_name}' OR c.table_schema = '{schema_name}')
+                    AND c.table_name NOT LIKE '_dlt_%'
+                QUALIFY ROW_NUMBER() OVER (  PARTITION BY c.table_name, c.column_name ORDER BY c.ordinal_position ) = 1
+            )
             SELECT 
-                table_name,
-                column_name,
-                data_type,
-                ordinal_position,
-                COLUMN_COMMENT
-            FROM information_schema.columns 
-            WHERE table_catalog = '{db_name}' 
-            AND table_schema NOT IN ('dwhperformance_meta')
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY table_name, column_name ORDER BY ordinal_position) = 1
-        )
-        SELECT 
-            json_group_object(table_name, columns_array) as final_json
-        FROM (
-            SELECT 
-                table_name, 
-                json_group_array(
-                    json_object(
-                        'original_column_name', column_name,
-                        'column_name', column_name,
-                        'data_type', data_type,
-                        'semantic_concept', column_name,
-                        'confidence_score', ordinal_position,
-                        'description', COLUMN_COMMENT
-                    )
-                ) as columns_array
-            FROM unique_columns
-            GROUP BY table_name
-        ) AS table_subquery;
-    '''
-    result = con.query(query).fetchall()
+                json_group_object(table_name, columns_array) as final_json
+            FROM (
+                SELECT 
+                    table_name, 
+                    json_group_array(
+                        json_object(
+                            'original_column_name', column_name,
+                            'column_name', column_name,
+                            'data_type', data_type,
+                            'semantic_concept', column_name,
+                            'confidence_score', ordinal_position,
+                            'description', description,
+                            'translation', translation,
+                            'translation_active', status,
+                            'table_name', table_name
+                        )
+                    ) as columns_array
+                FROM unique_columns
+                GROUP BY table_name
+            ) AS table_subquery;
+        '''
+        result = con.query(query).fetchall()
+    
+    finally:
+        con.close()
+
     return result
-    ...
