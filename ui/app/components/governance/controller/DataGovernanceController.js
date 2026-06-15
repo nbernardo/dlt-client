@@ -1,4 +1,6 @@
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
+import { AppTemplate } from "../../../../config/app-template.js";
+import { UserService } from "../../../services/UserService.js";
 import { GovernanceMainComponent } from "../GovernanceMainComponent.js";
 
 export class DataGovernanceController extends BaseController {
@@ -20,6 +22,11 @@ export class DataGovernanceController extends BaseController {
     changedFields = new Map();
     columnExclusions = {};
 
+    roles = ['admin', 'analyst', 'viewer', 'support'];
+    features = ['create pipeline', 'view pipeline', 'delete data', 'modify rbac', 'execute analytical sandbox'];
+
+    users = [];
+
     ROLE_COLORS = ['badge-blue','badge-teal','badge-amber','badge-gray'];
 
     /** @returns { HTMLElement } */ $ = (ref) => this.obj.container.querySelector(ref);
@@ -30,11 +37,21 @@ export class DataGovernanceController extends BaseController {
         return this.ROLE_COLORS[i < 0 ? 0 : i];
     }
 
+    /** @returns { UserService } */ userService = () => this.obj.$parent.userService;
+
     switchTab(t, el) {
         this.$$('.tab').forEach(b => b.classList.remove('active'));
         el.classList.add('active');
-        this.$$('.section').forEach(s => s.classList.remove('active'));
-        this.$('#sec-' + t).classList.add('active');
+        this.$$('.section').forEach(s => s.style.display = 'none');
+        this.$('#sec-' + t).style.display = 'block';
+
+        if (t === 'users-perms') {
+            (async () => await this.renderUsersAndPermissionsTab())();
+        } else if (t === 'rbac') {
+            this.renderRbac();
+        } else {
+            this.renderDict();
+        }
     }
 
     setView(v, btn) {
@@ -639,5 +656,195 @@ export class DataGovernanceController extends BaseController {
         this.closeModal('modal-bulk');
         this.renderRbac();
     }
+
+    
+    async renderUsersAndPermissionsTab() {
+        const usersList = await this.userService().getUsersList();
+        this.users = usersList.users.map(r => {
+            const roles = [], permissions = [];
+            for(const perms of r.permissions){
+                perms.includes(':') ? roles.push(perms) : permissions.push(perms);
+            }
+            console.log(r.permissions, ' AND ', { roles, permissions } );
+            return { email: r.email, name: r.usr, roles, permissions }
+        });        
+        await this.renderUsersCompositeMatrix();
+    }
+
+    async renderUsersCompositeMatrix() {
+        const container = this.$('#users-composite-matrix');
+        if (!container) return;
+
+        if (!this.users.length) 
+            return container.innerHTML = '<p class="text-muted" style="text-align:center; padding:20px;">No platform identities found.</p>';
+
+        const permissions = await this.userService().getAllPemissions();
+        this.roles = permissions.catalog.permissions, this.features = permissions.catalog.roles;
+
+        container.innerHTML = this.users.map(user => {
+            const rolesHtml = this.roles.map(({ name: r }) => {
+                const hasRole = user.roles && user.roles.includes(r);
+                const chipClass = hasRole ? 'on' : 'off';
+                return `
+                    <span class="chip ${chipClass}" 
+                          data-email="${user.email}" data-value="${r}" data-type="role" onclick="controller.toggleUserAccessChip(this)"
+                          style="font-size:11px; padding:3px 8px; border-radius:12px; font-weight:600; cursor:pointer; user-select:none;">
+                        <i class="ti ti-${hasRole ? 'shield-check' : 'shield-off'}"></i> ${r}
+                    </span>
+                `;
+            }).join('');
+
+            const permissionsHtml = this.features.map(({ name: f }) => {
+                
+                const hasPerm = user.permissions && user.permissions.includes(f);
+                const chipClass = hasPerm ? 'on' : 'off';
+                return `
+                    <span class="chip ${chipClass}" data-email="${user.email}" data-value="${f}" data-type="perm" onclick="controller.toggleUserAccessChip(this)"
+                          style="font-size:11px; padding:3px 8px; border-radius:12px; font-weight:600; cursor:pointer; user-select:none; border:1px dashed #7f8c8d;">
+                        <i class="ti ti-${hasPerm ? 'lock-open' : 'lock'}"></i> ${f}
+                    </span>
+                `;
+            }).join('');
+
+            return this.obj.parseEvents(`
+                <div style="background:#f8f9fa; border:1px solid #e2e8f0; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">
+                        <div>
+                            <strong style="font-size:13px; color:#1A3D5C;">${user.name}</strong>
+                            <span class="text-muted" style="font-size:11px; margin-left:8px;">(${user.email})</span>
+                        </div>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="icon-btn btn-danger" data-email="${user.email}" onclick="controller.deleteUserIdentity(this)" style="font-size:12px; padding:2px 6px;">
+                                <i class="fas fa-power-off"></i> Revoke Identity
+                            </button>
+                            <button class="icon-btn btn-ok disabled" id="updt-perm-btn-${user.email}" onclick="controller.identityUpdate('${user.email}')" style="font-size:12px; padding:2px 6px;">
+                                <i class="fas fa-sync-alt"></i> Update
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:110px 1fr; align-items:center; gap:10px;">
+                        <span style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.5px;">Assigned Roles:</span>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                            ${permissionsHtml}
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:110px 1fr; align-items:center; gap:10px;">
+                        <span style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.5px;">Direct Perms:</span>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                            ${rolesHtml}
+                        </div>
+                    </div>
+
+                </div>
+            `);
+        }).join('');
+    }
+
+    userPermUpdateCount = {};
+    updateIdentity = {};
+    toggleUserAccessChip(element) {
+        if (!element) return;
+        const email = element.dataset.email, val = element.dataset.value, type = element.dataset.type;
+
+        const user = this.users.find(u => u.email === email);
+        if (!user) return;
+
+        if(!user.updatePermission){
+            user.updatePermission = new Set(), user.remPermission = new Set();
+            [...user.roles, ...user.permissions].forEach(r => user.updatePermission.add(`old:${r}`));
+            this.userPermUpdateCount[user.email] = 0;
+        }
+
+        let idx;
+        if(user.remPermission.has(val)) user.remPermission.delete(val);
+        else if(user.updatePermission.has(`old:${val}`)) user.remPermission.add(val);
+        
+        if (type === 'role') {
+            user.roles = user.roles || [], idx = user.roles.indexOf(val);
+
+            if (idx > -1) {
+                this.userPermUpdateCount[user.email]--;
+                user.roles.splice(idx, 1);
+            } else {
+                this.userPermUpdateCount[user.email]++;
+                user.roles.push(val);
+            }
+
+        } else {
+            user.permissions = user.permissions || [], idx = user.permissions.indexOf(val);
+            
+            if (idx > -1){
+                this.userPermUpdateCount[user.email]--;
+                user.permissions.splice(idx, 1);
+            } else {
+                this.userPermUpdateCount[user.email]++;
+                user.permissions.push(val);
+            }
+        }
+
+        element.className = idx > -1 ? 'chip off' : 'chip on';
+        element.querySelector('i').className = idx > -1 ? 'ti ti-lock' : 'ti ti-lock-open';
+        
+        if(this.userPermUpdateCount[user.email] > 0 || user.remPermission.size){
+            this.updateIdentity[user.email] = user;
+            return document.getElementById(`updt-perm-btn-${user.email}`).classList.remove('disabled');
+        }
+        delete this.updateIdentity[user.email];
+        document.getElementById(`updt-perm-btn-${user.email}`).classList.add('disabled');
+    }
+
+    async registerNewUser() {
+        const [nameInput, emailInput, userPwd] = [
+            this.$('#reg-user-name'), this.$('#reg-user-email'), this.$('#reg-user-pwd')
+        ];
+
+        if (!nameInput || !emailInput) return;
+
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim().toLowerCase();
+        const pwd = userPwd.value.trim().toLowerCase();
+
+        if (!name || !email || !pwd) return;
+        
+        const result = await this.userService().createIdentity({ name, email, password: pwd });
+        
+        
+        if(!result.error){
+            this.users.push({ name: name, email: email, roles: [], permissions: [] });
+            AppTemplate.toast.success(result?.message);
+        }
+        else AppTemplate.toast.error(result?.message);
+
+        [nameInput, emailInput, userPwd].forEach(inpt => inpt.value = '');
+        await this.renderUsersCompositeMatrix();
+    }
+
+    async identityUpdate(identity) {
+
+        const user = this.updateIdentity[identity];        
+        const permissions = [...user.permissions, ...user.roles];
+        const result = await this.userService().updateIdentity({ permissions, email: user.email });
+
+        if(!result.error){
+            document.getElementById(`updt-perm-btn-${identity}`).classList.add('disabled');
+            delete this.updateIdentity[identity];
+            AppTemplate.toast.success(result?.message);
+        }
+        else AppTemplate.toast.error(result?.message);
+
+
+    }
+
+    deleteUserIdentity(element) {
+        if (!element) return;
+        const email = element.dataset.email;
+        
+        if (confirm(`Are you sure you want to remove access privileges for ${email}?`)) {
+            this.users = this.users.filter(u => u.email !== email);
+            (async () => await this.renderUsersCompositeMatrix())();
+        }
+    }    
 
 }

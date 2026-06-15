@@ -1,7 +1,10 @@
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
+import { State } from "../../../@still/component/type/ComponentType.js";
 import { Router } from "../../../@still/routing/router.js";
 import { StillAppSetup } from "../../../config/app-setup.js";
 import { UserService } from "../../services/UserService.js";
+
+const env = (_var) => StillAppSetup.config.get(_var)
 
 export class Login extends ViewComponent {
 
@@ -16,14 +19,25 @@ export class Login extends ViewComponent {
 	loggedUser = null;
 
 	/** @Prop */
-	isAnonumousLogin = StillAppSetup.config.get('anonymousLogin');
+	isAnonumousLogin = env('anonymousLogin');
+
+	/** @Prop */
+	devAuthN = env('devauthn.active');
+
+	/** @Prop */
+	activeTab = 'managed';
 
 	/**
-	 * @Inject
-	 * @Path services/
+	 * @Inject @Path services/
 	 * @type { UserService }
 	 */
 	userService;
+
+	/** @type { State<String> } */
+	username;
+
+	/** @type { State<String> } */
+	password;
 
 	async stAfterInit(){
 		this.userService.on('load', () => this.userService.auth0Connect());
@@ -36,12 +50,13 @@ export class Login extends ViewComponent {
 			return this.handleSuccessLogin();
 		}
 		
-		const { user, success } = await this.userService.login(provider);
+		if(this.devAuthN){ this.username = env('devauthn.user'), this.password = env('devauthn.pwd'); }
+
+		let { username, password } = this;
+		const { user, success } = await this.userService.login(provider, {username: username.value, password: password.value });
 		
 		if(success === false) this.loginSuccess = false;
-
-		if(user) 
-			this.handleSuccessLogin();
+		if(user)  this.handleSuccessLogin();
 		
 	}
 
@@ -55,5 +70,7 @@ export class Login extends ViewComponent {
 		this.userService.logOut();
 		Router.goto('exit');
 	}
+
+	switchLogin(tab){ this.activeTab = tab }
 
 }

@@ -7,9 +7,15 @@ class HttpRequestOptions {
 }
 
 export const HTTPHeaders = {
-    JSON: {
-        headers: { 'content-type': 'Application/json' }
-    }
+    JSON: { headers: { 'content-type': 'Application/json' } },
+    BearerTkn: (token) => ({ headers: { 'Authorization' : `Bearer ${token}` }}),
+    JSONAndBearerTkn: (token) => 
+        ({ 
+            headers: { 
+                'content-type': 'Application/json',
+                'Authorization' : `Bearer ${token}` 
+            }
+        })
 }
 
 export class StillHTTPClient {

@@ -17,25 +17,52 @@
 		<div style="text-align: center;">
 			<img src="app/assets/imgs/e2e-data-logo.svg" style="padding-bottom: 20px;" width="70%" alt="">
 		</div>
-		<!-- In case anonymous login is false, hence negating the flag. Show social login -->
-		@if(this.isAnonumousLogin == false)
-		<div>
-			<div>
-				<a href="#" (click)="login('facebook')" class="oauth-btn facebook">Continue with Facebook</a>
-				<a href="#" (click)="login('twitter-oauth2')" class="oauth-btn twitter">Continue with Twitter</a>
-				<a href="#" (click)="login('google-oauth2')" class="oauth-btn google">Continue with Google</a>
-				<a href="#" (click)="login('github')" class="oauth-btn github">Continue with GitHub</a>
-				<a href="#" style="opacity: 0.5; cursor: not-allowed; pointer-events: none; text-decoration: none;" class="oauth-btn windowslive">Continue with Microsoft</a>
-			</div>
-		</div>
-		@endif
 
-		<!-- In case anonymous login is true, Show only a login button -->
-		@if(this.isAnonumousLogin)
-		<span>
-			<a href="#" (click)="login('anonymous')" class="oauth-btn anonymous">Anonymous Login</a>
+		<div class="auth-tabs">
+			<button class="tab-btn" onclick="component.switchLogin('managed')">Managed Auth</button>
+			<button class="tab-btn" onclick="component.switchLogin('unmanaged')">Unmanaged Auth</button>
+		</div>
+
+		<!-- In case anonymous login is false, hence negating the flag. Show social login -->
+		<span (showIf)="self.activeTab == 'unmanaged'">
+			@if(this.isAnonumousLogin == false)
+			<div>
+				<div>
+					<a href="#" (click)="login('facebook')" class="oauth-btn facebook">Continue with Facebook</a>
+					<a href="#" (click)="login('twitter-oauth2')" class="oauth-btn twitter">Continue with Twitter</a>
+					<a href="#" (click)="login('google-oauth2')" class="oauth-btn google">Continue with Google</a>
+					<a href="#" (click)="login('github')" class="oauth-btn github">Continue with GitHub</a>
+					<a href="#" style="opacity: 0.5; cursor: not-allowed; pointer-events: none; text-decoration: none;" class="oauth-btn windowslive">Continue with Microsoft</a>
+				</div>
+			</div>
+			@endif
+	
+			<!-- In case anonymous login is true, Show only a login button -->
+			@if(this.isAnonumousLogin)
+			<span>
+				<a href="#" (click)="login('anonymous')" class="oauth-btn anonymous">Anonymous Login</a>
+			</span>
+			@endif
 		</span>
-		@endif
+
+		<span (showIf)="self.activeTab == 'managed'">
+			<form>
+				<div class="form-group">
+					<label for="username">Username</label>
+					<input type="text" (value)="username" required placeholder="Enter username">
+				</div>
+				<div class="form-group">
+					<label for="password">Password</label>
+					<input type="password" (value)="password" required placeholder="Enter password">
+				</div>
+				<span (showIf)="!self.devAuthN">
+					<button class="submit-btn" type="button" onclick="component.login('managed')">Sign In</button>
+				</span>
+				<span (showIf)="self.devAuthN">
+					<button class="submit-btn dev" type="button" onclick="component.login('managed')">Dev Sign In</button>
+				</span>
+			</form>
+		</span>
 	</div>
 </section>
 
@@ -124,5 +151,85 @@ h2 {
     margin-bottom: 20px;
     text-align: center;
 }
+
+/* TAB CONTROL STYLING */
+.auth-tabs {
+	display: flex;
+	margin-bottom: 25px;
+	border-bottom: 2px solid #ddd;
+}
+
+.tab-btn {
+	flex: 1;
+	padding: 10px;
+	background: none;
+	border: none;
+	font-size: 14px;
+	font-weight: bold;
+	color: #666;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.tab-btn:hover {
+	color: #333;
+}
+
+.tab-btn.active {
+	color: #0078d4;
+	border-bottom: 2px solid #0078d4;
+	margin-bottom: -2px;
+}
+
+/* MANAGED FORM STYLING */
+form {
+	display: flex;
+	flex-direction: column;
+}
+
+.form-group {
+	margin-bottom: 15px;
+	text-align: left;
+}
+
+.form-group label {
+	display: block;
+	font-size: 12px;
+	font-weight: bold;
+	color: #555;
+	margin-bottom: 5px;
+}
+
+.form-group input {
+	width: 100%;
+	padding: 10px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	box-sizing: border-box;
+	font-size: 14px;
+}
+
+.form-group input:focus {
+	border-color: #0078d4;
+	outline: none;
+}
+
+.submit-btn {
+	background-color: #28a745;
+	color: white;
+	padding: 12px;
+	border: none;
+	border-radius: 4px;
+	font-weight: bold;
+	font-size: 14px;
+	cursor: pointer;
+	margin-top: 10px;
+	transition: background-color 0.2s;
+}
+
+.submit-btn.dev { background-color: rgb(71, 92, 111); }
+.submit-btn.dev:hover { background-color: rgb(40, 53, 65); }
+
+.submit-btn:hover { background-color: #218838; }
 
 </style>

@@ -4,6 +4,7 @@
 	<nav class="tabs">
 		<div class="tab active" onclick="controller.switchTab('dict',this)">Data dictionary</div>
 		<div class="tab" onclick="controller.switchTab('rbac',this)">Role-based access</div>
+		<div class="tab" onclick="controller.switchTab('users-perms',this)">Users & Role permissions</div>
 	</nav>
 
 	<div style="padding:1.25rem 0">
@@ -78,6 +79,47 @@
 				</div>
 			</div>
 		</div>
+
+		<div id="sec-users-perms" class="section" style="display:none;">
+            <div style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start;">
+                
+                <div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
+                    <h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
+                        <i class="ti ti-user-plus"></i> Identity Provisioning
+                    </h3>
+                    <form onsubmit="event.preventDefault(); controller.registerNewUser();" style="display:flex; flex-direction:column; gap:12px;">
+                        <div>
+                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Full Name</label>
+                            <input type="text" id="reg-user-name" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="John Doe">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Email Address</label>
+                            <input type="email" id="reg-user-email" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="john@company.com">
+                        </div>
+                        <div>
+                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Temp Password</label>
+                            <input type="password" id="reg-user-pwd" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="Enter the temp password">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top:4px; width:100%; padding:6px; font-size:12px;">
+                            Initialize Identity
+                        </button>
+                    </form>
+                </div>
+
+                <div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
+                    <h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
+                        <i class="ti ti-shield-lock"></i> Composite Identity Authorization Desk
+                    </h3>
+                    <p class="text-muted" style="font-size:12px; margin-bottom:16px;">
+                        Assign multiple organizational <strong>Roles</strong> and discrete granular <strong>Feature Permissions</strong> directly at the same level.
+                    </p>
+                    
+                    <div id="users-composite-matrix" style="display:flex; flex-direction:column; gap:14px;">
+                        </div>
+                </div>
+
+            </div>
+        </div>
 	</div>
 
 	<div class="wrap" id="modals">
@@ -217,8 +259,11 @@
 	.governance-main-container .btn:hover { background: #f5f5f3; }
 	.governance-main-container .btn-primary { background: #1A3D5C; color: #fff; border-color: #1A3D5C; }
 	.governance-main-container .btn-primary:hover { background: #163351; }
-	.governance-main-container .btn-danger { color: #A32D2D; border-color: #d1cec7; }
+	.governance-main-container .btn-danger { color: #A32D2D; border-color: #d1cec7; border-radius: 5px; }
 	.governance-main-container .btn-danger:hover { background: #FCEBEB; }
+	.governance-main-container .btn-ok { border-radius: 5px; }
+	.governance-main-container { .btn-ok.disabled { color: #8a8686 !important; background: none !important; }; .btn-ok { color: #0d410f; background: #15531687 !important; } }
+	.governance-main-container .btn-ok:hover { background: #155316; color: #ffffff; }
 
 	.governance-main-container input[type=text],
 	.governance-main-container select { height: 34px; padding: 0 10px; border-radius: 6px; border: 0.5px solid #d1cec7; background: #ffffff; color: #1a1a1a; font-size: 13px; outline: none; }
@@ -395,4 +440,26 @@
 		background-color: #e74c3c !important;
 		color: #ffffff !important;
 	}
+
+.governance-main-container .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.1s ease-in-out;
+}
+
+/* Inactive State: Subtle and clean Gray */
+.governance-main-container .chip.off {
+    background: #edf2f7 !important;
+    color: #4a5568 !important;
+    border: 1px solid #cbd5e0 !important;
+}
+
+/* Active State: Clean Emerald Green */
+.governance-main-container .chip.on {
+    background: #2ecc71 !important;
+    color: #ffffff !important;
+    border: 1px solid #27ae60 !important;
+    box-shadow: 0 1px 3px rgba(46, 204, 113, 0.3);
+}
 </style>

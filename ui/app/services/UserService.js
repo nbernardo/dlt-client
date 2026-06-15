@@ -1,20 +1,37 @@
+import { $still } from "../../@still/component/manager/registror.js";
 import { BaseService } from "../../@still/component/super/service/BaseService.js";
+import { HTTPHeaders } from "../../@still/helper/http.js";
 import { Router } from "../../@still/routing/router.js";
 import { StillAppSetup } from "../../config/app-setup.js";
+
+class UserModel { username; password; }
 
 export class UserService extends BaseService {
 
     static auth0Client = null;
     userDetailes = null;
     static namespace = null;
+    managedUser = false;
 
-    async auth0Connect(){
-        UserService.auth0Client = await authConnect();
-    }
+    async auth0Connect(){ UserService.auth0Client = await authConnect(); }
 
-	async login(provider){
+	async login(provider, { username, password } = UserModel){
 
 		try{
+
+            if(provider === 'managed'){
+                this.managedUser = true;
+                const creds = {username, password};
+                let jwt = await $still.HTTPClient.post('/user/login', JSON.stringify(creds), HTTPHeaders.JSON);
+                jwt = await jwt.json()
+                if('tenant' in (jwt || {})){
+                    const user = { name: jwt.username, email: jwt.tenant, tkn: jwt.access_token, permissions: jwt.permissions };
+                    this.userDetailes = { user, success: true, exception: false };
+                    return this.userDetailes;
+                }else
+                    return { success: false, exception: true, user: null };
+            }
+
 			await UserService.auth0Client.loginWithPopup({ connection: provider });
 			const isAuthenticated = await UserService.isAuthenticated();
 			
@@ -46,6 +63,8 @@ export class UserService extends BaseService {
     }
 
     async getLoggedUser(){
+        if(this.managedUser) return this.userDetailes;
+
         const anonymousLogin = StillAppSetup.config.get('anonymousLogin');
         if(anonymousLogin){
             return new Promise(async resolve => {
@@ -66,6 +85,30 @@ export class UserService extends BaseService {
         }
         return UserService.namespace;
     }
+
+    async getUsersList(){
+        let users = await $still.HTTPClient.get('/user', HTTPHeaders.BearerTkn(this.getTkn()));
+        return await users.json();
+    }
+
+    async createIdentity({ name, email, password }){
+        const userDetails = { username: name, email, password };
+        let result = await $still.HTTPClient.post('/user', JSON.stringify(userDetails), HTTPHeaders.JSONAndBearerTkn(this.getTkn()));
+        return await result.json();
+    }
+
+    async updateIdentity({ permissions, email }){
+        permissions = { permissions: permissions.join(','), email };
+        let result = await $still.HTTPClient.post('/user/permission', JSON.stringify(permissions), HTTPHeaders.JSONAndBearerTkn(this.getTkn()));
+        return await result.json();
+    }
+
+    async getAllPemissions(){
+        let result = await $still.HTTPClient.get('/user/rbac/catalog', HTTPHeaders.JSONAndBearerTkn(this.getTkn()));
+        return await result.json();
+    }
+
+    getTkn = () => this.userDetailes.user.tkn;
 
 }
 

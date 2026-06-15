@@ -2,6 +2,7 @@ import { sleepForSec } from "../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { State } from "../../../@still/component/type/ComponentType.js";
 import { BIService } from "../dataviz/services/BIService.js";
+import { Workspace } from "../workspace/Workspace.js";
 import { DataGovernanceController } from "./controller/DataGovernanceController.js";
 import { DGServiceController } from "./controller/DGServiceController.js";
 
@@ -21,6 +22,9 @@ export class GovernanceMainComponent extends ViewComponent {
 	/** @type { State<Array> } */
 	pipelines;
 
+	/** @type { Workspace } */
+	$parent;
+
 	/** 
 	 * @Inject @Path components/governance/controller/ 
 	 * @type { DGServiceController }
@@ -39,7 +43,6 @@ export class GovernanceMainComponent extends ViewComponent {
 		this.pipelines = (pplineList || []).map(([pipeline, dtset]) => 
 			({ pipeline, srcPipeline: dtset.includes('.') ? dtset.split('.')[1] : pipeline })
 		)
-
 	}
 
 	loadTablesByPipeline = async(ppline) => {
