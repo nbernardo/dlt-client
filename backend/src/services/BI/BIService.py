@@ -1,7 +1,6 @@
 from utils.metastore.meta_storage import MetaStore
 from integrations.database.OdooDBIntegration import OdooDBIntegration
 from utils.DestinationQueryUtil import DestinationQueryUtil
-from utils.duckdb_util import DuckdbUtil
 from integrations.database.DuckdbStage import DuckdbStage
 
 

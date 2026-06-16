@@ -1,0 +1,15 @@
+let
+    Token = "paste-your-jwt-token-here",
+    sql = "put-your-query-here",
+
+    Source = Web.Contents(
+        "http://e2e-backend-ip:8000",
+        [
+            Headers = [ #"Authorization" = "Bearer " & Token, #"Content-Type" = "application/json"],
+            RelativePath = "query-parquet/your-namespace/your-dw-name", Content = Json.FromValue([sql=sql])
+        ]
+    ),
+    Buffered = Binary.Buffer(Source),
+    ImportedParquet = Parquet.Document(Buffered)
+in
+    ImportedParquet

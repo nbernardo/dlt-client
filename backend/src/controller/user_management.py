@@ -11,8 +11,8 @@ from contextlib import asynccontextmanager
 
 user_management = Blueprint('authentication', __name__)
 
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "your-secret-key")
-DB_ENCRYPTION_KEY = os.environ.get("SQLITE_DB_ENCRYPTION_KEY", "your-db-key")
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+DB_ENCRYPTION_KEY = os.environ.get("SQLITE_DB_ENCRYPTION_KEY")
 ROOT_USERNAME = os.environ.get("ROOT_USERNAME", "root")
 ROOT_PASSWORD = os.environ.get("ROOT_PASSWORD", "rootpass")
 NAMESPACE = os.environ.get('USER_NAMESPACE', "default")
@@ -77,14 +77,14 @@ async def get_db_connection():
 
 async def seed_root_user():
     async with get_db_connection() as conn:
-        async with conn.execute('SELECT id FROM users WHERE username = ?', (ROOT_USERNAME,)) as cursor:
+        async with conn.execute('SELECT id FROM users WHERE email = ?', (f'{ROOT_USERNAME}@{NAMESPACE}',)) as cursor:
             row = await cursor.fetchone()
         
         if not row:
             loop = asyncio.get_running_loop()
             salt = await loop.run_in_executor(None, bcrypt.gensalt)
             hashed_root_password = await loop.run_in_executor(None, lambda: bcrypt.hashpw(ROOT_PASSWORD.encode("utf-8"), salt))            
-            root_permissions = 'global_admin,manage_users'
+            root_permissions = 'global_admin,manage_users,query:dw'
             
             await conn.execute(
                 'INSERT INTO users (username, hashed_password, permissions, password_changed, tenant_name, email) VALUES (?, ?, ?, ?, ?, ?)',
@@ -105,7 +105,8 @@ async def seed_rbac():
     base_permissions = [
         ('create:pipeline', 'Ability to create new data pipeline'),
         ('view:pipeline', 'View previously created pipelines'),
-        ('schedule:pipeline', 'Schedule pipeline that was previously created')
+        ('schedule:pipeline', 'Schedule pipeline that was previously created'),
+        ('query:dw', 'Allow user to run query against the Data warehouse'),
     ]
 
     async with get_db_connection() as conn:
