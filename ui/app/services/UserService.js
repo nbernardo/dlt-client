@@ -27,6 +27,7 @@ export class UserService extends BaseService {
                 if('tenant' in (jwt || {})){
                     const user = { name: jwt.username, email: jwt.tenant, tkn: jwt.access_token, permissions: jwt.permissions };
                     this.userDetailes = { user, success: true, exception: false };
+                    UserService.namespace = jwt.tenant;
                     return this.userDetailes;
                 }else
                     return { success: false, exception: true, user: null };

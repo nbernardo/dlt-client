@@ -10,8 +10,7 @@ export class DataGovernanceController extends BaseController {
 	tables = [];
 	fields = [];
 
-	roles = ['admin','analyst','viewer','support'];
-	access = {1:['admin','analyst','support'],2:['admin','analyst','support'],3:['admin','support'],4:['admin','analyst'],5:['admin','analyst','viewer'],6:['admin','analyst'],7:['admin','analyst','viewer','support'],8:['admin','analyst','viewer'],9:['admin','viewer']};
+	access = {};
 	nextId = 10;
 	viewMode = 'flat';
 	editingFieldId = null;
@@ -21,10 +20,8 @@ export class DataGovernanceController extends BaseController {
     pipeline;
     changedFields = new Map();
     columnExclusions = {};
-
-    roles = ['admin', 'analyst', 'viewer', 'support'];
-    features = ['create pipeline', 'view pipeline', 'delete data', 'modify rbac', 'execute analytical sandbox'];
-
+    roles = [];
+    features = [];
     users = [];
 
     ROLE_COLORS = ['badge-blue','badge-teal','badge-amber','badge-gray'];
@@ -48,10 +45,12 @@ export class DataGovernanceController extends BaseController {
         if (t === 'users-perms') {
             (async () => await this.renderUsersAndPermissionsTab())();
         } else if (t === 'rbac') {
-            this.renderRbac();
-        } else {
+            (async () => {
+                await this.renderUsersAndPermissionsTab();
+                this.renderRbac();
+            })();
+        } else 
             this.renderDict();
-        }
     }
 
     setView(v, btn) {
@@ -90,8 +89,7 @@ export class DataGovernanceController extends BaseController {
         const body = this.$('#dict-body');
 
         if (this.viewMode === 'group') {
-            let rows = '';
-            const grouped = {};
+            let rows = '', grouped = {};
             
             this.tables.forEach(t => { grouped[t] = []; });
             filtered.forEach(f => {
@@ -112,7 +110,6 @@ export class DataGovernanceController extends BaseController {
                 grouped[t].forEach(f => { rows += this.fieldRow(f); });                
                 if (this.isAddingInline && this.addingInlineTable === t)
                     rows += this.inlineInputRow(t);
-                
             });
             body.innerHTML = rows;
         } else {
@@ -306,7 +303,7 @@ export class DataGovernanceController extends BaseController {
             return body.innerHTML = `<tr><td colspan="4" class="empty">No fields found</td></tr>`;
 
         body.innerHTML = filtered.map(f => {
-            const ar = this.access[f.id] || [];
+            const ar = this.roles.map(r => r.name) || []//this.access[f.id].map(r => r.name) || [];
             const hiddenRoles = this.columnExclusions[f.id] || [];
             
             const chips = ar.length
@@ -382,8 +379,7 @@ export class DataGovernanceController extends BaseController {
     }
 
     openAddGroup() {
-        this.$('#g-name').value = '';
-        this.openModal('modal-group');
+        this.$('#g-name').value = '', this.openModal('modal-group');
     }
 
     saveGroup() {
@@ -507,9 +503,8 @@ export class DataGovernanceController extends BaseController {
         tableSelect.value = '';
 
         const container = this.$('#bulk-fields-container');
-        if (container) {
+        if (container)
             container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>';
-        }
 
         tableSelect.onchange = () => this.renderBulkFieldsList(tableSelect.value);
         this.openModal('modal-bulk');
@@ -519,16 +514,12 @@ export class DataGovernanceController extends BaseController {
         const container = this.$('#bulk-fields-container');
         if (!container) return;
 
-        if (!tableName) {
-            container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>';
-            return;
-        }
+        if (!tableName) 
+            return container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>';
 
         const targetFields = this.fields.filter(f => f.table === tableName);
-        if (!targetFields.length) {
-            container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">No matching columns found under this table context.</p>';
-            return;
-        }
+        if (!targetFields.length) 
+            return container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">No matching columns found under this table context.</p>';
 
         const masterRowHtml = this.obj.parseEvents(`
             <div style="display:flex; align-items:center; justify-content:space-between; padding:8px; background:#eaeded; border:1px solid #bdc3c7; border-radius:4px; gap:8px; margin-bottom: 6px; font-weight: bold;">
@@ -596,8 +587,7 @@ export class DataGovernanceController extends BaseController {
         const tableName = element.dataset.table;
         const action = element.dataset.action;
 
-        const masterAllow = this.$('#bulk-master-allow');
-        const masterDeny = this.$('#bulk-master-deny');
+        const masterAllow = this.$('#bulk-master-allow'), masterDeny = this.$('#bulk-master-deny');
         
         if (action === 'allow') {
             if (masterAllow) masterAllow.classList.add('active-allow');
@@ -610,9 +600,8 @@ export class DataGovernanceController extends BaseController {
         const targetFields = this.fields.filter(f => f.table === tableName);
         targetFields.forEach(f => {
             const targetBtn = this.$('#bulk-' + (action === 'allow' ? 'allow-' : 'deny-') + f.id);
-            if (targetBtn) {
+            if (targetBtn) 
                 this.setBulkFieldAction(targetBtn);
-            }
         });
     }
 
@@ -633,8 +622,7 @@ export class DataGovernanceController extends BaseController {
         const t = this.$('#b-table').value;
         const r = this.$('#b-role').value;
         
-        if (!r) return;
-        if (!t) return;
+        if (!r || !t) return;
 
         this.fields.filter(f => f.table === t).forEach(f => {
             const allowBtn = this.obj.container.querySelector(`.bulk-toggle-btn[data-field-id="${f.id}"][data-action="allow"]`);
@@ -657,18 +645,20 @@ export class DataGovernanceController extends BaseController {
         this.renderRbac();
     }
 
-    
+    permissionRendered = false;
     async renderUsersAndPermissionsTab() {
-        const usersList = await this.userService().getUsersList();
-        this.users = usersList.users.map(r => {
-            const roles = [], permissions = [];
-            for(const perms of r.permissions){
-                perms.includes(':') ? roles.push(perms) : permissions.push(perms);
-            }
-            console.log(r.permissions, ' AND ', { roles, permissions } );
-            return { email: r.email, name: r.usr, roles, permissions }
-        });        
-        await this.renderUsersCompositeMatrix();
+        if(this.permissionRendered === false){
+            const usersList = await this.userService().getUsersList();
+            this.users = usersList.users.map(r => {
+                const roles = [], permissions = [];
+                for(const perms of r.permissions)
+                    perms.includes(':') ? roles.push(perms) : permissions.push(perms);
+
+                return { email: r.email, name: r.usr, roles, permissions }
+            });
+            await this.renderUsersCompositeMatrix();
+            this.permissionRendered = true;
+        }
     }
 
     async renderUsersCompositeMatrix() {
@@ -761,27 +751,15 @@ export class DataGovernanceController extends BaseController {
         if(user.remPermission.has(val)) user.remPermission.delete(val);
         else if(user.updatePermission.has(`old:${val}`)) user.remPermission.add(val);
         
-        if (type === 'role') {
-            user.roles = user.roles || [], idx = user.roles.indexOf(val);
+        const permType = type === 'role' ? 'roles' : 'permissions';
+        user[permType] = user[permType] || [], idx = user[permType].indexOf(val);
 
-            if (idx > -1) {
-                this.userPermUpdateCount[user.email]--;
-                user.roles.splice(idx, 1);
-            } else {
-                this.userPermUpdateCount[user.email]++;
-                user.roles.push(val);
-            }
-
+        if (idx > -1) {
+            this.userPermUpdateCount[user.email]--;
+            user[permType].splice(idx, 1);
         } else {
-            user.permissions = user.permissions || [], idx = user.permissions.indexOf(val);
-            
-            if (idx > -1){
-                this.userPermUpdateCount[user.email]--;
-                user.permissions.splice(idx, 1);
-            } else {
-                this.userPermUpdateCount[user.email]++;
-                user.permissions.push(val);
-            }
+            this.userPermUpdateCount[user.email]++;
+            user[permType].push(val);
         }
 
         element.className = idx > -1 ? 'chip off' : 'chip on';
@@ -810,7 +788,6 @@ export class DataGovernanceController extends BaseController {
         
         const result = await this.userService().createIdentity({ name, email, password: pwd });
         
-        
         if(!result.error){
             this.users.push({ name: name, email: email, roles: [], permissions: [] });
             AppTemplate.toast.success(result?.message);
@@ -833,7 +810,6 @@ export class DataGovernanceController extends BaseController {
             AppTemplate.toast.success(result?.message);
         }
         else AppTemplate.toast.error(result?.message);
-
 
     }
 
