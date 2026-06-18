@@ -20,8 +20,9 @@ class MetaStore:
         print('RUN_SUCCESSFULLY', flush=True) # Notify the main process about pipeline run completion
         print(f'Analyzing/Generating the data catalog for pipeline with transaction_id {getattr(pipeline._last_trace, 'transaction_id')}')
         
-        if not catalog_exist:
-            DataCatalog.persist_catalog(table_source, dbs_path, pipeline, load_info, table_source, additionals)
+        # TODO: Implement UI based feature flag to trigger this call
+        #if not catalog_exist:
+        #    DataCatalog.persist_catalog(table_source, dbs_path, pipeline, load_info, table_source, additionals)
 
 
     @staticmethod

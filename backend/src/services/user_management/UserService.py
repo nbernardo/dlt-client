@@ -1,0 +1,191 @@
+import asyncio
+import bcrypt
+import aiosqlite
+from contextlib import asynccontextmanager
+import os
+import functools
+from flask import request
+import jwt
+
+DB_ENCRYPTION_KEY = os.environ.get("SQLITE_DB_ENCRYPTION_KEY")
+ROOT_USERNAME = os.environ.get("ROOT_USERNAME", "root")
+ROOT_PASSWORD = os.environ.get("ROOT_PASSWORD", "rootpass")
+NAMESPACE = os.environ.get('USER_NAMESPACE', "default")
+DB_FILE = "e2e_data_users.db"
+
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
+JWT_ALGORITHM = "HS256"
+
+def require_permission(required_permission: str):
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return {'message': 'Unauthorized: Missing or malformed Authorization header token.', 'error': True}, 401
+            
+            token = auth_header.split(" ")[1]
+            try:
+                payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+                
+                if required_permission not in payload.get("permissions", []):
+                    return {'message': f"Forbidden: Insufficient privileges. Missing '{required_permission}'.", 'error': True}, 403
+                
+                request.user_context = payload                
+                return f(*args, **kwargs)
+                
+            except jwt.ExpiredSignatureError:
+                return {'message': 'Unauthorized: Token session expired. Please log in again.', 'error': True}, 401
+            except jwt.InvalidTokenError:
+                return {'message': 'Unauthorized: Invalid token modification or invalid signature detected.', 'error': True}, 401
+        return wrapper
+    return decorator
+
+
+@asynccontextmanager
+async def get_db_connection():
+    conn = await aiosqlite.connect(DB_FILE)
+    try:
+        await conn.execute(f"PRAGMA key = '{DB_ENCRYPTION_KEY}'")
+        yield conn
+    finally:
+        await conn.close()
+
+class UserService:
+
+    async def _get_all_users_async():
+        async with get_db_connection() as conn:
+            async with conn.execute('SELECT id, username, permissions, password_changed, tenant_name, expire_date, email FROM users') as cursor:
+                rows, users = await cursor.fetchall(), []
+            
+            for r in rows:
+                users.append({ 'usr': r[1], 'permissions': r[2].split(',') if r[2] else [], 'pwd_chgd': r[3], 'tenant_name': r[4], 'pwd_exp': r[5], 'email': r[6] })
+
+            return users
+
+
+    async def _save_role_async(role_name: str, description: str):
+        async with get_db_connection() as conn:
+            await conn.execute("INSERT INTO roles (role_name, description) VALUES (?, ?)", (role_name, description))
+            await conn.commit()
+
+
+    async def _save_permission_async(perm_name: str, description: str):
+        async with get_db_connection() as conn:
+            await conn.execute("INSERT INTO permissions (perm_name, description) VALUES (?, ?)", (perm_name, description))
+            await conn.commit()
+
+
+    async def _get_unified_rbac_catalog_async():
+        async with get_db_connection() as conn:
+            query = """
+                SELECT 'role' AS entity_type, id, role_name AS name, description  FROM roles
+                UNION ALL
+                SELECT 'permission' AS entity_type, id, perm_name AS name, description  FROM permissions
+            """
+            async with conn.execute(query) as cursor:
+                rows = await cursor.fetchall()
+            
+            catalog = {"roles": [], "permissions": []}
+            for r in rows:
+                entity_type, entity_id, name, desc = r[0], r[1], r[2], r[3]
+                item = {"id": entity_id, "name": name, "description": desc}
+                
+                if entity_type == 'role': catalog["roles"].append(item)
+                else: catalog["permissions"].append(item)
+
+            return catalog
+
+
+    async def seed_root_user():
+        async with get_db_connection() as conn:
+            async with conn.execute('SELECT id FROM users WHERE email = ?', (f'{ROOT_USERNAME}@{NAMESPACE}',)) as cursor:
+                row = await cursor.fetchone()
+            
+            if not row:
+                loop = asyncio.get_running_loop()
+                salt = await loop.run_in_executor(None, bcrypt.gensalt)
+                hashed_root_password = await loop.run_in_executor(None, lambda: bcrypt.hashpw(ROOT_PASSWORD.encode("utf-8"), salt))            
+                root_permissions = 'global_admin,manage_users,query:dw'
+                
+                await conn.execute(
+                    'INSERT INTO users (username, hashed_password, permissions, password_changed, tenant_name, email) VALUES (?, ?, ?, ?, ?, ?)',
+                    (ROOT_USERNAME, hashed_root_password, root_permissions, 'No', NAMESPACE, f'{ROOT_USERNAME}@{NAMESPACE}')
+                )
+                await conn.commit()
+                print("[SEED] Root user seeded successfully.")
+            else:
+                print("[SEED] Root user already exists. Skipping seed step.")
+
+
+    async def seed_rbac():
+        base_roles = [
+            ('global_admin', 'Full administrative access'), 
+            ('analyst', 'Have full access to the to the DW for deep analysis'),
+            ('manage_users', 'Runs user management operation like create, add/revoke permission, deactivate and delete'),    
+        ]
+        base_permissions = [
+            ('create:pipeline', 'Ability to create new data pipeline'),
+            ('view:pipeline', 'View previously created pipelines'),
+            ('schedule:pipeline', 'Schedule pipeline that was previously created'),
+            ('query:dw', 'Allow user to run query against the Data warehouse'),
+        ]
+
+        async with get_db_connection() as conn:
+            for r_name, r_desc in base_roles:
+                await conn.execute("INSERT OR IGNORE INTO roles (role_name, description) VALUES (?, ?)", (r_name, r_desc))
+                
+            for p_name, p_desc in base_permissions:
+                await conn.execute("INSERT OR IGNORE INTO permissions (perm_name, description) VALUES (?, ?)", (p_name, p_desc))
+                
+            await conn.commit()
+
+
+    async def init_db():
+        async with get_db_connection() as conn:
+            await conn.executescript("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                    username TEXT UNIQUE NOT NULL, 
+                    email TEXT UNIQUE NOT NULL,
+                    hashed_password BLOB NOT NULL, 
+                    permissions TEXT NOT NULL, 
+                    password_changed TEXT, 
+                    tenant_name TEXT, 
+                    expire_date TEXT,
+                    data_access_level TEXT NOT NULL DEFAULT '{}',                
+                    CONSTRAINT check_valid_json CHECK (json_valid(data_access_level))
+                );
+                CREATE INDEX IF NOT EXISTS idx_users_security_lookup ON users(username);
+            """)
+            await conn.execute("CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role_name TEXT UNIQUE NOT NULL, description TEXT)")
+            await conn.execute("CREATE TABLE IF NOT EXISTS permissions (id INTEGER PRIMARY KEY AUTOINCREMENT, perm_name TEXT UNIQUE NOT NULL, description TEXT)")
+            await conn.commit()
+
+        await UserService.seed_rbac()
+        await UserService.seed_root_user()
+
+    
+    async def register_user(username, hashed_pwd, permissions, email):
+        async with get_db_connection() as conn:
+            await conn.execute(
+                'INSERT INTO users (username, hashed_password, permissions, email) VALUES (?, ?, ?, ?)', (username, hashed_pwd, permissions, email)
+            )
+            await conn.commit()
+
+    
+    async def handle_login(useremail):
+        row = None
+        async with get_db_connection() as conn:
+            async with conn.execute(
+                'SELECT username, hashed_password, permissions, tenant_name, password_changed, email FROM users WHERE email = ?', (useremail,)
+            ) as cursor:
+                row = await cursor.fetchone()
+
+        return row
+    
+
+    async def update_permission(permissions, email):
+        async with get_db_connection() as conn:
+            await conn.execute('UPDATE users SET permissions = ? WHERE email = ?', (permissions, email))
+            await conn.commit()
