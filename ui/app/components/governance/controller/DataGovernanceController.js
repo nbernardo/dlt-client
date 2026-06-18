@@ -546,12 +546,12 @@ export class DataGovernanceController extends BaseController {
                 
                 <div style="display:flex; border:1px solid #1A3D5C; border-radius:4px; overflow:hidden; height:24px; box-sizing:border-box;">
                     <button type="button" class="bulk-toggle-btn active-allow" 
-                            id="bulk-allow-${f.id}" data-id="${f.id}" data-action="allow" onclick="controller.setBulkFieldAction(this)" 
+                            id="bulk-allow-${f.id}" data-id="${f.id}" data-action="allow" onclick="controller.setBulkFieldAction(this, '${tableName}', '${f.name}')" 
                             style="border:none; padding:0 10px; font-size:11px; font-weight:bold; cursor:pointer; transition:all 0.1s ease;">
                         Allow
                     </button>
                     <button type="button" class="bulk-toggle-btn" 
-                            id="bulk-deny-${f.id}" data-id="${f.id}" data-action="deny" onclick="controller.setBulkFieldAction(this)" 
+                            id="bulk-deny-${f.id}" data-id="${f.id}" data-action="deny" onclick="controller.setBulkFieldAction(this, '${tableName}', '${f.name}')" 
                             style="border:none; padding:0 10px; font-size:11px; font-weight:bold; cursor:pointer; transition:all 0.1s ease;">
                         Not Allow
                     </button>
@@ -562,7 +562,8 @@ export class DataGovernanceController extends BaseController {
         container.innerHTML = masterRowHtml + fieldsHtml;
     }
 
-    setBulkFieldAction(element) {
+    permissionConfig = { tables: {} };
+    setBulkFieldAction(element, table, field) {
         if (!element) return;
         const action = element.dataset.action;
         const parent = element.parentElement;
@@ -580,6 +581,20 @@ export class DataGovernanceController extends BaseController {
             allowBtn.classList.remove('active-allow');
             denyBtn.classList.add('active-deny');
         }
+        this.updateTablePermission(table, field, action)
+    }
+
+    updateTablePermission(table, field, action){
+        table = `${this.pipeline}.${table}`;
+        if(!(table in this.permissionConfig.tables))
+            this.permissionConfig.tables[table] = { has_access: true, hidden_columns: {} };
+
+        if(action === 'deny')
+            this.permissionConfig.tables[table].hidden_columns[field] = null;
+        else
+            delete this.permissionConfig.tables[table].hidden_columns[field];
+
+        console.log(`THE CURRENT STATUS IS: `, JSON.stringify(this.permissionConfig, null, 4));
     }
 
     toggleAllBulkFields(element) {
@@ -596,6 +611,11 @@ export class DataGovernanceController extends BaseController {
             if (masterAllow) masterAllow.classList.remove('active-allow');
             if (masterDeny) masterDeny.classList.add('active-deny');
         }
+
+        const table = `${this.pipeline}.${tableName}`;
+        if(!(table in this.permissionConfig.tables))
+            this.permissionConfig.tables[table] = { has_access: true, hidden_columns: new Set() };
+        this.permissionConfig.tables[table].has_access = action === 'allow' ? true : false;
 
         const targetFields = this.fields.filter(f => f.table === tableName);
         targetFields.forEach(f => {
