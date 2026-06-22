@@ -6,6 +6,7 @@ import os
 import functools
 from flask import request
 import jwt
+from services.user_management.UserAccessLevel import UserAccessLevel
 
 DB_ENCRYPTION_KEY = os.environ.get("SQLITE_DB_ENCRYPTION_KEY")
 ROOT_USERNAME = os.environ.get("ROOT_USERNAME", "root")
@@ -32,6 +33,7 @@ def require_permission(required_permission: str):
                     return {'message': f"Forbidden: Insufficient privileges. Missing '{required_permission}'.", 'error': True}, 403
                 
                 request.user_context = payload                
+                request.permissions = payload.get("permissions", [])                
                 return f(*args, **kwargs)
                 
             except jwt.ExpiredSignatureError:
@@ -51,20 +53,30 @@ async def get_db_connection():
     finally:
         await conn.close()
 
+
+UserAccessLevel.db_connection = get_db_connection
+
+
 class UserService:
 
-    async def _get_all_users_async():
+    access_level: UserAccessLevel = UserAccessLevel
+
+    async def get_all_users_async():
         async with get_db_connection() as conn:
-            async with conn.execute('SELECT id, username, permissions, password_changed, tenant_name, expire_date, email FROM users') as cursor:
+            async with conn.execute('SELECT id, username, permissions, password_changed, tenant_name, expire_date, email, data_access_level FROM users') as cursor:
                 rows, users = await cursor.fetchall(), []
             
-            for r in rows:
-                users.append({ 'usr': r[1], 'permissions': r[2].split(',') if r[2] else [], 'pwd_chgd': r[3], 'tenant_name': r[4], 'pwd_exp': r[5], 'email': r[6] })
+            for r in rows: 
+                users.append({ 
+                    'usr': r[1], 'data_access_level': r[7],
+                    'permissions': r[2].split(',') if r[2] else [], 'pwd_chgd': r[3], 
+                    'tenant_name': r[4], 'pwd_exp': r[5], 'email': r[6] 
+                })
 
             return users
 
 
-    async def _save_role_async(role_name: str, description: str):
+    async def save_role_async(role_name: str, description: str):
         async with get_db_connection() as conn:
             await conn.execute("INSERT INTO roles (role_name, description) VALUES (?, ?)", (role_name, description))
             await conn.commit()
@@ -76,7 +88,7 @@ class UserService:
             await conn.commit()
 
 
-    async def _get_unified_rbac_catalog_async():
+    async def get_unified_rbac_catalog_async():
         async with get_db_connection() as conn:
             query = """
                 SELECT 'role' AS entity_type, id, role_name AS name, description  FROM roles
@@ -156,9 +168,20 @@ class UserService:
                     data_access_level TEXT NOT NULL DEFAULT '{}',                
                     CONSTRAINT check_valid_json CHECK (json_valid(data_access_level))
                 );
+
+                CREATE TABLE IF NOT EXISTS roles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                    role_name TEXT UNIQUE NOT NULL, 
+                    description TEXT,
+                    data_access_level TEXT NOT NULL DEFAULT '{}',
+                    permissions TEXT NOT NULL DEFAULT '{}',
+                    CONSTRAINT check_valid_json CHECK (json_valid(data_access_level)),
+                    CONSTRAINT check_valid_json CHECK (json_valid(permissions))
+                );
+                
                 CREATE INDEX IF NOT EXISTS idx_users_security_lookup ON users(username);
+                CREATE INDEX IF NOT EXISTS idx_users_security_lookup ON roles(permissions);
             """)
-            await conn.execute("CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role_name TEXT UNIQUE NOT NULL, description TEXT)")
             await conn.execute("CREATE TABLE IF NOT EXISTS permissions (id INTEGER PRIMARY KEY AUTOINCREMENT, perm_name TEXT UNIQUE NOT NULL, description TEXT)")
             await conn.commit()
 
@@ -178,7 +201,9 @@ class UserService:
         row = None
         async with get_db_connection() as conn:
             async with conn.execute(
-                'SELECT username, hashed_password, permissions, tenant_name, password_changed, email FROM users WHERE email = ?', (useremail,)
+                """
+                    SELECT username, hashed_password, permissions, tenant_name, password_changed, email FROM users WHERE email = ?
+                """, (useremail,)
             ) as cursor:
                 row = await cursor.fetchone()
 
@@ -189,3 +214,8 @@ class UserService:
         async with get_db_connection() as conn:
             await conn.execute('UPDATE users SET permissions = ? WHERE email = ?', (permissions, email))
             await conn.commit()
+
+    
+    async def update_tables_level_perm(role_name, tables_constraint):
+        from services.user_management.UserAccessLevel import UserAccessLevel
+        await UserAccessLevel.save_access_tables_constraint(get_db_connection(), role_name, tables_constraint)

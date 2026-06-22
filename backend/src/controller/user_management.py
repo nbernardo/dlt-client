@@ -5,9 +5,13 @@ import bcrypt
 import jwt
 import aiosqlite
 from asgiref.sync import async_to_sync
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from services.user_management.UserService import (
     UserService, JWT_SECRET_KEY, JWT_ALGORITHM, require_permission
 )
+
+executor = ThreadPoolExecutor(max_workers=5)
 
 user_management = Blueprint('authentication', __name__)
 asyncio.run(UserService.init_db())
@@ -15,7 +19,6 @@ asyncio.run(UserService.init_db())
 def generate_user_jwt(username: str, permissions: list) -> str:
     payload = {'sub': username, 'permissions': permissions, 'exp': datetime.utcnow() + timedelta(hours=24), 'iat': datetime.utcnow()}
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
 
 
 @user_management.route("/user", methods=["POST"])
@@ -78,11 +81,24 @@ def login_user():
 @require_permission('manage_users')
 def list_system_users():
     try:
-        all_users = async_to_sync(UserService._get_all_users_async)()
+
+        async def fetch_data_async():
+            return await UserService.get_all_users_async()
+
+        def run_in_isolated_loop():
+            return asyncio.run(fetch_data_async())
+
+        future = executor.submit(run_in_isolated_loop)
+        all_users = future.result()
+
         return jsonify({ 'status': 'success', 'total_users': len(all_users), 'users': all_users }), 200
-        
+
     except Exception as e:
-        return jsonify({ 'status': 'error', 'message': f'Failed to retrieve user index: {str(e)}' }), 500
+        return jsonify({
+            'status': 'error', 
+            'error': True, 
+            'message': f'Failed to list system users: {str(e)}'
+        }), 500
 
 
 @user_management.route("/user/role", methods=["POST"])
@@ -95,7 +111,7 @@ def add_role():
         return jsonify({'error': 'Bad Request: role_name parameter is mandatory.'}), 400
 
     async def run_async_block():
-        await UserService._save_role_async(role_name, description)
+        await UserService.save_role_async(role_name, description)
 
     try:
         async_to_sync(run_async_block)()
@@ -142,7 +158,25 @@ def update_permissions():
 @require_permission('manage_users')
 def get_rbac_catalog():
     try:
-        unified_catalog = async_to_sync(UserService._get_unified_rbac_catalog_async)()
+        unified_catalog = async_to_sync(UserService.get_unified_rbac_catalog_async)()
         return jsonify({ 'status': 'success', 'error': False, 'catalog': unified_catalog }), 200
     except Exception as e:
         return jsonify({'status': 'error', 'error': True, 'message': f'Failed to compile structural catalog: {str(e)}'}), 500
+
+
+@user_management.route("/user/rbac/table", methods=["POST"])
+@require_permission('manage_users')
+def update_rbac_tables():
+    try:
+        data = request.get_json() or {}
+        role_name = data.get('roleName')
+        tables_constraint = data.get('tablesConstraint', {})
+
+        def run_async_db_task(role, constraints):
+            asyncio.run(UserService.update_tables_level_perm(role, constraints))
+
+        threading.Thread(target=run_async_db_task, args=(role_name, tables_constraint), daemon=True).start()
+        return jsonify({ 'status': 'success', 'error': False }), 200
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': True, 'message': f'Failed to update user permissions: {str(e)}'}), 500

@@ -10,6 +10,7 @@ from utils.duckdb_util import DuckdbUtil
 import platform
 from controller.pipeline import BasePipeline
 from controller.user_management import require_permission
+from services.user_management.UserService import UserService
 
 duckdb_bridge = Blueprint('duckdb_bridge', __name__)
 
@@ -17,7 +18,7 @@ EXPORT_DIR = "/tmp/parquet_exports"
 os.makedirs(EXPORT_DIR, exist_ok=True)
 
 _db_lock = threading.Lock()
-_executor = ThreadPoolExecutor(max_workers=4)
+_executor = ThreadPoolExecutor(max_workers=5)
 
 
 def _get_connection(namespace, dwname) -> duckdb.DuckDBPyConnection:
@@ -54,6 +55,20 @@ def _run_export(con: duckdb.DuckDBPyConnection, sql: str) -> str:
     return filepath
 
 
+def _check_user_permission(permissions, sql_query, dw_name):
+    
+    async def fetch_data_async():
+        field_by_table = UserService.access_level.extract_columns_by_table(sql_query, dw_name)
+        result = await UserService.access_level.get_access_tables_constraint(permissions, dw_name, field_by_table)
+        return result.get('result'), result.get('total_not_allowed')
+
+    def run_in_isolated_loop():
+        return asyncio.run(fetch_data_async())
+
+    future = _executor.submit(run_in_isolated_loop)
+    return future.result()
+
+
 @duckdb_bridge.route("/query-parquet/<namespace>/<dw>", methods=["POST"])
 @require_permission('query:dw')
 def query_parquet(namespace = None, dw = None):
@@ -77,15 +92,24 @@ def query_parquet(namespace = None, dw = None):
         print(f"DATABASE ERROR CRASH: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+import asyncio
 
 @duckdb_bridge.route("/query-parquet-export/<namespace>/<dw>", methods=["POST"])
 @require_permission('query:dw')
 def query_parquet_export(namespace = None, dw = None):
     """Disk-based parquet export — handles larger result sets with lower RAM usage."""
+    
     body = request.get_json() or {}
     sql = body.get("sql", "").strip()
     if not sql:
         return jsonify({"error": "Missing 'sql' in request body"}), 400
+    if str(sql).__contains__('*'):
+        return jsonify({"error": "Invalid query. '*' is not allowed, please specify the column names"}), 400
+
+    result, not_allowed_access = _check_user_permission(request.permissions, sql, dw)
+
+    if(not_allowed_access > 0):
+        return jsonify({"error": result}), 200
 
     flpath, mmtype = None, "application/octet-stream"
     try:
