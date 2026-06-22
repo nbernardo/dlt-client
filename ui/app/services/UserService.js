@@ -24,8 +24,8 @@ export class UserService extends BaseService {
                 const creds = {username, password};
                 let jwt = await $still.HTTPClient.post('/user/login', JSON.stringify(creds), HTTPHeaders.JSON);
                 jwt = await jwt.json()
-                if('tenant' in (jwt || {})){
-                    const user = { name: jwt.username, email: jwt.tenant, tkn: jwt.access_token, permissions: jwt.permissions };
+                if('tenant' in (jwt || {})){                    
+                    const user = { name: jwt.username, email: jwt.tenant, tkn: jwt.access_token, permissions: jwt.permissions, userEmail: username };
                     this.userDetailes = { user, success: true, exception: false };
                     UserService.namespace = jwt.tenant;
                     return this.userDetailes;
@@ -110,6 +110,13 @@ export class UserService extends BaseService {
     }
 
     getTkn = () => this.userDetailes.user.tkn;
+
+    async saveTableAccessLevel(roleName, tablesConstraint){
+        const url = '/user/rbac/table';
+        const perms = { roleName, tablesConstraint };
+        let result = await $still.HTTPClient.post(url, JSON.stringify(perms), HTTPHeaders.JSONAndBearerTkn(this.getTkn()));
+        return await result.json();
+    }
 
 }
 

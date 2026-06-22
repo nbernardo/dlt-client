@@ -12,7 +12,7 @@
 		<div id="sec-dict" class="section active">
 			<div class="toolbar">
 				<select class="list-of-pipelines" (forEach)="pipelines" onchange="component.loadTablesByPipeline(this.value)" style="width:160px">
-					<option each="item" value="{item.srcPipeline}.{item.srcPipeline}">{item.pipeline}</option>
+					<option each="item" value="{item.srcPipeline}.{item.srcPipeline}.{item.dwName}">{item.pipeline}</option>
 				</select>
 				&nbsp;&nbsp; - &nbsp;&nbsp;
 				<input type="text" class="search" placeholder="Search fields…" id="dict-search" oninput="controller.renderDict()">
@@ -212,7 +212,9 @@
                 </div>
                 <div class="modal-body">
                     <label>Role</label>
-                    <select id="b-role" style="width:100%"></select>
+                    <select id="b-role" onchange="controller.selecteRole(this.value)" (forEach)="roles" style="width:100%" placeholder="Select the role">
+						<option each="item" value="{item.name}">{item.name}</option>
+					</select>
 
                     <label style="margin-top:12px; display:block;">Table</label>
                     <select id="b-table" style="width:100%">
@@ -226,7 +228,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn" onclick="controller.closeModal('modal-bulk')">Cancel</button>
-                    <button class="btn btn-primary" onclick="controller.applyBulk()">Apply</button>
+                    <button class="btn btn-primary" onclick="controller.saveTableAccessLevel()">Apply</button>
                 </div>
             </div>
         </div>

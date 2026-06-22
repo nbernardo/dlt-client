@@ -22,6 +22,9 @@ export class GovernanceMainComponent extends ViewComponent {
 	/** @type { State<Array> } */
 	pipelines;
 
+	/** @type { State<Array> } */
+	roles;
+
 	/** @type { Workspace } */
 	$parent;
 
@@ -40,14 +43,18 @@ export class GovernanceMainComponent extends ViewComponent {
 		});
 
 		const pplineList = await BIService.getDWPipelines();
-		this.pipelines = (pplineList || []).map(([pipeline, dtset]) => 
-			({ pipeline, srcPipeline: dtset.includes('.') ? dtset.split('.')[1] : pipeline })
-		)
+		this.pipelines = (pplineList || []).map(([pipeline, dtset]) => {
+			const path = dtset.split('.');
+			const hasPath = path.length > 1;
+			return { pipeline, srcPipeline: hasPath ? path[1] : pipeline, dwName: hasPath ? path[0] : dtset }
+		})
 	}
 
 	loadTablesByPipeline = async(ppline) => {
-		const { fields, tables } = await this.serviceController.loadTablesByPipeline(ppline);
+		const pplinePath = ppline.split('.');
+		const { fields, tables } = await this.serviceController.loadTablesByPipeline(pplinePath.slice(0,2).join('.'));
 		this.controller.pipeline = ppline;
+		this.controller.selectedDw = pplinePath.slice(-1);
 		this.controller.fields = fields;
 		this.controller.tables = tables;
 		this.controller.renderAll();
@@ -59,6 +66,3 @@ export class GovernanceMainComponent extends ViewComponent {
 	}
 
 }
-
-
-

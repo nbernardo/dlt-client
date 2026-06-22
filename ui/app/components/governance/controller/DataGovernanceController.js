@@ -18,6 +18,7 @@ export class DataGovernanceController extends BaseController {
     isAddingInline = false;
     addingInlineTable = '';
     pipeline;
+    selectedDw;
     changedFields = new Map();
     columnExclusions = {};
     roles = [];
@@ -67,12 +68,11 @@ export class DataGovernanceController extends BaseController {
             const isFilter = id.includes('filter') || id === 'b-table';
             const cur = el.value;
             const tablesList = this.tables.map(t => `<option value="${t}">${t}</option>`).join('');
-            el.innerHTML = (isFilter ? '<option value="">All tables</option>' : '<option value="">— no table —</option>') + tablesList;
+            el.innerHTML = (isFilter ? '<option value="">Select the table</option>' : '<option value="">— no table —</option>') + tablesList;
             el.value = cur;
         });
 
-        const br = this.$('#b-role');
-        if (br) br.innerHTML = this.roles.map(r => `<option value="${r}">${r}</option>`).join('');
+        this.obj.roles = this.features;
 
         const rf = this.$('#rbac-role-filter');
         if (rf) rf.innerHTML = '<option value="">All roles</option>' + this.roles.map(r => `<option value="${r}">${r}</option>`).join('');
@@ -584,8 +584,10 @@ export class DataGovernanceController extends BaseController {
         this.updateTablePermission(table, field, action)
     }
 
+    currentPipeline = () => this.pipeline.includes('.') ? this.pipeline.split('.')[0] : this.pipeline;
+
     updateTablePermission(table, field, action){
-        table = `${this.pipeline}.${table}`;
+        table = `${this.currentPipeline()}_${table}`;
         if(!(table in this.permissionConfig.tables))
             this.permissionConfig.tables[table] = { has_access: true, hidden_columns: {} };
 
@@ -593,15 +595,19 @@ export class DataGovernanceController extends BaseController {
             this.permissionConfig.tables[table].hidden_columns[field] = null;
         else
             delete this.permissionConfig.tables[table].hidden_columns[field];
+    }
 
-        console.log(`THE CURRENT STATUS IS: `, JSON.stringify(this.permissionConfig, null, 4));
+    async saveTableAccessLevel(){
+        const configs = JSON.parse(JSON.stringify(this.permissionConfig));
+        Object.keys(this.permissionConfig.tables).map(tbl => {
+            configs.tables[tbl].hidden_columns = Object.keys(this.permissionConfig.tables[tbl].hidden_columns)
+        });
+        await this.userService().saveTableAccessLevel(this.$('#b-role').value, configs);
     }
 
     toggleAllBulkFields(element) {
         if (!element) return;
-        const tableName = element.dataset.table;
-        const action = element.dataset.action;
-
+        const tableName = element.dataset.table, action = element.dataset.action;
         const masterAllow = this.$('#bulk-master-allow'), masterDeny = this.$('#bulk-master-deny');
         
         if (action === 'allow') {
@@ -612,7 +618,7 @@ export class DataGovernanceController extends BaseController {
             if (masterDeny) masterDeny.classList.add('active-deny');
         }
 
-        const table = `${this.pipeline}.${tableName}`;
+        const table = `${this.currentPipeline()}_${tableName}`;
         if(!(table in this.permissionConfig.tables))
             this.permissionConfig.tables[table] = { has_access: true, hidden_columns: new Set() };
         this.permissionConfig.tables[table].has_access = action === 'allow' ? true : false;
@@ -636,33 +642,6 @@ export class DataGovernanceController extends BaseController {
         `;
         tableFieldGroup.parentNode.insertBefore(wrapper, tableFieldGroup.nextSibling);
         return this.$('#bulk-fields-container');
-    }
-
-    applyBulk() {
-        const t = this.$('#b-table').value;
-        const r = this.$('#b-role').value;
-        
-        if (!r || !t) return;
-
-        this.fields.filter(f => f.table === t).forEach(f => {
-            const allowBtn = this.obj.container.querySelector(`.bulk-toggle-btn[data-field-id="${f.id}"][data-action="allow"]`);
-            const isAllowed = allowBtn && allowBtn.classList.contains('active-allow');
-
-            this.access[f.id] = this.access[f.id] || [];
-            this.columnExclusions[f.id] = this.columnExclusions[f.id] || [];
-
-            if (isAllowed) {
-                if (!this.access[f.id].includes(r))
-                    this.access[f.id].push(r);
-                this.columnExclusions[f.id] = this.columnExclusions[f.id].filter(x => x !== r);
-            } else {
-                if (!this.columnExclusions[f.id].includes(r)) 
-                    this.columnExclusions[f.id].push(r);
-            }
-        });
-
-        this.closeModal('modal-bulk');
-        this.renderRbac();
     }
 
     permissionRendered = false;
