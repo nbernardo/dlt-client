@@ -2,45 +2,45 @@
 	<h2 class="sr-only">Data Dictionary and Role-Based Access Control Manager</h2>
 
 	<nav class="tabs">
-		<div class="tab active" onclick="controller.switchTab('dict',this)">Data dictionary</div>
-		<div class="tab" onclick="controller.switchTab('rbac',this)">Role-based access</div>
-		<div class="tab" onclick="controller.switchTab('users-perms',this)">Users & Role permissions</div>
+		<div class="tab active" onclick="controller.switchTab('dict',this)">$bundle.gov.dataDictLbl</div>
+		<div class="tab" onclick="controller.switchTab('rbac',this)">$bundle.gov.rbacLbl</div>
+		<div class="tab" onclick="controller.switchTab('users-perms',this)">$bundle.gov.userPerLbl</div>
 	</nav>
 
 	<div style="padding:1.25rem 0">
 
 		<div id="sec-dict" class="section active">
 			<div class="toolbar">
-				<select class="list-of-pipelines" (forEach)="pipelines" onchange="component.loadTablesByPipeline(this.value)" style="width:160px">
+				<select class="list-of-pipelines" (forEach)="pipelines" onchange="component.loadTablesByPipeline(this.value)" placeholder="$bundle.gov.combo.selectOptLbl" style="width:160px">
 					<option each="item" value="{item.srcPipeline}.{item.srcPipeline}.{item.dwName}">{item.pipeline}</option>
 				</select>
 				&nbsp;&nbsp; - &nbsp;&nbsp;
-				<input type="text" class="search" placeholder="Search fields…" id="dict-search" oninput="controller.renderDict()">
+				<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="dict-search" oninput="controller.renderDict()">
 				<select id="dict-table-filter" onchange="controller.renderDict()" style="width:160px">
-					<option value="">All tables</option>
+					<option value="">$bundle.gov.combo.allTalesLbl</option>
 				</select>
 				<div style="margin-left:auto;display:flex;gap:8px">
 					<!--
 						<button class="btn" onclick="controller.openAddGroup()"><i class="ti ti-table-plus" aria-hidden="true"></i> Add table group</button>
 						<button class="btn btn-primary" onclick="controller.openAddField()"><i class="ti ti-plus" aria-hidden="true"></i> Add field</button>
 					-->
-					<button class="btn btn-primary" onclick="component.saveDiactionary()()"><i class="fas fa-save" aria-hidden="true"></i> Save</button>
+					<button class="btn btn-primary" onclick="component.saveDiactionary()()"><i class="fas fa-save" aria-hidden="true"></i>$bundle.gov.btn.saveLbl</button>
 				</div>
 			</div>
 			<div class="seg" style="margin-bottom:1rem;width:fit-content">
-				<button class="active" onclick="controller.setView('flat',this)">Flat list</button>
-				<button onclick="controller.setView('group',this)">By table</button>
+				<button class="active" onclick="controller.setView('flat',this)">$bundle.gov.dTable.listLbl</button>
+				<button onclick="controller.setView('group',this)">$bundle.gov.dTable.byTblLbl</button>
 			</div>
 			<div class="table-wrap">
 				<div class="grid-scroll-container">
 					<table>
 						<thead>
 							<tr>
-								<th>Field name</th>
-								<th>Table</th>
-								<th>Translation</th>
-								<th>Description</th>
-								<th style="width:110px; text-align: right;">Actions</th>
+								<th>$bundle.gov.fNameLbl</th>
+								<th>$bundle.gov.tblNameLbl</th>
+								<th>$bundle.gov.transLbl</th>
+								<th>$bundle.gov.descrLbl</th>
+								<th style="width:110px; text-align: right;">$bundle.gov.actionsLbl</th>
 							</tr>
 						</thead>
 						<tbody id="dict-body"></tbody>
@@ -51,16 +51,16 @@
 
 		<div id="sec-rbac" class="section">
 			<div class="toolbar">
-				<input type="text" class="search" placeholder="Search fields…" id="rbac-search" oninput="controller.renderRbac()">
+				<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="rbac-search" oninput="controller.renderRbac()">
 				<select id="rbac-table-filter" onchange="controller.renderRbac()" style="width:160px">
-					<option value="">All tables</option>
+					<option value="">$bundle.gov.combo.allTablesLbl</option>
 				</select>
 				<select id="rbac-role-filter" onchange="controller.renderRbac()" style="width:140px">
-					<option value="">All roles</option>
+					<option value="">$bundle.gov.combo.allRolesLbl</option>
 				</select>
 				<div style="margin-left:auto;display:flex;gap:8px">
-					<button class="btn" onclick="controller.openManageRoles()"><i class="ti ti-users" aria-hidden="true"></i> Manage roles</button>
-					<button class="btn btn-primary" onclick="controller.openBulkAccess()"><i class="ti ti-shield-check" aria-hidden="true"></i> Set bulk access</button>
+					<button class="btn" onclick="controller.openManageRoles()"><i class="ti ti-users" aria-hidden="true"></i> $bundle.gov.mngRoleLbl</button>
+					<button class="btn btn-primary" onclick="controller.openBulkAccess()"><i class="ti ti-shield-check" aria-hidden="true"></i> $bundle.gov.setAccessLbl</button>
 				</div>
 			</div>
 			<div class="table-wrap">
@@ -68,9 +68,9 @@
 					<table>
 						<thead>
 							<tr>
-								<th>Field name</th>
-								<th>Table</th>
-								<th>Accessible by roles</th>
+								<th>$bundle.gov.fNameLbl</th>
+								<th>$bundle.gov.tblNameLbl</th>
+								<th>$bundle.gov.accessByRoleLbl</th>
 								<th style="width:80px"></th>
 							</tr>
 						</thead>
@@ -85,37 +85,33 @@
                 
                 <div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
                     <h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
-                        <i class="ti ti-user-plus"></i> Identity Provisioning
+                        <i class="ti ti-user-plus"></i> $bundle.gov.newIdentityLbl
                     </h3>
                     <form onsubmit="event.preventDefault(); controller.registerNewUser();" style="display:flex; flex-direction:column; gap:12px;">
                         <div>
-                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Full Name</label>
+                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.fllNameLbl</label>
                             <input type="text" id="reg-user-name" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="John Doe">
                         </div>
                         <div>
-                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Email Address</label>
+                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.emlLbl</label>
                             <input type="email" id="reg-user-email" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="john@company.com">
                         </div>
                         <div>
-                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Temp Password</label>
+                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.tmpPwdLbl</label>
                             <input type="password" id="reg-user-pwd" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="Enter the temp password">
                         </div>
                         <button type="submit" class="btn btn-primary" style="margin-top:4px; width:100%; padding:6px; font-size:12px;">
-                            Initialize Identity
+                            $bundle.gov.iniIdntityLbl
                         </button>
                     </form>
                 </div>
 
                 <div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
                     <h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
-                        <i class="ti ti-shield-lock"></i> Composite Identity Authorization Desk
+                        <i class="ti ti-shield-lock"></i> $bundle.gov.authNDesk
                     </h3>
-                    <p class="text-muted" style="font-size:12px; margin-bottom:16px;">
-                        Assign multiple organizational <strong>Roles</strong> and discrete granular <strong>Feature Permissions</strong> directly at the same level.
-                    </p>
-                    
-                    <div id="users-composite-matrix" style="display:flex; flex-direction:column; gap:14px;">
-                        </div>
+                    <p class="text-muted" style="font-size:12px; margin-bottom:16px;">$bundle.gov.authNAssign</p>
+                    <div id="users-composite-matrix" style="display:flex; flex-direction:column; gap:14px;"></div>
                 </div>
 
             </div>
@@ -127,22 +123,22 @@
 		<div class="modal-bg" id="modal-field">
 			<div class="modal">
 				<div class="modal-header">
-					<h3 id="modal-field-title">Add field</h3>
+					<h3 id="modal-field-title">$bundle.gov.addFldLbl</h3>
 					<button class="icon-btn" onclick="controller.closeModal('modal-field')"><i class="ti ti-x"></i></button>
 				</div>
 				<div class="modal-body">
-					<label>Field name *</label>
+					<label>$bundle.gov.fNameLbl *</label>
 					<input type="text" id="f-name" placeholder="e.g. customer_id">
-					<label>Table</label>
+					<label>$bundle.gov.tblNameLbl</label>
 					<select id="f-table"><option value="">— no table —</option></select>
-					<label>Translation / label</label>
+					<label>$bundle.gov.transLbl</label>
 					<input type="text" id="f-trans" placeholder="e.g. Customer ID">
-					<label>Description</label>
+					<label>$bundle.gov.descrLbl</label>
 					<input type="text" id="f-desc" placeholder="Brief description">
 				</div>
 				<div class="modal-footer">
-					<button class="btn" onclick="controller.closeModal('modal-field')">Cancel</button>
-					<button class="btn btn-primary" onclick="controller.saveField()">Save field</button>
+					<button class="btn" onclick="controller.closeModal('modal-field')">$bundle.gov.cancelLbl</button>
+					<button class="btn btn-primary" onclick="controller.saveField()">$bundle.gov.saveFLbl</button>
 				</div>
 			</div>
 		</div>
@@ -150,16 +146,16 @@
 		<div class="modal-bg" id="modal-group">
 			<div class="modal">
 				<div class="modal-header">
-					<h3>Add table group</h3>
+					<h3>$bundle.gov.addTblGrpLbl</h3>
 					<button class="icon-btn" onclick="controller.closeModal('modal-group')"><i class="ti ti-x"></i></button>
 				</div>
 				<div class="modal-body">
-					<label>Table name *</label>
+					<label>$bundle.gov.tblLbl *</label>
 					<input type="text" id="g-name" placeholder="e.g. customers">
 				</div>
 				<div class="modal-footer">
-					<button class="btn" onclick="controller.closeModal('modal-group')">Cancel</button>
-					<button class="btn btn-primary" onclick="controller.saveGroup()">Add table</button>
+					<button class="btn" onclick="controller.closeModal('modal-group')">$bundle.gov.btn.cancelLbl</button>
+					<button class="btn btn-primary" onclick="controller.saveGroup()">$bundle.gov.btn.addTblLbl</button>
 				</div>
 			</div>
 		</div>
@@ -167,20 +163,20 @@
 		<div class="modal-bg" id="modal-roles">
 			<div class="modal">
 				<div class="modal-header">
-					<h3>Manage roles</h3>
+					<h3>$bundle.gov.mngRoleLbl</h3>
 					<button class="icon-btn" onclick="controller.closeModal('modal-roles')"><i class="ti ti-x"></i></button>
 				</div>
 				<div class="modal-body">
-					<label>Add role</label>
+					<label>$bundle.gov.addRoleLbl</label>
 					<div style="display:flex;gap:8px">
 						<input type="text" id="r-new" placeholder="e.g. data_analyst" style="flex:1">
-						<button class="btn btn-primary" onclick="controller.addRole()">Add</button>
+						<button class="btn btn-primary" onclick="controller.addRole()">$bundle.gov.addBtnLbl</button>
 					</div>
-					<label style="margin-top:16px">Existing roles</label>
+					<label style="margin-top:16px">$bundle.gov.extingRoleLbl</label>
 					<div id="roles-list" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
 				</div>
 				<div class="modal-footer">
-					<button class="btn btn-primary" onclick="controller.closeModal('modal-roles');controller.renderAll()">Done</button>
+					<button class="btn btn-primary" onclick="controller.closeModal('modal-roles');controller.renderAll()">$bundle.gov.doneLbl</button>
 				</div>
 			</div>
 		</div>
@@ -188,18 +184,18 @@
 		<div class="modal-bg" id="modal-access">
 			<div class="modal">
 				<div class="modal-header">
-					<h3 id="modal-access-title">Edit access</h3>
+					<h3 id="modal-access-title">$bundle.gov.accessEditLbl</h3>
 					<button class="icon-btn" onclick="controller.closeModal('modal-access')"><i class="ti ti-x"></i></button>
 				</div>
 				<div class="modal-body">
-					<label>Field</label>
+					<label>$bundle.gov.fieldLbl</label>
 					<input type="text" id="a-field" disabled style="background:#f5f5f3">
-					<label>Roles with access</label>
+					<label>$bundle.gov.roleWAccessLbl</label>
 					<div id="a-roles-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
 				</div>
 				<div class="modal-footer">
-					<button class="btn" onclick="controller.closeModal('modal-access')">Cancel</button>
-					<button class="btn btn-primary" onclick="controller.saveAccess()">Save</button>
+					<button class="btn" onclick="controller.closeModal('modal-access')">$bundle.gov.btn.cancelLbl</button>
+					<button class="btn btn-primary" onclick="controller.saveAccess()">$bundle.gov.btn.saveLbl</button>
 				</div>
 			</div>
 		</div>
@@ -207,28 +203,28 @@
 		<div class="modal-bg" id="modal-bulk">
             <div class="modal">
                 <div class="modal-header">
-                    <h3>Set bulk access</h3>
+                    <h3>$bundle.gov.setAccessLbl</h3>
                     <button class="icon-btn" onclick="controller.closeModal('modal-bulk')"><i class="ti ti-x"></i></button>
                 </div>
                 <div class="modal-body">
-                    <label>Role</label>
-                    <select id="b-role" onchange="controller.getRoleAccessLevelMatrix(this.value)" (forEach)="roles" style="width:100%" placeholder="Select the role">
+                    <label>$bundle.gov.roleLbl</label>
+                    <select id="b-role" onchange="controller.getRoleAccessLevelMatrix(this.value)" (forEach)="roles" style="width:100%" placeholder="$bundle.gov.combo.selectRoleLbl">
 						<option each="item" value="{item.name}">{item.name}</option>
 					</select>
 
-                    <label style="margin-top:12px; display:block;">Table</label>
+                    <label style="margin-top:12px; display:block;">$bundle.gov.tblNameLbl</label>
                     <select id="b-table" onchange="controller.renderBulkFieldsList(this.value)" style="width:100%">
-                        <option value="">All tables</option>
+                        <option value="">$bundle.gov.combo.allTalesLbl</option>
                     </select>
 
-                    <label style="margin-top:16px; display:block; font-weight:bold;"><b>Total fields</b>:<span style="font-weight: normal;">@accessLevelSummary</span></label>
+                    <label style="margin-top:16px; display:block; font-weight:bold;"><b>$bundle.gov.fieldTotLbl</b>:<span style="font-weight: normal;">@accessLevelSummary</span></label>
                     <div id="bulk-fields-container" style="max-height:180px; overflow-y:auto; border:1px solid #ddd; padding:8px; border-radius:4px; background:#fafafa; display:flex; flex-direction:column; gap:6px;">
-                        <p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>
+                        <p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">$bundle.gov.fldListPlaceholderLbl</p>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn" onclick="controller.closeModal('modal-bulk')">Cancel</button>
-                    <button class="btn btn-primary" onclick="controller.saveTableAccessLevel()">Apply</button>
+                    <button class="btn" onclick="controller.closeModal('modal-bulk')">$bundle.gov.btn.cancelLbl</button>
+                    <button class="btn btn-primary" onclick="controller.saveTableAccessLevel()">$bundle.gov.btn.applyFLbl</button>
                 </div>
             </div>
         </div>

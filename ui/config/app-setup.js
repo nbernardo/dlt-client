@@ -18,6 +18,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
             this.cloudEnv();
         else 
             this.localEnv();
+        this.loadBundle();
         
         this.prefetchComponent();
         this.prefetchStyleSheet();
@@ -44,9 +45,9 @@ export class StillAppSetup extends StillAppMixin(Components) {
         (async () => await Assets.import({ path: 'app/components/dataviz/diagram/g6.js', type: 'js' }))()
     }
 
-    localEnv(){
-        this.setConfigFile('dev.json');        
-    }
+    localEnv = () => this.setConfigFile('dev.json');
+
+    loadBundle = () => this.setBundle('pt.json');
 
     cloudEnv(){ /* Will use the default.json condigurations file */ }
 

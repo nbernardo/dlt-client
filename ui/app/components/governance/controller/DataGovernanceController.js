@@ -1,4 +1,5 @@
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
+import { StillAppSetup } from "../../../../config/app-setup.js";
 import { AppTemplate } from "../../../../config/app-template.js";
 import { UserService } from "../../../services/UserService.js";
 import { GovernanceMainComponent } from "../GovernanceMainComponent.js";
@@ -68,14 +69,14 @@ export class DataGovernanceController extends BaseController {
             const isFilter = id.includes('filter') || id === 'b-table';
             const cur = el.value;
             const tablesList = this.tables.map(t => `<option value="${t}">${t}</option>`).join('');
-            el.innerHTML = (isFilter ? '<option value="">Select the table</option>' : '<option value="">— no table —</option>') + tablesList;
+            el.innerHTML = (isFilter ? `<option value="">${StillAppSetup.config.bundle('gov.combo.selectTblLbl')}</option>` : '<option value="">— no table —</option>') + tablesList;
             el.value = cur;
         });
 
         this.obj.roles = this.features;
 
         const rf = this.$('#rbac-role-filter');
-        if (rf) rf.innerHTML = '<option value="">All roles</option>' + this.roles.map(r => `<option value="${r}">${r}</option>`).join('');
+        if (rf) rf.innerHTML = `<option value="">${StillAppSetup.config.bundle('gov.combo.allRolesLbl')}</option>` + this.roles.map(r => `<option value="${r}">${r}</option>`).join('');
     }
 
     renderDict() {
@@ -726,21 +727,21 @@ export class DataGovernanceController extends BaseController {
                         </div>
                         <div style="display: flex; gap: 4px;">
                             <button class="icon-btn btn-danger" data-email="${user.email}" onclick="controller.deleteUserIdentity(this)" style="font-size:12px; padding:2px 6px;">
-                                <i class="fas fa-power-off"></i> Revoke Identity
+                                <i class="fas fa-power-off"></i> ${StillAppSetup.config.bundle('gov.revokeIdLbl')}
                             </button>
                             <button class="icon-btn btn-ok disabled" id="updt-perm-btn-${user.email}" onclick="controller.identityUpdate('${user.email}')" style="font-size:12px; padding:2px 6px;">
-                                <i class="fas fa-sync-alt"></i> Update
+                                <i class="fas fa-sync-alt"></i> ${StillAppSetup.config.bundle('gov.updateLbl')}
                             </button>
                         </div>
                     </div>
 
                     <div style="display:grid; grid-template-columns:110px 1fr; align-items:center; gap:10px;">
-                        <span style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.5px;">Assigned Roles:</span>
+                        <span style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.5px;">${StillAppSetup.config.bundle('gov.assignRole')}:</span>
                         <div style="display:flex; flex-wrap:wrap; gap:6px;">${permissionsHtml}</div>
                     </div>
 
                     <div style="display:grid; grid-template-columns:110px 1fr; align-items:center; gap:10px;">
-                        <span style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.5px;">Direct Perms:</span>
+                        <span style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.5px;">${StillAppSetup.config.bundle('gov.directPerm')}:</span>
                         <div style="display:flex; flex-wrap:wrap; gap:6px;">${rolesHtml}</div>
                     </div>
 
