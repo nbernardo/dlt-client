@@ -1,0 +1,64 @@
+{
+    "gov": {
+    	"dataDictLbl": "Dicionario de dados",
+		"rbacLbl": "Acesso por perfil",
+		"userPerLbl": "Utilizadores & Permissoes",
+		"fNameLbl": "Nome do campo",
+		"tblNameLbl": "Tabela",
+		"transLbl": "Traducao",
+		"descrLbl": "Descricao",
+		"actionsLbl": "Accoes",
+		"accessByRoleLbl": "Perfies com acesso",
+		"mngRoleLbl": "Gestao de Perfis",
+		"setAccessLbl": "Configurar accesso",
+		"addRoleLbl": "Adicionar perfil",
+		"addBtnLbl": "Adicionar",
+		"extingRoleLbl": "Perfil existentes",
+		"doneLbl": "Feito",
+		"addFldLbl": "Novo campo",
+		"roleLbl": "Perfil",
+		"fieldTotLbl": "Total de campos",
+		"fldListPlaceholderLbl": "Selecione um perfil a uma tabela acima para listar as configuracoes de acesso...",
+        "roleWAccessLbl": "Perfies com acesso",
+        "fieldLbl": "Perfies com acesso",
+        "accessEditLbl": "Editar acesso",
+        "addTblGrpLbl": "Addicionar group de tabelas",
+        "tblLbl": "Nome da tabela",
+        "newIdentityLbl": "Nova Identidade",
+        "fllNameLbl": "Nome completo",
+		"emlLbl": "Email",
+		"tmpPwdLbl": "Password Temporaria",
+		"iniIdntityLbl": "Iniciar Identidade",
+		"authNDesk": "Central de Controle de Autorizações de Identidade",
+		"authNAssign": "Atribua vários <strong>Perfis Organizacionais</strong> e <strong>Permissões de Funcionalidade</strong> granulares diretamente no mesmo nível.",
+		"assignRole": "Atribuir Pefies",
+		"directPerm": "Atribuir Permissoes",
+		"revokeIdLbl": "Revogar Identity",
+		"updateLbl": "Actualizar",
+		"combo": {
+			"selectOptLbl": "Selecione uma opcao",
+			"selectTblLbl": "Selecione a tabela",
+			"allRolesLbl": "Todos perfis",
+			"allTablesLbl": "Todas as tabelas",
+			"selectRoleLbl": "Seleccione o perfil"
+		},
+        "inpt": {
+            "searchLbl": "Buscar campo…"
+        },
+		"btn": {
+			"saveLbl": "Guardar",
+			"cancelLbl": "Cancelar",
+			"saveFLbl": "Guardar Campo",
+			"applyFLbl": "Aplicar",
+			"addTblLbl": "Adicional tabela"
+		},
+		"dTable": {
+			"listLbl": "Lista",
+			"byTblLbl": "Agrupado por tabels"
+		}
+    },
+    "login": {
+        "managed": "Login Regular",
+        "notManaged": "Auth0"
+    }
+}
