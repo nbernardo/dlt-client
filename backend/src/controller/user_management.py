@@ -180,3 +180,26 @@ def update_rbac_tables():
         
     except Exception as e:
         return jsonify({'status': 'error', 'error': True, 'message': f'Failed to update user permissions: {str(e)}'}), 500
+    
+
+@user_management.route("/role/<role_name>/<namespace>/<dw>", methods=["GET"])
+@require_permission('global_admin')
+def ge_access_level_by_table(role_name, namespace = None, dw = None):
+
+    try:
+        async def fetch_data_async():
+            return await UserService.access_level.get_access_tables_constraints(role_name, dw)
+        
+        def run_in_isolated_loop():
+            return asyncio.run(fetch_data_async())
+
+        future = executor.submit(run_in_isolated_loop)
+        access_levels = future.result()
+
+        return access_levels
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        print(f"DATABASE ERROR CRASH: {str(e)}")
+        return jsonify({"error": str(e)}), 500

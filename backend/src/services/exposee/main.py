@@ -11,6 +11,7 @@ import platform
 from controller.pipeline import BasePipeline
 from controller.user_management import require_permission
 from services.user_management.UserService import UserService
+import asyncio
 
 duckdb_bridge = Blueprint('duckdb_bridge', __name__)
 
@@ -92,7 +93,6 @@ def query_parquet(namespace = None, dw = None):
         print(f"DATABASE ERROR CRASH: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-import asyncio
 
 @duckdb_bridge.route("/query-parquet-export/<namespace>/<dw>", methods=["POST"])
 @require_permission('query:dw')

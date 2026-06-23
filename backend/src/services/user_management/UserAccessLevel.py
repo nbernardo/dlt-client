@@ -64,10 +64,11 @@ class UserAccessLevel:
                     if not governance_rules: 
                         continue
                     
+                    table_path = f'{dw_name}.{table_name.replace(dw_name,'')}'
                     rule_dict = json.loads(governance_rules)
                     if not rule_dict.get("has_access", True):
                         total_not_allowed = total_not_allowed + 1
-                        result[table_name] = f"You don't have permission to query {table_name}"
+                        result[table_name] = f"You don't have permission to query {table_path}"
                         continue
 
                     hidden_cols, blocked_fields = rule_dict.get("hidden_columns", []), None
@@ -78,7 +79,7 @@ class UserAccessLevel:
                     
                     if len(blocked_fields) > 0:
                         total_not_allowed = total_not_allowed + 1
-                        result[table_name] = f"You don't have permission in {table_name} to see {str(blocked_fields)} fields"
+                        result[table_name] = f"You don't have permission in {table_path} to see {str(blocked_fields)} fields"
 
                 return { 'result': result, 'total_not_allowed': total_not_allowed }
                 
@@ -87,12 +88,12 @@ class UserAccessLevel:
                 return {}
 
 
-    async def get_access_tables_constraint_OLD(roles_string: str, dw_name, table_list: list = None):
+    async def get_access_tables_constraints(role_string: str, dw_name):
         from services.user_management.UserService import get_db_connection
         async with get_db_connection() as conn:
             try:
                 result = {}
-                cursor = await conn.execute(f'SELECT data_access_level FROM roles WHERE role_name in ({roles_string})')
+                cursor = await conn.execute(f"SELECT data_access_level FROM roles WHERE role_name = '{role_string}'")
                 rows = await cursor.fetchall()
                 await cursor.close()
                 
@@ -100,10 +101,9 @@ class UserAccessLevel:
                     if row[0] == '{}': continue
 
                     constraint = json.loads(row[0]).get('tables').items()
-
                     table = next(iter(constraint.mapping))
-                    constraints_constraints = constraint.mapping[table].get('hidden_columns', {})
-                    result[table.replace(f'{dw_name}_','')] = constraints_constraints
+
+                    result[table.replace(f'{dw_name}_','')] = constraint.mapping[table]
 
                 return result
             except Exception as err:
@@ -145,9 +145,8 @@ class UserAccessLevel:
 
     def generate_query_hash(sql_query: str, size_bytes: int = 8) -> str:
         """Normalizes a SQL query string and hashes it into a compact hex string to generate cache key."""
-
-        normalized = sql_query.lower()        
-        normalized = re.sub(r'(--.*)|(/\*[\s\S]*?\*/)', '', normalized)        
+        
+        normalized = re.sub(r'(--.*)|(/\*[\s\S]*?\*/)', '', sql_query.lower())        
         normalized = " ".join(normalized.split())
         
         hasher = hashlib.blake2b(digest_size=size_bytes)
