@@ -114,12 +114,12 @@ export class Template {
         return `
             <div id="stllAppGlobalLoadingCurtain">
                 <div class="overlay"></div>
-                <div class="page-loader-wrapper">
-                    <div class="loader"><div class="m-t-30"></div><p>${message || 'In progress...'}</p></div>
-                </div>
                 <div class="still-lds-spinner">
                     <div></div><div></div><div></div><div></div><div></div><div></div>
                     <div></div><div></div><div></div><div></div><div></div><div></div>
+                </div>
+                <div class="page-loader-wrapper">
+                    <div class="loader"><div class="m-t-30"></div><p>${message || 'In progress...'}</p></div>
                 </div>
             </div>
         `;

@@ -68,11 +68,12 @@ export class ComponentRegistror {
     static controller = (type) =>  StillAppSetup.get().services.get(type);
 
     static desrtroyCmpInstance = (cmpId) => {
-        ComponentRegistror.get().componentList[cmpId].instance.stOnUnload();
+        if(cmpId in ComponentRegistror.get().componentList) 
+            ComponentRegistror.get().componentList[cmpId].instance.stOnUnload();
         if(StillAppSetup.get().entryComponentId == cmpId){
             delete ComponentRegistror.get().componentList[StillAppSetup.get().entryComponentName];
             return delete ComponentRegistror.get().componentList[cmpId];
-        }     
+        }
         delete ComponentRegistror.get().componentList[cmpId];
     }
 }

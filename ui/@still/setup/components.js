@@ -1479,18 +1479,14 @@ export class Components {
     }
 
     static emitAction(actonName, value = null) {
-        if (!(actonName in Components.subscriptions)) {
+        if (!(actonName in Components.subscriptions)) 
             Components.subscriptions[actonName] = { status: $stillconst.A_STATUS.DONE };
-        }
 
         if (actonName in Components.subscriptions) {
             Components.subscriptions[actonName].actions?.forEach(async action => await action(value));
             Components.subscriptions[actonName].status = $stillconst.A_STATUS.DONE;
         }
     }
-
-    static clearSubscriptionAction = (actonName) =>
-        delete Components.subscriptions[actonName];
 
     static parseAnnottationRE() {
         const injectOrProxyRE = /(\@Inject|\@Proxy|\@Prop|\@Controller){0,1}[\n \s \*]{0,}/;
@@ -1550,9 +1546,7 @@ export class Components {
 
                 const script = $stillLoadScript(routes[cmp], cmp, './');
                 if (script) {
-
                     script.onload = function () {
-
                         try {
                             eval(`${cmp}`).toString().replace(new RegExp(re, 'g'), async (mt) => {
 
@@ -1564,7 +1558,6 @@ export class Components {
                                 });
                             });
                         } catch (error) { }
-
                     }
                     document.head.insertAdjacentElement('beforeend', script);
                 }
@@ -1700,17 +1693,19 @@ export class Components {
     }
 
     /** 
-     * @param { ViewComponent | String } cmp
+     * @template T
+     * @param { T } cmp
      * @param { Object | any | null } data */
-    static async new(cmp, data = {} | null, parentId = null) {
+    static async new(cmp, data = {} | null, parentId = null, view = false) {
         let cmpName = cmp;
         if (cmp?.__proto__?.name == 'ViewComponent') cmpName = cmp.name;
         const { newInstance: instance } = await Components.produceComponent({ cmp: cmpName, templateFile: data.template });
         
         if(parentId !== null) instance.$parent = Components.ref(parentId);
+        if(view) ComponentRegistror.desrtroyCmpInstance(cmpName);
         
         (async () => await instance.stOnRender(data))();
-        instance.cmpInternalId = `dynamic-${instance.getUUID()}${instance.getName()}`;
+        instance.cmpInternalId = view ? cmpName : `dynamic-${instance.getUUID()}${instance.getName()}`;
         const template = instance.getBoundTemplate();
         setTimeout(() => instance.parseOnChange(), 500);
         setTimeout(() => {
@@ -1721,10 +1716,19 @@ export class Components {
         ComponentRegistror.add(instance.cmpInternalId, instance);
         const cmpParts = Components.componentPartsMap[instance.cmpInternalId];
         if(cmpParts) Components.handleInPartsImpl(instance, instance.cmpInternalId, cmpParts);
-        
+        const /** @type { InstanceType<T> } */ component = instance;
+
         setTimeout(() => Components.runAfterInit(instance), 500);
-        return { template, component: instance };
+        return { template, component };
     }
+
+    /** When the component is a view (e.g. routed), makes sure that only 
+     *  one instance is in memory by removing any previous loaded instance
+     * @template T
+     * @param { T } cmp
+     * @param { Object | any | null } data
+     * */
+    static newView = async (cmp, data = {} | null, parentId = null) => Components.new(cmp, data, parentId, true);
 
     parseDevider(t, cp, id = 'id="$StId"', a = 'class="separator"', b = 'class="handle"', c = 'class="divider"', d = 'class="handlehor"') {
         const reStStart = /\<st-divider[\s\t]{0,}/, reStClose = /[\/\>]{2}/;
@@ -1775,8 +1779,7 @@ export class Components {
                     const rect = document.body.getBoundingClientRect();
                     const relativeX = e.clientX - rect.left;
 
-                    if((relativeX - rszCorrect) < resizeCorrectionPx)
-                        return;
+                    if((relativeX - rszCorrect) < resizeCorrectionPx) return;
 
                     [_left.style.width, _right.style.flexGrow, separator.style.marginLeft] = [`${relativeX - rszCorrect}px`, 1, `${relativeX - rszCorrect}px`];
                     if (method) (async () => await method({ leftWidth: relativeX - rszCorrect }))();
