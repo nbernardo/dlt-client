@@ -322,7 +322,12 @@ export class BaseComponent extends BehaviorComponent {
         /** This handle the replacemend of object propery binding in the template (e.g. Gender.MALE)  */
         for(const [f, v] of Object.entries(objectPropBind))
             tmpltWthState = tmpltWthState.replaceAll(f,v);
-        
+                
+        /** Handle bundle */
+        tmpltWthState = tmpltWthState.replace(/\$bundle[\_\-\.A-Z]{1,}/ig,(mt) => {
+            try { return eval(`StillAppSetup.config.intl.`+mt.replace('$bundle.','')); } catch (error) {}
+        });
+
         return tmpltWthState;
     }
 

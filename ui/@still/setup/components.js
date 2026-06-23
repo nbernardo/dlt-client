@@ -235,9 +235,12 @@ export class Components {
         }
     }
 
+    loadLang = async () => StillAppSetup.config.intl = await Components.#loadConfig(`${file}.json`, 'intl');
+
     async loadComponent() {
         (async () => {
             StillAppSetup.config.props = await Components.#loadConfig(StillAppSetup.configFile);
+            StillAppSetup.config.intl = await Components.#loadConfig(StillAppSetup.bundleFile, 'intl');
             Object.freeze(StillAppSetup.config.props);
             $still.context.currentView = await StillAppSetup.instance.init();
             await Components.processInitProperties();
@@ -1647,8 +1650,8 @@ export class Components {
         }
     }
 
-    static async #loadConfig(file = null) {
-        const configFile = `${Components.obj().parseBaseUrl()}config/settings/${file || 'default.json'}`;
+    static async #loadConfig(file = null, type = 'settings') {
+        const configFile = `${Components.obj().parseBaseUrl()}config/${type}/${file || 'default.json'}`;
         try {
             const properties =  await fetch(configFile);
             if(properties.status === 404){

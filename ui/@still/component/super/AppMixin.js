@@ -21,12 +21,15 @@ export const StillAppMixin = (Component) =>
         entryComponentPath;
         entryComponentName;
         servicePath;
-        static configFile = null;
-        static config = { get: (propPath) => StillAppSetup.get().#getProp(propPath), props: {} };
+        static configFile = null; static bundleFile = null;
+        static config = { 
+            get: (propPath) => StillAppSetup.get().#prop(propPath), props: {}, intl: {}, bundle: (propPath) => StillAppSetup.get().#prop(propPath, 'intl')
+        };
         setConfigFile = (/** @type { String } */fileName) => StillAppSetup.configFile = fileName;
-        #getProp = (path) => {
+        setBundle = (/** @type { String } */fileName) => StillAppSetup.bundleFile = fileName;
+        #prop = (path, type = 'props') => {
             try {
-                return eval(`StillAppSetup.config.props.${path}`);
+                return eval(`StillAppSetup.config.${type}.${path}`);
             } catch (error) {
                 new ReferenceError(`Configuration property with path ${path} is not set`);
             }
