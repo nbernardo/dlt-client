@@ -117,11 +117,10 @@ export class DataGovernanceController extends BaseController {
 
             if (this.isAddingInline && !this.addingInlineTable)
                 html += this.inlineInputRow('');
+            body.innerHTML = html;
 
             if (!filtered.length && !this.isAddingInline) 
                 return body.innerHTML = `<tr><td colspan="5" class="empty">No fields found</td></tr>`;
-
-            body.innerHTML = html;
         }
     }
 
@@ -340,8 +339,7 @@ export class DataGovernanceController extends BaseController {
     closeModal(id) { this.$('#' + id).classList.remove('open'); }
 
     openAddField() {
-        this.switchTab('dict', this.$$('.tab')[0]);
-        this.setInlineAdd(true, '');
+        this.switchTab('dict', this.$$('.tab')[0]), this.setInlineAdd(true, '');
     }
 
     openAddGroup() {
@@ -426,8 +424,7 @@ export class DataGovernanceController extends BaseController {
         const currentExcluded = this.columnExclusions[id] || [];
 
         this.$('#a-roles-chips').innerHTML = this.roles.map(r => {
-            const hasAccess = cur.includes(r);
-            const isColumnHidden = currentExcluded.includes(r);
+            const hasAccess = cur.includes(r), isColumnHidden = currentExcluded.includes(r);
             
             return this.obj.parseEvents(`
                 <div style="display:flex; align-items:center; justify-content:space-between; padding: 6px 0; border-bottom: 1px solid #f1f1f1; gap: 12px; width:100%;">
@@ -436,9 +433,7 @@ export class DataGovernanceController extends BaseController {
                     </span>
                     
                     <button class="btn ${isColumnHidden ? 'btn-warning' : 'btn-secondary'}" 
-                            id="exclude-btn-${r}" 
-                            onclick="controller.toggleColumnExclusion('${r}')" 
-                            ${!hasAccess ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} 
+                            id="exclude-btn-${r}" onclick="controller.toggleColumnExclusion('${r}')" ${!hasAccess ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} 
                             style="font-size:11px; padding:2px 8px; height:24px; line-height:1;">
                         <i class="ti ti-${isColumnHidden ? 'lock' : 'lock-open'}"></i>
                         ${isColumnHidden ? 'Column Hidden' : 'Column Visible'}
@@ -498,41 +493,39 @@ export class DataGovernanceController extends BaseController {
 
     openBulkAccess() {
         this.populateTableSelects();        
-        this.$('#b-role').value = '';
-        const tableSelect = this.$('#b-table');
-        tableSelect.value = '';
+        this.$('#b-role').value = '', this.obj.accessLevelSummary = '';
 
         const container = this.$('#bulk-fields-container');
         if (container)
             container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>';
 
-        tableSelect.onchange = () => this.renderBulkFieldsList(tableSelect.value);
         this.openModal('modal-bulk');
     }
 
-    renderBulkFieldsList(tableName) {
+    targetFields = [];
+    async renderBulkFieldsList(tableName) {
         const container = this.$('#bulk-fields-container');
         if (!container) return;
-
+        
         if (!tableName) 
             return container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>';
 
-        const targetFields = this.fields.filter(f => f.table === tableName);
-        if (!targetFields.length) 
+        this.targetFields = this?.fields?.filter(f => f.table === tableName) || [];
+        if (!this.targetFields.length) 
             return container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">No matching columns found under this table context.</p>';
 
+        const accessLevels = (await this.getRoleAccessLevelMatrix(this.getRoleName(), tableName) || {});
+        const hasAccess = accessLevels?.has_access === true;
         const masterRowHtml = this.obj.parseEvents(`
             <div style="display:flex; align-items:center; justify-content:space-between; padding:8px; background:#eaeded; border:1px solid #bdc3c7; border-radius:4px; gap:8px; margin-bottom: 6px; font-weight: bold;">
                 <span style="font-size:12px; color:#1a1a1a;"><i class="ti ti-settings"></i> ALL COLUMNS (Bulk Table Toggle)</span>
                 <div style="display:flex; border:1px solid #1A3D5C; border-radius:4px; overflow:hidden; height:24px; box-sizing:border-box;">
-                    <button type="button" class="bulk-toggle-btn active-allow" id="bulk-master-allow" data-table="${tableName}"
-                            data-action="allow" onclick="controller.toggleAllBulkFields(this)" 
-                            style="border:none; padding:0 12px; font-size:11px; font-weight:bold; cursor:pointer;">
+                    <button type="button" class="bulk-toggle-btn ${hasAccess && 'active-allow'}" id="bulk-master-allow" data-table="${tableName}" data-action="allow" 
+                            onclick="controller.toggleAllBulkFields(this)" style="border:none; padding:0 12px; font-size:11px; font-weight:bold; cursor:pointer;">
                         Allow All
                     </button>
-                    <button type="button" class="bulk-toggle-btn"  id="bulk-master-deny" data-table="${tableName}" data-action="deny"
-                            onclick="controller.toggleAllBulkFields(this)" 
-                            style="border:none; padding:0 12px; font-size:11px; font-weight:bold; cursor:pointer;">
+                    <button type="button" class="bulk-toggle-btn ${!hasAccess && 'active-deny'}" id="bulk-master-deny" data-table="${tableName}" data-action="deny"
+                            onclick="controller.toggleAllBulkFields(this)" style="border:none; padding:0 12px; font-size:11px; font-weight:bold; cursor:pointer;">
                         Not Allow All
                     </button>
                 </div>
@@ -540,26 +533,46 @@ export class DataGovernanceController extends BaseController {
             <div style="height: 1px; background: #ddd; margin: 4px 0;"></div>
         `);
 
-        const fieldsHtml = targetFields.map(f => this.obj.parseEvents(`
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 8px; background:#fff; border:1px solid #e2e8f0; border-radius:4px; gap:8px;">
-                <span style="font-family:var(--font-mono, monospace); font-size:12px; font-weight:600; color:#2d3748;">${f.name}</span>
-                
-                <div style="display:flex; border:1px solid #1A3D5C; border-radius:4px; overflow:hidden; height:24px; box-sizing:border-box;">
-                    <button type="button" class="bulk-toggle-btn active-allow" 
-                            id="bulk-allow-${f.id}" data-id="${f.id}" data-action="allow" onclick="controller.setBulkFieldAction(this, '${tableName}', '${f.name}')" 
-                            style="border:none; padding:0 10px; font-size:11px; font-weight:bold; cursor:pointer; transition:all 0.1s ease;">
-                        Allow
-                    </button>
-                    <button type="button" class="bulk-toggle-btn" 
-                            id="bulk-deny-${f.id}" data-id="${f.id}" data-action="deny" onclick="controller.setBulkFieldAction(this, '${tableName}', '${f.name}')" 
-                            style="border:none; padding:0 10px; font-size:11px; font-weight:bold; cursor:pointer; transition:all 0.1s ease;">
-                        Not Allow
-                    </button>
+        this.handleAndDisplayFieldsCount(!hasAccess ? this.targetFields.length : accessLevels?.hidden_columns?.length);
+        this.setViewingAccessLevel(tableName, JSON.stringify(accessLevels));
+        
+        const fieldsHtml = this.targetFields.map(f => 
+        {
+            const notAllow = accessLevels?.hidden_columns?.includes(f.name) || !hasAccess;
+            return this.obj.parseEvents(`
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 8px; background:#fff; border:1px solid #e2e8f0; border-radius:4px; gap:8px;">
+                    <span style="font-family:var(--font-mono, monospace); font-size:12px; font-weight:600; color:#2d3748;">${f.name}</span>
+                    
+                    <div style="display:flex; border:1px solid #1A3D5C; border-radius:4px; overflow:hidden; height:24px; box-sizing:border-box;">
+                        <button type="button" class="bulk-toggle-btn allow ${!notAllow && 'active-allow'}" 
+                                id="bulk-allow-${f.id}" data-id="${f.id}" data-action="allow" onclick="controller.setBulkFieldAction(this, '${tableName}', '${f.name}')" 
+                                style="border:none; padding:0 10px; font-size:11px; font-weight:bold; cursor:pointer; transition:all 0.1s ease;">
+                            Allow
+                        </button> 
+                        <button type="button" class="bulk-toggle-btn deny ${notAllow && 'active-deny'}" 
+                                id="bulk-deny-${f.id}" data-id="${f.id}" data-action="deny" onclick="controller.setBulkFieldAction(this, '${tableName}', '${f.name}')" 
+                                style="border:none; padding:0 10px; font-size:11px; font-weight:bold; cursor:pointer; transition:all 0.1s ease;">
+                            Not Allow
+                        </button>
+                    </div>
                 </div>
-            </div>
-        `)).join('');
+            `)
+        }).join('');
 
         container.innerHTML = masterRowHtml + fieldsHtml;
+    }
+
+    setViewingAccessLevel(tableName, accessLevels){
+        accessLevels = JSON.parse(accessLevels);
+        const fieldsToJsonMap = `{${accessLevels.hidden_columns.map((v) => `"${v}": null`, '').join(', ')}}`
+        accessLevels.hidden_columns = JSON.parse(fieldsToJsonMap);
+        this.permissionConfig.tables[`${this.currentPipeline()}_${tableName}`] = accessLevels;
+    }
+
+    handleAndDisplayFieldsCount(notAllowCount){
+        const allowCount = this.targetFields.length - (notAllowCount || 0);
+        const notAllowContent = `<span class='notallow-count'>Not Allowed</span>: ${(notAllowCount || 0)}`;
+        this.obj.accessLevelSummary = ` ${this.targetFields.length} | (<span class='allow-count'>Allowed</span>: ${allowCount} ${notAllowContent})`;
     }
 
     permissionConfig = { tables: {} };
@@ -595,14 +608,23 @@ export class DataGovernanceController extends BaseController {
             this.permissionConfig.tables[table].hidden_columns[field] = null;
         else
             delete this.permissionConfig.tables[table].hidden_columns[field];
+
+        this.handleAndDisplayFieldsCount(Object.keys(this.permissionConfig.tables[table].hidden_columns).length);
     }
 
+    getRoleName = () => this.$('#b-role').value;
+
     async saveTableAccessLevel(){
+        AppTemplate.showLoading('Updating user role permissions');
         const configs = JSON.parse(JSON.stringify(this.permissionConfig));
         Object.keys(this.permissionConfig.tables).map(tbl => {
             configs.tables[tbl].hidden_columns = Object.keys(this.permissionConfig.tables[tbl].hidden_columns)
         });
-        await this.userService().saveTableAccessLevel(this.$('#b-role').value, configs);
+        const result = await this.userService().saveTableAccessLevel(this.getRoleName(), configs);
+        AppTemplate.hideLoading();
+        if(result.error === false){
+            AppTemplate.toast.success(`${this.getRoleName()} updated successfully`);
+        }
     }
 
     toggleAllBulkFields(element) {
@@ -620,28 +642,28 @@ export class DataGovernanceController extends BaseController {
 
         const table = `${this.currentPipeline()}_${tableName}`;
         if(!(table in this.permissionConfig.tables))
-            this.permissionConfig.tables[table] = { has_access: true, hidden_columns: new Set() };
+            this.permissionConfig.tables[table] = { has_access: true, hidden_columns: {} };
         this.permissionConfig.tables[table].has_access = action === 'allow' ? true : false;
+        
+        if(action === 'allow')
+            this.permissionConfig.tables[table].hidden_columns = {};
+
+        this.handleAllowDenyForAll(action);
 
         const targetFields = this.fields.filter(f => f.table === tableName);
         targetFields.forEach(f => {
             const targetBtn = this.$('#bulk-' + (action === 'allow' ? 'allow-' : 'deny-') + f.id);
-            if (targetBtn) 
-                this.setBulkFieldAction(targetBtn);
+            if (targetBtn)  this.setBulkFieldAction(targetBtn);
         });
     }
 
-    createBulkFieldsWrapper() {
-        const tableFieldGroup = this.$('#b-table').closest('.form-group') || this.$('#b-table').parentElement;
-        const wrapper = document.createElement('div');
-        wrapper.className = 'form-group';
-        wrapper.style.marginTop = '12px';
-        wrapper.innerHTML = `
-            <label style="display:block; font-weight:bold; margin-bottom:6px; font-size:13px;">Fields Allocation State:</label>
-            <div id="bulk-fields-container" style="max-height:160px; overflow-y:auto; border:1px solid #ddd; padding:8px; border-radius:4px; background:#fafafa;"></div>
-        `;
-        tableFieldGroup.parentNode.insertBefore(wrapper, tableFieldGroup.nextSibling);
-        return this.$('#bulk-fields-container');
+    handleAllowDenyForAll(action){
+        const allowAction = (action == 'allow') ? 'add' : 'remove', notAllowAction = (action == 'allow') ? 'remove' : 'add';
+        const stat = action !== 'allow';
+        this.obj.container.querySelectorAll('.bulk-toggle-btn.allow').forEach(elm => elm.classList[allowAction]('active-allow'));
+        this.obj.container.querySelectorAll('.bulk-toggle-btn.deny').forEach(elm => elm.classList[notAllowAction]('active-deny'));
+        this.obj.container.querySelectorAll('.bulk-toggle-btn.allow, .bulk-toggle-btn.deny').forEach(elm => elm.disabled = stat);
+        this.handleAndDisplayFieldsCount(stat ? this.targetFields.length : 0);
     }
 
     permissionRendered = false;
@@ -714,16 +736,12 @@ export class DataGovernanceController extends BaseController {
 
                     <div style="display:grid; grid-template-columns:110px 1fr; align-items:center; gap:10px;">
                         <span style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.5px;">Assigned Roles:</span>
-                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                            ${permissionsHtml}
-                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">${permissionsHtml}</div>
                     </div>
 
                     <div style="display:grid; grid-template-columns:110px 1fr; align-items:center; gap:10px;">
                         <span style="font-size:11px; font-weight:700; color:#4a5568; text-transform:uppercase; letter-spacing:0.5px;">Direct Perms:</span>
-                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                            ${rolesHtml}
-                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px;">${rolesHtml}</div>
                     </div>
 
                 </div>
@@ -820,6 +838,19 @@ export class DataGovernanceController extends BaseController {
             this.users = this.users.filter(u => u.email !== email);
             (async () => await this.renderUsersCompositeMatrix())();
         }
-    }    
+    }
+    
+    accessLevelsMatrix = {}
+    async getRoleAccessLevelMatrix(roleName, tableName){
+
+        if(tableName in this.accessLevelsMatrix && tableName != undefined)
+            return this.accessLevelsMatrix[tableName];
+
+        if(!(roleName in this.accessLevelsMatrix))
+            this.accessLevelsMatrix = await this.userService().getAccessLevelByRole(roleName, this.currentPipeline());
+
+        if(tableName in this.accessLevelsMatrix && tableName != undefined)
+            return this.accessLevelsMatrix[tableName];
+    }
 
 }

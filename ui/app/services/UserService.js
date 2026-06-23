@@ -118,6 +118,13 @@ export class UserService extends BaseService {
         return await result.json();
     }
 
+    async getAccessLevelByRole(roleName, pipeline){
+        const namespace = await UserService.getNamespace();
+        const url = `/role/${roleName}/${namespace}/${pipeline}`;
+        let result = await $still.HTTPClient.get(url, HTTPHeaders.JSONAndBearerTkn(this.getTkn()));
+        return await result.json();
+    }
+
 }
 
 async function auth0GetConnection(){

@@ -1,3 +1,4 @@
+import { sleepForSec } from "../../@still/component/manager/timer.js";
 import { BaseController } from "../../@still/component/super/service/BaseController.js";
 import { Components } from "../../@still/setup/components.js";
 import { Assets } from "../../@still/util/componentUtil.js";
@@ -890,9 +891,12 @@ export class WorkSpaceController extends BaseController {
     }
     
     async createDataGovernanceUI(){
+        AppTemplate.showLoading('Loading Data Governance Interface');
         const parentId = this.wSpaceComponent.cmpInternalId;
-        const { template: uiContent, component } = await Components.new(GovernanceMainComponent, { }, parentId);
+        const { template: uiContent, component } = await Components.newView(GovernanceMainComponent, { }, parentId);
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
+        await sleepForSec(1000);
+        AppTemplate.hideLoading();
     }
 
     async loadMonacoEditorDependencies(){

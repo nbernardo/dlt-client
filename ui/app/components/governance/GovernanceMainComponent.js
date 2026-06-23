@@ -28,6 +28,9 @@ export class GovernanceMainComponent extends ViewComponent {
 	/** @type { Workspace } */
 	$parent;
 
+	/** @type { State<String> } */
+	accessLevelSummary = '';
+
 	/** 
 	 * @Inject @Path components/governance/controller/ 
 	 * @type { DGServiceController }

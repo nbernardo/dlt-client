@@ -212,16 +212,16 @@
                 </div>
                 <div class="modal-body">
                     <label>Role</label>
-                    <select id="b-role" onchange="controller.selecteRole(this.value)" (forEach)="roles" style="width:100%" placeholder="Select the role">
+                    <select id="b-role" onchange="controller.getRoleAccessLevelMatrix(this.value)" (forEach)="roles" style="width:100%" placeholder="Select the role">
 						<option each="item" value="{item.name}">{item.name}</option>
 					</select>
 
                     <label style="margin-top:12px; display:block;">Table</label>
-                    <select id="b-table" style="width:100%">
+                    <select id="b-table" onchange="controller.renderBulkFieldsList(this.value)" style="width:100%">
                         <option value="">All tables</option>
                     </select>
 
-                    <label style="margin-top:16px; display:block; font-weight:bold;">Fields Allocation State:</label>
+                    <label style="margin-top:16px; display:block; font-weight:bold;"><b>Total fields</b>:<span style="font-weight: normal;">@accessLevelSummary</span></label>
                     <div id="bulk-fields-container" style="max-height:180px; overflow-y:auto; border:1px solid #ddd; padding:8px; border-radius:4px; background:#fafafa; display:flex; flex-direction:column; gap:6px;">
                         <p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>
                     </div>
@@ -256,7 +256,7 @@
 
 	.governance-main-container .btn {
 		padding: 6px 14px; border-radius: 6px; border: 0.5px solid #d1cec7; background: #ffffff; color: #1a1a1a; font-size: 13px; cursor: pointer;
-		display: inline-flex; align-items: center; gap: 6px; line-height: 1.4;
+		display: inline-flex; align-items: center; gap: 6px; line-height: 1.4; text-align: center;
 	}
 	.governance-main-container .btn:hover { background: #f5f5f3; }
 	.governance-main-container .btn-primary { background: #1A3D5C; color: #fff; border-color: #1A3D5C; }
@@ -443,25 +443,28 @@
 		color: #ffffff !important;
 	}
 
-.governance-main-container .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.1s ease-in-out;
-}
+	.governance-main-container .chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		transition: all 0.1s ease-in-out;
+	}
 
-/* Inactive State: Subtle and clean Gray */
-.governance-main-container .chip.off {
-    background: #edf2f7 !important;
-    color: #4a5568 !important;
-    border: 1px solid #cbd5e0 !important;
-}
+	/* Inactive State: Subtle and clean Gray */
+	.governance-main-container .chip.off {
+		background: #edf2f7 !important;
+		color: #4a5568 !important;
+		border: 1px solid #cbd5e0 !important;
+	}
 
-/* Active State: Clean Emerald Green */
-.governance-main-container .chip.on {
-    background: #2ecc71 !important;
-    color: #ffffff !important;
-    border: 1px solid #27ae60 !important;
-    box-shadow: 0 1px 3px rgba(46, 204, 113, 0.3);
-}
+	/* Active State: Clean Emerald Green */
+	.governance-main-container .chip.on {
+		background: #2ecc71 !important;
+		color: #ffffff !important;
+		border: 1px solid #27ae60 !important;
+		box-shadow: 0 1px 3px rgba(46, 204, 113, 0.3);
+	}
+
+	.allow-count, .notallow-count { font-weight: bold; }
+	.allow-count { color: #27ae60; } .notallow-count { color: red; }
 </style>
