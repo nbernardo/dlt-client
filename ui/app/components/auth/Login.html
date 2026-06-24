@@ -19,8 +19,8 @@
 		</div>
 
 		<div class="auth-tabs">
-			<button class="tab-btn" onclick="component.switchLogin('managed')">$bundle.login.managed</button>
-			<button class="tab-btn" onclick="component.switchLogin('unmanaged')">$bundle.login.notManaged</button>
+			<button class="tab-btn active" onclick="component.switchLogin('managed', this)">$bundle.login.managed</button>
+			<button class="tab-btn" onclick="component.switchLogin('unmanaged', this)">$bundle.login.notManaged</button>
 		</div>
 
 		<!-- In case anonymous login is false, hence negating the flag. Show social login -->
@@ -79,35 +79,21 @@
 
 <style>
 
+.auth-container {
+	.tab-btn { opacity: 0.5; cursor: pointer; }
+	.tab-btn.active { opacity: 1; background: #eee; color: rgb(71, 92, 111) !important; border-bottom: 2px solid rgb(71, 92, 111); margin-bottom: -2px; }
+}
+
 .language-panel { margin-top: 10px;  input { display: none; } }
 .language-panel label img { cursor: pointer; opacity: 0.4; transition: opacity .2s; }
 .language-panel input:checked + label img { opacity: 1; }
 .language-panel label:hover img { opacity: 0.8; }
 
-.auth-section {
-	font-family: Arial, sans-serif;
-	margin: 0;
-	background-color: #f0f0f0;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	min-height: 100vh;
-}
+.auth-section { font-family: Arial, sans-serif; margin: 0; background-color: #f0f0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
 
-.auth-container {
-	background: white;
-	padding: 40px;
-	border-radius: 8px;
-	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-	width: 100%;
-	max-width: 350px;
-}
+.auth-container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); width: 100%; max-width: 350px; }
 
-h2 {
-	text-align: center;
-	margin-bottom: 30px;
-	color: #333;
-}
+h2 { text-align: center; margin-bottom: 30px; color: #333; }
 
 .oauth-btn {
 	display: block;
@@ -124,111 +110,39 @@ h2 {
 	box-sizing: border-box;
 }
 
-.oauth-btn:hover {
-	opacity: 0.9;
-}
+.oauth-btn:hover { opacity: 0.9; }
 
-.facebook {
-	background-color: #1877f2;
-}
+.facebook { background-color: #1877f2; }
 
-.twitter {
-	background-color: #1da1f2;
-}
+.twitter { background-color: #1da1f2; }
 
-.google {
-	background-color: #db4437;
-}
+.google { background-color: #db4437; }
 
-.github {
-	background-color: #333;
-}
+.github { background-color: #333; }
 
-.windowslive, .anonymous {
-	background-color: #0078d4;
-}
+.windowslive, .anonymous { background-color: #0078d4; }
 
-.error-message {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-    border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 20px;
-    text-align: center;
-}
+.error-message { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 4px; padding: 12px; margin-bottom: 20px; text-align: center; }
 
-.success-message {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-    border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 20px;
-    text-align: center;
-}
+.success-message { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px; padding: 12px; margin-bottom: 20px; text-align: center; }
 
 /* TAB CONTROL STYLING */
-.auth-tabs {
-	display: flex;
-	margin-bottom: 25px;
-	border-bottom: 2px solid #ddd;
-}
+.auth-tabs { display: flex; margin-bottom: 25px; border-bottom: 2px solid #ddd; }
 
-.tab-btn {
-	flex: 1;
-	padding: 10px;
-	background: none;
-	border: none;
-	font-size: 14px;
-	font-weight: bold;
-	color: #666;
-	cursor: pointer;
-	transition: all 0.2s;
-}
+.tab-btn { flex: 1; padding: 10px; background: none; border: none; font-size: 14px; font-weight: bold; color: #666; cursor: pointer; transition: all 0.2s; }
 
-.tab-btn:hover {
-	color: #333;
-}
-
-.tab-btn.active {
-	color: #0078d4;
-	border-bottom: 2px solid #0078d4;
-	margin-bottom: -2px;
-}
+.tab-btn:hover { color: #333; }
 
 /* MANAGED FORM STYLING */
-form {
-	display: flex;
-	flex-direction: column;
-}
+form { display: flex; flex-direction: column; }
 
-.form-group {
-	margin-bottom: 15px;
-	text-align: left;
-}
+.form-group { margin-bottom: 15px; text-align: left; }
 
-.form-group label {
-	display: block;
-	font-size: 12px;
-	font-weight: bold;
-	color: #555;
-	margin-bottom: 5px;
-}
+.form-group label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 5px; }
 
-.form-group input {
-	width: 100%;
-	padding: 10px;
-	border: 1px solid #ddd;
-	border-radius: 4px;
-	box-sizing: border-box;
-	font-size: 14px;
-}
+.form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
 
-.form-group input:focus {
-	border-color: #0078d4;
-	outline: none;
-}
+.form-group input:focus { border-color: #0078d4; outline: none; }
 
 .submit-btn {
 	background-color: #28a745;

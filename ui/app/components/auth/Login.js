@@ -76,6 +76,13 @@ export class Login extends ViewComponent {
 		Router.goto('exit');
 	}
 
-	switchLogin(tab){ this.activeTab = tab }
+	switchLogin(tab, btn){ 
+		this.activeTab = tab;
+		document
+			.querySelectorAll('.auth-tabs .tab-btn')
+			.forEach(b => b.classList.remove('active'));
+
+		btn.classList.add('active'); 
+	}
 
 }
