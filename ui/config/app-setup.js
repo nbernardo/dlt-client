@@ -45,9 +45,9 @@ export class StillAppSetup extends StillAppMixin(Components) {
         (async () => await Assets.import({ path: 'app/components/dataviz/diagram/g6.js', type: 'js' }))()
     }
 
-    localEnv = () => this.setConfigFile('dev.json');
+    localEnv = () => this.setConfigFile('dev');
 
-    loadBundle = () => this.setBundle('pt.json');
+    loadBundle = () => this.setBundle('pt');
 
     cloudEnv(){ /* Will use the default.json condigurations file */ }
 

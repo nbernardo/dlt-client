@@ -53,8 +53,9 @@ export class UserService extends BaseService {
         return this.userDetailes;	  
 	}
 
-	async logOut(){
-		await UserService.auth0Client.logout({ localOnly: true });
+	async logOut(loginType){
+        if(loginType !== 'managed')
+		    await UserService.auth0Client.logout({ localOnly: true });
         Router.goto('exit');
 	}
 

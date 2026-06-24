@@ -27,6 +27,9 @@ export class Login extends ViewComponent {
 	/** @Prop */
 	activeTab = 'managed';
 
+	/** @Prop */
+	activeIdiom = 'pt';
+
 	/**
 	 * @Inject @Path services/
 	 * @type { UserService }
@@ -60,14 +63,16 @@ export class Login extends ViewComponent {
 		
 	}
 
+	changeIdiom = (idiom) => this.activeIdiom = idiom;
+
 	handleSuccessLogin(){
 	 	this.loginSuccess = true;
 	 	StillAppSetup.get().setAuthN(true);
-	 	Router.goto('Workspace');
+	 	Router.goto('Workspace', { urlParams: `lang=${this.activeIdiom}` });
 	}
 
 	logOut(){
-		this.userService.logOut();
+		this.userService.logOut(this.activeTab);
 		Router.goto('exit');
 	}
 

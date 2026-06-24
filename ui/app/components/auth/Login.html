@@ -19,8 +19,8 @@
 		</div>
 
 		<div class="auth-tabs">
-			<button class="tab-btn" onclick="component.switchLogin('managed')">Managed Auth</button>
-			<button class="tab-btn" onclick="component.switchLogin('unmanaged')">Unmanaged Auth</button>
+			<button class="tab-btn" onclick="component.switchLogin('managed')">$bundle.login.managed</button>
+			<button class="tab-btn" onclick="component.switchLogin('unmanaged')">$bundle.login.notManaged</button>
 		</div>
 
 		<!-- In case anonymous login is false, hence negating the flag. Show social login -->
@@ -61,12 +61,28 @@
 				<span (showIf)="self.devAuthN">
 					<button class="submit-btn dev" type="button" onclick="component.login('managed')">Dev Sign In</button>
 				</span>
+				<div class="language-panel">
+					<input type="radio" name="lang" id="pt" checked>
+					<label for="pt">
+						<img src="app/assets/imgs/flags/pt.png" onclick="component.changeIdiom('pt')" alt="Portuguese" title="Portuguese" width="16">
+					</label>
+
+					<input type="radio" name="lang" id="en">
+					<label for="en">
+						<img src="app/assets/imgs/flags/en.png" onclick="component.changeIdiom('en')" alt="English" title="English" width="16">
+					</label>
+				</div>
 			</form>
 		</span>
 	</div>
 </section>
 
 <style>
+
+.language-panel { margin-top: 10px;  input { display: none; } }
+.language-panel label img { cursor: pointer; opacity: 0.4; transition: opacity .2s; }
+.language-panel input:checked + label img { opacity: 1; }
+.language-panel label:hover img { opacity: 0.8; }
 
 .auth-section {
 	font-family: Arial, sans-serif;

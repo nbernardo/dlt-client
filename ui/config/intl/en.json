@@ -1,0 +1,65 @@
+{
+    "gov": {
+    	"dataDictLbl": "Data dictionary",
+		"rbacLbl": "Role-based access",
+		"userPerLbl": "Users & Role permissions",
+        "fNameLbl": "Field name",
+		"tblNameLbl": "Table",
+		"transLbl": "Translation",
+		"descrLbl": "Description",
+		"actionsLbl": "Actions",
+        "accessByRoleLbl": "Accessible by roles",
+		"mngRoleLbl": "Manage roles",
+		"setAccessLbl": "Set bulk access",
+		"addRoleLbl": "Add role",
+		"addBtnLbl": "Add",
+		"extingRoleLbl": "Existing roles",
+		"doneLbl": "Done",
+		"addFldLbl": "Add field",
+		"roleLbl": "Perfil",
+		"fieldTotLbl": "Total fields",
+		"fldListPlaceholderLbl": "Select a specific table above to view individual column rules...",
+        "roleWAccessLbl": "Roles with access",
+        "fieldLbl": "Field",
+        "accessEditLbl": "Edit acesso",
+        "addTblGrpLbl": "Add table group",
+        "tblLbl": "Table name",
+        "newIdentityLbl": "Identity Provisioning",
+        "fllNameLbl": "Full Name",
+		"emlLbl": "Email Address",
+		"tmpPwdLbl": "Temp Password",
+		"iniIdntityLbl": "Initialize Identity",
+		"authNDesk": "Composite Identity Authorization Desk",
+		"authNAssign": "Assign multiple organizational <strong>Roles</strong> and discrete granular <strong>Feature Permissions</strong> directly at the same level.",
+		"assignRole": "Assigned Roles",
+		"directPerm": "Direct Perms",
+		"revokeIdLbl": "Revoke Identity",
+		"updateLbl": "Update",
+        "loadDGUIMsg": "Loading Data Governance Interface",
+		"combo": {
+			"selectOptLbl": "Select an option",
+			"selectTblLbl": "Select the table",
+			"allRolesLbl": "All roles",
+			"allTablesLbl": "All tables",
+			"selectRoleLbl": "Select the role"
+		},
+        "inpt": {
+            "searchLbl": "Search fields…"
+        },
+		"btn": {
+			"saveLbl": "Save",
+			"cancelLbl": "Cancelar",
+			"saveFLbl": "Save field",
+			"applyFLbl": "Apply",
+			"addTblLbl": "Add table"
+		},
+		"dTable": {
+			"listLbl": "Flast list",
+			"byTblLbl": "By table"
+		}
+    },
+    "login": {
+        "managed": "Regular",
+        "notManaged": "Auth0"
+    }
+}

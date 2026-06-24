@@ -891,7 +891,7 @@ export class WorkSpaceController extends BaseController {
     }
     
     async createDataGovernanceUI(){
-        AppTemplate.showLoading('Loading Data Governance Interface');
+        AppTemplate.showLoading(StillAppSetup.config.bundle('gov.loadDGUIMsg'));
         const parentId = this.wSpaceComponent.cmpInternalId;
         const { template: uiContent, component } = await Components.newView(GovernanceMainComponent, { }, parentId);
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
