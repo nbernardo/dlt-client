@@ -1650,8 +1650,13 @@ export class Components {
         }
     }
 
+    static async refreshBundle(lang){
+        StillAppSetup.get().setBundle(lang);
+        StillAppSetup.config.intl = await Components.#loadConfig(StillAppSetup.bundleFile, 'intl');
+    }
+
     static async #loadConfig(file = null, type = 'settings') {
-        const configFile = `${Components.obj().parseBaseUrl()}config/${type}/${file || 'default.json'}`;
+        const configFile = `${Components.obj().parseBaseUrl()}config/${type}/${`${file ? file.replace('.json','')+'.json' : 'default.json'}`}`;
         try {
             const properties =  await fetch(configFile);
             if(properties.status === 404){

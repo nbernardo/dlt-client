@@ -94,6 +94,7 @@ export class Template {
 
     unloadApp() {
         Components.unloadApp();
+        history.replaceState(null,null,'#');
         window.location.reload();
     }
 

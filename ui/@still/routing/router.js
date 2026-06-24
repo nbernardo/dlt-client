@@ -13,7 +13,8 @@ const stillRoutesMap = await getRoutesFile(DefaultstillRoutesMap);
 const GotoParams = {
     data: {},
     url: true,
-    evt: { containerId: null  }
+    evt: { containerId: null  },
+    urlParams: ''
 }
 
 export class Router {
@@ -35,6 +36,9 @@ export class Router {
     static preView = null;
     static navCounter = 0;
     static serviceId = null;
+    static serviceId = null;
+    static queryString = '';
+    static routeUrlParams;
 
     /** @returns { Router } */
     static getInstance() {
@@ -80,8 +84,13 @@ export class Router {
      * @param {*} cmp 
      * @param {{data, path}} param1 */
     static goto(cmp, params = GotoParams) {
+        
+        const { data, evt, url, urlParams } = params;
+        Router.routeUrlParams = typeof urlParams === 'string' ? Object.fromEntries(new URLSearchParams(urlParams)) : null;
 
-        const { data, evt, url } = params;
+        if('lang' in Router.routeUrlParams) 
+            (async () => await Components.refreshBundle(Router.routeUrlParams['lang']))();
+
         cmp = Router.initNavigation(cmp);
         Components.prevLoadLoopContainer.clear();
         if (evt?.containerId) Router.clickEvetCntrId = evt.containerId;
@@ -214,7 +223,12 @@ export class Router {
             })()
         }
         if (url) Router.updateUrlPath(cmp);
-
+        else{
+            const urlParams = new URLSearchParams(Router.routeUrlParams).toString();
+            if(location.hash.includes(urlParams)) return;
+            const newPath = Router.routeMap[cmp].url;
+            window.history.pushState(null, null, '#' + `${newPath}${Router.routeUrlParams !== '' ? '?'+urlParams : ''}`);
+        }
     }
 
     static updateUrlPath(cmp) {
@@ -223,12 +237,10 @@ export class Router {
 
         const newPath = Router.routeMap[routeName].url;
         window.history.pushState(null, null, '#/');
-        window.history.pushState(null, null, '#' + newPath);
+        window.history.pushState(null, null, '#' + `${newPath}${Router.queryString !== '' ? '?'+Router.queryString : ''}`);
     }
 
-    static clearUrlPath() {
-        window.history.pushState(null, null, '#/');
-    }
+    static clearUrlPath = () => window.history.pushState(null, null, '#/')
 
     static replaceUrlPath(path) {
         window.history.pushState(null, null, '#/');
@@ -280,9 +292,7 @@ export class Router {
                         </output>`;
                         appPlaceholder.insertAdjacentHTML('afterbegin', pageContent);
                         cmp.subImported = false;
-                        setTimeout(() => {
-                            cmp.parseOnChange();
-                        }, 500);
+                        setTimeout(() => cmp.parseOnChange(), 500);
                         await cmp.onRender();
                     } else {
                         await Components.reloadedComponent(cmp, isHome);
@@ -296,10 +306,9 @@ export class Router {
                 .then(async () => {
                     Router.handleUnauthorizeIfPresent();
                     if (Router.noPermAccessProcess(isPrivate, appPlaceholder, cmp)) return;
-                    if (!appPlaceholder && cmp?.isPublic) {
+                    if (!appPlaceholder && cmp?.isPublic) 
                         appPlaceholder = document.getElementById($stillconst.UI_PLACEHOLDER);
-                    }
-
+                    
                     const pageContent = `
                         <output id="${cmpId}-check" class="cmp-name-page-view-${cmpName} ${cmp.cmpInternalId}" style="display:contents;">
                             ${cmp.getTemplate()}
@@ -312,9 +321,7 @@ export class Router {
                         if (!cmp.setAndGetsParsed) {
                             cmp.setAndGetsParsed = true;
                             (new Components)
-                                .parseGetsAndSets(
-                                    ComponentRegistror.component(cmp.cmpInternalId)
-                                )
+                                .parseGetsAndSets(ComponentRegistror.component(cmp.cmpInternalId))
                         }
                     }, 10);
                     await cmp.onRender();
@@ -330,7 +337,6 @@ export class Router {
 
 
     static callCmpAfterInit(cmpId, isHome, appPlaceholder = null, newInstance = null) {
-
         /**
          * Timer for keep calling the function wrapped code until it finds that the main 
          * component was loaded and proceeding compute (e.g. load subcomponent) can happen
@@ -366,15 +372,12 @@ export class Router {
                     ) || appPlaceholder != null
                 ) {
                     Components.handleInPlaceParts(cmp);
-                } else {
+                } else 
                     Components.stAppInitStatus = false;
-                }
-
             }
 
         }, 200);
         Components.removeOldParts();
-
     }
 
     static cmpTemplateNotDefinedCheck(cmpName) {
@@ -435,10 +438,8 @@ export class Router {
             route = route.join('/');
 
         } else {
-
             address = path.split('/')[1]?.trim();
             route = Router.routeMap[address]?.path;
-
         }
 
         if (isThereParams) {
@@ -448,38 +449,25 @@ export class Router {
         return route ? { address, route, path } : { state: false, path };
     }
 
-    static getUrlParams() {
-
-        let routeName = Router.navigatingView;
-        if (Router.navigatingView instanceof Object)
-            routeName = Router.navigatingView.address;
-
-        const params = Router.urlParams[routeName];
-        const result = params?.split('&')?.reduce((accum, param) => {
-            const [key, value] = param.split('=');
-            accum[key] = value;
-            return accum;
-        }, {});
-
-        setTimeout(() => {
-            Object.entries(Router.urlParams).forEach(([key, _]) => {
-                if (Router.navigatingView != key) delete Router.urlParams[key];
-            });
-        }, 1000);
-
-        return result;
-
-    }
-
     static listenUrlChange() {
-
+        
         const { address, path } = Router.getUrlPath();
         if (!address)
             window.location.assign('#');
 
         window.addEventListener('popstate', (event) => {
-            
+            Router.queryString = '';
             let url = location.href.toString();
+            if(url.endsWith('?') === false && url.includes('?')){
+                [url, Router.queryString] = url.split('?');
+                Router.urlParams = Object.fromEntries(new URLSearchParams(Router.queryString).entries());
+            }
+            else if(Router.routeUrlParams)
+                Router.urlParams = Object.fromEntries(Router.routeUrlParams.entries());
+
+            if('lang' in Router.urlParams) 
+                (async () => await Components.refreshBundle(Router.urlParams['lang']))();
+            
             if (
                 url.slice(0, -3) == Router.baseUrl
                 || url.slice(0, -2) == Router.baseUrl) {
@@ -512,8 +500,7 @@ export class Router {
     }
 
     static async getComponentFromPath() {
-        const route = Router.getUrlPath();
-        let cmpCls;
+        let route = Router.getUrlPath(), cmpCls;
         if (route.address) {
             cmpCls = await (
                 await Components.produceComponent(
@@ -538,9 +525,7 @@ export class Router {
         if (url) baseUrl = baseUrl.replace(`/${clsName}`, '');
 
         /** Case where # or #/ was entered as the path */
-        baseUrl = baseUrl.slice(-2) == '//' ? baseUrl.slice(0, -1) : baseUrl;
-
-        return baseUrl;
+        return baseUrl.slice(-2) == '//' ? baseUrl.slice(0, -1) : baseUrl;
     }
 
     static parsedRouteMap = {};
@@ -553,10 +538,7 @@ export class Router {
 
                     const path = address.url;
 
-                    Router.parsedRouteMap[path] = {
-                        path: address.path + '/' + name,
-                        isUrl: true
-                    };
+                    Router.parsedRouteMap[path] = { path: address.path + '/' + name, isUrl: true };
                 });
                 const { regular } = stillRoutesMap.viewRoutes;
                 stillRoutesMap.viewRoutes.regular = { ...regular, ...Router.parsedRouteMap };
@@ -569,8 +551,7 @@ export class Router {
         })
     }
 
-    static setStillHomeUrl = () =>
-        Router.baseUrl = `${location.origin}/${STILL_HOME}`;
+    static setStillHomeUrl = () => Router.baseUrl = `${location.origin}/${STILL_HOME}`;
 
     static escape() {
         window.location.href = location.origin + '/#/' + Router.preView.getName();
