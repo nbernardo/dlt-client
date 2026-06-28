@@ -13,6 +13,9 @@ PIPELINE_CHECKPOINT_SCHEMA = pa.schema([
     pa.field("storage_path", pa.string()),
     pa.field("stage_source", pa.string()),
     pa.field("namespace", pa.string()),
+    pa.field("dest_tables", pa.string()),
+    pa.field("tables_pks", pa.string()),
+    pa.field("dataset_name", pa.string()),
 ])
 
 table = 'pipeline_checkpoint'
@@ -38,16 +41,17 @@ class PipelineCheckpoint:
 
 
     @staticmethod
-    def persist(pipeline, status, start_time, update_time, storage_path, stage_source, namespace):
+    def persist(pipeline, namespace, stage_source, params: dict):
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
         try:
+
             tbl = PipelineCheckpoint._get_table()
             PipelineCheckpoint.migrate(tbl)
 
             rows_to_insert = [{ 
-                'pipeline': pipeline, 'status': status, 'namespace': namespace,
-                'start_time': start_time, 'update_time': update_time, 
-                'storage_path': storage_path, 'stage_source': stage_source
+                'pipeline': pipeline, 'status': params.get('state'), 'namespace': namespace, 'start_time': params.get('start_time'), 
+                'update_time': params.get('updt_time'), 'storage_path': params.get('dest_storage'), 'stage_source': stage_source,
+                'dest_tables': params.get('dest_tables'), 'tables_pks': params.get('tables_pks'), 'dataset_name': params.get('dataset_name')
             }]
 
             tbl.add(rows_to_insert)
@@ -56,11 +60,11 @@ class PipelineCheckpoint:
         except Exception as e:
             print(f"PipelineCheckpoint Update Failed: {str(e)}")
             raise RuntimeError(f'PipelineCheckpoint persist Failed: {str(e)}')
-        return pipeline, storage_path, start_time
+        return pipeline, params.get('dest_storage'), params.get('start_time')
 
 
     @staticmethod
-    def update(pipeline, delayed_pipeline, storage_path, start_time, update_status):
+    def update(pipeline, delayed_pipeline = None, params = None):
         """Update pipeline checkpoint - In case there is a delayed pipeline competing for the same storage is now passes as active"""
 
         try:
@@ -70,10 +74,9 @@ class PipelineCheckpoint:
             if delayed_pipeline:
                 [status, strt_time, updte_time] = [cp.TAKING_CONTROL, cp.TIME_FROM_BASTION, cp.TIME_UNSET]
                 filter = f"status='{cp.DELAY}' AND pipeline='{delayed_pipeline}'"
-                tbl.update(where=f"{filter}", values_sql={ 'status': f"'{status}'", 'update_time': f"'{updte_time}'", 'start_time': f"'{strt_time}'" })
 
-            filter = f"start_time='{start_time}' AND storage_path='{storage_path}' AND pipeline='{pipeline}'"
-            tbl.update(where=f'{filter}', values_sql={ 'status': f"'{update_status}'", 'update_time': f"'{datetime.now().timestamp()}'" })
+            filter = f"start_time='{params.get('start_time')}' AND storage_path='{params.get('storage_path')}' AND pipeline='{pipeline}'"
+            tbl.update(where=f'{filter}', values_sql={ 'status': f"'{params.get('cp_status')}'", 'update_time': f"'{datetime.now().timestamp()}'" })
 
         except Exception as e:
             print(f"PipelineCheckpoint Update Failed: {str(e)}")

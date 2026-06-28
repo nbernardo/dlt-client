@@ -170,6 +170,8 @@ class Workspace:
 
         for _file in file_list:
 
+            if _file.startswith('__e2estage_'): continue
+
             if _file.endswith('.duckdb') or _file.endswith('.db'):
                 ppline_name = str(_file).replace('.duckdb','')
                 if (ppline_name in ppelines): 
@@ -305,6 +307,9 @@ class Workspace:
                 if 'error' in tables_list: 
                     continue
                 
+                if not(metadata):
+                    metadata = {}
+
                 pipeline_source_and_dest = metadata.get(ppline_name, {})
                 if(len(pipeline_source_and_dest) > 0): pipeline_source_and_dest = pipeline_source_and_dest[0]
 
@@ -549,7 +554,7 @@ class Workspace:
     
 
     @staticmethod
-    def create_ppline_schedule(ppline_name, schedule_settings, namespace, type, periodicity, time):
+    def create_ppline_schedule(ppline_name, schedule_settings, namespace, type, periodicity, time, stage_storage = None):
         try:
             table = 'ppline_schedule'
             if(DuckdbUtil.workspace_table_exists(table) == False):
@@ -557,8 +562,8 @@ class Workspace:
 
             cnx = DuckdbUtil.get_workspace_db_instance()
             cursor = cnx.cursor()
-            query = f"INSERT INTO {table} (ppline_name,schedule_settings,namespace,type,periodicity,time)\
-                      VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}','{type}','{periodicity}','{time}')"
+            query = f"INSERT INTO {table} (ppline_name,schedule_settings,namespace,type,periodicity,time,stage_storage)\
+                      VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}','{type}','{periodicity}','{time}','{stage_storage}')"
             cursor.execute(query)
 
         except duckdb.IOException as err:

@@ -57,10 +57,10 @@ class PipelineMedatata:
     @staticmethod
     def update_metadata_and_pipeline_plan(
         namespace = None, pipeline=None, details={}, dataset_name: str = '', 
-        short_query: str = '', pipline_plan_id = None
+        short_query: str = '', pipline_plan_id = None, params: dict = None
     ):
         from utils.metastore.BI.PipelinePlan import PipelinePlan
-        PipelineMedatata.persist_metadata(namespace, pipeline, details, dataset_name, short_query)
+        PipelineMedatata.persist_metadata(namespace, pipeline, details, dataset_name, short_query, params)
         if(pipline_plan_id != None):
             PipelinePlan.mark_as_ran(pipline_plan_id)
 
@@ -68,21 +68,31 @@ class PipelineMedatata:
 
     @staticmethod
     def persist_metadata(
-        namespace = None, pipeline=None, details={}, dataset_name: str = '', short_query: str = '',
+        namespace = None, pipeline=None, details={}, dataset_name: str = '', 
+        short_query: str = '', params: dict = None
     ):
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
         try:
             tbl = PipelineMedatata._get_table()
+            PipelineMedatata._migrate_pipeline_metadata(tbl)
 
             if details['existing_wd'] != None:
                 dataset_name = details['existing_wd']
+            if str(dataset_name).strip() == '':
+                dataset_name = params.get('dataset_name') if params else details.get('dataset_name')
 
+            dest_tables = params.get('dest_tables') if params else details.get('dest_tables')
+            tables_pks = params.get('tables_pks') if params else details.get('tables_pks')
+            domain_pipeline = params.get('domain_pipeline') if params else details.get('domain_pipeline')
+            
+            if params: dataset_name = params.get('dataset_name')
+            
             rows_to_insert = [{
-                'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'], 
-                'stage_storage': details['stage_storage'], 'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 
-                'dest_type': details['destination_type'], 'source_config': details['source_config'], 'destination_config': details['destination_config'], 
-                'short_query': short_query, 'referenced_secrets': str(details['referenced_secrets']), 'dataset_name': dataset_name, 'domain_pipeline': details['domain_pipeline'],
-                'dest_tables': details['dest_tables'], 'tables_pks': details['tables_pks']
+                'namespace': namespace, 'source_secret_name': details.get('source_secret'), 'source_type': details.get('source_type'), 
+                'stage_storage': details.get('stage_storage'), 'pipeline': pipeline, 'dest_secret_name': details.get('destination_secret'), 
+                'dest_type': details['destination_type'], 'source_config': details.get('source_config'), 'domain_pipeline': domain_pipeline,
+                'destination_config': details.get('destination_config'), 'dest_tables': dest_tables, 'tables_pks': tables_pks,
+                'short_query': short_query, 'referenced_secrets': str(details.get('referenced_secrets')), 'dataset_name': dataset_name,
             }]
 
             tbl.add(rows_to_insert)

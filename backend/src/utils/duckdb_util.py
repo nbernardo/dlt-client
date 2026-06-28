@@ -119,7 +119,8 @@ class DuckdbUtil:
             namespace VARCHAR,\
             last_run TIMESTAMP,\
             schedule_settings JSON,  \
-            is_paused VARCHAR\
+            is_paused VARCHAR,\
+            stage_storage VARCHAR\
             )"
         cnx.execute(query)
 

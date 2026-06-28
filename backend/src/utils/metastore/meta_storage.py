@@ -46,9 +46,12 @@ class MetaStore:
 
     @staticmethod
     def persist_pipeline_metadata(
-        namespace: str, pipeline: str, details: dict, dataset_name: str, short_query: str, pipline_plan_id
+        namespace: str, pipeline: str, details: dict, dataset_name: str, 
+        short_query: str, pipline_plan_id, params: dict = None
     ):
-        return PipelineMedatata.update_metadata_and_pipeline_plan(namespace, pipeline, details, dataset_name, short_query, pipline_plan_id)
+        return PipelineMedatata.update_metadata_and_pipeline_plan(
+            namespace, pipeline, details, dataset_name, short_query, pipline_plan_id, params
+        )
 
 
     @staticmethod

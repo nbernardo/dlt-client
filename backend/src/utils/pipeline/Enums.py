@@ -20,15 +20,17 @@ class ProviderURL(StrEnum):
 class Checkpoint(StrEnum):
     INIT = 'INIT'
     DONE = 'DONE'
+    # DWH -> Same as DONE Indicate the was stored into the Datawarehouse sourced from Stage area
+    DONE_DWH = 'COMPLETED_DWH'
     DELAY = 'DELAYED'
     FAILED = 'FAILED'
     TABLE_COMMIT = 'COMMIT'
     TAKING_CONTROL = 'BASTION_PASSED'
-    # Mean the data have been put in stage storage
+    # STAGED -> Mean the data have been put in stage storage
     STAGED = 'STAGED'
 
     TIME_UNSET = 'UNSET'
-    # Means that the pipeline run status was update from bastion, but no real time was set yeat
+    # TIME_FROM_BASTION -> Means that the pipeline run status was update from bastion, but no real time was set yeat
     TIME_FROM_BASTION = 'FROM_BASTION'
 
 
