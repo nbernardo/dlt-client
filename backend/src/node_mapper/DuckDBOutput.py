@@ -32,6 +32,7 @@ class DuckDBOutput(TemplateNodeType):
             self.output_dest_name = data['database'].replace('-','_')
         # table_name is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
         self.ppline_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
+        context.pipeline_metadata.dest_dw_name = self.output_dest_name
 
 
     def run(self) -> None:

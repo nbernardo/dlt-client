@@ -57,10 +57,13 @@ class SqlDBComponent(TemplateNodeType):
 
         # primary_keys fields is mapped in /pipeline_templates/sql_db.txt
         self.primary_keys = [key for key in list(data['primaryKeys'].values()) if key != None]
+        context.pipeline_metadata.tables_pks = self.primary_keys
         
-        if context.pipeline_metadata.domain_pipeline == 1:
-            table = [table.split('.')[1] if str(table).__contains__('.') else table for table in self.source_tables]
-            self.metadata_section = f"# METADATA: dest_tables=[{str(table).replace('[','').replace(']','')}]\n"
+        if context.pipeline_metadata.domain_pipeline in [1,'1']:
+            tables = [table.split('.')[1] if str(table).__contains__('.') else table for table in self.source_tables]
+            context.pipeline_metadata.dest_tables = tables
+            
+            self.metadata_section = f"# METADATA: dest_tables=[{str(tables).replace('[','').replace(']','')}]\n"
             self.parse_to_literal = ['metadata_section']
 
         self.increment_by_fields = []

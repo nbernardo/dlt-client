@@ -186,6 +186,21 @@ class RequestContext:
         """
         self.emit_ppline_trace(data,error,True)
 
+    
+    def get_dest_details(self, dest_storage):
+
+        if self.pipeline_metadata.stage_storage:
+            dest_storage = self.pipeline_metadata.stage_storage.split('_for_')[1]
+
+        return {
+            'dest_tables': self.pipeline_metadata.dest_tables, 
+            'tables_pks': self.pipeline_metadata.tables_pks, 
+            'dest_storage': dest_storage,
+            'dataset_name': self.pipeline_metadata.dest_dw_name
+        }
+        
+
+    
 
 
 
@@ -206,3 +221,5 @@ class PipelineMetadata:
         self.original_pipeline_name = None
         self.stage_storage: str = None
         self.dest_dw_name = None
+        self.dest_tables = None
+        self.tables_pks = None

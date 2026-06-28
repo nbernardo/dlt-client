@@ -39,21 +39,30 @@ class PipelineDWPhaseRunner:
 
 
     def _run_pipeline(self, tables, pks, source_schema=None):
-        source_instance = sql_database(
-            credentials=f"duckdb:///{self.source_db_path}",
-            backend="sqlalchemy",
-            schema=source_schema[0] if type(source_schema) == list else source_schema
-        ).with_resources(*tables)
+
+        skma = source_schema[0] if type(source_schema) == list else source_schema
+        engine, creds = "sqlalchemy", f"duckdb:///{self.source_db_path}"
+
+        source = sql_database(credentials=creds,backend=engine,schema=skma).with_resources(*tables)
 
         for table, pk in zip(tables, pks):
+            
             if pk:
-                source_instance.resources[table].apply_hints(primary_key=pk)
+                source.resources[table].apply_hints(primary_key=pk)
 
         dataset_name = self.dataset_name[0] if type(self.dataset_name) == list else self.dataset_name
         dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
         pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest,)
 
-        return pipeline.run(source_instance, write_disposition="merge")
+        # Runs the unique column ingestion for every table being ingested
+        source1 = sql_database(credentials=creds,backend=engine,schema='dwhperformance_meta').with_resources('fk_map')
+        fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest,)
+        
+        source1.resources['fk_map'].apply_hints(primary_key=['table_name','fk_col','ref_table','ref_col'])
+        fk_pipeline.run(source1, write_disposition="merge")
+
+        # Runs the ingestion of the actuall datawarehouse tables
+        return pipeline.run(source, write_disposition="merge")
 
 
     def run_async(self, tables, pks, source_schema: Optional[str] = None, callback: Optional[Callable] = None) -> concurrent.futures.Future:

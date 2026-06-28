@@ -357,6 +357,7 @@ def delete_data_file(namespace, filename):
     
 import os
 def call_scheduled_job():
+    from duckdb import CatalogException
 
     if os.path.exists('/.dockerenv'):
         # In case the app is running in Docker we call the schedul implementation 
@@ -365,14 +366,19 @@ def call_scheduled_job():
         
     else:
         def call_end_point():
-            time.sleep(2)
-            while True:
-                response = requests.post(f'{env('APP_SRV_ADDR')}/workcpace/ppline/job/schedule/')
-                if hasattr(response, 'raise_for_status'):
-                    response.raise_for_status()
-                if response.status_code == 200 or response.status_code == 204:
-                    break
-                time.sleep(.5)
+            try:
+                time.sleep(2)
+                while True:
+                    response = requests.post(f'{env('APP_SRV_ADDR')}/workcpace/ppline/job/schedule/')
+                    if hasattr(response, 'raise_for_status'):
+                        pass
+                        #response.raise_for_status()
+                    if response.status_code == 200 or response.status_code == 204:
+                        break
+                    time.sleep(.5)
+
+            except CatalogException:
+                pass
 
         task = threading.Thread(target=call_end_point)
         task.start()

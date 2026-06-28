@@ -33,7 +33,7 @@ root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
 template_dir = f'{root_dir}/pipeline_templates'
 SUCCESS_RUN_MESSAGE = 'Pipeline run terminated successfully'
-
+DW_WAIT_SEC = int(env('STAGE_TO_DW_WAIT_SEC'))
 
 def is_SAWarning(message):
     """ validate if there was SQLAlchemy warning (e.g. no rewriting existing table) """
@@ -115,12 +115,12 @@ class DltPipeline:
             does_have_metadata = True if (context and context.bucket_source and context.is_code_destination) else False
 
         filename_suffixe = ''
-        if context.pipeline_metadata.existing_wd:
+        if context.pipeline_action == 'onlysave':
+            filename_suffixe = '__toschedule__'
+        elif context.pipeline_metadata.existing_wd:
             filename_suffixe = '__withmetadata__'
         elif context and context.is_duck_destination != True:
             filename_suffixe = '__withmetadata__' if does_have_metadata or context.is_code_destination else ''
-            if(filename_suffixe == ''):
-                filename_suffixe = '__toschedule__' if context.pipeline_action == 'onlysave' else ''
 
         ppline_file = f'{file_path}/{file_name}{filename_suffixe}.py'
         file_open_flag = 'x+'
@@ -133,11 +133,15 @@ class DltPipeline:
             # Create python file with pipeline code
             with open(ppline_file, file_open_flag, encoding='utf-8') as file:                    
                 file.write(data)
-
+        
+        params = context.get_dest_details(f'{file_path}/{file_name}.duckdb')
+        
         if context and context.pipeline_action == 'onlysave':
             context.emit_ppsuccess()
+            params = { **params, 'domain_pipeline': context.pipeline_metadata.domain_pipeline }
             MetaStore.persist_pipeline_metadata(
-                context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), None, '', context.pipeline_metadata.pipline_plan_id
+                context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), None, '', 
+                context.pipeline_metadata.pipline_plan_id, params
             )
             return { 'status': True, 'message': 'Pipeline created successfully' }
         
@@ -155,14 +159,10 @@ class DltPipeline:
         result.stdin.write(start_time+'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process 
         result.stdin.flush()
 
-        dest_storage = f'{file_path}/{file_name}.duckdb'
-        if context.pipeline_metadata.stage_storage:
-            dest_storage = context.pipeline_metadata.stage_storage.split('_for_')[1]
+        [namespace, stg_storage] = [context.transaction_namespace, context.pipeline_metadata.stage_storage]
+        params = { **params, 'state': Checkpoint.INIT, 'updt_time': Checkpoint.TIME_UNSET, 'start_time': start_time }
 
-        namespace, stg_storage = context.transaction_namespace, context.pipeline_metadata.stage_storage
-        pipeline, storage_path, _ = PipelineCheckpoint.persist(
-            context.pipeline_name, Checkpoint.INIT, start_time, Checkpoint.TIME_UNSET, dest_storage, stg_storage, namespace
-        )
+        pipeline, storage_path, _ = PipelineCheckpoint.persist(context.pipeline_name, namespace, stg_storage, params)
 
         if(flag):
             while True:
@@ -205,11 +205,15 @@ class DltPipeline:
 
         if context:
             cp_status = Checkpoint.STAGED if context.pipeline_metadata.stage_storage else Checkpoint.DONE
-            PipelineCheckpoint.update(pipeline, None, storage_path, start_time, cp_status)
+            params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline }
+            
+            PipelineCheckpoint.update(pipeline, None, params)
             context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
 
+            dest_storage = params.get('dest_storage')
             job_tag = f'{start_time}_{dest_storage}'
-            schedule.every(10).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, dest_storage, start_time, refs).tag(job_tag)
+            refs = { **refs, 'params': params }
+            schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs, job_tag).tag(job_tag)
             
             handle_pipeline_log(f'pipeline.success.conclusion', logger)
         
@@ -564,6 +568,9 @@ class DltPipeline:
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{db_file}.duckdb')
             handle_pipeline_log(f'####### WILL RUN JOB FOR {file_path}', logger, False)
 
+            stg_storage = pipeline_metadata[8]
+            context.pipeline_metadata.stage_storage = stg_storage
+
             # Run pipeline generater above by passing the python file
             # Pass environment variables including Vault credentials
             [env_vars, PIPE] = [DltPipeline.prepare_pipeline_env_vars(), asyncio.subprocess.PIPE]
@@ -573,10 +580,13 @@ class DltPipeline:
             proc.stdin.write(str(job_start_time).encode() + b'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process
             ppline_name = str(db_file).replace(f'{namespace}/','')
 
+            params = context.get_dest_details(f'{db_root_path}/{db_file}.duckdb')
+            params = { **params, 'state': Checkpoint.INIT, 'updt_time': Checkpoint.TIME_UNSET, 'start_time': job_start_time }
+            
             # Register pipeline run initiation and start time
-            pipeline, storage_path, _ = PipelineCheckpoint.persist(
-                ppline_name, Checkpoint.INIT, job_start_time, Checkpoint.TIME_UNSET, db_file, context.pipeline_metadata.stage_storage, namespace
-            )
+            _1, storage_path, _2 = PipelineCheckpoint.persist(pipeline_metadata[4], namespace, stg_storage, params)
+
+            pipeline = pipeline_metadata[4]
             await proc.stdin.drain()
 
             while True:
@@ -594,19 +604,23 @@ class DltPipeline:
             await DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger, job_start_time)
 
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            [short_query, dataset_name] = [refs.get('short_query'), refs.get('dataset_name')]
+            [short_query, dataset_name] = [refs.get('short_query'), pipeline_metadata[7]]
 
             DltPipeline.update_pipline_runtime(namespace, ppline_name, dt)
 
-            delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
+            # delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
             # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
             cp_status = Checkpoint.STAGED if context.pipeline_metadata.stage_storage else Checkpoint.DONE
-            PipelineCheckpoint.update(pipeline, delayed_pipeline, storage_path, job_start_time, cp_status)
+            params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline }
+
+            PipelineCheckpoint.update(pipeline, None, params)
             MetaStore.update_metadata(namespace, pipeline, dataset_name, short_query)
 
             if context.pipeline_metadata.stage_storage:
-                job_tag, stg_storage = f'{job_start_time}_{dataset_name}', refs['stg_storage']
-                schedule.every(10).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, dataset_name, job_start_time, refs).tag(job_tag)
+                job_tag = f'{job_start_time}_{stg_storage}'
+                refs = { **refs, 'params': params, 'dataset_name': pipeline_metadata[7], 'dest_tables': pipeline_metadata[9], 'tables_pks': pipeline_metadata[10] }
+                
+                schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs, job_tag).tag(job_tag)
 
             if len(triggers) > 0:
                 curr_trigger = triggers.pop(0)
