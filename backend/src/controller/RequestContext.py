@@ -199,7 +199,10 @@ class PipelineMetadata:
         self.destination_config = ''
         self.source_config = ''
         self.referenced_secrets = ''
+        # domain_pipeline is used to define the staged data ingestion
         self.domain_pipeline = ''
         self.existing_wd = None
         self.pipline_plan_id = None
         self.original_pipeline_name = None
+        self.stage_storage: str = None
+        self.dest_dw_name = None

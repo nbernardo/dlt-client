@@ -346,11 +346,15 @@ def handle_transform_indent(transformation: str):
 
 def template_final_parsing(template, pipeline_name, payload, duckdb_path, context: RequestContext = None):
     # Escape backslashes in Windows paths for Python string literals
+    from datetime import datetime
     if isinstance(duckdb_path, str) and '\\' in duckdb_path:
         duckdb_path = duckdb_path.replace('\\', '\\\\')
     
     if context.pipeline_metadata.existing_wd != None:
         pipeline_name = str(context.pipeline_metadata.existing_wd).split('.')[1]
+    if context.pipeline_metadata.domain_pipeline == '1':
+        pipeline_name = f'__e2estage_{datetime.now().timestamp()}_for_{pipeline_name}'
+        context.pipeline_metadata.stage_storage = pipeline_name
 
     template = template.replace('%pipeline_name%', f'"{pipeline_name}"').replace('%Usr_folder%',duckdb_path)
     template = template.replace('%Dbfile_name%', pipeline_name)
