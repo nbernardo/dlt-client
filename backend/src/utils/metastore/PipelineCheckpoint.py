@@ -10,7 +10,9 @@ PIPELINE_CHECKPOINT_SCHEMA = pa.schema([
     pa.field("status", pa.string()),
     pa.field("start_time", pa.string()),
     pa.field("update_time", pa.string()),
-    pa.field("storage_path", pa.string())
+    pa.field("storage_path", pa.string()),
+    pa.field("stage_source", pa.string()),
+    pa.field("namespace", pa.string()),
 ])
 
 table = 'pipeline_checkpoint'
@@ -36,13 +38,17 @@ class PipelineCheckpoint:
 
 
     @staticmethod
-    def persist(pipeline, status, start_time, update_time, storage_path):
+    def persist(pipeline, status, start_time, update_time, storage_path, stage_source, namespace):
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
         try:
             tbl = PipelineCheckpoint._get_table()
             PipelineCheckpoint.migrate(tbl)
 
-            rows_to_insert = [{ 'pipeline': pipeline, 'status': status, 'start_time': start_time, 'update_time': update_time, 'storage_path': storage_path }]
+            rows_to_insert = [{ 
+                'pipeline': pipeline, 'status': status, 'namespace': namespace,
+                'start_time': start_time, 'update_time': update_time, 
+                'storage_path': storage_path, 'stage_source': stage_source
+            }]
 
             tbl.add(rows_to_insert)
             #if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
@@ -98,7 +104,8 @@ class PipelineCheckpoint:
         try:
             tbl = PipelineCheckpoint._get_table()
             PipelineCheckpoint.migrate(tbl)
-            records = tbl.search().where(f"storage_path='{storage_path}' AND pipeline != '{pipeline}' AND status !='{Checkpoint.DELAY}'").select(['pipeline']).limit(1).to_list()
+            query = f"storage_path='{storage_path}' AND pipeline != '{pipeline}' AND status NOT INT ('{Checkpoint.DELAY}','{Checkpoint.STAGED}')"
+            records = tbl.search().where(query).select(['pipeline']).limit(1).to_list()
 
             return records[0]['pipeline'] if records else None
 

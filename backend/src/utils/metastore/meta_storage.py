@@ -14,6 +14,10 @@ class MetaStore:
     def persist_catalog(table_source: str, dbs_path=None, pipeline=None, load_info=None, additionals={}, catalog_exist = False):
         """Persists column catalog to LanceDB. Concurrent writes via MVCC — This is called from the pipeline run itself"""
         
+        dest_storage = getattr(load_info,'destination_displayable_credentials').split('/')[-1]
+        print(f'DEST_STRG=__dest_storage__:{dest_storage}', flush=True) # Notify the main process about pipeline run completion
+        print(f'DEST_TABLES=__dest_tables__:{','.join(additionals.get('tbls', []))}', flush=True) # Notify the main process about pipeline run completion
+        print(f'TABLESPK=__tables_pks__:{','.join(additionals.get('pks', []))}', flush=True) # Notify the main process about pipeline run completion
         print(f'DATA=__dlt__destination__datasetname__:{pipeline.config.dataset_name}', flush=True)
         print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}', flush=True)
         print(load_info, flush=True) # Print pipeline completion details for main process and UI
