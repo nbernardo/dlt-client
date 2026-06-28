@@ -11,7 +11,10 @@ PIPELINE_METADATA_SCHEMA = pa.schema([
     pa.field("dest_secret_name", pa.string()),
     pa.field("source_type", pa.string()),
     pa.field("dest_type", pa.string()),
-    pa.field("pipeline", pa.string())
+    pa.field("pipeline", pa.string()),
+    pa.field("stage_storage", pa.string()),
+    pa.field("dest_tables", pa.string()),
+    pa.field("tables_pks", pa.string()),
 ])
 
 
@@ -38,6 +41,10 @@ class PipelineMedatata:
     @staticmethod
     def _get_duckdb_conn(include_catalog = False, db_path = None) -> duckdb.DuckDBPyConnection:
         """Returns a DuckDB connection with a catalog view over the LanceDB files."""
+        # Forces pipeline catalog table creation
+        tbl = PipelineMedatata._get_table()
+        PipelineMedatata._migrate_pipeline_metadata(tbl)
+
         lance_path = f'{db_path if db_path != None else DuckdbUtil.workspacedb_path}/catalog.lance'
         con = duckdb.connect()
         con.execute("LOAD lance")
@@ -66,16 +73,16 @@ class PipelineMedatata:
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
         try:
             tbl = PipelineMedatata._get_table()
-            PipelineMedatata._migrate_pipeline_metadata(tbl)
 
             if details['existing_wd'] != None:
                 dataset_name = details['existing_wd']
 
             rows_to_insert = [{
-                'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'],
-                'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 'dest_type': details['destination_type'],
-                'source_config': details['source_config'], 'destination_config': details['destination_config'], 'short_query': short_query,
-                'referenced_secrets': str(details['referenced_secrets']), 'dataset_name': dataset_name, 'domain_pipeline': details['domain_pipeline'],
+                'namespace': namespace, 'source_secret_name': details['source_secret'], 'source_type': details['source_type'], 
+                'stage_storage': details['stage_storage'], 'pipeline': pipeline, 'dest_secret_name': details['destination_secret'], 
+                'dest_type': details['destination_type'], 'source_config': details['source_config'], 'destination_config': details['destination_config'], 
+                'short_query': short_query, 'referenced_secrets': str(details['referenced_secrets']), 'dataset_name': dataset_name, 'domain_pipeline': details['domain_pipeline'],
+                'dest_tables': details['dest_tables'], 'tables_pks': details['tables_pks']
             }]
 
             tbl.add(rows_to_insert)
@@ -90,7 +97,7 @@ class PipelineMedatata:
         """Update the pipeline metadata only touching the shortquery and the dataset_name"""
         try:
             tbl = PipelineMedatata._get_table()
-            PipelineMedatata._migrate_pipeline_metadata(tbl)
+
             filter = f"pipeline='{pipeline}' AND namespace='{namespace}'"
             tbl.update(where=filter, values_sql={ 'short_query': f"'{short_query}'", 'dataset_name': f"'{dataset_name}'" })
 
@@ -104,7 +111,9 @@ class PipelineMedatata:
             con = PipelineMedatata._get_duckdb_conn(False, db_path)
             more_filter = f"and namespace = '{namespace}'" if namespace != None else ''
             result = con.execute(f"""
-                SELECT pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, source_type, dest_type, dataset_name
+                SELECT 
+                    pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, 
+                    source_type, dest_type, dataset_name, stage_storage, dest_tables, tables_pks
                 FROM pipeline_metadata WHERE pipeline = ? {more_filter}
             """, [pipeline]).fetchone()
             con.close()
