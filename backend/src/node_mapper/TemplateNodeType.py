@@ -60,7 +60,7 @@ class TemplateNodeType:
                 metadata_section = f'# METADATA: dest_tables=%source_tables%\n'
                 template = template.replace('%metadata_section%',metadata_section)
             else:
-                if self.context.pipeline_metadata.domain_pipeline != 1:
+                if self.context.pipeline_metadata.domain_pipeline not in ['1',1]:
                     template = template.replace('%metadata_section%','')
             # Remove placeholder for destination database secrets
             template = template.replace('%dest_secret_code%','')

@@ -121,17 +121,20 @@ class PipelineHelper:
 
 
     @staticmethod
+    def create_dbschema_table(con):
+        con.execute("CREATE SCHEMA IF NOT EXISTS dwhperformance_meta")
+        tbl_schema = 'table_name VARCHAR, fk_col VARCHAR, ref_table VARCHAR, ref_col VARCHAR, PRIMARY KEY (table_name, fk_col)'
+        con.execute(f"CREATE TABLE IF NOT EXISTS dwhperformance_meta.fk_map ({tbl_schema})")
+
+
+    @staticmethod
     def add_tables_contrains(con, tbls, adtnls, optmz_typ):
         contraints = adtnls.get('rels')
-
+        PipelineHelper.create_dbschema_table(con)
         for tbl_name in tbls:
             table_path = tbl_name.split('.')
             tbl_name = table_path[1] if len(table_path) > 1 else tbl_name
             stg_tbl = tbl_name #prefx(tbl_name, optmz_typ)
-
-            con.execute("CREATE SCHEMA IF NOT EXISTS dwhperformance_meta")
-            tbl_schema = 'table_name VARCHAR, fk_col VARCHAR, ref_table VARCHAR, ref_col VARCHAR, PRIMARY KEY (table_name, fk_col)'
-            con.execute(f"CREATE TABLE IF NOT EXISTS dwhperformance_meta.fk_map ({tbl_schema})")
 
             con.executemany(
                 """ INSERT OR REPLACE INTO dwhperformance_meta.fk_map (table_name, fk_col, ref_table, ref_col) VALUES (?, ?, ?, ?) """,

@@ -31,7 +31,11 @@ class DuckDBOutput(TemplateNodeType):
         else:
             self.output_dest_name = data['database'].replace('-','_')
         # table_name is mapped in /pipeline_templates/simple.txt and simple_transform_field.txt
-        self.ppline_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
+        if context.pipeline_metadata.existing_wd != None and self.context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
+            pass
+        else: 
+            self.ppline_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
+
         context.pipeline_metadata.dest_dw_name = self.output_dest_name
 
 
@@ -40,7 +44,7 @@ class DuckDBOutput(TemplateNodeType):
         Run the initial steps
         """
         super().run()
-        print(f'Inited DuckDB with : {self.output_dest_name} and {self.ppline_dest_table}')
+        #print(f'Inited DuckDB with : {self.output_dest_name} and {self.ppline_dest_table}')
         self.check_table()
 
     def check_table(self) -> None:

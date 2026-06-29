@@ -352,7 +352,7 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     
     if context.pipeline_metadata.existing_wd != None:
         pipeline_name = str(context.pipeline_metadata.existing_wd).split('.')[1]
-    if context.pipeline_metadata.domain_pipeline == '1':
+    if context.pipeline_metadata.domain_pipeline in ['1',1]:
         pipeline_name = f'__e2estage_{datetime.now().timestamp()}_for_{pipeline_name}'
         context.pipeline_metadata.stage_storage = pipeline_name
 
@@ -366,7 +366,7 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     template = template.replace('%original_pipeline_name%', context.pipeline_metadata.original_pipeline_name)
     # %table_format% replace might be preceeded by the DLTCodeOutput node type which
     # means that if this was stated at the node level, this one won't take any effect 
-    template = template.replace('%table_format%', '')
+    template = template.replace('%table_format%', '').replace('%metadata_section%','')
     
     if(context.transformation):
         transformation = context.transformation.replace('"(pl.','(pl.')

@@ -4,7 +4,6 @@ import logging
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
 from src.utils.metastore.meta_storage import MetaStore
-import re
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -16,7 +15,7 @@ logger.info("Loading files from filesystem", extra={'stage': 'data_loading', 'bu
 files = filesystem(bucket_url=bucket_url, file_glob=file_pattern)
 logger.info("Files/Bucket loaded successfully", extra={'stage': 'data_loading'})
 
-# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table
+# Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table or Bucket.ppline_dest_table when source is Bucket
 logger.info("Creating %read_file_type% reader", extra={'stage': 'data_transformation', 'destination_table': %ppline_dest_table%})
 reader = (files | read_%read_file_type%()).with_name(%ppline_dest_table%)
 
@@ -25,7 +24,7 @@ if %primary_key% != 'UNDEFINED':
     logger.info("Applying primary key hints", extra={'stage': 'data_transformation', 'primary_key': %primary_key%})
     reader.apply_hints(primary_key=%primary_key%)
 
-namespace = %namespace%
+namespace, original_pipeline_name = %namespace%, '%original_pipeline_name%'
 %destination_settings%
 
 # Execute pipeline with logging enabled

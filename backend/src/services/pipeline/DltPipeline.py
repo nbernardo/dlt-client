@@ -27,7 +27,7 @@ from services.email.SimpleAPIMailer import SimpleAPIMailer
 from internationalization.email import labels
 import asyncio
 from utils.metastore.PipelineDWPhaseRunner import PipelineDWPhaseRunner
-
+from utils.pipeline import NodeType
 
 root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
@@ -210,9 +210,12 @@ class DltPipeline:
             PipelineCheckpoint.update(pipeline, None, params)
             context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
 
-            dest_storage = params.get('dest_storage')
-            job_tag = f'{start_time}_{dest_storage}'
+            job_tag = f'{start_time}_{params.get('dest_storage')}'
             refs = { **refs, 'params': params }
+
+            if context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
+                refs = { **refs, 'tables_pks': context.pipeline_metadata.tables_pks, 'dest_tables': context.pipeline_metadata.dest_tables }
+
             schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs, job_tag).tag(job_tag)
             
             handle_pipeline_log(f'pipeline.success.conclusion', logger)

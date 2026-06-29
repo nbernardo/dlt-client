@@ -54,12 +54,16 @@ class PipelineDWPhaseRunner:
         dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
         pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest,)
 
-        # Runs the unique column ingestion for every table being ingested
-        source1 = sql_database(credentials=creds,backend=engine,schema='dwhperformance_meta').with_resources('fk_map')
-        fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest,)
-        
-        source1.resources['fk_map'].apply_hints(primary_key=['table_name','fk_col','ref_table','ref_col'])
-        fk_pipeline.run(source1, write_disposition="merge")
+        # It might not have dwhperformance_meta when data source is a file (e.g. csv)
+        try:
+            # Runs the unique column ingestion for every table being ingested
+            source1 = sql_database(credentials=creds,backend=engine,schema='dwhperformance_meta').with_resources('fk_map')
+            fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest,)
+            
+            source1.resources['fk_map'].apply_hints(primary_key=['table_name','fk_col','ref_table','ref_col'])
+            fk_pipeline.run(source1, write_disposition="merge")
+        except:
+            pass
 
         # Runs the ingestion of the actuall datawarehouse tables
         return pipeline.run(source, write_disposition="merge")
@@ -86,7 +90,11 @@ class PipelineDWPhaseRunner:
 
 
     def run(namespace, data_source, refs, job_tag):
+
         import schedule
+        schedule.clear(job_tag)
+        if not data_source: return
+
         import platform
         from utils.duckdb_util import DuckdbUtil
         from controller.pipeline import BasePipeline
@@ -101,7 +109,6 @@ class PipelineDWPhaseRunner:
         tables = [table.split('.')[-1] if str(table).__contains__('.') else table for table in tables]
         data_source[0].split('_for_',1)
 
-        schedule.clear(job_tag)
         data_source = data_source[-1] if str(data_source).__contains__('/') else data_source
         
         sep = '/' if platform.system() != 'Windows' else '\\\\'

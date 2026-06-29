@@ -123,7 +123,7 @@ def query_parquet_export(namespace = None, dw = None):
             if flpath and os.path.exists(flpath):
                 os.remove(flpath)
             return response
-
+        
         return send_file(flpath, mimetype=mmtype, as_attachment=True, download_name="result.parquet")
 
     except ValueError as e:
