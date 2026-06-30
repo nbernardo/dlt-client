@@ -1,6 +1,6 @@
 import dlt
 from sqlalchemy import create_engine, text, inspect
-import re
+from datetime import datetime, timezone
 
 def column_type_conversion(columns, connection, table, schema):
 
@@ -43,7 +43,6 @@ def dynamic_mssql_source(
     primary_keys: list[str],
     connection_string: str,
 ):
-
     table_to_schema_map = {}
 
     @dlt.source
@@ -74,4 +73,5 @@ def dynamic_mssql_source(
             return table_data
         return [create_table_resource(tables[index], primary_keys[index]) for index in range(len(tables))]
     
-    return source(tables, primary_keys, connection_string), table_to_schema_map 
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+    return source(tables, primary_keys, connection_string), table_to_schema_map, ts

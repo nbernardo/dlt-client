@@ -5,6 +5,8 @@ from dlt.sources.sql_database import sql_database
 from dlt.destinations.impl.duckdb.configuration import DuckDbCredentials
 from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
 from utils.pipeline.Enums import Checkpoint
+import duckdb
+import os
 
 def on_pipeline_finished(future_object, runner, params: dict):
     try:
@@ -39,16 +41,23 @@ class PipelineDWPhaseRunner:
 
 
     def _run_pipeline(self, tables, pks, source_schema=None):
-
+        os.environ["SCHEMA__NAMING"] = "direct"
         skma = source_schema[0] if type(source_schema) == list else source_schema
         engine, creds = "sqlalchemy", f"duckdb:///{self.source_db_path}"
 
-        source = sql_database(credentials=creds,backend=engine,schema=skma).with_resources(*tables)
+        con = duckdb.connect(self.source_db_path)
+        tbls_fltr = str([f'{t}' for t in tables]).strip('[]')
+        tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr}) ").fetchall()
+        tbls = list({t[0] for t in tbls})
+        con.close()
 
-        for table, pk in zip(tables, pks):
-            
-            if pk:
-                source.resources[table].apply_hints(primary_key=pk)
+        source = sql_database(credentials=creds,backend=engine,schema=skma, reflection_level='minimal').with_resources(*tbls)
+
+        for idx in range(len(tbls)):
+            table = tbls[idx]
+            i = tables.index(table) if table in tables else -1
+            if i >= 0:
+                source.resources[table].apply_hints(primary_key=pks[i])
 
         dataset_name = self.dataset_name[0] if type(self.dataset_name) == list else self.dataset_name
         dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
@@ -57,7 +66,7 @@ class PipelineDWPhaseRunner:
         # It might not have dwhperformance_meta when data source is a file (e.g. csv)
         try:
             # Runs the unique column ingestion for every table being ingested
-            source1 = sql_database(credentials=creds,backend=engine,schema='dwhperformance_meta').with_resources('fk_map')
+            source1 = sql_database(credentials=creds,backend=engine,schema='dwhperformance_meta', reflection_level='minimal').with_resources('fk_map')
             fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest,)
             
             source1.resources['fk_map'].apply_hints(primary_key=['table_name','fk_col','ref_table','ref_col'])

@@ -43,7 +43,7 @@ try:
         logger.info("Pipeline execution completed", extra={'stage': 'pipeline_completion'})
     
     catalog_table_path = f'{bucket_url}/{file_pattern}'
-    MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info)
+    MetaStore.persist_catalog([%ppline_dest_table%], pipeline, info)
     
 except Exception as e:
     logger.error("Pipeline execution failed", extra={

@@ -59,10 +59,16 @@ def load_select_tables_from_db():
     staged_table = tbl_stage in [2,3]
 
     for idx in range(len(tables)):
-        schema, table = tables[idx].split('.')
+        table, schema, db_table = tables[idx], None, None
+        if tables[idx].__contains__('.'):
+            schema, table = tables[idx].split('.')
         logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
         
-        db_table = sql_table(table=table,  credentials=credentials, schema=schema)
+        if schema != '':
+            db_table = sql_table(table=table,  credentials=credentials, schema=schema)
+        else:
+            db_table = sql_table(table=table,  credentials=credentials)
+            
         db_table = db_table.with_name(f"{table}_{original_pipeline_name}")
         db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
 
@@ -77,6 +83,7 @@ def load_select_tables_from_db():
 
     print('Starting pipeline run', flush=True)
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
+    
     info = pipeline.run(source, write_disposition='merge', %table_format%)
     
     if hasattr(info, 'loads_ids') and info.loads_ids:

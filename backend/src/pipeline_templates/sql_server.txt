@@ -1,12 +1,10 @@
 %metadata_section%import dlt
 from dlt.sources.credentials import ConnectionStringCredentials
-import logging
 from pathlib import Path
 from sys import path
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
-from src.utils.metastore.meta_storage import MetaStore
-import re
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -23,7 +21,7 @@ from src.services.workspace.SecretManager import SecretManager
 from src.utils import SQLServerUtil
 
 # Bellow mapping: namespace = SqlDBComponent.namespace
-namespace = %namespace%
+namespace, original_pipeline_name = %namespace%, '%original_pipeline_name%'
 
 # Bellow mapping: connection_name = SqlDBComponent.connection_name
 connection_name = %connection_name%
@@ -50,47 +48,37 @@ def load_select_tables_from_db():
     tables = %source_tables%
 
     # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
-    tables_pk = %primary_keys%
+    pks = %primary_keys%
 
-    logger.info("Setting up SQL Server data source", extra={
-        'stage': 'data_source_setup',
-        'table_count': len(tables),
-        'tables': tables
-    })
+    source, tbl_skma_map, ts = SQLServerUtil.dynamic_mssql_source(tables, pks, connection_string)
+    rels, meta, ddls, big_query = {}, {}, {}, ''
+
+    logger.info("Setting up SQL Server data source", extra={'stage': 'data_source_setup','table_count': len(tables),'tables': tables})
+    
+    pplines = { 'analytics_storage': ppline_name, 'ppline_name': original_pipeline_name }
+    addts = { 'namespace': namespace, 'db_name': %output_dest_name%, 'tbls': tables, 'rels': rels, 'stage': %stage%, 'ts': ts, 'pks': pks, 'tmplt': 'MSSQL' }
+    addts = { **addts, 'meta': meta, 'ddls': ddls, 'dest': dest, 'big_query': big_query, 'use_existing_dw': '%use_existing_dw%', **pplines }
 
     try:
-        source, table_to_schema_map = SQLServerUtil.dynamic_mssql_source(tables, tables_pk, connection_string)
         
         logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
         info = pipeline.run(source, write_disposition='merge')
         
         # Log pipeline execution results
         if hasattr(info, 'loads_ids') and info.loads_ids:
-            logger.info("SQL Server pipeline execution completed successfully", extra={
-                'stage': 'pipeline_completion',
-                'loads_ids': str(info.loads_ids),
-                'dataset_name': getattr(info, 'dataset_name', 'unknown'),
-                'table_count': len(tables),
-                'template_type': 'sql_server'
-            })
+            load_ids, dataset, tbl_count = str(info.loads_ids), getattr(info, 'dataset_name', 'unknown'), len(tables)
+            extra = { 'loads_ids': load_ids, 'dataset_name': dataset, 'table_count': tbl_count, 'template_type': 'sql_server' }
+            logger.info("MSSQL pipeline completed successfully", extra=extra)
         else:
-            logger.info("SQL Server pipeline execution completed", extra={
-                'stage': 'pipeline_completion',
-                'table_count': len(tables),
-                'template_type': 'sql_server'
-            })
+            logger.info("MSSQL pipeline execution completed", extra={'table_count': len(tables), 'template_type': 'sql_server'})
         
         catalog_table_path = f'{secret['host']}:{secret['port']}/{secret['database']}'
-        MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, table_to_schema_map)
+        Helper.wrapup_run(catalog_table_path, src_path, pipeline, info, addts)
         
     except Exception as source_error:
-        logger.error("SQL Server data source creation failed", extra={
-            'stage': 'data_source_error',
-            'error_type': type(source_error).__name__,
-            'error_message': str(source_error),
-            'table_count': len(tables),
-            'tables': tables
-        }, exc_info=True)
+        stg, err_type, err_msg, table_count = 'data_source_error', type(source_error).__name__, str(source_error), len(tables)
+        extra = { 'stage': stg, 'error_type': err_type, 'error_message': err_msg, 'table_count': table_count, 'tables': tables }
+        logger.error("SQL Server data source creation failed", extra=extra, exc_info=True)
         raise
 
 

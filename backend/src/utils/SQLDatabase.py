@@ -471,12 +471,12 @@ def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
     # To keep backword compatibility
     # TODO: Migrate all scenario to the new implementation 
     #       to support big_query generation
-    if dbengine != 'postgresql':
+    if dbengine == 'oracle':
         return _normalize_table_names_backward(secrets, tables, primary_keys)
 
     engine = create_engine(connection_url)
     inspector = inspect(engine)
-    available = inspector.get_table_names(schema=schema)
+    available = inspector.get_table_names() if dbengine == 'mysql' else inspector.get_table_names(schema=schema)
 
     if dbengine == 'oracle':
         actual_tables = [t.lower() if any(a.islower() for a in available) else t.upper() for t in tables]
@@ -490,14 +490,18 @@ def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
 
     for table in actual_tables.keys():
         if table in available:
-            [cols, column_defs] = [inspector.get_columns(table, schema=schema), []]
+            column_defs = []
+            cols = inspector.get_columns(table) \
+                    if dbengine == 'mysql' else inspector.get_columns(table, schema=schema)
             schema_metadata[table] = { c['name']: c['type']  for c in cols }
 
             for c in cols:
                 null_str = 'NOT NULL' if not c.get('nullable') else ''
                 column_defs.append(f"  {c['name']} {str(c['type'])} {null_str}".strip())
 
-            fks = inspector.get_foreign_keys(table, schema=schema)
+            fks = inspector.get_foreign_keys(table) \
+                    if dbengine == 'mysql' else inspector.get_foreign_keys(table, schema=schema)
+
             relationships[table] = [
                 { 'columns': fk['constrained_columns'], 'referred_table': fk['referred_table'], 'referred_columns': fk['referred_columns']  }
                 for fk in fks

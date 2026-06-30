@@ -80,6 +80,7 @@ class PipelineHelper:
         loads_ids = info.loads_ids if type(info.loads_ids) == list else []
         loads_ids_str = ','.join([f"'{val}'" for val in loads_ids])
         con: DuckDBPyConnection = duckdb.connect(dest.config_params['credentials'])
+        tmplt_type = additionals.get('tmplt')
 
         # TODO: Implement the flow to activate/deactivate bigtable generation
         generate_big_table = False
@@ -88,11 +89,14 @@ class PipelineHelper:
             pipeline_name = pipeline.pipeline_name
             namespace, original_pipeline_name = pipeline_name.split('_at_', 1)
             
+
             [tbls, ts, skma] = [list(additionals['ddls'].keys()), additionals['ts'], additionals['db_name']]
-            send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time)
+            tbls = [table.replace('.','_') for table in additionals['tbls']] if tmplt_type == 'MSSQL' else tbls
+
+            send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time, tmplt_type)
 
             metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
-            MetaStore.persist_catalog(catalog_table_path, src_path, pipeline, info, additionals, len(metadatas) > 1 if metadatas else 0)
+            MetaStore.persist_catalog(tbls, pipeline, info, additionals, len(metadatas) > 1 if metadatas else 0)
 
             if stage in [1,2,3]:
                 PipelineHelper.add_tables_contrains(con, tbls, additionals, stage)
@@ -291,12 +295,19 @@ def send_ppline_completion_email(
     skma: str,
     ts: str,
     tbls: list,
-    ppline_time: dict
+    ppline_time: dict,
+    tmplt_type
 ):
     from internationalization.email import labels
 
+    filter = f"WHERE _e2e_ts = '{ts}'" if tmplt_type != 'MSSQL' else ''
+
+    tbls_fltr = str([f'{t}' for t in tbls]).strip('[]')
+    tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr}) ").fetchall()
+    tbls = list({t[0] for t in tbls})
+    
     ppline_strt_dt, ppline_end_dt, start_time = ppline_time.get('start'), ppline_time.get('end'), ppline_time.get('ts')
-    count_query = '\n UNION \n'.join([f"SELECT '{tbl}' as tbl, COUNT(*) as count FROM {skma}.{tbl} WHERE _e2e_ts = '{ts}'" for tbl in tbls])
+    count_query = '\n UNION \n'.join([f"SELECT '{tbl}' as tbl, COUNT(*) as count FROM {skma}.{tbl} {filter}" for tbl in tbls])
     total_record_per_table = con.execute(count_query).fetchall()
     
     style, row_sep = 'style="padding: 0 8px; text-align: center;"', '=' * 50
