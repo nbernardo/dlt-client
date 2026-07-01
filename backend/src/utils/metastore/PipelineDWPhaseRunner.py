@@ -7,6 +7,8 @@ from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
 from utils.pipeline.Enums import Checkpoint
 import duckdb
 import os
+from sqlalchemy import create_engine
+
 
 def on_pipeline_finished(future_object, runner, params: dict):
     try:
@@ -43,39 +45,62 @@ class PipelineDWPhaseRunner:
     def _run_pipeline(self, tables, pks, source_schema=None):
         os.environ["SCHEMA__NAMING"] = "direct"
         skma = source_schema[0] if type(source_schema) == list else source_schema
-        engine, creds = "sqlalchemy", f"duckdb:///{self.source_db_path}"
 
-        con = duckdb.connect(self.source_db_path)
+        con = duckdb.connect(self.source_db_path, read_only=True)
         tbls_fltr = str([f'{t}' for t in tables]).strip('[]')
-        tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr}) ").fetchall()
+        tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr})").fetchall()
         tbls = list({t[0] for t in tbls})
-        con.close()
 
-        source = sql_database(credentials=creds,backend=engine,schema=skma, reflection_level='minimal').with_resources(*tbls)
+        def make_resource(table, pk):
+            def _resource():
+                batch_size, offset = 10_000, 0
+                while True:
+                    rows = con.execute(f'SELECT * FROM "{skma}"."{table}" LIMIT {batch_size} OFFSET {offset}').fetchall()
+                    if not rows: break
 
-        for idx in range(len(tbls)):
-            table = tbls[idx]
-            i = tables.index(table) if table in tables else -1
-            if i >= 0:
-                source.resources[table].apply_hints(primary_key=pks[i])
+                    columns = [desc[0] for desc in con.description]
+                    yield [dict(zip(columns, row)) for row in rows]
+                    offset += batch_size
+
+            _resource.__name__ = table
+            _resource.__qualname__ = table
+            return dlt.resource(_resource, name=table, primary_key=pk)
+
+        @dlt.resource(name='fk_map')
+        def read_fk_map():
+            rows = con.execute('SELECT * FROM "dwhperformance_meta"."fk_map"').fetchall()
+            if not rows: return
+
+            columns = [desc[0] for desc in con.description]
+            batch_size = 10_000
+            for i in range(0, len(rows), batch_size):
+                yield [dict(zip(columns, row)) for row in rows[i:i + batch_size]]
 
         dataset_name = self.dataset_name[0] if type(self.dataset_name) == list else self.dataset_name
         dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
-        pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest,)
+        pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest)
 
-        # It might not have dwhperformance_meta when data source is a file (e.g. csv)
         try:
-            # Runs the unique column ingestion for every table being ingested
-            source1 = sql_database(credentials=creds,backend=engine,schema='dwhperformance_meta', reflection_level='minimal').with_resources('fk_map')
-            fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest,)
-            
-            source1.resources['fk_map'].apply_hints(primary_key=['table_name','fk_col','ref_table','ref_col'])
-            fk_pipeline.run(source1, write_disposition="merge")
+            fk_resource = read_fk_map()
+            fk_resource.apply_hints(primary_key=['table_name', 'fk_col', 'ref_table', 'ref_col'])
+            fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest)
+            fk_pipeline.run(fk_resource, write_disposition="merge")
         except:
             pass
 
-        # Runs the ingestion of the actuall datawarehouse tables
-        return pipeline.run(source, write_disposition="merge")
+        resources = []
+        for table in tbls:
+            i = tables.index(table) if table in tables else -1
+            pk = pks[i] if i >= 0 else []
+            resources.append(make_resource(table, pk))
+
+        @dlt.source(name="dynamic_source")
+        def build_source(): return resources
+
+        result = pipeline.run(build_source(), write_disposition="merge")
+        con.close()
+
+        return result
 
 
     def run_async(self, tables, pks, source_schema: Optional[str] = None, callback: Optional[Callable] = None) -> concurrent.futures.Future:

@@ -412,12 +412,15 @@ class DltPipeline:
         
         if(line.startswith('DEST_TABLES=__dest_tables__:')):
             refs['dest_tables'] = line.split(':')[1].split(',')
+            return True
 
         if(line.startswith('DEST_STRG=__dest_storage__:')):
             refs['stg_storage'] = line.split(':')[1].split(',')
+            return True
         
         if(line.startswith('TABLESPK=__tables_pks__:')):
             refs['tables_pks'] = line.split(':')[1].split(',')
+            return True
         
         if(line.startswith('SHORT_QUERY=__e2e_short_query_:')):
             refs['short_query'] = line.split(':')[1]
@@ -597,7 +600,7 @@ class DltPipeline:
 
                 if not line: break
                 
-                line = line.decode().strip()  
+                line = line.decode().strip()
                 if DltPipeline._handle_pipeline_trace(line, refs, context, logger) == False or not line: 
                     break
 
@@ -658,22 +661,14 @@ class DltPipeline:
     @staticmethod
     def update_pipline_runtime(namespace, ppline, time):
         cnx = DuckdbUtil.get_workspace_db_instance()
-        query = f"UPDATE ppline_schedule\
-                    SET last_run='{time}'\
-                    WHERE\
-                        namespace='{namespace}'\
-                        and ppline_name='{ppline}'"
+        query = f"UPDATE ppline_schedule SET last_run='{time}' WHERE namespace='{namespace}' and ppline_name='{ppline}'"
         cnx.execute(query)
 
 
     @staticmethod
     def update_pipline_pause_status(namespace, ppline, is_paused):
         cnx = DuckdbUtil.get_workspace_db_instance()
-        query = f"UPDATE ppline_schedule\
-                    SET is_paused='{is_paused}'\
-                    WHERE\
-                        namespace='{namespace}'\
-                        and ppline_name='{ppline}'"
+        query = f"UPDATE ppline_schedule SET is_paused='{is_paused}' WHERE namespace='{namespace}' and ppline_name='{ppline}'"
         cnx.execute(query)
 
         if is_paused != 'paused':
@@ -687,7 +682,6 @@ class DltPipeline:
             if schedule.get_jobs(f'{tag_name}-tracinglog'):
                 schedule.clear(f'{tag_name}-tracinglog')
                         
-
 
     @staticmethod
     def get_pipline_runtime(namespace, ppline):
