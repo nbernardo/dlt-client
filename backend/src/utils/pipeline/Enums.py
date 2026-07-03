@@ -24,6 +24,7 @@ class Checkpoint(StrEnum):
     DONE_DWH = 'COMPLETED_DWH'
     DELAY = 'DELAYED'
     FAILED = 'FAILED'
+    FAILED_INGEST_DW = 'FAILED'
     TABLE_COMMIT = 'COMMIT'
     TAKING_CONTROL = 'BASTION_PASSED'
     # STAGED -> Mean the data have been put in stage storage

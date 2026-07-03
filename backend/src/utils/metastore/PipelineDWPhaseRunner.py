@@ -1,16 +1,19 @@
 import concurrent.futures
 import dlt
 from typing import Callable, Optional
-from dlt.sources.sql_database import sql_database
 from dlt.destinations.impl.duckdb.configuration import DuckDbCredentials
 from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
 from utils.pipeline.Enums import Checkpoint
 import duckdb
 import os
-from sqlalchemy import create_engine
+from utils.logging.pipeline_logger_config import handle_pipeline_log
+import traceback
+from flask import current_app
+import sys
+import io
 
 
-def on_pipeline_finished(future_object, runner, params: dict):
+def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logger):
     try:
         load_info = future_object.result()
         print("\n[Callback Hook] Success!")
@@ -18,7 +21,10 @@ def on_pipeline_finished(future_object, runner, params: dict):
         params = { **params, 'cp_status': Checkpoint.DONE_DWH }
 
         PipelineCheckpoint.update(params.get('pipeline'), params=params)
+        #Runs the pipeline trigger in case it exists
+        triggers_cb()
     except Exception as error:
+        traceback.print_exc()
         print(f"\n[Callback Hook] Error: {error}")
     finally:
         runner.shutdown() 
@@ -37,75 +43,127 @@ class PipelineDWPhaseRunner:
         self.pipeline_name = pipeline_name
         self.dataset_name = dataset_name
         self.params = None
+        self.logger = None
+        self.context = None
+        self.pipeline = None
+        self.params = None
         
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self._future: Optional[concurrent.futures.Future] = None
 
+        self.app = current_app._get_current_object()
+        
+
+    def _clear_stale_schema(self):
+        import json
+        state_path = os.path.expanduser(f"~/.dlt/pipelines/{self.pipeline_name}/state.json")
+        if os.path.exists(state_path):
+            with open(state_path) as f:
+                state = json.load(f)
+            state["default_schema_name"] = None
+            state["schema_names"] = []
+            with open(state_path, "w") as f:
+                json.dump(state, f, indent=2)
+
 
     def _run_pipeline(self, tables, pks, source_schema=None):
-        os.environ["SCHEMA__NAMING"] = "direct"
-        skma = source_schema[0] if type(source_schema) == list else source_schema
 
-        con = duckdb.connect(self.source_db_path, read_only=True)
-        tbls_fltr = str([f'{t}' for t in tables]).strip('[]')
-        tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr})").fetchall()
-        tbls = list({t[0] for t in tbls})
+        with self.app.app_context():
+            original_write = self._capture_stdout(
+                    lambda msg: handle_pipeline_log(f'[Data Warehouse ingest] {msg}', self.logger, context=self.context)
+                )
 
-        def make_resource(table, pk):
-            def _resource():
-                batch_size, offset = 10_000, 0
-                while True:
-                    rows = con.execute(f'SELECT * FROM "{skma}"."{table}" LIMIT {batch_size} OFFSET {offset}').fetchall()
-                    if not rows: break
+            os.environ["SCHEMA__NAMING"] = "direct"
+            skma = source_schema[0] if type(source_schema) == list else source_schema
 
+            try:
+                con = duckdb.connect(self.source_db_path, read_only=True)
+                tbls_fltr = str([f'{t}' for t in tables]).strip('[]')
+                tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr})").fetchall()
+                tbls = list({t[0] for t in tbls})
+
+                def make_resource(table, pk):
+                    def _resource():
+                        batch_size, offset = 10_000, 0
+                        msg = f'Injesting {table} to the Data Warehouse'
+                        handle_pipeline_log(msg, self.logger, context=self.context)
+                        while True:
+                            rows = con.execute(f'SELECT * FROM "{skma}"."{table}" LIMIT {batch_size} OFFSET {offset}').fetchall()
+                            if not rows: break
+                            columns = [desc[0] for desc in con.description]
+                            yield [dict(zip(columns, row)) for row in rows]
+                            offset += batch_size
+
+                    [_resource.__name__, _resource.__qualname__] = [table, table]
+                    return dlt.resource(_resource, name=table, primary_key=pk)
+
+                @dlt.resource(name='fk_map')
+                def read_fk_map():
+                    rows = con.execute('SELECT * FROM "dwhperformance_meta"."fk_map"').fetchall()
+                    if not rows: return
                     columns = [desc[0] for desc in con.description]
-                    yield [dict(zip(columns, row)) for row in rows]
-                    offset += batch_size
+                    batch_size = 10_000
+                    for i in range(0, len(rows), batch_size):
+                        yield [dict(zip(columns, row)) for row in rows[i:i + batch_size]]
 
-            _resource.__name__ = table
-            _resource.__qualname__ = table
-            return dlt.resource(_resource, name=table, primary_key=pk)
+                self._clear_stale_schema()
 
-        @dlt.resource(name='fk_map')
-        def read_fk_map():
-            rows = con.execute('SELECT * FROM "dwhperformance_meta"."fk_map"').fetchall()
-            if not rows: return
+                dataset_name = self.dataset_name[0] if type(self.dataset_name) == list else self.dataset_name
+                dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
+                pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest, progress='log')
 
-            columns = [desc[0] for desc in con.description]
-            batch_size = 10_000
-            for i in range(0, len(rows), batch_size):
-                yield [dict(zip(columns, row)) for row in rows[i:i + batch_size]]
+                try:
+                    fk_resource = read_fk_map()
+                    fk_resource.apply_hints(primary_key=['table_name', 'fk_col', 'ref_table', 'ref_col'])
+                    fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest)
+                    fk_pipeline.run(fk_resource, write_disposition="merge")
+                except:
+                    pass
 
-        dataset_name = self.dataset_name[0] if type(self.dataset_name) == list else self.dataset_name
-        dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
-        pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest)
+                resources = []
+                for table in tbls:
+                    i = tables.index(table) if table in tables else -1
+                    pk = pks[i] if i >= 0 else []
+                    resources.append(make_resource(table, pk))
 
-        try:
-            fk_resource = read_fk_map()
-            fk_resource.apply_hints(primary_key=['table_name', 'fk_col', 'ref_table', 'ref_col'])
-            fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest)
-            fk_pipeline.run(fk_resource, write_disposition="merge")
-        except:
-            pass
+                @dlt.source(name="dynamic_source")
+                def build_source(): return resources
 
-        resources = []
-        for table in tbls:
-            i = tables.index(table) if table in tables else -1
-            pk = pks[i] if i >= 0 else []
-            resources.append(make_resource(table, pk))
+                result = pipeline.run(build_source(), write_disposition="merge")
+                con.close()
+                msg = f'Completed Data Warehouse data ingestions'
+                handle_pipeline_log(msg, self.logger, context=self.context)
 
-        @dlt.source(name="dynamic_source")
-        def build_source(): return resources
+                return result
+            
+            except Exception as err:
+                self.params['cp_status'] = Checkpoint.FAILED_INGEST_DW
+                PipelineCheckpoint.update(self.pipeline, params=self.params)
+                error = traceback.format_exc()
+                f'Error while ingesting to Datawarehouse: {str(error)}'
+                handle_pipeline_log(f'Error while ingesting to Datawarehouse: {str(error)}', self.logger, error=True, context=self.context)
 
-        result = pipeline.run(build_source(), write_disposition="merge")
-        con.close()
+            finally:
+                self._restore_stdout(original_write)
 
-        return result
+
+    def _capture_stdout(self, callback):
+        original_write = sys.stdout.write
+        def patched_write(text):
+            if text.strip(): callback(text)
+            return original_write(text)
+        sys.stdout.write = patched_write
+        return original_write
+
+    def _restore_stdout(self, original_write):
+        sys.stdout.write = original_write
 
 
     def run_async(self, tables, pks, source_schema: Optional[str] = None, callback: Optional[Callable] = None) -> concurrent.futures.Future:
         if self._future and not self._future.done():
-            raise RuntimeError("A pipeline execution task is already running in the background.")
+            msg = 'A pipeline execution task is already running in the background.'
+            handle_pipeline_log(msg, context=self.context)
+            raise RuntimeError(msg)
 
         self._future = self._executor.submit(self._run_pipeline, tables, pks, source_schema)
         
@@ -123,7 +181,11 @@ class PipelineDWPhaseRunner:
         self._executor.shutdown(wait=True) 
 
 
-    def run(namespace, data_source, refs, job_tag):
+    def run(namespace, data_source, refs):
+
+        msg = 'Preprocessing Stage to Datawarehouse data ingestion'
+        handle_pipeline_log(msg, refs.get('logger'), context=refs.get('context'))
+        job_tag, triggers_cb = refs.get('job_tag'), refs.get('triggers')
 
         import schedule
         schedule.clear(job_tag)
@@ -134,15 +196,18 @@ class PipelineDWPhaseRunner:
         from controller.pipeline import BasePipeline
         
         dwname = data_source.split('_for_',1)[-1]
-        tables, pks, dataset_name = refs['dest_tables'], refs['tables_pks'], refs['dataset_name']
+        tables, pks, dataset = refs['dest_tables'], refs['tables_pks'], refs['dataset_name']
         
-        if type(tables) == str: tables = [tables.strip('[]')]
-        if type(dataset_name) == str: dataset_name = [dataset_name.strip('[]')]
-        if type(pks) == str: pks = [pks.strip('[]')]
+        if type(tables) == str: 
+            tables = tables.strip('[]').replace(' ','').split(',') if tables.__contains__(',') else [tables.strip('[]')]
+
+        if type(dataset) == str: 
+            dataset = dataset.strip('[]').replace(' ','').split(',') if dataset.__contains__(',') else [dataset.strip('[]')]
+
+        if type(pks) == str: 
+            pks = pks.strip('[]').replace(' ','').split(',') if pks.__contains__(',') else [pks.strip('[]')]
         
         tables = [table.split('.')[-1] if str(table).__contains__('.') else table for table in tables]
-        data_source[0].split('_for_',1)
-
         data_source = data_source[-1] if str(data_source).__contains__('/') else data_source
         
         sep = '/' if platform.system() != 'Windows' else '\\\\'
@@ -150,7 +215,11 @@ class PipelineDWPhaseRunner:
         source_db = f"{db_path}{data_source}.duckdb"
 
         dest_native_conn = DuckdbUtil.get_connection_for(f'{db_path}{dwname}.duckdb')
+        runner = PipelineDWPhaseRunner(source_db, dest_native_conn, dwname, dataset)
 
-        runner = PipelineDWPhaseRunner(source_db, dest_native_conn, dwname, dataset_name)
-        params = refs.get('params')
-        runner.run_async(tables, pks, dataset_name, callback=lambda future: on_pipeline_finished(future, runner, params))
+        [params, runner.logger, runner.context] = [refs.get('params'), refs.get('logger'), refs.get('context')]
+        [runner.pipeline, runner.params] = params.get('pipeline'), params
+
+        cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger)
+
+        runner.run_async(tables, pks, dataset, callback=cb)

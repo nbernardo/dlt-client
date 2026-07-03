@@ -352,6 +352,8 @@ def template_final_parsing(template, pipeline_name, payload, duckdb_path, contex
     
     if context.pipeline_metadata.existing_wd != None:
         pipeline_name = str(context.pipeline_metadata.existing_wd).split('.')[1]
+        context.pipeline_metadata.stage_storage = f'__e2estage_{datetime.now().timestamp()}_for_{pipeline_name}'
+
     if context.pipeline_metadata.domain_pipeline in ['1',1]:
         pipeline_name = f'__e2estage_{datetime.now().timestamp()}_for_{pipeline_name}'
         context.pipeline_metadata.stage_storage = pipeline_name

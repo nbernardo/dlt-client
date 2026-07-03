@@ -60,7 +60,7 @@ class DuckdbUtil:
         be thrown, because this is calle in the pipeline job, it'll prevent it to move forward
         """
         cnx = DuckdbUtil.get_connection_for(dbfile_path)
-        cnx.close()
+        #cnx.close()
         time.sleep(1)
 
 
@@ -207,8 +207,12 @@ class DuckdbUtil:
         try:
             DuckdbUtil.db_connections[db_filename].query('SELECT 1')
             return DuckdbUtil.db_connections[db_filename]
-        except Exception as err:
+        except duckdb.ConnectionException as err:
             print(f'Reconnecting to DB {db_filename}')
+
+            try: DuckdbUtil.db_connections[db_filename].close() 
+            except: pass
+
             DuckdbUtil.db_connections[db_filename] = duckdb.connect(f'{db_filename}')
             return DuckdbUtil.db_connections[db_filename]
             

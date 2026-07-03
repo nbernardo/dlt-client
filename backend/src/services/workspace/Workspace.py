@@ -305,6 +305,12 @@ class Workspace:
                 tables_list = Workspace.get_tables_in_metadata(f'{files_path}/{_file}')
 
                 if 'error' in tables_list: 
+                    if ppline_name in pipeline_schedules.get('data', {}):
+                        curr_schedule = pipeline_schedules['data'].get(ppline_name)
+                        result[ppline_name]['_e2e_schedule'] = {
+                            'is_scheduled_paused': curr_schedule['is_paused'] if curr_schedule != None else '',
+                            'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else ''
+                        }
                     continue
                 
                 if not(metadata):

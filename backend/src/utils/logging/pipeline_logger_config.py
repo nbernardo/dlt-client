@@ -37,7 +37,7 @@ class PipelineLogger:
         dlt_logger.addHandler(dlt_logger_handler)
 
 
-def handle_pipeline_log(printed_log: str, logger: logging.Logger, error = False, warning = False):
+def handle_pipeline_log(printed_log: str, logger: logging.Logger, error = False, warning = False, context = None):
     printed_log = str(printed_log).replace('DEBUG: ','').replace('WARNING: ','')
     # logs application level implemented logs 
     if str(printed_log).__contains__(' |+| '):
@@ -54,3 +54,5 @@ def handle_pipeline_log(printed_log: str, logger: logging.Logger, error = False,
             elif warning: logger.warning(printed_log)
             else: logger.info(printed_log)
     
+    if context:
+        context.emit_ppline_job_trace(printed_log,error=error)

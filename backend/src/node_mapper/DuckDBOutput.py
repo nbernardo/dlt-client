@@ -34,7 +34,10 @@ class DuckDBOutput(TemplateNodeType):
         if context.pipeline_metadata.existing_wd != None and self.context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
             pass
         else: 
-            self.ppline_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
+            if self.context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
+                self.ppline_dest_table = context.pipeline_metadata.dest_tables[0]
+            else:
+                self.ppline_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
 
         context.pipeline_metadata.dest_dw_name = self.output_dest_name
 

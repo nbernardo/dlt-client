@@ -534,13 +534,14 @@ class DltPipeline:
 
 
     @staticmethod
-    async def run_pipeline_job(file_path, namespace, leade_pipeline = None, triggers = None):
+    async def run_pipeline_job(file_path, namespace, leade_pipeline = None, triggers = None, job_tag = None):
         
         socket_id = DuckdbUtil.get_socket_id(namespace)
         context = RequestContext(None, socket_id)
         logger = DltPipeline.get_pipeline_logger(context)
 
-        if(triggers != None):
+        if(job_tag != None):
+            schedule.clear(job_tag)
             handle_pipeline_log(f'Trigger for {file_path} from {leade_pipeline}', logger, False)
 
         [ppline_file, pipeline] = [f'{destinations_dir}/{file_path}.py', file_path.replace(f'{namespace}/','')]
@@ -562,7 +563,9 @@ class DltPipeline:
 
         db_root_path = destinations_dir.replace('pipeline','duckdb')
         # DB Lock in the pplication level
-        if not(ppline_file.endswith('withmetadata__.py') and ppline_file.endswith('withmetadata__.py')):
+        if not(ppline_file.endswith('withmetadata__.py') and ppline_file.endswith('withmetadata__.py'))\
+            and DuckDBCache.get(f'{db_root_path}/{db_file}.duckdb') == None:
+
             DuckDBCache.set(f'{db_root_path}/{db_file}.duckdb','lock')
 
         from utils.metastore.PipelineTrigger import PipelineTrigger
@@ -624,20 +627,11 @@ class DltPipeline:
 
             if context.pipeline_metadata.stage_storage:
                 job_tag = f'{job_start_time}_{stg_storage}'
+                triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time)
                 refs = { **refs, 'params': params, 'dataset_name': pipeline_metadata[7], 'dest_tables': pipeline_metadata[9], 'tables_pks': pipeline_metadata[10] }
+                refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context }
                 
-                schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs, job_tag).tag(job_tag)
-
-            if len(triggers) > 0:
-                curr_trigger = triggers.pop(0)
-                unity, wait_time = curr_trigger['time'], int(curr_trigger['unity'])
-                target_pipeline = f'{namespace}/{curr_trigger['pipeline']}'
-
-                if(unity == 'sec'): await asyncio.sleep(wait_time)    
-                if(unity == 'min'): await asyncio.sleep(int(wait_time) * 60)
-
-                await DltPipeline.run_pipeline_job(target_pipeline, namespace, pipeline, triggers)
-                return
+                schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
 
             #if(delayed_pipeline):
                 # Pass the bastion to the delayed pipeline run. storage_path = db_file
@@ -656,6 +650,21 @@ class DltPipeline:
             handle_pipeline_log(refs.get('error_message'), logger, True)
             handle_pipeline_log(err.with_traceback, logger, True)
             DltPipeline.send_fail_email(job_start_time, context)
+
+
+    @staticmethod
+    def _handle_trigger(triggers, namespace, pipeline, job_start_time):
+
+        if len(triggers) > 0:
+            curr_trigger = triggers.pop(0)
+            unity, wait_time = curr_trigger['time'], int(curr_trigger['unity'])
+            target_pipeline = f'{namespace}/{curr_trigger['pipeline']}'
+            [cb, job_tag] = [DltPipeline.run_pipeline_job, f'{target_pipeline}_{job_start_time}']
+
+            if(unity == 'sec'):
+                schedule.every(wait_time).seconds.do(lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, triggers, job_tag))).tag(job_tag)  
+            if(unity == 'min'):
+                schedule.every(int(wait_time) * 60).seconds.do(lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, triggers, job_tag))).tag(job_tag)
 
 
     @staticmethod
