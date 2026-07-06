@@ -61,5 +61,8 @@
     "login": {
         "managed": "Login Regular",
         "notManaged": "Auth0"
-    }
+    },
+	"msg": {
+		"dictionarySuccess":"Dicionário de dados actualizado com sucesso"
+	}
 }

@@ -7,116 +7,121 @@
 		<div class="tab" onclick="controller.switchTab('users-perms',this)">$bundle.gov.userPerLbl</div>
 	</nav>
 
-	<div style="padding:1.25rem 0">
+	<st-loader (label)="Updating Data dictionary..." (showIf)="self.loading"/>
 
-		<div id="sec-dict" class="section active">
-			<div class="toolbar">
-				<select class="list-of-pipelines" (forEach)="pipelines" onchange="component.loadTablesByPipeline(this.value)" placeholder="$bundle.gov.combo.selectOptLbl" style="width:160px">
-					<option each="item" value="{item.srcPipeline}.{item.srcPipeline}.{item.dwName}">{item.pipeline}</option>
-				</select>
-				&nbsp;&nbsp; - &nbsp;&nbsp;
-				<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="dict-search" oninput="controller.renderDict()">
-				<select id="dict-table-filter" onchange="controller.renderDict()" style="width:160px">
-					<option value="">$bundle.gov.combo.allTalesLbl</option>
-				</select>
-				<div style="margin-left:auto;display:flex;gap:8px">
-					<!--
-						<button class="btn" onclick="controller.openAddGroup()"><i class="ti ti-table-plus" aria-hidden="true"></i> Add table group</button>
-						<button class="btn btn-primary" onclick="controller.openAddField()"><i class="ti ti-plus" aria-hidden="true"></i> Add field</button>
-					-->
-					<button class="btn btn-primary" onclick="component.saveDiactionary()"><i class="fas fa-save" aria-hidden="true"></i>$bundle.gov.btn.saveLbl</button>
+
+	<span (showIf)="!self.loading">
+		<div style="padding:1.25rem 0">
+	
+			<div id="sec-dict" class="section active">
+				<div class="toolbar">
+					<select class="list-of-pipelines" (forEach)="pipelines" onchange="component.loadTablesByPipeline(this.value)" placeholder="$bundle.gov.combo.selectOptLbl" style="width:160px">
+						<option each="item" value="{item.srcPipeline}.{item.srcPipeline}.{item.dwName}">{item.pipeline}</option>
+					</select>
+					&nbsp;&nbsp; - &nbsp;&nbsp;
+					<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="dict-search" oninput="controller.renderDict()">
+					<select id="dict-table-filter" onchange="controller.renderDict()" style="width:160px">
+						<option value="">$bundle.gov.combo.allTalesLbl</option>
+					</select>
+					<div style="margin-left:auto;display:flex;gap:8px">
+						<!--
+							<button class="btn" onclick="controller.openAddGroup()"><i class="ti ti-table-plus" aria-hidden="true"></i> Add table group</button>
+							<button class="btn btn-primary" onclick="controller.openAddField()"><i class="ti ti-plus" aria-hidden="true"></i> Add field</button>
+						-->
+						<button class="btn btn-primary" onclick="component.saveDictionary()"><i class="fas fa-save" aria-hidden="true"></i>$bundle.gov.btn.saveLbl</button>
+					</div>
+				</div>
+				<div class="seg" style="margin-bottom:1rem;width:fit-content">
+					<button class="active" onclick="controller.setView('flat',this)">$bundle.gov.dTable.listLbl</button>
+					<button onclick="controller.setView('group',this)">$bundle.gov.dTable.byTblLbl</button>
+				</div>
+				<div class="table-wrap">
+					<div class="grid-scroll-container">
+						<table>
+							<thead>
+								<tr>
+									<th>$bundle.gov.fNameLbl</th>
+									<th>$bundle.gov.tblNameLbl</th>
+									<th>$bundle.gov.transLbl</th>
+									<th>$bundle.gov.descrLbl</th>
+									<th style="width:110px; text-align: right;">$bundle.gov.actionsLbl</th>
+								</tr>
+							</thead>
+							<tbody id="dict-body"></tbody>
+						</table>
+					</div>
 				</div>
 			</div>
-			<div class="seg" style="margin-bottom:1rem;width:fit-content">
-				<button class="active" onclick="controller.setView('flat',this)">$bundle.gov.dTable.listLbl</button>
-				<button onclick="controller.setView('group',this)">$bundle.gov.dTable.byTblLbl</button>
+	
+			<div id="sec-rbac" class="section">
+				<div class="toolbar">
+					<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="rbac-search" oninput="controller.renderRbac()">
+					<select id="rbac-table-filter" onchange="controller.renderRbac()" style="width:160px">
+						<option value="">$bundle.gov.combo.allTablesLbl</option>
+					</select>
+					<select id="rbac-role-filter" onchange="controller.renderRbac()" style="width:140px">
+						<option value="">$bundle.gov.combo.allRolesLbl</option>
+					</select>
+					<div style="margin-left:auto;display:flex;gap:8px">
+						<button class="btn" onclick="controller.openManageRoles()"><i class="ti ti-users" aria-hidden="true"></i> $bundle.gov.mngRoleLbl</button>
+						<button class="btn btn-primary" onclick="controller.openBulkAccess()"><i class="ti ti-shield-check" aria-hidden="true"></i> $bundle.gov.setAccessLbl</button>
+					</div>
+				</div>
+				<div class="table-wrap">
+					<div class="grid-scroll-container">
+						<table>
+							<thead>
+								<tr>
+									<th>$bundle.gov.fNameLbl</th>
+									<th>$bundle.gov.tblNameLbl</th>
+									<th>$bundle.gov.accessByRoleLbl</th>
+									<th style="width:80px"></th>
+								</tr>
+							</thead>
+							<tbody id="rbac-body"></tbody>
+						</table>
+					</div>
+				</div>
 			</div>
-			<div class="table-wrap">
-				<div class="grid-scroll-container">
-					<table>
-						<thead>
-							<tr>
-								<th>$bundle.gov.fNameLbl</th>
-								<th>$bundle.gov.tblNameLbl</th>
-								<th>$bundle.gov.transLbl</th>
-								<th>$bundle.gov.descrLbl</th>
-								<th style="width:110px; text-align: right;">$bundle.gov.actionsLbl</th>
-							</tr>
-						</thead>
-						<tbody id="dict-body"></tbody>
-					</table>
+	
+			<div id="sec-users-perms" class="section" style="display:none;">
+				<div style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start;">
+					
+					<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
+						<h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
+							<i class="ti ti-user-plus"></i> $bundle.gov.newIdentityLbl
+						</h3>
+						<form onsubmit="event.preventDefault(); controller.registerNewUser();" style="display:flex; flex-direction:column; gap:12px;">
+							<div>
+								<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.fllNameLbl</label>
+								<input type="text" id="reg-user-name" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="John Doe">
+							</div>
+							<div>
+								<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.emlLbl</label>
+								<input type="email" id="reg-user-email" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="john@company.com">
+							</div>
+							<div>
+								<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.tmpPwdLbl</label>
+								<input type="password" id="reg-user-pwd" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="Enter the temp password">
+							</div>
+							<button type="submit" class="btn btn-primary" style="margin-top:4px; width:100%; padding:6px; font-size:12px;">
+								$bundle.gov.iniIdntityLbl
+							</button>
+						</form>
+					</div>
+	
+					<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
+						<h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
+							<i class="ti ti-shield-lock"></i> $bundle.gov.authNDesk
+						</h3>
+						<p class="text-muted" style="font-size:12px; margin-bottom:16px;">$bundle.gov.authNAssign</p>
+						<div id="users-composite-matrix" style="display:flex; flex-direction:column; gap:14px;"></div>
+					</div>
+	
 				</div>
 			</div>
 		</div>
-
-		<div id="sec-rbac" class="section">
-			<div class="toolbar">
-				<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="rbac-search" oninput="controller.renderRbac()">
-				<select id="rbac-table-filter" onchange="controller.renderRbac()" style="width:160px">
-					<option value="">$bundle.gov.combo.allTablesLbl</option>
-				</select>
-				<select id="rbac-role-filter" onchange="controller.renderRbac()" style="width:140px">
-					<option value="">$bundle.gov.combo.allRolesLbl</option>
-				</select>
-				<div style="margin-left:auto;display:flex;gap:8px">
-					<button class="btn" onclick="controller.openManageRoles()"><i class="ti ti-users" aria-hidden="true"></i> $bundle.gov.mngRoleLbl</button>
-					<button class="btn btn-primary" onclick="controller.openBulkAccess()"><i class="ti ti-shield-check" aria-hidden="true"></i> $bundle.gov.setAccessLbl</button>
-				</div>
-			</div>
-			<div class="table-wrap">
-				<div class="grid-scroll-container">
-					<table>
-						<thead>
-							<tr>
-								<th>$bundle.gov.fNameLbl</th>
-								<th>$bundle.gov.tblNameLbl</th>
-								<th>$bundle.gov.accessByRoleLbl</th>
-								<th style="width:80px"></th>
-							</tr>
-						</thead>
-						<tbody id="rbac-body"></tbody>
-					</table>
-				</div>
-			</div>
-		</div>
-
-		<div id="sec-users-perms" class="section" style="display:none;">
-            <div style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start;">
-                
-                <div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
-                    <h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
-                        <i class="ti ti-user-plus"></i> $bundle.gov.newIdentityLbl
-                    </h3>
-                    <form onsubmit="event.preventDefault(); controller.registerNewUser();" style="display:flex; flex-direction:column; gap:12px;">
-                        <div>
-                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.fllNameLbl</label>
-                            <input type="text" id="reg-user-name" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="John Doe">
-                        </div>
-                        <div>
-                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.emlLbl</label>
-                            <input type="email" id="reg-user-email" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="john@company.com">
-                        </div>
-                        <div>
-                            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">$bundle.gov.tmpPwdLbl</label>
-                            <input type="password" id="reg-user-pwd" required style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;" placeholder="Enter the temp password">
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="margin-top:4px; width:100%; padding:6px; font-size:12px;">
-                            $bundle.gov.iniIdntityLbl
-                        </button>
-                    </form>
-                </div>
-
-                <div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
-                    <h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
-                        <i class="ti ti-shield-lock"></i> $bundle.gov.authNDesk
-                    </h3>
-                    <p class="text-muted" style="font-size:12px; margin-bottom:16px;">$bundle.gov.authNAssign</p>
-                    <div id="users-composite-matrix" style="display:flex; flex-direction:column; gap:14px;"></div>
-                </div>
-
-            </div>
-        </div>
-	</div>
+	</span>
 
 	<div class="wrap" id="modals">
 

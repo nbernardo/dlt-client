@@ -21,6 +21,7 @@ export class DGServiceController extends BaseController {
         const namespace = await BIService.getNamespace();
         const url = `/pipeline/dictionary/${namespace}/${pipelineName}`
         const request = await $still.HTTPClient.post(url, JSON.stringify({ values }), HTTPHeaders.JSON)
+        return await request.json();
         
     }
 
