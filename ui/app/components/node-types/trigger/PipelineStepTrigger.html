@@ -59,8 +59,18 @@
 					<div>
 						<button onclick="component.addPipelineTrigger()" class="add-table-buttons add-btn-primary" style="padding: 5px; margin-top: 6px;">
 							<i class='fas fa-code-branch' style='color: white;'></i>
-							<span style="padding-left: 14px;">Link trigger</span>
+							<span style="padding-left: 14px;">@buttonLabel</span>
 						</button>
+						<span (showIf)="self.update">
+							<button onclick="component.updateTrigger('STATUS_PAUSE')" class="add-table-buttons add-btn-primary" style="padding: 5px; margin-top: 6px; background: grey;">
+								<i class='fas fa-pause-circle' style='color: white;'></i>
+								<span style="padding-left: 11px;">&nbsp;</span>
+							</button>
+							<button onclick="component.updateTrigger('STATUS_STOP')" class="add-table-buttons add-btn-primary" style="padding: 5px; margin-top: 6px; background: red;">
+								<i class='fas fa-window-close' style='color: white;'></i>
+								<span style="padding-left: 11px;">&nbsp;</span>
+							</button>
+						</span>
 					</div>
 				</form>
 			</span>

@@ -106,11 +106,12 @@ export class LeftTabs extends ViewComponent {
 		}
 		
 		for(const [_file, tables] of Object.entries(response)){
-			const data = Object.values(tables);
+			const isScheduledOnly = '_e2e_schedule' in (tables || {});
+			const data = Object.values(isScheduledOnly ? {} : tables);
 			const dbfile = _file.replace('.duckdb',''), flag = data[0]?.flag, 
-				  isScheduled = data[0]?.is_scheduled, 
-				  scheduleSettings = data[0]?.short_settings,
-				  isSchedulePaused = data[0]?.is_scheduled_paused;
+				  isScheduled = data[0]?.is_scheduled || isScheduledOnly, 
+				  scheduleSettings = isScheduledOnly ? tables['_e2e_schedule']?.short_settings : data[0]?.short_settings,
+				  isSchedulePaused = isScheduledOnly ? tables['_e2e_schedule']?.is_scheduled_paused : data[0]?.is_scheduled_paused;
 
 			const pipeline = this.dbTreeviewProxy.addNode({
 					content: this.pipelineTreeViewTemplate(dbfile, flag, {isScheduled, scheduleSettings, isSchedulePaused}),

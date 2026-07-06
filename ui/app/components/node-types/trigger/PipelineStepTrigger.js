@@ -1,12 +1,11 @@
-import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../../services/PipelineService.js";
-import { UserService } from "../../../services/UserService.js";
-import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { DuckDBOutput } from "../DuckDBOutput.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
+
+const triggerStatus = { STATUS_PAUSE: 'PAUSED', STATUS_STOP: 'STOPED', STATUS_ACTIVE: 'ACTIVE' }
 
 /** @implements { NodeTypeInterface } */
 export class PipelineStepTrigger extends AbstractNode {
@@ -27,6 +26,7 @@ export class PipelineStepTrigger extends AbstractNode {
 	triggerValue;
 	timeUnit;
 	targetPipeline;
+	buttonLabel = 'Link trigger';
 
 	/** @Prop */ aiGenerated;
 	/** @Prop */ isImport;
@@ -35,6 +35,7 @@ export class PipelineStepTrigger extends AbstractNode {
 	/** @Prop */ showSettings = false;
 	/** @Prop */ triggerOrder;
 	/** @Prop */ settings = null;
+	/** @Prop */ update = false;
 
 	/** @type { Workspace } */ $parent;
 
@@ -60,12 +61,16 @@ export class PipelineStepTrigger extends AbstractNode {
 		this.timeUnit.onChange(val => this.setData('timeUnit', val));
 		this.targetPipeline.onChange(val => this.setData('targetPipeline', val));
 
-		if(this.importData?.isImport) {			
+		if(this.importData?.isImport) {
+			if(Object.values(triggerStatus).includes(this.importData.status))
+				this.buttonLabel = 'Activate Link'
+			
 			this.showSettings = true;
 			this.notifyReadiness();
-			const { time, timeUnit, targetPipeline } = this.importData;
+			const { time, timeUnit, targetPipeline, order } = this.importData;
 			setTimeout(() => document.querySelector(`select[placeholder="Select the pipeline"]`).value = targetPipeline, 50);
-			this.triggerValue = time, this.timeUnit = timeUnit;
+			this.triggerValue = time, this.timeUnit = timeUnit, this.update = true, this.triggerOrder = order;
+			PipelineService.storePipelineTriggers.push(this);
 		}
 	}
 
@@ -103,7 +108,10 @@ export class PipelineStepTrigger extends AbstractNode {
 		this.settings = { ppline: targetPipeline.value, triggerValue: triggerValue.value, timeUnit: timeUnit.value, order: triggerOrder };
 	}
 
-	addPipelineTrigger(){
+	updateTrigger = (status) => this.addPipelineTrigger(triggerStatus[status]);
+
+	addPipelineTrigger(status){
+
 		const currentDiagram = this.$parent.editor.export().drawflow.Home;
 		let originalDiagram = JSON.parse(this.$parent.service.curImportedPipelineJSON).pipelineCode;
 		const pplineLbl = originalDiagram.pipeline_lbl;
@@ -113,6 +121,9 @@ export class PipelineStepTrigger extends AbstractNode {
 
 		const nodes = Object.keys(currentDiagram.data);
 		for(const node of nodes){
+			if(originalDiagram.data[node].data.componentId == this.importData.componentId)
+				originalDiagram.data[node].data.status = status || triggerStatus.STATUS_ACTIVE;
+
 			if(!(node in originalDiagram.data))
 				originalDiagram.data[node] = currentDiagram.data[node];
 			else{
@@ -121,7 +132,13 @@ export class PipelineStepTrigger extends AbstractNode {
 			}
 		}
 		const diagram = { Home: { data: originalDiagram.data } };
-		const payload = { drawflow: diagram, activeGrid, pplineLbl, settings: PipelineService.storePipelineTriggers.map(trg => trg.settings) };
+		const payload = { drawflow: diagram, activeGrid, pplineLbl, settings: PipelineService.storePipelineTriggers.map(trg => ({ ...trg.settings, update: this.update })) };
+		
+		if(status) {
+			if(!(this.importData.status in Object.values(triggerStatus)))
+				this.buttonLabel = 'Link trigger';
+			payload.settings[0].status = status;
+		}	
 
 		PipelineService.addTrigger(payload)
 	}

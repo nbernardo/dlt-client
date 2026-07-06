@@ -507,6 +507,7 @@ export class DataGovernanceController extends BaseController {
     async renderBulkFieldsList(tableName) {
         const container = this.$('#bulk-fields-container');
         if (!container) return;
+        if(tableName === '') this.obj.accessLevelSummary = '';
         
         if (!tableName) 
             return container.innerHTML = '<p class="text-muted" style="font-size:12px; margin:4px 0; text-align:center;">Select a specific table above to view individual column rules...</p>';
@@ -565,13 +566,15 @@ export class DataGovernanceController extends BaseController {
 
     setViewingAccessLevel(tableName, accessLevels){
         accessLevels = JSON.parse(accessLevels);
-        const fieldsToJsonMap = `{${accessLevels.hidden_columns.map((v) => `"${v}": null`, '').join(', ')}}`
-        accessLevels.hidden_columns = JSON.parse(fieldsToJsonMap);
-        this.permissionConfig.tables[`${this.currentPipeline()}_${tableName}`] = accessLevels;
+        if(!!accessLevels.hidden_columns){
+            const fieldsToJsonMap = `{${accessLevels.hidden_columns.map((v) => `"${v}": null`, '').join(', ')}}`
+            accessLevels.hidden_columns = JSON.parse(fieldsToJsonMap);
+            this.permissionConfig.tables[`${this.currentPipeline()}_${tableName}`] = accessLevels;
+        }
     }
 
     handleAndDisplayFieldsCount(notAllowCount){
-        const allowCount = this.targetFields.length - (notAllowCount || 0);
+        const allowCount = this.targetFields?.length - (notAllowCount || 0);
         const notAllowContent = `<span class='notallow-count'>Not Allowed</span>: ${(notAllowCount || 0)}`;
         this.obj.accessLevelSummary = ` ${this.targetFields.length} | (<span class='allow-count'>Allowed</span>: ${allowCount} ${notAllowContent})`;
     }
@@ -624,8 +627,10 @@ export class DataGovernanceController extends BaseController {
         const result = await this.userService().saveTableAccessLevel(this.getRoleName(), configs);
         AppTemplate.hideLoading();
         if(result.error === false){
-            AppTemplate.toast.success(`${this.getRoleName()} updated successfully`);
+            this.accessLevelsMatrix = {};
+            return AppTemplate.toast.success(`${this.getRoleName()} updated successfully`);
         }
+        
     }
 
     toggleAllBulkFields(element) {

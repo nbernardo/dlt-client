@@ -95,8 +95,7 @@ export class Workspace extends ViewComponent {
 	/** @Prop */
 	pxToVw = 0.100;
 
-	/** @Prop */
-	showDbTreeViewBullets = false;
+	/** @Prop */ showDbTreeViewBullets = false;
 
 	/** @Proxy @type { StillDivider } */
 	codeEditorSplitter;
@@ -116,14 +115,11 @@ export class Workspace extends ViewComponent {
 	/** @Proxy @type { BIUserInterfaceComponent } */
 	dataVizProxy;
 
-	/** @Prop */
-	isEditorOpened = false;
+	/** @Prop */ isEditorOpened = false;
 
-	/** @Prop */
-	showLoading = true;
+	/** @Prop */ showLoading = true;
 
-	/** @Prop */
-	anyPropTest = 0;
+	/** @Prop */ anyPropTest = 0;
 
 	loggedUser = null;
 
@@ -156,6 +152,8 @@ export class Workspace extends ViewComponent {
 	schedulePeriodicity;
 	scheduleTimeType = 'min';
 	scheduleTime;
+
+	/** @Prop */ scheduleDwName;
 
 	stOnRender() {
 		AppTemplate.hideLoading();
@@ -609,6 +607,7 @@ export class Workspace extends ViewComponent {
 		const payload = {
 			ppline_name: this.selectedPplineName,
 			socket_id: this.socketData.sid,
+			destDwName: this.scheduleDwName,
 			settings: {
 				type: this.scheduleTimeType.value,
 				periodicity: this.schedulePeriodicity.value,

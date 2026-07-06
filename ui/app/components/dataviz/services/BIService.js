@@ -94,7 +94,7 @@ export class BIService extends BaseService {
         const url = `/analytics/ppline/domains/catalog/${namespace}/${pipeline.split('.')[1]}/${pipeline.split('.')[0]}`;
         const response = await $still.HTTPClient.get(url);
         if (response.ok){
-            const result = await response.json();
+            let result = await response.json();
             const rangeFieldsData = {}, rengeFields = (result.result.range_fields_data[0] || {})
             for(const itm of Object.entries(rengeFields)){
 
@@ -104,8 +104,8 @@ export class BIService extends BaseService {
 
                 rangeFieldsData[fieldName] = { ...preValues, [minOrMax]: String(itm[1]).includes('T') ? itm[1].split('T')[0] : itm[1] };
             }
-
-            return { allFields: JSON.parse(result.result.all_fields), rangeFieldsData };
+            result = Object.prototype.toString.call(result.result.all_fields) === '[object Object]' ? '{}' : result.result.all_fields;
+            return { allFields: JSON.parse(result), rangeFieldsData };
         }
         return [];
     }

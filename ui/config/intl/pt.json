@@ -48,7 +48,7 @@
         },
 		"btn": {
 			"saveLbl": "Guardar",
-			"cancelLbl": "Cancelar",
+			"cancelLbl": "Fechar alteracoes",
 			"saveFLbl": "Guardar Campo",
 			"applyFLbl": "Aplicar",
 			"addTblLbl": "Adicional tabela"

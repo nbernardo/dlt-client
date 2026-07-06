@@ -358,7 +358,7 @@ export class WorkSpaceController extends BaseController {
             
             if (!['Start', 'End'].includes(name)) {
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
-                let { componentId: removedId, ...fields } = data;
+                let { /*componentId: removedId,*/ ...fields } = data;
                 const parentId = this.wSpaceComponent.cmpInternalId;
                 const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true, asTemplate, fromPlan }, parentId);
 

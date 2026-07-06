@@ -1,5 +1,6 @@
 import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { BIService } from "../dataviz/services/BIService.js";
+import { Workspace } from "../workspace/Workspace.js";
 import { AbstractNode } from "./abstract/AbstractNode.js";
 import { NodeTypeInterface } from "./mixin/NodeTypeInterface.js";
 import { SqlDBComponent } from "./SqlDBComponent.js";
@@ -37,6 +38,8 @@ export class DuckDBOutput extends AbstractNode {
 	/** @Prop */
 	formRef;
 
+	/** @type { Workspace } */ $parent
+
 	/**
 	 * @Inject @Path services/
 	 * @type { WorkSpaceController } */
@@ -49,7 +52,7 @@ export class DuckDBOutput extends AbstractNode {
 	 * */
 	stOnRender(data){
 		const { nodeId, isImport, aiGenerated, database, table } = data;
-		console.log(`THE DATA IS: `, data);
+		this.$parent.scheduleDwName = database;
 		
 		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
@@ -78,9 +81,9 @@ export class DuckDBOutput extends AbstractNode {
 		this.wSpaceController.isDuckDBDest = true;
 		// When importing, it might take some time for things to be ready, the the subcrib to on change
 		// won't be automatically, setupOnChangeListen() will be called explicitly in the WorkSpaceController
-		if(this.isImport === false || this.aiGenerated){
+		//if(this.isImport === false || this.aiGenerated){
 			this.setupOnChangeListen();
-		}
+		//}
 
 		if(this.aiGenerated){
 			const { database, table } = this.importFields;
