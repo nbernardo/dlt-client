@@ -109,7 +109,7 @@ def query_parquet_export(namespace = None, dw = None):
     result, not_allowed_access = _check_user_permission(request.permissions, sql, dw)
 
     if(not_allowed_access > 0):
-        return jsonify({"error": result}), 200
+        return jsonify({"error": result, "type": "Permissiona Error"}), 200
 
     flpath, mmtype = None, "application/octet-stream"
     try:

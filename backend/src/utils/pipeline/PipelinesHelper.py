@@ -437,6 +437,9 @@ def get_table_columns(db_path, db_name, schema_name = None):
         '''
         result = con.query(query).fetchall()
     
+    except duckdb.CatalogException as err:
+        print('Error while fetchin Data Warehouse metadata: ', str(err))
+        result = {}
     finally:
         con.close()
 

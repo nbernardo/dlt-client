@@ -44,14 +44,11 @@ class PipelineTrigger:
             tbl = PipelineTrigger._get_table()
             PipelineTrigger.migrate(tbl)
 
-            
             for setting in settings:
 
-                pipeline = setting['ppline']
-                unity = setting['triggerValue']
-                time = setting['timeUnit']
-                order = setting['order']
-                sttus = Trigger.STATUS_ACTIVE
+                pipeline, unity = setting['ppline'], setting['triggerValue']
+                time, order = setting['timeUnit'], setting['order']
+                sttus = setting.get('status', Trigger.STATUS_ACTIVE)
 
                 is_existing_trigger = PipelineTrigger.find_all(namespace, leader_pipeline, order=order)
                 if(len(is_existing_trigger) > 0):

@@ -41,3 +41,5 @@ class FileOperation(StrEnum):
 
 class Trigger(StrEnum):
     STATUS_ACTIVE = 'ACTIVE'
+    STATUS_PAUSE = 'PAUSED'
+    STATUS_STOP = 'STOPED'

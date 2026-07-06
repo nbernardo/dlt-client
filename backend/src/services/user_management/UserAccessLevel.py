@@ -48,7 +48,7 @@ class UserAccessLevel:
             FROM 
                 roles r, json_tree(r.data_access_level, '$.tables') jt
             WHERE 
-                r.role_name IN ({role_placeholders}) AND jt.path = '$.tables'  AND jt.key IN ({table_placeholders})
+                r.role_name IN ({role_placeholders}) AND jt.path = '$.tables'  AND LOWER(jt.key) IN ({table_placeholders})
         """
         
         query_args = roles_list + target_tables
@@ -60,7 +60,8 @@ class UserAccessLevel:
                 rows = await cursor.fetchall()
                 await cursor.close()
                 
-                for table_name, governance_rules in rows:
+                for _table_name, governance_rules in rows:
+                    table_name = str(_table_name).lower()
                     if not governance_rules: 
                         continue
                     
@@ -75,7 +76,7 @@ class UserAccessLevel:
                     fields_from_query = set(field_by_table[table_name]) if (table_name in field_by_table) else set()
 
                     if(table_name in field_by_table):
-                        blocked_fields = (fields_from_query & set(hidden_cols))
+                        blocked_fields = (fields_from_query & set([col.lower() for col in hidden_cols]))
                     
                     if len(blocked_fields) > 0:
                         total_not_allowed = total_not_allowed + 1
@@ -96,14 +97,11 @@ class UserAccessLevel:
                 cursor = await conn.execute(f"SELECT data_access_level FROM roles WHERE role_name = '{role_string}'")
                 rows = await cursor.fetchall()
                 await cursor.close()
+
+                contraints = json.loads(rows[0][0])
                 
-                for row in rows:
-                    if row[0] == '{}': continue
-
-                    constraint = json.loads(row[0]).get('tables').items()
-                    table = next(iter(constraint.mapping))
-
-                    result[table.replace(f'{dw_name}_','')] = constraint.mapping[table]
+                for table in list(contraints.get('tables').keys()):
+                    result[table.replace(f'{dw_name}_','')] = contraints.get('tables').get(table)
 
                 return result
             except Exception as err:
