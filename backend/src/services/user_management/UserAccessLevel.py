@@ -108,26 +108,29 @@ class UserAccessLevel:
                 print(f'Error while fetching constraint: {str(err)}')
 
 
-    def extract_columns_by_table(sql_query, dw_name = None, dialect="tsql"):
-        """Parses SQL query and returns a dictionary mapping each physical table to its respective columns."""
+    def extract_and_translate_query(con, sql_query, dw=None, dialect="tsql"):
+        """
+        1. Parses SQL query and returns the original dictionary mapping physical tables to columns.
+        2. Builds a translated outer wrapper query for direct DuckDB Parquet exports without modifying the original
+           also considering the data dictionary.
+        """
         parsed_ast = sqlglot.parse_one(sql_query, read=dialect)
         
-        # Qualify the query. This automatically maps aliases (like 'c.name') 
-        # back to their true table names (like 'customers.name') based on the context.
         try:
             qualified_ast = qualify(parsed_ast, dialect=dialect)
         except Exception:
-            # Fallback to standard parse if qualify encounters strict schema mismatches
             qualified_ast = parsed_ast
 
         cte_names = {cte.alias_or_name.lower() for cte in qualified_ast.find_all(exp.CTE)}
 
         # A dictionary that defaults to an empty set to ensure columns are unique
-        table_column_map = defaultdict(set)
+        tbl_col_map, select_items = defaultdict(set), []
+        
+        # Pre-map table aliases to true names to catch edge cases
+        alias_to_table = { tbl_exp.alias_or_name.lower(): tbl_exp.name for tbl_exp in qualified_ast.find_all(exp.Table) }
 
-        for column_exp in qualified_ast.find_all(exp.Column):
-            column_name, table_prefix = column_exp.name, column_exp.text("table")           
-            
+        for col_exp in qualified_ast.find_all(exp.Column):
+            column_name, table_prefix = col_exp.name, col_exp.text("table")           
             resolved_table = table_prefix if table_prefix else ''
                 
             for table_exp in qualified_ast.find_all(exp.Table):
@@ -136,9 +139,61 @@ class UserAccessLevel:
                     break
                 
             if resolved_table.lower() not in cte_names:
-                table_column_map[resolved_table].add(column_name)
+                tbl_col_map[resolved_table].add(column_name)
 
-        return {f'{dw_name+'_' if dw_name else ''}{table}': sorted(list(cols)) for table, cols in table_column_map.items()}
+        # Reconstruct original expected dictionary format
+        field_by_tbl = { f"{dw + '_' if dw else ''}{tbl}": sorted(list(cols)) for tbl, cols in tbl_col_map.items() }
+
+        # Clean the keys to pass only physical table names (without dw_ prefix) to the metadata query
+        detected_tables = [tbl.replace(f'{dw}_','') for tbl in field_by_tbl.keys()]
+
+        # Retrieve the exact-case translation map from your metadata method
+        translation_map = UserAccessLevel.get_translation_map_by_tables(con, detected_tables)
+        
+        for expression in qualified_ast.expressions:
+            if isinstance(expression, exp.Alias):
+                output_name, base_node = expression.alias, expression.this
+            else:
+                output_name, base_node = expression.name, expression
+
+            # Get the true table name tied to this outer column
+            table_prefix = base_node.text("table")
+            resolved_table = alias_to_table.get(table_prefix.lower(), table_prefix)
+
+            table_map = translation_map.get(resolved_table, {})
+            translated_name = table_map.get(output_name, output_name)
+
+            select_items.append(f'"{output_name}" AS "{translated_name}"')
+
+        # Wrap your original untouched sql_query string
+        translated_wrapper_sql = f"SELECT {', '.join(select_items)} FROM ({sql_query}) AS final_output_stream"
+
+        return field_by_tbl, translated_wrapper_sql
+
+
+    def get_translation_map_by_tables(con, table_names):
+        """
+        Queries dwhperformance_meta.field_dictionary for a specific list of tables 
+        and returns a nested dictionary of case-sensitive translations.
+        """
+        if not table_names: return {}
+            
+        # Build the structured subquery to aggregate matching tables only
+        dictionary_query = """
+        SELECT 
+            json_group_object(table_name, fields_json::JSON)
+        FROM (
+            SELECT 
+                LOWER(table_name) as table_name, json_group_object(LOWER(field_name), translation) AS fields_json
+            FROM 
+                dwhperformance_meta.field_dictionary
+            WHERE status = true AND LOWER(table_name) IN ({}) GROUP BY table_name
+        );
+        """.format(", ".join(f"'{t}'" for t in table_names))
+
+        # Execute and parse directly to a native dictionary
+        json_result = con.execute(dictionary_query).fetchone()[0]
+        return json.loads(json_result) if json_result else {}
 
 
     def generate_query_hash(sql_query: str, size_bytes: int = 8) -> str:

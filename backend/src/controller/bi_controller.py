@@ -119,5 +119,4 @@ def upsert_dictionary(namespace, pipeline):
     sep = get_sep()
     database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
 
-    result = DataDictionary.upsert_dictionary(database_path, payload.get('values',[]))
-    return { 'error': False, 'result': '' }
+    return DataDictionary.upsert_dictionary(database_path, payload.get('values',[]))

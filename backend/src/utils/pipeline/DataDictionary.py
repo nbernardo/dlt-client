@@ -28,7 +28,7 @@ class DataDictionary:
 
   
   def upsert_dictionary(db_path, values):
-    con = duckdb.connect(db_path)
+    con, error = duckdb.connect(db_path), None
 
     try:
       table = 'dwhperformance_meta.field_dictionary'
@@ -42,9 +42,11 @@ class DataDictionary:
           """,
           [(r['table'], r['name'], r['trans'], r['desc'], r.get('status',True), r.get('lang', 'PT')) for r in values]
       )
-    
+      
     except Exception as err:
+      error = str(err)
       print(f'Error while updating the dictionary: {str(err)}')
-
+      
     finally:
       con.close()
+      return { 'error': False if error == None else True, 'result': error }

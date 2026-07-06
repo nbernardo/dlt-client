@@ -56,12 +56,13 @@ def _run_export(con: duckdb.DuckDBPyConnection, sql: str) -> str:
     return filepath
 
 
-def _check_user_permission(permissions, sql_query, dw_name):
+def _check_user_permission(con, permissions, sql_query, dw_name):
     
     async def fetch_data_async():
-        field_by_table = UserService.access_level.extract_columns_by_table(sql_query, dw_name)
+        #field_by_table = UserService.access_level.extract_columns_by_table(con, sql_query, dw_name)
+        field_by_table, translated_sql_query = UserService.access_level.extract_and_translate_query(con, sql_query, dw_name)
         result = await UserService.access_level.get_access_tables_constraint(permissions, dw_name, field_by_table)
-        return result.get('result'), result.get('total_not_allowed')
+        return result.get('result'), result.get('total_not_allowed'), translated_sql_query
 
     def run_in_isolated_loop():
         return asyncio.run(fetch_data_async())
@@ -106,16 +107,17 @@ def query_parquet_export(namespace = None, dw = None):
     if str(sql).__contains__('*'):
         return jsonify({"error": "Invalid query. '*' is not allowed, please specify the column names"}), 400
 
-    result, not_allowed_access = _check_user_permission(request.permissions, sql, dw)
+    con = _get_connection(namespace, dw)
+    result, not_allowed_access, translated_sql_query = _check_user_permission(con, request.permissions, sql, dw)
 
     if(not_allowed_access > 0):
         return jsonify({"error": result, "type": "Permissiona Error"}), 200
 
     flpath, mmtype = None, "application/octet-stream"
     try:
-        sql, con = _validate_select(sql), _get_connection(namespace, dw)
+        sql = _validate_select(sql)
 
-        future = _executor.submit(_run_export, con, sql)
+        future = _executor.submit(_run_export, con, translated_sql_query)
         flpath = future.result()
 
         @after_this_request
