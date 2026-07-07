@@ -11,7 +11,8 @@ import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspa
 import { Workspace } from "../../workspace/Workspace.js";
 import { PipelinePlanService } from "../../dataviz/services/PipelinePlanService.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
-import { sleepForSec } from "../../../../@still/component/manager/timer.js";
+import { PipelineService } from "../../../services/PipelineService.js";
+import { StillAppSetup } from "../../../../config/app-setup.js";
 
 export class LeftTabs extends ViewComponent {
 
@@ -68,6 +69,7 @@ export class LeftTabs extends ViewComponent {
 	dbSecretsList = [];
 	apiSecretsList = [];
 	pipelinePlanList = [];
+	pipelines = [];
 
 	stAfterInit() {
 		this.$parent.controller.leftTab = this;
@@ -122,9 +124,8 @@ export class LeftTabs extends ViewComponent {
 
 			let dbSchema = null;
 			if(data[0]){
-				dbSchema = this.dbTreeviewProxy.addNode({
-					content: this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile),
-				});
+				const content = this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile)
+				dbSchema = this.dbTreeviewProxy.addNode({ content });
 			}
 
 			for(const idx in data){
@@ -191,11 +192,9 @@ export class LeftTabs extends ViewComponent {
 				`;
 	}
 
-	dbSchemaTreeViewTemplate = (dbname) =>
-		`<div class="table-in-treeview"><span> ${dbIcon} <b>${dbname}</b></span></div>`;
+	dbSchemaTreeViewTemplate = (dbname) => `<div class="table-in-treeview"><span> ${dbIcon} <b>${dbname}</b></span></div>`;
 	
-	copyToClipboard = () =>
-		this.$parent.controller.copyToClipboard(this.currentTableName);
+	copyToClipboard = () => this.$parent.controller.copyToClipboard(this.currentTableName);
 
 	queryTable = () => {
 		// Get metadata for current table
@@ -248,9 +247,14 @@ export class LeftTabs extends ViewComponent {
 		if(secretType === 'api') this.$parent.controller.catalogForm.showTestConnection = true;
 	}
 
+	loadGovTablesByPipeline = async (pipelineName) =>
+		await this.$parent.controller.governanceView.loadTablesByPipeline(pipelineName);
+
 	async selectTab(tab){
 
 		if(tab === 'content-data-governance'){
+			AppTemplate.showLoading(StillAppSetup.config.bundle('gov.loadDGUIMsg'));
+			this.pipelines = await PipelineService.getPipelinesForGernanceView();
 			return this.$parent.controller.createDataGovernanceUI();
 		}
 

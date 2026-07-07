@@ -36,6 +36,8 @@
 		"revokeIdLbl": "Revoke Identity",
 		"updateLbl": "Update",
         "loadDGUIMsg": "Loading Data Governance Interface",
+        "dwListLbl": "Data Warehouse list",
+        "dGovLbl": "Data Governance",
 		"combo": {
 			"selectOptLbl": "Select an option",
 			"selectTblLbl": "Select the table",

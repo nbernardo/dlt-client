@@ -3,6 +3,7 @@ import { BaseService, ServiceEvent } from "../../@still/component/super/service/
 import { HTTPHeaders } from "../../@still/helper/http.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { DataCatalogUI } from "../components/data-catalog/DataCatalogUI.js";
+import { BIService } from "../components/dataviz/services/BIService.js";
 import { WorkSpaceController } from "../controller/WorkSpaceController.js";
 import { StringUtil } from "../util/StringUtil.js";
 import { UserService } from "./UserService.js";
@@ -137,6 +138,15 @@ export class PipelineService extends BaseService {
         if (!response.error)
             return AppTemplate.toast.success(response.result);
         AppTemplate.toast.error(response.result);
+    }
+
+    static async getPipelinesForGernanceView(){
+        const pplineList = await BIService.getDWPipelines();
+        return (pplineList || []).map(([pipeline, dtset]) => {
+            const path = dtset.split('.');
+            const hasPath = path.length > 1;
+            return { pipeline, srcPipeline: hasPath ? path[1] : pipeline, dwName: hasPath ? path[0] : dtset }
+        });
     }
 
 }

@@ -890,13 +890,14 @@ export class WorkSpaceController extends BaseController {
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = catalogFormUI;
     }
     
+    /** @type { GovernanceMainComponent } */ governanceView;
     async createDataGovernanceUI(){
-        AppTemplate.showLoading(StillAppSetup.config.bundle('gov.loadDGUIMsg'));
         const parentId = this.wSpaceComponent.cmpInternalId;
         const { template: uiContent, component } = await Components.newView(GovernanceMainComponent, { }, parentId);
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
         await sleepForSec(1000);
         AppTemplate.hideLoading();
+        this.governanceView = component;
     }
 
     async loadMonacoEditorDependencies(){

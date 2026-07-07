@@ -15,10 +15,6 @@
 	
 			<div id="sec-dict" class="section active">
 				<div class="toolbar">
-					<select class="list-of-pipelines" (forEach)="pipelines" onchange="component.loadTablesByPipeline(this.value)" placeholder="$bundle.gov.combo.selectOptLbl" style="width:160px">
-						<option each="item" value="{item.srcPipeline}.{item.srcPipeline}.{item.dwName}">{item.pipeline}</option>
-					</select>
-					&nbsp;&nbsp; - &nbsp;&nbsp;
 					<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="dict-search" oninput="controller.renderDict()">
 					<select id="dict-table-filter" onchange="controller.renderDict()" style="width:160px">
 						<option value="">$bundle.gov.combo.allTalesLbl</option>
@@ -268,10 +264,7 @@
 	.governance-main-container { .btn-ok.disabled { color: #8a8686 !important; background: none !important; }; .btn-ok { color: #0d410f; background: #15531687 !important; } }
 	.governance-main-container .btn-ok:hover { background: #155316; color: #ffffff; }
 
-	.governance-main-container input[type=text],
-	.governance-main-container select { height: 34px; padding: 0 10px; border-radius: 6px; border: 0.5px solid #d1cec7; background: #ffffff; color: #1a1a1a; font-size: 13px; outline: none; }
 	.governance-main-container input[type=text]:focus,
-	.governance-main-container select:focus { border-color: #1A3D5C; }
 	.governance-main-container .search { width: 200px; }
 
 	.governance-main-container .table-wrap { border: 0.5px solid #e0ddd6; border-radius: 8px; overflow: hidden; margin: 0 1rem; }

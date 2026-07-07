@@ -286,7 +286,14 @@
             </div>
 
             <div class="content-panel content-data-governance">
-                <h3>Data Governance Tab</h3>
+                <h3>$bundle.gov.dGovLbl</h3>
+                <div style="display: flex; flex-direction: column; align-items: center; padding-top: 17px;">
+                    <label style="font-weight: bold; padding-bottom: 5px;">$bundle.gov.dwListLbl</label>
+                    <select 
+                        class="list-of-pipelines gov-select" (forEach)="pipelines" onchange="component.loadGovTablesByPipeline(this.value)" placeholder="$bundle.gov.combo.selectOptLbl" style="width:160px">
+                        <option each="item" value="{item.srcPipeline}.{item.srcPipeline}.{item.dwName}">{item.pipeline}</option>
+                    </select>
+                </div>
             </div>
 
             <div class="content-panel content-ai">
@@ -578,6 +585,12 @@
     .ppline-treeview:hover, .table-in-treeview:hover{ background: #d3d3d340; padding-bottom: 0; padding-top: 3px; }
     summary:has(.pipeline-menu-dots:hover){ background: #d3d3d340; }
 
+    /** Styling pertaining for the GovernanceMainComponent */
+    .gov-select { width: 90% !important; background: #f5f5f3 !important; }
+	.governance-main-container input[type=text],
+	.governance-main-container select, .gov-select { height: 34px; padding: 0 10px; border-radius: 6px; border: 0.5px solid #d1cec7; background: #ffffff; color: #1a1a1a; font-size: 13px; outline: none; }
+	.governance-main-container select:focus { border-color: #1A3D5C; }
+
     .stop-pipeline-job-icon{
         font-size: 10px;
         padding: 0 3px;
@@ -683,9 +696,7 @@
     #tab-logs,
     #tab-ai,
     #tab-diagram,
-    #tab-script-ppline {
-        display: none;
-    }
+    #tab-script-ppline { display: none; }
 
 
     .app-container { display: flex; width: 100%; }
@@ -707,9 +718,7 @@
     }
 
 
-    #nav-toggle:checked~.app-container .sidebar-container {
-        width: 200px;
-    }
+    #nav-toggle:checked~.app-container .sidebar-container { width: 200px; }
 
 
     .sidebar-toggle { display: block; text-align: right; padding: 10px 10px; cursor: pointer; font-size: 24px; color: #ecf0f1; transition: color 0.3s ease; }
@@ -728,26 +737,17 @@
     .sidebar-menu li label:hover { background-color: #34495e; border-left: 4px solid #3498db; color: white; }
 
 
-    .sidebar-menu li .icon {
+    .sidebar-menu li .icon { 
         font-size: 24px;
         /* A fallback for text icons */
-        width: 24px;
-        height: 24px;
-        margin-right: 15px;
-        transition: margin 0.3s ease;
-        text-align: center;
+        width: 24px; height: 24px; margin-right: 15px; transition: margin 0.3s ease; text-align: center;
     }
 
-    #nav-toggle:checked~.app-container .sidebar-container .icon {
-        margin-right: 15px;
-    }
+    #nav-toggle:checked~.app-container .sidebar-container .icon { margin-right: 15px; }
 
     .sidebar-menu li .text { opacity: 0; visibility: hidden; transition: opacity 0.1s ease; }
 
-    #nav-toggle:checked~.app-container .sidebar-container .text {
-        opacity: 1;
-        visibility: visible;
-    }
+    #nav-toggle:checked~.app-container .sidebar-container .text { opacity: 1; visibility: visible; }
 
     #tab-outputs:checked~.app-container .sidebar-menu label[for="tab-outputs"],
     #tab-data-source:checked~.app-container .sidebar-menu label[for="tab-data-source"],
@@ -781,10 +781,7 @@
     #tab-api-catalog:checked~.app-container .content-api-catalog,
     #tab-logs:checked~.app-container .data-viz,
     #tab-ai:checked~.app-container .content-ai,
-    #tab-script-ppline:checked~.app-container .content-ppline-script {
-        opacity: 1;
-        visibility: visible;
-    }
+    #tab-script-ppline:checked~.app-container .content-ppline-script { opacity: 1; visibility: visible; }
 
     .content h2 { color: #2c3e50; margin-bottom: 20px; }
 

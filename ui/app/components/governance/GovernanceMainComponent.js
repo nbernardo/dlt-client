@@ -3,7 +3,6 @@ import { ViewComponent } from "../../../@still/component/super/ViewComponent.js"
 import { State } from "../../../@still/component/type/ComponentType.js";
 import { StillAppSetup } from "../../../config/app-setup.js";
 import { AppTemplate } from "../../../config/app-template.js";
-import { BIService } from "../dataviz/services/BIService.js";
 import { Workspace } from "../workspace/Workspace.js";
 import { DataGovernanceController } from "./controller/DataGovernanceController.js";
 import { DGServiceController } from "./controller/DGServiceController.js";
@@ -20,9 +19,6 @@ export class GovernanceMainComponent extends ViewComponent {
 
 	/** @Prop @type { HTMLElement } */
 	container;
-
-	/** @type { State<Array> } */
-	pipelines;
 
 	/** @type { State<Array> } */
 	roles;
@@ -48,16 +44,9 @@ export class GovernanceMainComponent extends ViewComponent {
 			await sleepForSec(100);
 			this.controller.renderAll()
 		});
-
-		const pplineList = await BIService.getDWPipelines();
-		this.pipelines = (pplineList || []).map(([pipeline, dtset]) => {
-			const path = dtset.split('.');
-			const hasPath = path.length > 1;
-			return { pipeline, srcPipeline: hasPath ? path[1] : pipeline, dwName: hasPath ? path[0] : dtset }
-		})
 	}
 
-	loadTablesByPipeline = async(ppline) => {
+	async loadTablesByPipeline(ppline){
 		const pplinePath = ppline.split('.');
 		const { fields, tables } = await this.serviceController.loadTablesByPipeline(pplinePath.slice(0,2).join('.'));
 		this.controller.pipeline = ppline;
