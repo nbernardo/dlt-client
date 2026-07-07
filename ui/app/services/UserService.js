@@ -24,8 +24,9 @@ export class UserService extends BaseService {
                 const creds = {username, password};
                 let jwt = await $still.HTTPClient.post('/user/login', JSON.stringify(creds), HTTPHeaders.JSON);
                 jwt = await jwt.json()
-                if('tenant' in (jwt || {})){                    
-                    const user = { name: jwt.username, email: jwt.tenant, tkn: jwt.access_token, permissions: jwt.permissions, userEmail: username };
+                if('tenant' in (jwt || {})){  
+                    const user = { name: jwt.username, email: jwt.tenant, tkn: null, permissions: jwt.permissions, userEmail: username };
+                    localStorage.setItem('loggedIn', JSON.stringify(user))
                     this.userDetailes = { user, success: true, exception: false };
                     UserService.namespace = jwt.tenant;
                     return this.userDetailes;
@@ -54,6 +55,7 @@ export class UserService extends BaseService {
 	}
 
 	async logOut(loginType){
+        localStorage.removeItem('loggedIn');
         if(loginType !== 'managed')
 		    await UserService.auth0Client.logout({ localOnly: true });
         Router.goto('exit');
@@ -61,10 +63,13 @@ export class UserService extends BaseService {
 
     static async isAuthenticated(){
         await auth0GetConnection();
-        return await UserService.auth0Client.isAuthenticated()
+        return await UserService.auth0Client.isAuthenticated() || localStorage.getItem('loggedIn')
     }
 
     async getLoggedUser(){
+        if(localStorage.getItem('loggedIn'))
+            return { user: JSON.parse(localStorage.getItem('loggedIn')) };
+
         if(this.managedUser) return this.userDetailes;
 
         const anonymousLogin = StillAppSetup.config.get('anonymousLogin');
@@ -79,6 +84,9 @@ export class UserService extends BaseService {
     }
 
     static async getNamespace(){
+        if(localStorage.getItem('loggedIn')){
+            return UserService.namespace = JSON.parse(localStorage.getItem('loggedIn')).email;
+        }
         if([null,undefined].includes(UserService.namespace)){
             const auth = (await new UserService().getLoggedUser());
             if(auth?.user?.name == 'Anonymous') return auth.user.email;
@@ -110,7 +118,7 @@ export class UserService extends BaseService {
         return await result.json();
     }
 
-    getTkn = () => this.userDetailes.user.tkn;
+    getTkn = () => this.userDetailes?.user?.tkn;
 
     async saveTableAccessLevel(roleName, tablesConstraint){
         const url = '/user/rbac/table';

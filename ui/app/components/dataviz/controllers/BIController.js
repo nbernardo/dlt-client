@@ -134,8 +134,10 @@ export class BIController extends BaseController {
     renderSheet(){
 
         const rows = this.obj.state.filteredRows;
-        
-        if(!rows.length) return;
+
+        if(!rows.length) 
+            return this.obj.popup.querySelector('#tableBody').innerHTML = `<tr><td colspan='1000'>No data/table selected</td></tr>`;
+
         const cols = Object.keys(rows[0]);
         
         const { state } = this.obj;
@@ -766,22 +768,25 @@ export class BIController extends BaseController {
     static rangeFields;
 
 	async onPipelineChange(elm) {
-
-        const val = elm.value, modelName = elm.options[elm.selectedIndex].textContent;
-
-        this.obj.popup.querySelector('.tableList').innerHTML = this.dataProcessLoading('Loading data tables');
-        this.obj.state.pipeline = val;
-        let tablesByContext = await BIController.getDomainPipelineFields(val);
-        
-        BIController.rangeFields = tablesByContext.rangeFieldsData;
-
-        BIController.currentTableList = Object.entries(tablesByContext.allFields).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));
-        this.obj.state.activeTable = BIController.currentTableList[0].name;
-        this.renderTableList();
-        this.dataSourceStepper.updateTablesList(BIController.currentTableList);
-        this.dataSourceStepper.initStepper(null, {isDate: false, start: 1, end: BIController.rangeFields?.row_count?.row || 1, step: 1})
-        //this.assignDiagramConnectionName([{ name: `> Current Model - ${modelName} <` }]);
-        //this.viewingTables.clear(); //TODO: Offload implementation
+        try {            
+            const val = elm.value, modelName = elm.options[elm.selectedIndex].textContent;
+            this.obj.popup.querySelector('.tableList').innerHTML = this.dataProcessLoading('Loading data tables');
+            this.obj.state.pipeline = val;
+            let tablesByContext = await BIController.getDomainPipelineFields(val);
+            
+            BIController.rangeFields = tablesByContext.rangeFieldsData;
+    
+            BIController.currentTableList = Object.entries(tablesByContext.allFields).map(([name, cols]) => ({ name, cols, totalCols: cols.length }));
+            this.obj.state.activeTable = BIController.currentTableList[0].name;
+            this.renderTableList();
+            this.dataSourceStepper.updateTablesList(BIController.currentTableList);
+            this.dataSourceStepper.initStepper(null, {isDate: false, start: 1, end: BIController.rangeFields?.row_count?.row || 1, step: 1})
+            //this.assignDiagramConnectionName([{ name: `> Current Model - ${modelName} <` }]);
+            //this.viewingTables.clear(); //TODO: Offload implementation
+        } catch (error) {
+            console.log(`Error: `, error);
+            this.obj.popup.querySelector('.tableList').innerHTML = `<span style='color:red;'>Error while loading the model<span>`;
+        }
 	}
 
     assignDiagramConnectionName(secretsList = []){

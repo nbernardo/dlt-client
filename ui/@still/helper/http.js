@@ -49,6 +49,7 @@ export class StillHTTPClient {
             const response = (await fetch(url, {
                 method: method || 'GET',
                 headers: headers || {},
+                credentials: 'include'
             }))
             return response;
         } catch (error) {
@@ -70,6 +71,7 @@ export class StillHTTPClient {
                 method: 'DELETE',
                 body,
                 headers: headers || {},
+                credentials: 'include'
             }));
             return response;
         } catch (error) {
@@ -90,6 +92,7 @@ export class StillHTTPClient {
                 method: method || 'POST',
                 body,
                 headers: headers || {},
+                credentials: 'include'
             }));
             return response;
         } catch (error) {
