@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import asyncio
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, make_response
 import bcrypt
 import jwt
 import aiosqlite
@@ -67,12 +67,19 @@ def login_user():
 
         return { 
             'access_token': access_token, 'tkn_typ': "Bearer", 'tenant': tenant, 'password_changed': pwd_state, 
-            'permissions': permissions_list, 'email': email, 'username': username 
+            'permissions': permissions_list, 'email': email, 'username': username, 'login_active': True
         }
 
     try:
         response_data = async_to_sync(async_login)()
-        return response_data, 200
+        [age, tkn] = [3600 * 24, response_data.get('access_token')]
+
+        response = make_response(jsonify(response_data), 200)
+
+        response.set_cookie(key='access_token', value=tkn, httponly=False, secure=False, samesite='Lax', max_age=age)
+        response.set_cookie(key='logged_in', value='true', httponly=False, secure=False, samesite='Lax', max_age=age)
+
+        return response
     except Exception as e:
         return jsonify({'error': f'Internal Server Error: {str(e)}'}), 500
 

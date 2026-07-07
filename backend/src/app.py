@@ -9,7 +9,7 @@ set_env(proj_folder)
 from flask import Flask, request
 from flask_cors import CORS
 from flask_socketio import emit
-from controller.RequestContext import socketio
+from controller.RequestContext import socketio, origins
 from controller.pipeline import pipeline, BasePipeline
 from controller.workspace import workspace, call_scheduled_job
 from controller.logs import logs
@@ -37,7 +37,7 @@ app = Flask(__name__)
 app.debug = True
 app.config['SECRET_KEY'] = 'hash#123098'
 
-CORS(app)
+CORS(app, origins=origins, supports_credentials=True)
 socketio.init_app(app)
 
 @socketio.on('connect', namespace='/pipeline')

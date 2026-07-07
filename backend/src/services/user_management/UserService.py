@@ -21,11 +21,10 @@ def require_permission(required_permission: str):
     def decorator(f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            auth_header = request.headers.get("Authorization")
-            if not auth_header or not auth_header.startswith("Bearer "):
+            token = request.cookies.get('access_token')
+            if token is None:
                 return {'message': 'Unauthorized: Missing or malformed Authorization header token.', 'error': True}, 401
             
-            token = auth_header.split(" ")[1]
             try:
                 payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
                 
