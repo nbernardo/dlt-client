@@ -17,7 +17,7 @@ pipeline = Blueprint('pipeline', __name__)
 
 class BasePipeline:
     folder = None
-    file_folder_map = { 'data':'dbs/files', 'pipeline': 'destinations/pipeline'}
+    file_folder_map = { 'data':'dbs/files', 'pipeline': 'destinations/pipeline', 'dw': 'destinations/duckdb'}
 
 
 @pipeline.route('/pipeline/create', methods=['POST','PUT'])

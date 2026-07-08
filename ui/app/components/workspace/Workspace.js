@@ -501,6 +501,10 @@ export class Workspace extends ViewComponent {
 	async viewPipelineDiagram(event, pplineName, asTemplate = false, fromReview = false) {
 		this.controller.shouldDisableNodeFormInputs = true;
 		event.preventDefault();
+
+		if(event.target.dataset.download)
+			return this.service.downloadfile(`${this.leftMenuProxy.currentDBFile}.duckdb`,'dw');
+
 		pplineName = this.leftMenuProxy.currentDBFile;
 		const self = this;
 		AppTemplate.showLoading();
