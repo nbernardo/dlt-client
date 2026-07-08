@@ -49,12 +49,10 @@ def handle_pipeline_log(printed_log: str, logger: logging.Logger, error = False,
             logger.info(description, extra=json.loads(extra))
     # logs details logs generated from DLT library 
     else:
-        if printed_log == None: return
         if printed_log.strip() != '':
             if error: logger.error(printed_log)
             elif warning: logger.warning(printed_log)
             else: logger.info(printed_log)
     
-    if printed_log == None: return
     if context:
         context.emit_ppline_job_trace(printed_log,error=error)
