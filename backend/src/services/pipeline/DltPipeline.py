@@ -211,12 +211,12 @@ class DltPipeline:
             context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
 
             job_tag = f'{start_time}_{params.get('dest_storage')}'
-            refs = { **refs, 'params': params }
+            refs = { **refs, 'params': params, 'job_tag': job_tag }
 
             if context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
                 refs = { **refs, 'tables_pks': context.pipeline_metadata.tables_pks, 'dest_tables': context.pipeline_metadata.dest_tables }
 
-            schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs, job_tag).tag(job_tag)
+            schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
             
             handle_pipeline_log(f'pipeline.success.conclusion', logger)
         
