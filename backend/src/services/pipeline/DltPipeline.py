@@ -211,7 +211,7 @@ class DltPipeline:
             context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
 
             job_tag = f'{start_time}_{params.get('dest_storage')}'
-            refs = { **refs, 'params': params, 'job_tag': job_tag, 'logger': logger }
+            refs = { **refs, 'params': params, 'job_tag': job_tag, 'logger': logger, 'context': context }
 
             if context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
                 refs = { **refs, 'tables_pks': context.pipeline_metadata.tables_pks, 'dest_tables': context.pipeline_metadata.dest_tables }
