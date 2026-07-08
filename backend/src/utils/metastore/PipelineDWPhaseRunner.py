@@ -185,7 +185,7 @@ class PipelineDWPhaseRunner:
 
         msg = 'Preprocessing Stage to Datawarehouse data ingestion'
         handle_pipeline_log(msg, refs.get('logger'), context=refs.get('context'))
-        job_tag, triggers_cb = refs.get('job_tag'), refs.get('triggers')
+        job_tag, triggers_cb = refs.get('job_tag'), refs.get('triggers', lambda: None)
 
         import schedule
         schedule.clear(job_tag)
