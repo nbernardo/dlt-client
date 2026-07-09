@@ -570,7 +570,7 @@ class DltPipeline:
 
         from utils.metastore.PipelineTrigger import PipelineTrigger
 
-        refs, job_start_time = { 'job_execution_id': uuid.uuid4() }, None
+        refs, job_start_time, params = { 'job_execution_id': uuid.uuid4() }, None, {}
         triggers = triggers if triggers != None else PipelineTrigger.find_all(namespace, pipeline)
 
         try:
@@ -594,9 +594,13 @@ class DltPipeline:
             
             # Register pipeline run initiation and start time
             _1, storage_path, _2 = PipelineCheckpoint.persist(pipeline_metadata[4], namespace, stg_storage, params)
-
             pipeline = pipeline_metadata[4]
             await proc.stdin.drain()
+
+            # delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
+            # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
+            cp_status = Checkpoint.STAGED if context.pipeline_metadata.stage_storage else Checkpoint.DONE
+            params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline }
 
             while True:
                 line = await proc.stdout.readline()
@@ -616,11 +620,6 @@ class DltPipeline:
             [short_query, dataset_name] = [refs.get('short_query'), pipeline_metadata[7]]
 
             DltPipeline.update_pipline_runtime(namespace, ppline_name, dt)
-
-            # delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
-            # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
-            cp_status = Checkpoint.STAGED if context.pipeline_metadata.stage_storage else Checkpoint.DONE
-            params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline }
 
             PipelineCheckpoint.update(pipeline, None, params)
             MetaStore.update_metadata(namespace, pipeline, dataset_name, short_query)
@@ -650,6 +649,9 @@ class DltPipeline:
             handle_pipeline_log(refs.get('error_message'), logger, True)
             handle_pipeline_log(err.with_traceback, logger, True)
             DltPipeline.send_fail_email(job_start_time, context)
+
+            params['cp_status'] = Checkpoint.FAILED
+            PipelineCheckpoint.update(pipeline, None, params)
 
 
     @staticmethod

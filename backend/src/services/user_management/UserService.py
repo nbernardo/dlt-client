@@ -17,7 +17,7 @@ DB_FILE = "e2e_data_users.db"
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
 
-def require_permission(required_permission: str):
+def require_permission(perm: str|list):
     def decorator(f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
@@ -27,12 +27,16 @@ def require_permission(required_permission: str):
             
             try:
                 payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+                if type(perm) == str: 
+                    required_permission = [perm]
                 
-                if required_permission not in payload.get("permissions", []):
-                    return {'message': f"Forbidden: Insufficient privileges. Missing '{required_permission}'.", 'error': True}, 403
+                allowed_perm = set(required_permission) & set(payload.get("permissions", []))
+
+                if len(allowed_perm) < 1:
+                    return {'message': f"Forbidden: Insufficient privileges. Missing '{' or '.join(required_permission)}'.", 'error': True}, 403
                 
-                request.user_context = payload                
-                request.permissions = payload.get("permissions", [])                
+                [request.user_context, request.permissions] = [payload, payload.get("permissions", [])]              
+                               
                 return f(*args, **kwargs)
                 
             except jwt.ExpiredSignatureError:
