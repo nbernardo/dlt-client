@@ -44,18 +44,20 @@ class PipelineCheckpoint:
     def persist(pipeline, namespace, stage_source, params: dict):
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
         try:
-
             tbl = PipelineCheckpoint._get_table()
             PipelineCheckpoint.migrate(tbl)
 
-            rows_to_insert = [{ 
-                'pipeline': pipeline, 'status': params.get('state'), 'namespace': namespace, 'start_time': params.get('start_time'), 
-                'update_time': params.get('updt_time'), 'storage_path': params.get('dest_storage'), 'stage_source': stage_source,
-                'dest_tables': params.get('dest_tables'), 'tables_pks': params.get('tables_pks'), 'dataset_name': params.get('dataset_name')
-            }]
-
-            tbl.add(rows_to_insert)
-            #if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
+            if(int(params.get('exp_backoff')) > 1):
+                retry_count = int(params.get('exp_backoff')) - 1
+                PipelineCheckpoint.update(pipeline, None, params)
+            else:
+                rows_to_insert = [{ 
+                    'pipeline': pipeline, 'status': params.get('state'), 'namespace': namespace, 'start_time': params.get('start_time'), 
+                    'update_time': params.get('updt_time'), 'storage_path': params.get('dest_storage'), 'stage_source': stage_source,
+                    'dest_tables': params.get('dest_tables'), 'tables_pks': params.get('tables_pks'), 'dataset_name': params.get('dataset_name')
+                }]
+                tbl.add(rows_to_insert)
+                #if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
 
         except Exception as e:
             print(f"PipelineCheckpoint Update Failed: {str(e)}")
@@ -64,10 +66,11 @@ class PipelineCheckpoint:
 
 
     @staticmethod
-    def update(pipeline, delayed_pipeline = None, params = None):
+    def update(pipeline, delayed_pipeline = None, params = None, retry_count = None):
         """Update pipeline checkpoint - In case there is a delayed pipeline competing for the same storage is now passes as active"""
 
         try:
+            retry_count = int(params.get('exp_backoff')) - 1
             tbl, cp = PipelineCheckpoint._get_table(), Checkpoint
             PipelineCheckpoint.migrate(tbl)
 
@@ -76,7 +79,9 @@ class PipelineCheckpoint:
                 filter = f"status='{cp.DELAY}' AND pipeline='{delayed_pipeline}'"
 
             filter = f"start_time='{params.get('start_time')}' AND storage_path='{params.get('storage_path')}' AND pipeline='{pipeline}'"
-            tbl.update(where=f'{filter}', values_sql={ 'status': f"'{params.get('cp_status')}'", 'update_time': f"'{datetime.now().timestamp()}'" })
+            tbl.update(where=f'{filter}', values_sql={ 
+                'status': f"'{params.get('cp_status')}'", 'update_time': f"'{datetime.now().timestamp()}'", 'retry_count': f"'{retry_count}'"
+            })
 
         except Exception as e:
             print(f"PipelineCheckpoint Update Failed: {str(e)}")
@@ -122,7 +127,9 @@ class PipelineCheckpoint:
         try:
             existing_cols = tbl.schema.names
 
-            new_fields = {}
+            new_fields = {
+                'retry_count': "cast(null as string)", #added in Jul/09/2026
+            }
 
             for col, expr in new_fields.items():
                 if col not in existing_cols:

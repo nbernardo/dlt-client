@@ -395,10 +395,11 @@ class DltPipeline:
     def send_fail_email(start_time, context: RequestContext):
         start_dt, end_dt = datetime.fromtimestamp(float(start_time)), datetime.now()
         intl = labels[env('APP_LANG')]
-        content = intl['PPLINE_FAIL_TXT'].replace('{pp_name}', context.pipeline_name).replace('{sdate}', start_dt).replace('{tstamp}', end_dt)
+        pipeline_name = context.pipeline_metadata.stage_storage.split('_for_',1)[1]
+        content = intl['PPLINE_FAIL_TXT'].replace('{pp_name}', pipeline_name).replace('{sdate}', str(start_dt)).replace('{tstamp}', str(end_dt))
         [exec_fail_sbj_pfx, exec_fail_sbj_sfx] = [intl['PPLINE_FAIL_EXEC_SBJ_PFX'], intl['PPLINE_FAIL_EXEC_SBJ_SFX']]
 
-        subject = f'{exec_fail_sbj_pfx} ({context.pipeline_name}) {exec_fail_sbj_sfx}'
+        subject = f'{exec_fail_sbj_pfx} ({pipeline_name}) {exec_fail_sbj_sfx}'
         SimpleAPIMailer.send_email(env('PPLINE_RESULT_EMAIL'), env('PPLINE_RESULT_EMAIL_RCVR'), content, subject)
 
 
@@ -529,20 +530,26 @@ class DltPipeline:
     job_refs = {}
 
     @staticmethod
-    def run_pipeline_job_sync(file_path, namespace, leade_pipeline = None):
-        asyncio.run(DltPipeline.run_pipeline_job(file_path, namespace, leade_pipeline))
+    def run_pipeline_job_sync(file_path, namespace, lead_pipeline = None):
+        asyncio.run(DltPipeline.run_pipeline_job(file_path, namespace, lead_pipeline))
 
 
     @staticmethod
-    async def run_pipeline_job(file_path, namespace, leade_pipeline = None, triggers = None, job_tag = None):
+    async def run_pipeline_job(
+        file_path, 
+        namespace, 
+        lead_pipeline = None, 
+        triggers = None, 
+        job_tag = None,
+        param_list: dict = {'exp_backoff': 1}
+    ):
         
-        socket_id = DuckdbUtil.get_socket_id(namespace)
-        context = RequestContext(None, socket_id)
+        ppline_file_path, storage_path = file_path, None
+        context = RequestContext(None, DuckdbUtil.get_socket_id(namespace))
         logger = DltPipeline.get_pipeline_logger(context)
 
-        if(job_tag != None):
-            schedule.clear(job_tag)
-            handle_pipeline_log(f'Trigger for {file_path} from {leade_pipeline}', logger, False)
+        DltPipeline._handle_triggers_preprocess(job_tag, file_path, lead_pipeline, logger)
+        DltPipeline._handle_retry_preprocess(file_path, logger, param_list)
 
         [ppline_file, pipeline] = [f'{destinations_dir}/{file_path}.py', file_path.replace(f'{namespace}/','')]
         [pipeline_metadata, db_file] = [PipelineMedatata.get_pipeline_metadata(pipeline, namespace), file_path]
@@ -570,13 +577,11 @@ class DltPipeline:
 
         from utils.metastore.PipelineTrigger import PipelineTrigger
 
-        refs, job_start_time, params = { 'job_execution_id': uuid.uuid4() }, None, {}
+        proc, params = None, { 'exp_backoff': param_list.get('exp_backoff',1) }
+        refs, job_start_time = { 'job_execution_id': uuid.uuid4() }, None
         triggers = triggers if triggers != None else PipelineTrigger.find_all(namespace, pipeline)
 
         try:
-            DuckdbUtil.check_pipline_db(f'{db_root_path}/{db_file}.duckdb')
-            handle_pipeline_log(f'####### WILL RUN JOB FOR {file_path}', logger, False)
-
             stg_storage = pipeline_metadata[8]
             context.pipeline_metadata.stage_storage = stg_storage
 
@@ -584,27 +589,32 @@ class DltPipeline:
             # Pass environment variables including Vault credentials
             [env_vars, PIPE] = [DltPipeline.prepare_pipeline_env_vars(), asyncio.subprocess.PIPE]
             
-            job_start_time = datetime.now().timestamp()
-            proc = await asyncio.create_subprocess_exec('python', ppline_file, stdout=PIPE, stdin=PIPE, stderr=PIPE, env=env_vars)
-            proc.stdin.write(str(job_start_time).encode() + b'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process
             ppline_name = str(db_file).replace(f'{namespace}/','')
+            job_start_time = param_list.get('job_start_time', datetime.now().timestamp())
 
-            params = context.get_dest_details(f'{db_root_path}/{db_file}.duckdb')
-            params = { **params, 'state': Checkpoint.INIT, 'updt_time': Checkpoint.TIME_UNSET, 'start_time': job_start_time }
+            ini_params = context.get_dest_details(f'{db_root_path}/{db_file}.duckdb')
+            params = { **ini_params, **params, 'state': Checkpoint.INIT, 'updt_time': Checkpoint.TIME_UNSET, 'start_time': job_start_time }
+
+            if('storage_path' not in params): params['storage_path'] = params['dest_storage']
             
-            # Register pipeline run initiation and start time
+            # Register pipeline run initiation and start time. Or update in case of retry flow
             _1, storage_path, _2 = PipelineCheckpoint.persist(pipeline_metadata[4], namespace, stg_storage, params)
             pipeline = pipeline_metadata[4]
-            await proc.stdin.drain()
+
+            DuckdbUtil.check_pipline_db(f'{db_root_path}/{db_file}.duckdb')
+            handle_pipeline_log(f'####### WILL RUN JOB FOR {file_path}', logger, False)
 
             # delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
             # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
             cp_status = Checkpoint.STAGED if context.pipeline_metadata.stage_storage else Checkpoint.DONE
             params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline }
 
+            proc = await asyncio.create_subprocess_exec('python', ppline_file, stdout=PIPE, stdin=PIPE, stderr=PIPE, env=env_vars)
+            proc.stdin.write(str(job_start_time).encode() + b'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process
+            await proc.stdin.drain()
+
             while True:
                 line = await proc.stdout.readline()
-
                 if not line: break
                 
                 line = line.decode().strip()
@@ -612,7 +622,6 @@ class DltPipeline:
                     break
 
             #if proc.returncode == 0 and context is not None and pipeline_exception == False: context.emit_ppsuccess()
-            # proc.kill()
             pipeline_exception = refs.get('pipeline_exception')
             await DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger, job_start_time)
 
@@ -640,6 +649,7 @@ class DltPipeline:
             DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
         
         except Exception as err:
+            if proc: proc.kill()
             # DB Lock release in the pplication level
             DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
             message = f'Error while running job for {db_file.split('/')[1]} pipeline'
@@ -650,8 +660,39 @@ class DltPipeline:
             handle_pipeline_log(err.with_traceback, logger, True)
             DltPipeline.send_fail_email(job_start_time, context)
 
-            params['cp_status'] = Checkpoint.FAILED
+            params = { **params, 'storage_path': storage_path, 'cp_status': Checkpoint.FAILED }
             PipelineCheckpoint.update(pipeline, None, params)
+
+            DltPipeline._retry(ppline_file_path, param_list, job_start_time, namespace, pipeline)
+
+
+    @staticmethod
+    def _retry(ppline_file_path, param_list, job_start_time, namespace, pipeline):
+        
+        exp_backoff = param_list.get('exp_backoff')
+        if exp_backoff > 6: 
+            return
+
+        target_pipeline, wait_time = ppline_file_path, (int(exp_backoff) * 10)
+
+        param_list['exp_backoff'] = int(exp_backoff) + 1
+        param_list['job_start_time'] = job_start_time
+
+        [cb, job_tag] = [DltPipeline.run_pipeline_job, f'{target_pipeline}_{job_start_time}']
+        schedule.every(wait_time).seconds.do(lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, None, job_tag, param_list))).tag(job_tag)  
+
+
+    @staticmethod
+    def _handle_triggers_preprocess(job_tag, file_path, lead_pipeline, logger):
+        if(job_tag != None):
+            schedule.clear(job_tag)
+            handle_pipeline_log(f'Trigger for {file_path} from {lead_pipeline}', logger, False)
+
+
+    @staticmethod
+    def _handle_retry_preprocess(file_path, logger, param_list):
+        if param_list.get('exp_backoff',1) > 1:
+            handle_pipeline_log(f'{param_list.get('exp_backoff')}x Retrying {file_path} pipeline', logger, False, display=True)
 
 
     @staticmethod
