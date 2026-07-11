@@ -40,6 +40,10 @@ def is_SAWarning(message):
     regex = r"SAWarning: Table ['\"](.+?)['\"] already"
     return re.search(regex, message, re.IGNORECASE)
 
+def create_execution_id() -> str:
+    """Generate a unique execution ID for pipeline runs."""
+    return f"exec_{uuid.uuid4().hex[:12]}"
+
 class DltPipeline:
     """
     This is the class to create and handle pipelines
@@ -543,19 +547,19 @@ class DltPipeline:
         job_tag = None,
         param_list: dict = {'exp_backoff': 1}
     ):
-        
         ppline_file_path, storage_path = file_path, None
-        context = RequestContext(None, DuckdbUtil.get_socket_id(namespace))
+
+        [ppline_file, pipeline] = [f'{destinations_dir}/{file_path}.py', file_path.replace(f'{namespace}/','')]
+        [pipeline_metadata, db_file] = [PipelineMedatata.get_pipeline_metadata(pipeline, namespace), file_path]
+
+        [exec_id, sock_id] = [create_execution_id(), DuckdbUtil.get_socket_id(namespace)]
+        context = RequestContext(pipeline_metadata[4], sock_id, exec_id=exec_id, namespace=namespace)
         logger = DltPipeline.get_pipeline_logger(context)
 
         DltPipeline._handle_triggers_preprocess(job_tag, file_path, lead_pipeline, logger)
         DltPipeline._handle_retry_preprocess(file_path, logger, param_list)
 
-        [ppline_file, pipeline] = [f'{destinations_dir}/{file_path}.py', file_path.replace(f'{namespace}/','')]
-        [pipeline_metadata, db_file] = [PipelineMedatata.get_pipeline_metadata(pipeline, namespace), file_path]
-
-        # In case it an integration pipeline, it'll use a 
-        # shared storage (Duckdb) file set in the file_path
+        # In case it an integration pipeline, it'll use a shared storage (Duckdb) file set in the file_path
         if pipeline_metadata[7] != None:
             if pipeline_metadata[7].__contains__('.'):
                 db_file = f'{namespace}/{pipeline_metadata[7].split('.')[1]}'
@@ -648,17 +652,19 @@ class DltPipeline:
             # DB Lock release in the pplication level
             DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
         
-        except Exception as err:
+        except (Exception, duckdb.IOException) as err:
             if proc: proc.kill()
             # DB Lock release in the pplication level
-            DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
-            message = f'Error while running job for {db_file.split('/')[1]} pipeline'
-            
-            context.emit_ppline_job_trace(message,error=True)
-            context.emit_ppline_job_trace(err.with_traceback,error=True)
-            handle_pipeline_log(refs.get('error_message'), logger, True)
-            handle_pipeline_log(err.with_traceback, logger, True)
-            DltPipeline.send_fail_email(job_start_time, context)
+            if(param_list.get('exp_backoff') > 6):
+                DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
+                message = f'Error while running job for {db_file.split('/')[1]} pipeline'
+                
+                context.emit_ppline_job_trace(message,error=True)
+                context.emit_ppline_job_trace(str(err),error=True)
+                #handle_pipeline_log(refs.get('error_message'), logger, True)
+            handle_pipeline_log(str(err), logger, error=True)
+
+            if(param_list.get('exp_backoff') > 2): DltPipeline.send_fail_email(job_start_time, context)
 
             params = { **params, 'storage_path': storage_path, 'cp_status': Checkpoint.FAILED }
             PipelineCheckpoint.update(pipeline, None, params)
@@ -807,10 +813,19 @@ class DltPipeline:
     @staticmethod
     def get_pipeline_logger(context: RequestContext) -> logging.Logger:
 
+        from utils.logging.log_storage import DuckDBLogStore
+        from utils.logging.log_processor import AsyncDuckDBHandler
+
+        db_store = DuckDBLogStore()
+        duckdb_handler = AsyncDuckDBHandler(store=db_store)
+
         pipeline_id = context.pipeline_name
         execution_id = context.pipeline_execution_id
         namespace = context.user
-        return logging.getLogger(f'pipeline.{namespace}.{pipeline_id}.{execution_id}')
+        logger = logging.getLogger(f'pipeline.{namespace}.{pipeline_id}.{execution_id}')
+        logger.addHandler(duckdb_handler)
+
+        return logger
 
 
 def has_ppline_job(evt, job_transaction_id):
@@ -940,8 +955,3 @@ def run_transform_preview(namespace, dbengine, connection_name, script):
         return { 'error': True, 'result': { 'msg': str(err), 'code': None } }
 
     return { 'error': False, 'result': inner_env['results'] if 'results' in inner_env else None }
-
-
-def create_execution_id() -> str:
-    """Generate a unique execution ID for pipeline runs."""
-    return f"exec_{uuid.uuid4().hex[:12]}"

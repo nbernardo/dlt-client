@@ -57,8 +57,8 @@ class DuckDBOutput(TemplateNodeType):
         path = self.context.ppline_path
         cnx, error = None, None
 
-        if os.path.exists(f'{path}/{self.context.ppline_name}.duckdb'):
-            cnx = duckdb.connect(f'{path}/{self.context.ppline_name}.duckdb')
+        if os.path.exists(f'{path}/{self.context.pipeline_name}.duckdb'):
+            cnx = duckdb.connect(f'{path}/{self.context.pipeline_name}.duckdb')
         try:
             if cnx:
                 table = self.table_name

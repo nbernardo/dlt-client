@@ -202,7 +202,11 @@ class DuckdbUtil:
     def get_connection_for(_db_filename) -> DuckDBPyConnection:
         db_filename = _db_filename.replace('//','/')
         if(not(db_filename in DuckdbUtil.db_connections)):
-            DuckdbUtil.db_connections[db_filename] = duckdb.connect(f'{db_filename}')
+            try:
+                DuckdbUtil.db_connections[db_filename] = duckdb.connect(f'{db_filename}')
+            except duckdb.IOException:
+                raise RuntimeError(f'Error while trying to connect to {db_filename}')
+
         
         try:
             DuckdbUtil.db_connections[db_filename].query('SELECT 1')

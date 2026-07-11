@@ -26,14 +26,19 @@ class RequestContext:
     ppline_trace = 'pplineTrace'
     FAILED = 'FAILED'
 
-    def __init__(self, ppline_name=None, socket_sid=None, file_manager: FileVersionManager  = None):
+    def __init__(
+            self, 
+            ppline_name=None, 
+            socket_sid=None, 
+            file_manager: FileVersionManager = None,
+            exec_id = None,
+            namespace = None):
         
         # Pipeline related context variables
-        self.ppline_name = ppline_name
         self.ppline_path = None
         self.pipeline_lbl = None
-        self.pipeline_name = None
-        self.pipeline_execution_id = None
+        self.pipeline_name = ppline_name
+        self.pipeline_execution_id = exec_id
 
         #self.ppline_files_path = "/home/nakassony/dlt-project/backend/src"
         self.socket_sid = socket_sid
@@ -41,7 +46,7 @@ class RequestContext:
         self.exceptions = []
         self.sql_destinations = []
         self.sql_dest = False
-        self.user = None
+        self.user = namespace
         self.transformation = None
         # transformation2 is for handling transformations
         # that does not affect column values but rows 
