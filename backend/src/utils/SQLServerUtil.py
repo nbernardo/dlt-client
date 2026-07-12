@@ -71,7 +71,13 @@ def dynamic_mssql_source(
                     yield dict(row._mapping)
             
             return table_data
-        return [create_table_resource(tables[index], primary_keys[index]) for index in range(len(tables))]
-    
+        
+        try:
+            return [create_table_resource(tables[index], primary_keys[index]) for index in range(len(tables))]
+        except Exception as err:
+            import sys
+            print(f'RUNTIME_ERROR:{str(err)}')
+            sys.exit(0)
+ 
     ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
     return source(tables, primary_keys, connection_string), table_to_schema_map, ts

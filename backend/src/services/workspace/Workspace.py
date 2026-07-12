@@ -537,7 +537,7 @@ class Workspace:
             
             cursor.execute(query)
 
-        except duckdb.IOException as err:
+        except Exception as err:
             print({ 'error': True, 'error_list': err })
     
 

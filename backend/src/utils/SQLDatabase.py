@@ -252,7 +252,6 @@ class SQLConnection:
     def mysql_connect(namespace, connection_name, secret = None):
 
         connection_key = f'{namespace}-{connection_name}'
-
         if connection_key in SQLDatabase.connections['mysql']:
             return SQLDatabase.connections['mysql'][connection_key]
         
@@ -308,7 +307,6 @@ class SQLConnection:
 
         return connection, owner
     
-
 
     def mssql_connect(namespace, connection_name, secret = None):
 
@@ -382,9 +380,7 @@ class SQLConnection:
         """
 
         return dsn_template.format(
-            host=hostname,
-            port=port,
-            service_name=f'{database}.{hostname}'
+            host=hostname, port=port, service_name=f'{database}.{hostname}'
         )
 
 
@@ -443,11 +439,10 @@ def generate_join_query(target_tables: dict = {}, relationships = {}, schema_met
 
 def _normalize_table_names_backward(secrets, tables, primary_keys=None):
     dbengine  = secrets['dbengine']
-    actual_tables = tables
-    actual_pks    = primary_keys
+    actual_tables, actual_pks = tables, primary_keys
 
     if dbengine == 'oracle':
-        engine    = create_engine(secrets['connection_url'])
+        engine = create_engine(secrets['connection_url'])
         inspector = inspect(engine)
         available = inspector.get_table_names(schema=secrets['username'])
 
@@ -468,56 +463,61 @@ def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
     connection_url = secrets.get('connection_url')
     schema = secrets.get('schema', 'public')
     
-    # To keep backword compatibility
-    # TODO: Migrate all scenario to the new implementation 
-    #       to support big_query generation
-    if dbengine == 'oracle':
-        return _normalize_table_names_backward(secrets, tables, primary_keys)
+    try:
+        # To keep backword compatibility
+        # TODO: Migrate all scenario to the new implementation 
+        #       to support big_query generation
+        if dbengine == 'oracle':
+            return _normalize_table_names_backward(secrets, tables, primary_keys)
 
-    engine = create_engine(connection_url)
-    inspector = inspect(engine)
-    available = inspector.get_table_names() if dbengine == 'mysql' else inspector.get_table_names(schema=schema)
+        engine = create_engine(connection_url)
+        inspector = inspect(engine)
+        available = inspector.get_table_names() if dbengine == 'mysql' else inspector.get_table_names(schema=schema)
 
-    if dbengine == 'oracle':
-        actual_tables = [t.lower() if any(a.islower() for a in available) else t.upper() for t in tables]
-    else:
-        actual_tables = {
-            t.lower().split('.')[1] if t.lower().__contains__('.') else t.lower(): t.lower()   for t in tables
-        }
+        if dbengine == 'oracle':
+            actual_tables = [t.lower() if any(a.islower() for a in available) else t.upper() for t in tables]
+        else:
+            actual_tables = {
+                t.lower().split('.')[1] if t.lower().__contains__('.') else t.lower(): t.lower()   for t in tables
+            }
 
-    actual_pks = primary_keys if primary_keys else []
-    [relationships, schema_metadata, ddls] = [{}, {}, {}]
+        actual_pks = primary_keys if primary_keys else []
+        [relationships, schema_metadata, ddls] = [{}, {}, {}]
 
-    for table in actual_tables.keys():
-        if table in available:
-            column_defs = []
-            cols = inspector.get_columns(table) \
-                    if dbengine == 'mysql' else inspector.get_columns(table, schema=schema)
-            schema_metadata[table] = { c['name']: c['type']  for c in cols }
+        for table in actual_tables.keys():
+            if table in available:
+                column_defs = []
+                cols = inspector.get_columns(table) \
+                        if dbengine == 'mysql' else inspector.get_columns(table, schema=schema)
+                schema_metadata[table] = { c['name']: c['type']  for c in cols }
 
-            for c in cols:
-                null_str = 'NOT NULL' if not c.get('nullable') else ''
-                column_defs.append(f"  {c['name']} {str(c['type'])} {null_str}".strip())
+                for c in cols:
+                    null_str = 'NOT NULL' if not c.get('nullable') else ''
+                    column_defs.append(f"  {c['name']} {str(c['type'])} {null_str}".strip())
 
-            fks = inspector.get_foreign_keys(table) \
-                    if dbengine == 'mysql' else inspector.get_foreign_keys(table, schema=schema)
+                fks = inspector.get_foreign_keys(table) \
+                        if dbengine == 'mysql' else inspector.get_foreign_keys(table, schema=schema)
 
-            relationships[table] = [
-                { 'columns': fk['constrained_columns'], 'referred_table': fk['referred_table'], 'referred_columns': fk['referred_columns']  }
-                for fk in fks
-            ]
-            
-            for fk in fks:
-                l_cols = ', '.join(fk['constrained_columns'])
-                r_table = fk['referred_table']
-                r_cols = ', '.join(fk['referred_columns'])
-                column_defs.append(f'  FOREIGN KEY ({l_cols}) REFERENCES {r_table} ({r_cols})')
+                relationships[table] = [
+                    { 'columns': fk['constrained_columns'], 'referred_table': fk['referred_table'], 'referred_columns': fk['referred_columns']  }
+                    for fk in fks
+                ]
+                
+                for fk in fks:
+                    l_cols = ', '.join(fk['constrained_columns'])
+                    r_table = fk['referred_table']
+                    r_cols = ', '.join(fk['referred_columns'])
+                    column_defs.append(f'  FOREIGN KEY ({l_cols}) REFERENCES {r_table} ({r_cols})')
 
-            ddls[table] = f"CREATE TABLE {table} (\n" + ",\n".join(column_defs) + "\n);"
+                ddls[table] = f"CREATE TABLE {table} (\n" + ",\n".join(column_defs) + "\n);"
 
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
-    final_big_query = generate_join_query(actual_tables, relationships, schema_metadata, pplines_names, ts)
-    return tables, actual_pks, relationships, schema_metadata, ddls, final_big_query, ts
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+        final_big_query = generate_join_query(actual_tables, relationships, schema_metadata, pplines_names, ts)
+        return tables, actual_pks, relationships, schema_metadata, ddls, final_big_query, ts
+    except Exception as err:
+        import sys
+        print(f'RUNTIME_ERROR:{str(err)}')
+        sys.exit(0)
 
 
 def new_pk(row, pk, source_col = 'NOT_SET', ts = None, db_name = None):

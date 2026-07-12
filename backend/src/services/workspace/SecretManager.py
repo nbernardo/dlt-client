@@ -187,7 +187,7 @@ class SecretManager(SecretManagerType):
             )
             data = secrets['data']['data']
         except Exception as err:
-            print('Error on getting the secrets: ', str(err))
+            print('RUNTIME_WARNING:Error on getting the secrets: ', str(err))
             raise err
         return data
     
@@ -266,8 +266,13 @@ class SecretManager(SecretManagerType):
     
 
     def get_db_secret_from_ppline(namespace, connection_name):
-        return SecretManager.get_db_secret(namespace, connection_name, from_pipeline = True)
-    
+        try:
+            return SecretManager.get_db_secret(namespace, connection_name, from_pipeline = True)
+        except:
+            import sys
+            print('RUNTIME_ERROR:Error wilhe getting secrets for pipeline database connnectivity')
+            sys.exit(0)
+            
 
     def get_from_references(namespace,references: list = []):
 

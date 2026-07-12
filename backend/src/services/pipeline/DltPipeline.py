@@ -449,13 +449,11 @@ class DltPipeline:
                 handle_pipeline_log(refs['warning_message'], logger, False, True)
                 if context:
                     context.emit_ppline_trace(refs['warning_message'], warn=True)
-
-            elif(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:') or refs.get('pipeline_exception') == True):
+            elif(line.startswith('RUNTIME_ERROR:') or line.startswith('ERROR:')\
+                  or refs.get('pipeline_exception') == True or line.startswith('RUNTIME_ERROR:')):
                     refs['pipeline_exception'] = True
                     refs['error_message'] = line.replace('RUNTIME_ERROR:','').replace('ERROR:','')
-                    handle_pipeline_log(refs['error_message'], logger, True)
-                    context.emit_ppline_job_trace(refs['error_message'], error=True)
-                    if line.startswith('ERROR:'): return False
+                    raise RuntimeError('Error while running the pipelie')
             else:
                 if(type(line) == str):
                     if(line.__contains__('Files/Bucket loaded')):
@@ -547,14 +545,15 @@ class DltPipeline:
         job_tag = None,
         param_list: dict = {'exp_backoff': 1}
     ):
-        ppline_file_path, storage_path = file_path, None
+        ppline_file_path, storage_path, p = file_path, None, param_list
 
         [ppline_file, pipeline] = [f'{destinations_dir}/{file_path}.py', file_path.replace(f'{namespace}/','')]
         [pipeline_metadata, db_file] = [PipelineMedatata.get_pipeline_metadata(pipeline, namespace), file_path]
 
         [exec_id, sock_id] = [create_execution_id(), DuckdbUtil.get_socket_id(namespace)]
-        context = RequestContext(pipeline_metadata[4], sock_id, exec_id=exec_id, namespace=namespace)
-        logger = DltPipeline.get_pipeline_logger(context)
+
+        context = p.get('context', RequestContext(pipeline_metadata[4], sock_id, exec_id=exec_id, namespace=namespace))
+        logger = p.get('logger', DltPipeline.get_pipeline_logger(context))
 
         DltPipeline._handle_triggers_preprocess(job_tag, file_path, lead_pipeline, logger)
         DltPipeline._handle_retry_preprocess(file_path, logger, param_list)
@@ -664,10 +663,14 @@ class DltPipeline:
                 #handle_pipeline_log(refs.get('error_message'), logger, True)
             handle_pipeline_log(str(err), logger, error=True)
 
+            if refs.get('pipeline_exception'):
+                handle_pipeline_log(refs.get('error_message'), logger, error=True)
+                context.emit_ppline_job_trace(refs.get('error_message'),error=True)
             if(param_list.get('exp_backoff') > 2): DltPipeline.send_fail_email(job_start_time, context)
 
             params = { **params, 'storage_path': storage_path, 'cp_status': Checkpoint.FAILED }
             PipelineCheckpoint.update(pipeline, None, params)
+            param_list = { **param_list, 'context': context, 'logger': logger }
 
             DltPipeline._retry(ppline_file_path, param_list, job_start_time, namespace, pipeline)
 
@@ -676,7 +679,8 @@ class DltPipeline:
     def _retry(ppline_file_path, param_list, job_start_time, namespace, pipeline):
         
         exp_backoff = param_list.get('exp_backoff')
-        if exp_backoff > 6: 
+        if exp_backoff > 6:
+            param_list = None 
             return
 
         target_pipeline, wait_time = ppline_file_path, (int(exp_backoff) * 10)
@@ -812,20 +816,8 @@ class DltPipeline:
 
     @staticmethod
     def get_pipeline_logger(context: RequestContext) -> logging.Logger:
-
-        from utils.logging.log_storage import DuckDBLogStore
-        from utils.logging.log_processor import AsyncDuckDBHandler
-
-        db_store = DuckDBLogStore()
-        duckdb_handler = AsyncDuckDBHandler(store=db_store)
-
-        pipeline_id = context.pipeline_name
-        execution_id = context.pipeline_execution_id
-        namespace = context.user
-        logger = logging.getLogger(f'pipeline.{namespace}.{pipeline_id}.{execution_id}')
-        logger.addHandler(duckdb_handler)
-
-        return logger
+        [ppline_id, exec_id, namespace] = [context.pipeline_name, context.pipeline_execution_id, context.user]
+        return logging.getLogger(f'pipeline.{namespace}.{ppline_id}.{exec_id}')
 
 
 def has_ppline_job(evt, job_transaction_id):
