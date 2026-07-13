@@ -47,7 +47,7 @@
 			"selectRoleLbl": "Select the role"
 		},
         "inpt": {
-            "searchLbl": "Search fields…"
+            "searchLbl": "Search…"
         },
 		"btn": {
 			"saveLbl": "Save",

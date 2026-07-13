@@ -47,7 +47,7 @@
 			"selectRoleLbl": "Seleccione o perfil"
 		},
         "inpt": {
-            "searchLbl": "Buscar campo…"
+            "searchLbl": "Buscar…"
         },
 		"btn": {
 			"saveLbl": "Guardar",

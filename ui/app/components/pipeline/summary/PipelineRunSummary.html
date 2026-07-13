@@ -6,7 +6,7 @@
 		<!-- <div class="tab" onclick="controller.switchTab('rbac',this)">$bundle.gov.rbacLbl</div> -->
 	</nav>
 
-	<st-loader (label)="Updating Data dictionary..." (showIf)="self.loading"/>
+	<st-loader (label)="Loading pipeline runs..." (showIf)="self.loading"/>
 
 	<span (showIf)="!self.loading">
 		<div style="padding:1.25rem 0">
@@ -14,20 +14,6 @@
 			<div id="sec-pipline-summary" class="section active">
 				<div class="toolbar">
 					<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="pipline-summary-search" oninput="controller.renderDict()">
-					<select id="pipline-summary-table-filter" onchange="controller.renderDict()" style="width:160px">
-						<option value="">$bundle.gov.combo.allTalesLbl</option>
-					</select>
-					<div style="margin-left:auto;display:flex;gap:8px">
-						<!--
-							<button class="btn" onclick="controller.openAddGroup()"><i class="ti ti-table-plus" aria-hidden="true"></i> Add table group</button>
-							<button class="btn btn-primary" onclick="controller.openAddField()"><i class="ti ti-plus" aria-hidden="true"></i> Add field</button>
-						-->
-						<button class="btn btn-primary" onclick="component.saveDictionary()"><i class="fas fa-save" aria-hidden="true"></i>$bundle.gov.btn.saveLbl</button>
-					</div>
-				</div>
-				<div class="seg" style="margin-bottom:1rem;width:fit-content">
-					<button class="active" onclick="controller.setView('flat',this)">$bundle.gov.dTable.listLbl</button>
-					<button onclick="controller.setView('group',this)">$bundle.gov.dTable.byTblLbl</button>
 				</div>
 				<div class="table-wrap">
 					<div class="grid-scroll-container">
