@@ -638,14 +638,14 @@ class Workspace:
 
 
     @staticmethod
-    def schedule_pipeline_job(namespace = None, ppline = None, unpause = False):
+    def schedule_pipeline_job(namespace = None, ppline = None, immediate = False):
         result = Workspace.get_ppline_schedule(namespace, ppline)
         if result['error'] != True:
             schedules = result['data'] if 'data' in result else {}
         
             for ppline_name, sched in schedules.items():
                 is_paused = sched['is_paused']
-                if is_paused == 'paused': continue
+                if is_paused == 'paused' and immediate == False: continue
 
                 _namespace = sched['namespace']
                 type = sched['type']
@@ -653,6 +653,10 @@ class Workspace:
 
                 file_path = f'{_namespace}/{ppline_name}'
                 tag_name = f'{_namespace}_{ppline_name}'
+
+                if(immediate):
+                    DltPipeline.run_pipeline_job_sync(file_path, namespace)
+                    break
 
                 if periodicity == 'daily':
                     schedule.every().day.at(sched['time']).do(DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
@@ -670,7 +674,7 @@ class Workspace:
             # The infinit loop will be running in a separate thread
             # which will consider all scheduled jobs, when if specified
             # the jobe name (whithin a namespace), it'll run in the mai thread
-            if (namespace == None and ppline == None):
+            if (namespace == None and ppline == None and immediate == False):
                 while True:
                     schedule.run_pending()
                     timelib.sleep(1)

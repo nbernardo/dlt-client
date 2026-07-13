@@ -676,3 +676,20 @@ def short_pipeline_list(namespace):
         return { 'error': True, 'result': { 'result': err } }
     
 
+@pipeline.route('/ppline/run/history/<namespace>', methods=['GET'])
+def get_run_history(namespace):
+    from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
+    try:
+        run_history = PipelineCheckpoint.get_run_history(namespace)
+        return { 'error': False, 'result': { 'result': run_history } }
+    except Exception as err:
+        return { 'error': True, 'result': { 'result': str(err) } }
+    
+
+@pipeline.route('/ppline/run/<namespace>/<pipeline>', methods=['POST'])
+def immediate_pipeline_run(namespace, pipeline):
+    try:
+        DltPipeline.immediate_run(namespace, pipeline)
+        return { 'error': False, 'result': { 'result': 'Pipeline run in progress' } }
+    except Exception as err:
+        return { 'error': True, 'result': { 'result': err } }

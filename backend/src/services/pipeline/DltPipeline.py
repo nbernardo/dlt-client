@@ -580,7 +580,7 @@ class DltPipeline:
 
         from utils.metastore.PipelineTrigger import PipelineTrigger
 
-        proc, params = None, { 'exp_backoff': param_list.get('exp_backoff',1) }
+        proc, params = None, { 'exp_backoff': param_list.get('exp_backoff',1), 'exec_id': exec_id }
         refs, job_start_time = { 'job_execution_id': uuid.uuid4() }, None
         triggers = triggers if triggers != None else PipelineTrigger.find_all(namespace, pipeline)
 
@@ -743,6 +743,12 @@ class DltPipeline:
 
             if schedule.get_jobs(f'{tag_name}-tracinglog'):
                 schedule.clear(f'{tag_name}-tracinglog')
+
+
+    @staticmethod
+    def immediate_run(namespace, ppline):
+        from services.workspace.Workspace import Workspace
+        Workspace.schedule_pipeline_job(namespace, ppline, immediate=True)
                         
 
     @staticmethod

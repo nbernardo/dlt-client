@@ -5,7 +5,7 @@ from datetime import datetime
 from utils.pipeline.Enums import Checkpoint
 
 PIPELINE_CHECKPOINT_SCHEMA = pa.schema([
-    pa.field("id", pa.string()),
+    pa.field("id", pa.string()), #Represents pipeline execution id when it runs
     pa.field("pipeline", pa.string()),
     pa.field("status", pa.string()),
     pa.field("start_time", pa.string()),
@@ -52,9 +52,10 @@ class PipelineCheckpoint:
                 PipelineCheckpoint.update(pipeline, None, params)
             else:
                 rows_to_insert = [{ 
-                    'pipeline': pipeline, 'status': params.get('state'), 'namespace': namespace, 'start_time': params.get('start_time'), 
-                    'update_time': params.get('updt_time'), 'storage_path': params.get('dest_storage'), 'stage_source': stage_source,
-                    'dest_tables': params.get('dest_tables'), 'tables_pks': params.get('tables_pks'), 'dataset_name': params.get('dataset_name')
+                    'id': params.get('exec_id'), 'pipeline': pipeline, 'status': params.get('state'), 'namespace': namespace, 
+                    'start_time': params.get('start_time'), 'update_time': params.get('updt_time'), 'storage_path': params.get('dest_storage'), 
+                    'stage_source': stage_source, 'dest_tables': params.get('dest_tables'), 'tables_pks': params.get('tables_pks'), 
+                    'dataset_name': params.get('dataset_name')
                 }]
                 tbl.add(rows_to_insert)
                 #if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
@@ -140,6 +141,24 @@ class PipelineCheckpoint:
 
         except Exception as e:
             print(f'pipeline_checkpoint migration failed: {e}')    
+
+
+    @staticmethod
+    def get_run_history(namespace):
+
+        from utils.duckdb_util import DuckdbUtil
+        import json
+
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        query = f"""
+            SELECT cp.* FROM main.ppline_schedule ps RIGHT JOIN checkpoint cp ON ps.ppline_name = cp.pipeline
+            WHERE cp.status = 'FAILED' and cp.namespace = '{namespace}'
+        """
+        # checkpoint variables creates the checkpoint table used in the query
+        checkpoint = PipelineCheckpoint._get_table().to_arrow()
+        result = cnx.query(query).df()
+
+        return json.loads(result.to_json(orient="records"))
 
 
     @staticmethod
