@@ -38,6 +38,7 @@
         "loadDGUIMsg": "Carregando a UI de Data Governance",
 		"dwListLbl": "Lista de Data Warehouses",
 		"dGovLbl": "Governanca de Dados",
+		"mainLbl": "Gestao de controle de acesso (por perfil de utilizador) e Dicionario de dados",
 		"combo": {
 			"selectOptLbl": "Selecione uma opcao",
 			"selectTblLbl": "Selecione a tabela",
@@ -66,5 +67,12 @@
     },
 	"msg": {
 		"dictionarySuccess":"Dicionário de dados actualizado com sucesso"
-	}
+	},
+	"pplineSummary": {
+		"tabRunsLbl": "Resumos de execucao dos pipelines"
+	},
+	"execIdLbl": "ID Execucao",
+	"traceErrorLbl": "Rastreio do erro",
+	"startRunTime": "Hora Inicio",
+	"endRunTime": "Hora termino"
 }

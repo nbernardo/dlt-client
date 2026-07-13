@@ -11,10 +11,47 @@
 		<div class="top-workspace-nav"
 			style="display: flex; align-items: center; padding: 5px 50px; justify-content: left;">
 
-			<div (click)="navigateTo('Workspace')" class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
+			<div onclick="component.showPipelineRuns()"
+				class="action-icon counter-icon generic-context-drop-menu" 
+				style="cursor: pointer; border: none;">
+				<i class="fas fa-code-branch" style="font-size: 20px; scale: -1 1;"></i>
+				<!-- <img src="app/assets/imgs/routine.png" width="25" alt=""> -->
+				<span style="top: 14px; margin-left: -9px;">
+					<output (showIf)="self.showScheduleCounter">@scheduledPipelinesCount</output>					
+					@if(this.scheduledPipelinesCount === -1)
+						<div class="mini-loader-container">
+							<div class="mini-loader-dot"></div>
+							<div class="mini-loader-dot"></div>
+							<div class="mini-loader-dot"></div>
+						</div>
+					@endif
+				</span>
+				<!-- <ul class="submenu">
+					<li style="background: #f8f8f8 !important; cursor:auto;">
+						<img onclick="component.getScheduleList()" src="app/assets/imgs/refresh-svgrepo-com.svg" style="cursor: pointer;"
+							width="16">
+						&nbsp;Scheduled pipelines
+					</li>
+					<li style="padding: 0;">
+						<ul (forEach)="scheduledPipelines">
+							<li each="item">
+								<div class="list-item-header">
+									{item.pipelineLbl}
+									<div class="list-item-details">
+										<output><b>Setting:</b> {item.periodicity} {item.time} {item.type}</output>
+										<output><b>Last Run:</b> {item.lastRun}</output>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</li>
+				</ul> -->
+			</div>
+
+			<!-- <div (click)="navigateTo('Workspace')" class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
 				tooltip-y="-10" onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
 				<img src="app/assets/imgs/app.png" width="25" alt="">
-			</div>
+			</div> -->
 
 			<div 
 				class="action-icon counter-icon generic-context-drop-menu" 
@@ -30,13 +67,13 @@
 						</div>
 					@endif
 				</span>
-				<ul class="submenu">
-					<li style="background: #f8f8f8 !important; cursor:auto;">
+				<ul class="submenu" style="overflow-y: scroll; max-height: 220px;">
+					<li style="background: #f8f8f8 !important; cursor:auto; position: fixed; width: 20vw;">
 						<img onclick="component.getScheduleList()" src="app/assets/imgs/refresh-svgrepo-com.svg" style="cursor: pointer;"
 							width="16">
 						&nbsp;Scheduled pipelines
 					</li>
-					<li style="padding: 0;">
+					<li style="padding: 0; margin-top: 40px;">
 						<ul (forEach)="scheduledPipelines">
 							<li each="item">
 								<div class="list-item-header">

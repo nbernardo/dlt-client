@@ -1,0 +1,79 @@
+<div class="componentui-main-container @cmpInternalId">
+	<h2 class="sr-only">Data Dictionary and Role-Based Access Control Manager</h2>
+
+	<nav class="tabs">
+		<div class="tab active">$bundle.pplineSummary.tabRunsLbl</div>
+		<!-- <div class="tab" onclick="controller.switchTab('rbac',this)">$bundle.gov.rbacLbl</div> -->
+	</nav>
+
+	<st-loader (label)="Updating Data dictionary..." (showIf)="self.loading"/>
+
+	<span (showIf)="!self.loading">
+		<div style="padding:1.25rem 0">
+	
+			<div id="sec-pipline-summary" class="section active">
+				<div class="toolbar">
+					<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="pipline-summary-search" oninput="controller.renderDict()">
+					<select id="pipline-summary-table-filter" onchange="controller.renderDict()" style="width:160px">
+						<option value="">$bundle.gov.combo.allTalesLbl</option>
+					</select>
+					<div style="margin-left:auto;display:flex;gap:8px">
+						<!--
+							<button class="btn" onclick="controller.openAddGroup()"><i class="ti ti-table-plus" aria-hidden="true"></i> Add table group</button>
+							<button class="btn btn-primary" onclick="controller.openAddField()"><i class="ti ti-plus" aria-hidden="true"></i> Add field</button>
+						-->
+						<button class="btn btn-primary" onclick="component.saveDictionary()"><i class="fas fa-save" aria-hidden="true"></i>$bundle.gov.btn.saveLbl</button>
+					</div>
+				</div>
+				<div class="seg" style="margin-bottom:1rem;width:fit-content">
+					<button class="active" onclick="controller.setView('flat',this)">$bundle.gov.dTable.listLbl</button>
+					<button onclick="controller.setView('group',this)">$bundle.gov.dTable.byTblLbl</button>
+				</div>
+				<div class="table-wrap">
+					<div class="grid-scroll-container">
+						<table>
+							<thead>
+								<tr>
+									<th>Pipeline</th>
+									<th>$bundle.execIdLbl</th>
+									<th>$bundle.traceErrorLbl</th>
+									<th>Status</th>
+									<th>$bundle.startRunTime</th>
+									<th>$bundle.endRunTime</th>
+									<th style="width:110px; text-align: right;" class="re-run-cell">$bundle.gov.actionsLbl</th>
+								</tr>
+							</thead>
+							<tbody (forEach)="runList">
+								<tr each="item">
+									<td>{item.pipeline}</td>
+									<td>{item.id}</td>
+									<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
+											onclick="component.getLogs('{item.id}')">View trace</span></td>
+									<td>{item.status}</td>
+									<td>{item.start_time}</td>
+									<td>{item.update_time}</td>
+									<td style="width:110px; text-align: right;" class="re-run-cell">
+										<i	onclick="component.immediateRun('{item.pipelineUniqueName}')"
+											class="fas fa-play" style="color: green; cursor: pointer;" title="Replay"></i>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+	
+			<div id="sec-spare-slot" class="section">
+
+			</div>
+	
+		</div>
+	</span>
+
+</div>
+<style>
+	.re-run-cell { text-align: center !important; }
+	.pipeline-run-log-container{ padding: 0px !important; }
+	.pipeline-run-log-content::before{ content: 'Logs'; position: absolute; margin-left: -32px; font-size: 12px; margin-top: 4px; }
+	.pipeline-run-log-content { height: 200px; overflow-y: scroll; padding-left: 37px !important; background: black; color: white; } 
+</style>

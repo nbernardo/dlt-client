@@ -1,6 +1,7 @@
 import { sleepForSec } from "../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { State } from "../../../@still/component/type/ComponentType.js";
+import { Assets } from "../../../@still/util/componentUtil.js";
 import { StillAppSetup } from "../../../config/app-setup.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { Workspace } from "../workspace/Workspace.js";
@@ -36,6 +37,10 @@ export class GovernanceMainComponent extends ViewComponent {
 	 * @type { DGServiceController }
 	 */
 	serviceController;
+
+	async stBeforeInit(){
+		await Assets.import({ path: '/app/components/pipeline/styles/shared.css', type: 'css' });
+	}
 
 	async stAfterInit(){
 		this.container = document.querySelector(`.${this.cmpInternalId}`);

@@ -1,6 +1,7 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { UUIDUtil } from "../../../../@still/util/UUIDUtil.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { PipelineRunSummary } from "../../pipeline/summary/PipelineRunSummary.js";
 import { PopupUtil } from "../../popup-window/PopupUtil.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { loadDonutChart } from "./util/LogQueryDisplayUtil.js";
@@ -81,12 +82,7 @@ export class LogQueryDisplay extends ViewComponent {
 		Chart.getChart("thisIsTheDonutGraph").destroy();
 	}
 
-	parseLogRow(itm){
-		return {
-			timestamp: itm[0].replace(/(\.\d{3})\d+/, '$1'), id: itm[1], log_level: itm[2], module: itm[3], execution_id: itm[4],
-			line_number: itm[5], message: itm[6], namespace: itm[7], extra_data: itm[8], is_complete: itm[9]
-		}
-	}
+	parseLogRow = (itm) => PipelineRunSummary.parseLogRow(itm)
 
 	parseLogSummary(itm){
 		return { timestamp: itm[5].replace(/(\.\d{3})\d+/, '$1')/*`${itm[3]} - ${itm[4]}`*/, pipeline_id: itm[1], error_count: itm[8], is_complete: itm[9], exec_id: itm[0] }

@@ -149,6 +149,10 @@ export const stillRoutesMap = {
             GovernanceMainComponent: {
                 path: "app/components/governance",
                 url: "/governance-main"
+            },
+            PipelineRunSummary: {
+                path: "app/components/pipeline/summary",
+                url: "/pipeline-run-sumary"
             }
         },
         lazyInitial: {}

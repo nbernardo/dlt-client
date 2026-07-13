@@ -251,11 +251,11 @@ export class LeftTabs extends ViewComponent {
 		await this.$parent.controller.governanceView.loadTablesByPipeline(pipelineName);
 
 	async selectTab(tab){
-
+		this.$parent.dynamicViewPlaceholder.innerHTML = '';
 		if(tab === 'content-data-governance'){
 			AppTemplate.showLoading(StillAppSetup.config.bundle('gov.loadDGUIMsg'));
 			this.pipelines = await PipelineService.getPipelinesForGernanceView();
-			return this.$parent.controller.createDataGovernanceUI();
+			this.$parent.controller.createDataGovernanceUI();
 		}
 
 		this.showLoading = ({ 'content-data-source': 1, 'content-api-catalog': 2, 'content-pipeline-plan': 3 })[tab];

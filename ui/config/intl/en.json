@@ -38,6 +38,7 @@
         "loadDGUIMsg": "Loading Data Governance Interface",
         "dwListLbl": "Data Warehouse list",
         "dGovLbl": "Data Governance",
+		"mainLbl": "Data Dictionary and Role-Based Access Control Manager",
 		"combo": {
 			"selectOptLbl": "Select an option",
 			"selectTblLbl": "Select the table",
@@ -66,5 +67,12 @@
     },
 	"msg": {
 		"dictionarySuccess":"Data dictionary updated sucessfully"
-	}
+	},
+	"pplineSummary": {
+		"tabRunsLbl": "Summary of pipeline runs"
+	},
+	"execIdLbl": "Execution ID",
+	"traceErrorLbl": "Error trace",
+	"startRunTime": "Start time",
+	"endRunTime": "End time"
 }

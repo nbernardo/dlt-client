@@ -1,0 +1,227 @@
+	.componentui-main-container { 
+		border: 1.5px solid #1A3D5C; position: absolute; z-index: 100; width: 100%; height: 100%; background: #ffffff; 
+		font-family: inherit; font-size: 14px; color: #1a1a1a; box-sizing: border-box; overflow: visible !important;
+	}
+
+	.componentui-main-container .tabs { display: flex; align-items: center; padding: 0 20px; background: #f5f5f3; border-bottom: 1px solid #e0ddd6; }
+	.componentui-main-container .tab { 
+		padding: 14px 18px; font-size: 12px; font-weight: 500; color: #6b6b6b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none;
+	}
+	.componentui-main-container .tab:hover { color: #1a1a1a; }
+	.componentui-main-container .tab.active { color: #1A3D5C; border-bottom-color: #1A3D5C; }
+
+	.componentui-main-container .section { display: none; }
+	.componentui-main-container .section.active { display: block; }
+
+	.componentui-main-container .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; padding: 0 1rem; }
+
+	.componentui-main-container .btn {
+		padding: 6px 14px; border-radius: 6px; border: 0.5px solid #d1cec7; background: #ffffff; color: #1a1a1a; font-size: 13px; cursor: pointer;
+		display: inline-flex; align-items: center; gap: 6px; line-height: 1.4; text-align: center;
+	}
+	.componentui-main-container .btn:hover { background: #f5f5f3; }
+	.componentui-main-container .btn-primary { background: #1A3D5C; color: #fff; border-color: #1A3D5C; }
+	.componentui-main-container .btn-primary:hover { background: #163351; }
+	.componentui-main-container .btn-danger { color: #A32D2D; border-color: #d1cec7; border-radius: 5px; }
+	.componentui-main-container .btn-danger:hover { background: #FCEBEB; }
+	.componentui-main-container .btn-ok { border-radius: 5px; }
+	.componentui-main-container { .btn-ok.disabled { color: #8a8686 !important; background: none !important; }; .btn-ok { color: #0d410f; background: #15531687 !important; } }
+	.componentui-main-container .btn-ok:hover { background: #155316; color: #ffffff; }
+
+	.componentui-main-container input[type=text]:focus,
+	.componentui-main-container .search { width: 200px !important; }
+
+	.componentui-main-container .table-wrap { border: 0.5px solid #e0ddd6; border-radius: 8px; overflow: hidden; margin: 0 1rem; }
+	.componentui-main-container table { width: 100%; border-collapse: separate; font-size: 13px; border-spacing: 0; }
+	.componentui-main-container th { 
+		background: #f5f5f3; padding: 8px 14px; text-align: left; 
+		font-weight: 500; color: #6b6b6b;
+		font-size: 12px; text-transform: uppercase; letter-spacing: .03em; 
+
+		position: sticky;
+		top: 0;
+		z-index: 10;
+		border-bottom: 2px solid #1A3D5C !important;
+		box-shadow: inset 0 -1px 0 #d1cec7;
+	}
+	.componentui-main-container td { padding: 9px 14px; border-bottom: 1px solid #e5e5e4; vertical-align: middle; color: #1a1a1a; }
+	.componentui-main-container tr:last-child td { border-bottom: none; }
+	.componentui-main-container tr:hover td { background: #f5f5f3; }
+
+	.componentui-main-container .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+	.componentui-main-container .badge-blue  { background: #E6F1FB; color: #0C447C; }
+	.componentui-main-container .badge-teal  { background: #E1F5EE; color: #085041; }
+	.componentui-main-container .badge-gray  { background: #F1EFE8; color: #5F5E5A; }
+	.componentui-main-container .badge-amber { background: #FAEEDA; color: #633806; }
+
+	.componentui-main-container .role-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; margin: 1px; }
+	.componentui-main-container .access-cell { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+
+	.componentui-main-container .group-header td { background: #E6F1FB; font-weight: 500; color: #0C447C; font-size: 12px; }
+
+	.componentui-main-container .seg { display: flex; border: 0.5px solid #d1cec7; border-radius: 6px; overflow: hidden; margin: 0 1rem 1rem; }
+	.componentui-main-container .seg button { padding: 5px 12px; font-size: 12px; border: none; background: none; cursor: pointer; color: #6b6b6b; }
+	.componentui-main-container .seg button.active { background: #1A3D5C; color: #fff; }
+
+	.componentui-main-container .modal-bg {
+		display: none; position: fixed; top: 0;  left: 0;  width: 100vw !important;   height: 100vh !important; 
+		background: rgba(0, 0, 0, 0.45);  z-index: 999999 !important;  padding: 20px;       
+	}
+
+	.componentui-main-container .modal-bg.open { display: flex !important; align-items: center !important; justify-content: center !important; }
+
+	.componentui-main-container .modal {
+		display: none; background: #ffffff; border-radius: 8px; border: 0.5px solid #d1cec7; padding: 1.25rem; width: 460px;
+		max-width: 90%; box-sizing: border-box; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2); margin: 0 auto; position: relative; align-self: center !important;  height: auto !important;
+	}
+
+	.componentui-main-container .modal-bg.open .modal { display: block !important; }
+
+	.componentui-main-container .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+	.componentui-main-container .modal-header h3 { font-size: 15px; font-weight: 500; margin: 0; }
+	.componentui-main-container .modal-body label { display: block; font-size: 12px; color: #6b6b6b; margin-bottom: 4px; margin-top: 12px; }
+	.componentui-main-container .modal-body input[type=text],
+	.componentui-main-container .modal-body select { width: 100%; box-sizing: border-box; }
+	.componentui-main-container .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; }
+
+	.componentui-main-container .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 12px; border: 0.5px solid #d1cec7; cursor: pointer; }
+	.componentui-main-container .chip.on  { background: #1A3D5C; color: #fff; border-color: #1A3D5C; }
+	.componentui-main-container .chip.off { background: #f5f5f3; color: #6b6b6b; }
+
+	.componentui-main-container .wrap { position: initial; min-height: 200px; }
+	.componentui-main-container .empty { text-align: center; padding: 2rem; color: #6b6b6b; font-size: 13px; }
+	.componentui-main-container .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+	.componentui-main-container td.editable-cell {
+		cursor: pointer;
+		position: relative;
+		transition: background-color 0.15s ease;
+	}
+
+	.componentui-main-container td.editable-cell:hover {
+		background-color: #f4f4f3 !important;
+		outline: 1px dashed #1A3D5C;
+	}
+
+	.componentui-main-container .row-disabled td {
+		opacity: 0.45;
+		background-color: #fcfcfc !important;
+		text-decoration: line-through;
+	}
+
+	.componentui-main-container .row-disabled td:last-child {
+		text-decoration: none !important; /* Keep icons clean and fully clickable */
+		opacity: 1;
+	}
+
+	.componentui-main-container .inline-cell-input {
+		font-size: 13px;
+		padding: 2px 6px;
+		border: 1px solid #1A3D5C;
+		border-radius: 4px;
+		outline: none;
+		background: #ffffff;
+		height: 26px;
+		box-sizing: border-box;
+	}
+
+	.componentui-main-container .inline-cell-select {
+		height: 26px;
+		padding: 0 4px;
+		font-size: 12px;
+		border: 1px solid #1A3D5C;
+		border-radius: 4px;
+		background: #ffffff;
+		box-sizing: border-box;
+	}
+
+	.componentui-main-container .text-mono {
+		font-family: var(--font-mono, monospace);
+		font-size: 12px;
+	}
+
+	.componentui-main-container .text-muted {
+		color: #8c8c8c;
+	}
+
+	.componentui-main-container .btn-warning {
+		color: #e67e22;
+	}
+
+	.componentui-main-container .btn-secondary {
+		color: #7f8c8d;
+	}
+
+	.componentui-main-container .icon-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 4px 6px;
+		font-size: 16px;
+		transition: transform 0.1s ease;
+		display: inline-block;
+	}
+
+	.componentui-main-container .icon-btn:hover {
+		transform: scale(1.15);
+	}
+
+	.componentui-main-container .btn-warning { color: #f39c12; }
+	.componentui-main-container .btn-secondary { color: #7f8c8d; }
+	.componentui-main-container .btn-success { color: #2ecc71; }
+	.componentui-main-container .btn-danger { color: #e74c3c; }
+
+	.componentui-main-container .grid-scroll-container {
+		max-height: 480px;
+		overflow-y: auto;
+		border: 1px solid #d1cec7;
+		border-radius: 4px;
+		position: relative;
+	}
+
+	#roles-list span {
+		padding-right: 4px;
+		button { border-radius: 52%; height: 17px; width: 16px; border: none; }
+	}
+
+	.componentui-main-container .bulk-toggle-btn {
+		background: #f1f2f6;
+		color: #7f8c8d;
+	}
+
+	/* Green Highlight for Active Grants */
+	.componentui-main-container .bulk-toggle-btn.active-allow {
+		background-color: #2ecc71 !important;
+		color: #ffffff !important;
+	}
+
+	/* Red Highlight for Column Blockades */
+	.componentui-main-container .bulk-toggle-btn.active-deny {
+		background-color: #e74c3c !important;
+		color: #ffffff !important;
+	}
+
+	.componentui-main-container .chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		transition: all 0.1s ease-in-out;
+	}
+
+	/* Inactive State: Subtle and clean Gray */
+	.componentui-main-container .chip.off {
+		background: #edf2f7 !important;
+		color: #4a5568 !important;
+		border: 1px solid #cbd5e0 !important;
+	}
+
+	/* Active State: Clean Emerald Green */
+	.componentui-main-container .chip.on {
+		background: #2ecc71 !important;
+		color: #ffffff !important;
+		border: 1px solid #27ae60 !important;
+		box-shadow: 0 1px 3px rgba(46, 204, 113, 0.3);
+	}
+
+	.allow-count, .notallow-count { font-weight: bold; }
+	.allow-count { color: #27ae60; } .notallow-count { color: red; }

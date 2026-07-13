@@ -64,6 +64,22 @@ export class PipelineService extends BaseService {
         return PipelineService.storePipelineShortList;
     }
 
+    static async getPipelinesRunHistory(){
+        const namespace = await UserService.getNamespace();
+        const url = '/ppline/run/history/' + namespace;
+        const response = await $still.HTTPClient.get(url);
+        const { result } = await response.json();
+        return result.result;
+    }
+
+    static async immediatePipelineRun(pipeline){
+        const namespace = await UserService.getNamespace();
+        const url = `/ppline/run/${namespace}/${pipeline}`;
+        const response = await $still.HTTPClient.post(url);
+        const { result } = await response.json();
+        return result.result;
+    }
+
     static async getDataCatalog(pipeline){
         const namespace = await UserService.getNamespace();
         
