@@ -22,7 +22,12 @@ def require_permission(perm: str|list):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
             token = request.cookies.get('access_token')
-            if token is None:
+
+            if not token:
+                auth_header = request.headers.get("Authorization")
+                token = auth_header.split(" ")[1]
+
+            if token is None or token == '':
                 return {'message': 'Unauthorized: Missing or malformed Authorization header token.', 'error': True}, 401
             
             try:

@@ -94,15 +94,15 @@ class RequestContext:
         """
         self.exceptions.append({type: error})
 
-    def emit_error(self, obj: object, error):
+    def emit_error(self, obj: object = None, error = None, exec_id = None):
         """
         This emit Websocket error message for a
         specific pipeline execution step
         """
         emit(
             RequestContext.step_error,
-            {'componentId': obj.component_id,
-                'sid': self.socket_sid, 'error': error, 'time': self.get_time()},
+            {'componentId': obj.component_id if obj != None else '',
+                'sid': self.socket_sid, 'error': error, 'time': self.get_time(), 'exec_id': exec_id },
             to=self.socket_sid,
             namespace=RequestContext.namespace
         )
@@ -154,7 +154,7 @@ class RequestContext:
         socketio.sleep(0)
         
 
-    def emit_ppsuccess(self, data=True, socked_sid=None):
+    def emit_ppsuccess(self, data=True, socked_sid=None, exec_id = None):
         """
         This emit Websocket success message for a
         specific pipeline execution step
@@ -162,7 +162,7 @@ class RequestContext:
         if not self.success_emitted:
             emit(
                 RequestContext.ppline_success,
-                {'success': data, 'sid': self.socket_sid, 'time': self.get_time() },
+                {'success': data, 'sid': self.socket_sid, 'time': self.get_time(), 'exec_id': exec_id },
                 to=self.socket_sid,
                 namespace=RequestContext.namespace
             )

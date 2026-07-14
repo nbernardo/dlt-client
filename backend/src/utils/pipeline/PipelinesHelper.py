@@ -308,8 +308,14 @@ def send_ppline_completion_email(
     
     ppline_strt_dt, ppline_end_dt, start_time = ppline_time.get('start'), ppline_time.get('end'), ppline_time.get('ts')
     count_query = '\n UNION \n'.join([f"SELECT '{tbl}' as tbl, COUNT(*) as count FROM {skma}.{tbl} {filter}" for tbl in tbls])
-    total_record_per_table = con.execute(count_query).fetchall()
+    total_record_per_table, tbls_email_content = con.execute(count_query), ''
     
+    if total_record_per_table:
+        total_record_per_table = total_record_per_table.fetchall()
+        tbls_email_content = ''.join([f'<tr><td {style}>{tbl[0]}</td><td {style}>{tbl[1]}</td></tr>' for tbl in list(total_record_per_table)])
+    else:
+        tbls_email_content = ''.join([f'<tr><td {style}>{tbl}</td><td {style}>0</td></tr>' for tbl in tbls])
+
     style, row_sep = 'style="padding: 0 8px; text-align: center;"', '=' * 50
     intl = labels[env('APP_LANG')]
 
@@ -323,13 +329,13 @@ def send_ppline_completion_email(
     sbjct_sffix = intl['SBJCT_SFFIX']
     _success_execution = intl['PPLINE_SUCCESS']
 
-    tbls_email_content = ''.join([f'<tr><td {style}>{tbl[0]}</td><td {style}>{tbl[1]}</td></tr>' for tbl in list(total_record_per_table)])
     tbls_email_content = f'<tr style="font-weight: bold; text-align: center;"><td>{table_lbl}</td><td>{records_lbl}</td></tr>{tbls_email_content}'
     tbls_email_content = f'<tr><td style="font-weight: bold;  text-align: center;" colspan="2">{table_main_lbl}</td></tr>{tbls_email_content}'
 
     success_txt, spce = f'<h2>{_success_execution}</h2>', '<br>&nbsp;&nbsp;&nbsp;&nbsp;- '
     header = f'{success_txt}{spce}<b>Pipeline: </b>{pipeline_name}{spce}<b>{st_dt_lbl}</b> {ppline_strt_dt}{spce}<b>{end_dt_lbl}</b> {ppline_end_dt}{spce}<b>{start_time_lbl}</b> {start_time}'
     tbls_email_content = f'<span style="font-size: 13px;">{header}</span><p>{row_sep}</p><table style="font-size: 13px;" border="1">{tbls_email_content}</table>'
+    
     subject = f'{sbjct_prfix} e2e-Data Pipeline ({pipeline_name}) {sbjct_sffix}'         
 
     receiver_email, receiver_name = env('PPLINE_RESULT_EMAIL'), env('PPLINE_RESULT_EMAIL_RCVR')

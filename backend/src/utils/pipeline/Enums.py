@@ -29,6 +29,7 @@ class Checkpoint(StrEnum):
     TAKING_CONTROL = 'BASTION_PASSED'
     # STAGED -> Mean the data have been put in stage storage
     STAGED = 'STAGED'
+    MANUAL = 'MANUAL_RUN'
 
     TIME_UNSET = 'UNSET'
     # TIME_FROM_BASTION -> Means that the pipeline run status was update from bastion, but no real time was set yeat

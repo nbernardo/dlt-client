@@ -638,7 +638,7 @@ class Workspace:
 
 
     @staticmethod
-    def schedule_pipeline_job(namespace = None, ppline = None, immediate = False):
+    def schedule_pipeline_job(namespace = None, ppline = None, immediate = False, exec_id = None):
         result = Workspace.get_ppline_schedule(namespace, ppline)
         if result['error'] != True:
             schedules = result['data'] if 'data' in result else {}
@@ -655,7 +655,7 @@ class Workspace:
                 tag_name = f'{_namespace}_{ppline_name}'
 
                 if(immediate):
-                    DltPipeline.run_pipeline_job_sync(file_path, namespace)
+                    DltPipeline.run_pipeline_job_sync(file_path, namespace, exec_id=exec_id)
                     break
 
                 if periodicity == 'daily':

@@ -47,8 +47,7 @@ class PipelineCheckpoint:
             tbl = PipelineCheckpoint._get_table()
             PipelineCheckpoint.migrate(tbl)
 
-            if(int(params.get('exp_backoff')) > 1):
-                retry_count = int(params.get('exp_backoff')) - 1
+            if(int(params.get('exp_backoff',1)) > 1 or params.get('manual_run')):
                 PipelineCheckpoint.update(pipeline, None, params)
             else:
                 rows_to_insert = [{ 
@@ -71,18 +70,29 @@ class PipelineCheckpoint:
         """Update pipeline checkpoint - In case there is a delayed pipeline competing for the same storage is now passes as active"""
 
         try:
-            retry_count = int(params.get('exp_backoff')) - 1
+            retry_count, values = int(params.get('exp_backoff',1)) - 1, {}
             tbl, cp = PipelineCheckpoint._get_table(), Checkpoint
             PipelineCheckpoint.migrate(tbl)
 
             if delayed_pipeline:
-                [status, strt_time, updte_time] = [cp.TAKING_CONTROL, cp.TIME_FROM_BASTION, cp.TIME_UNSET]
+                #[status, strt_time, updte_time] = [cp.TAKING_CONTROL, cp.TIME_FROM_BASTION, cp.TIME_UNSET]
                 filter = f"status='{cp.DELAY}' AND pipeline='{delayed_pipeline}'"
 
-            filter = f"start_time='{params.get('start_time')}' AND storage_path='{params.get('storage_path')}' AND pipeline='{pipeline}'"
-            tbl.update(where=f'{filter}', values_sql={ 
-                'status': f"'{params.get('cp_status')}'", 'update_time': f"'{datetime.now().timestamp()}'", 'retry_count': f"'{retry_count}'"
-            })
+            if(not params.get('manual_run')):
+                filter = f"""
+                    (start_time='{params.get('start_time')}' AND storage_path='{params.get('storage_path')}' AND pipeline='{pipeline}') 
+                    or (id LIKE '{params.get('exec_id').strip()}%')"""
+                values = { 
+                    'status': f"'{params.get('cp_status')}'", 'update_time': f"'{datetime.now().timestamp()}'", 'retry_count': f"'{retry_count}'"
+                }
+            else:
+                values['manual_run_count'] = 'manual_run_count + 1'
+                values['status'] = f"'{cp.MANUAL}'"
+                values['retry_count'] = "0"
+                filter = f"id LIKE '{params.get('exec_id').strip()}%' AND status = '{cp.FAILED}'"
+
+            res = tbl.update(where=filter, values_sql=values)
+            print(f"Rows matched and updated: {res.rows_updated}")
 
         except Exception as e:
             print(f"PipelineCheckpoint Update Failed: {str(e)}")
@@ -130,6 +140,7 @@ class PipelineCheckpoint:
 
             new_fields = {
                 'retry_count': "cast(null as string)", #added in Jul/09/2026
+                'manual_run_count': "cast(0 as integer)", #added in Jul/13/2026
             }
 
             for col, expr in new_fields.items():
