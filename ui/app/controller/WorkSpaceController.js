@@ -560,7 +560,14 @@ export class WorkSpaceController extends BaseController {
             await this.wSpaceComponent.service.updateSocketId(data.sid);
         });
         //This will be used to revert pipeline
-        socket.on('pplineError', ({ componentId, sid, error }) => {
+        socket.on('pplineError', ({ componentId, sid, error, exec_id }) => {
+            if(exec_id){
+                const sucess = this.wSpaceComponent.pplService.pipelineRun.value?.success || {};
+                const oldVals = this.wSpaceComponent.pplService.pipelineRun.value?.fails || {};
+                this.wSpaceComponent.pplService.pipelineRun = { fails: { ...oldVals, [exec_id]: null }, sucess }
+                return;
+            }
+
             WorkSpaceController.addFailedStatus(componentId);
             AppTemplate.toast.error(error.message);
             this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
@@ -585,7 +592,14 @@ export class WorkSpaceController extends BaseController {
             this.wSpaceComponent.logProxy.lastLogTime = null; //Reset the logging time
         });
 
-        socket.on('pplineSuccess', ({ sid }) => {
+        socket.on('pplineSuccess', ({ sid, exec_id }) => {
+            if(exec_id){
+                const oldVals = this.wSpaceComponent.pplService.pipelineRun.value?.success || {};
+                const fails = this.wSpaceComponent.pplService.pipelineRun.value?.fails || {};
+                this.wSpaceComponent.pplService.pipelineRun = { sucess: { ...oldVals, [exec_id]: null }, fails }
+                return;
+            }
+
             const tasks = this.pplineSteps[sid];
             this.pplineStatus = PPLineStatEnum.Finished;
             if(tasks)

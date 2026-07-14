@@ -11,6 +11,7 @@ import { UserService } from "./UserService.js";
 export class PipelineService extends BaseService {
 
     table = new ServiceEvent([]);
+    pipelineRun = new ServiceEvent();
     static tableListStore;
     static jsonHeaders = { 'Content-Type': 'application/json' };
     static pipelineSourcesAndSestinationsMap = {};
@@ -72,9 +73,9 @@ export class PipelineService extends BaseService {
         return result.result;
     }
 
-    static async immediatePipelineRun(pipeline){
+    static async immediatePipelineRun(pipeline, execId){
         const namespace = await UserService.getNamespace();
-        const url = `/ppline/run/${namespace}/${pipeline}`;
+        const url = `/ppline/run/${namespace}/${pipeline}/${execId}`;
         const response = await $still.HTTPClient.post(url);
         const { result } = await response.json();
         return result.result;

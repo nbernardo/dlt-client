@@ -35,12 +35,17 @@
 									<td>{item.id}</td>
 									<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
 											onclick="component.getLogs('{item.id}')">View trace</span></td>
-									<td>{item.status}</td>
+									<td id="rerun-status-{item.id}">{item.status}</td>
 									<td>{item.start_time}</td>
 									<td>{item.update_time}</td>
 									<td style="width:110px; text-align: right;" class="re-run-cell">
-										<i	onclick="component.immediateRun('{item.pipelineUniqueName}')"
-											class="fas fa-play" style="color: green; cursor: pointer;" title="Replay"></i>
+										<span id="rerun-icon-{item.id}">
+											<i	onclick="component.immediateRun('{item.pipelineUniqueName}','{item.id}')"
+												class="fas fa-play" style="color: green; cursor: pointer;" title="Replay"></i>
+										</span>
+										<span id="rerun-loading-icon-{item.id}" style="display: none;">
+											<img src="/app/assets/imgs/loading_.gif" alt="" width="20">
+										</span>
 									</td>
 								</tr>
 							</tbody>

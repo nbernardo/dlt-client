@@ -19,6 +19,12 @@ export class PipelineRunSummary extends ViewComponent {
 	/** @type { Workspace } */
 	$parent;
 
+	/**
+	 * @Inject
+	 * @Path services/
+	 * @type { PipelineService } */
+	pplService;
+
 	/** @Prop */ loading = false;
 
 	async stBeforeInit(){
@@ -27,10 +33,23 @@ export class PipelineRunSummary extends ViewComponent {
 
 	async stAfterInit(){
 		this.container = document.querySelector(`.${this.cmpInternalId}`);
+		this.pplService.pipelineRun.onChange(val => {
+
+			const failedRuns = Object.keys(val.fails);
+			failedRuns.forEach(execId => {
+				document.querySelector(`#rerun-status-${execId}`).innerHTML = 'Manual run failed';
+				document.querySelector(`#rerun-icon-${execId}`).style.display = '';
+				document.querySelector(`#rerun-loading-icon-${execId}`).style.display = 'none';
+				try { delete this.pplService.pipelineRun.value.fails[execId]; } catch (error) { }
+			});
+		});
 	}
 
-	async immediateRun(pipelineName){
-		await PipelineService.immediatePipelineRun(pipelineName);
+	async immediateRun(pipelineName, execId){
+		document.querySelector(`#rerun-status-${execId}`).innerHTML = 'Running';
+		document.querySelector(`#rerun-icon-${execId}`).style.display = 'none';
+		document.querySelector(`#rerun-loading-icon-${execId}`).style.display = '';
+		await PipelineService.immediatePipelineRun(pipelineName, execId);
 	}
 
 	async getLogs(execId){
