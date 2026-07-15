@@ -35,7 +35,7 @@
 									<td>{item.id}</td>
 									<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
 											onclick="component.getLogs('{item.id}')">View trace</span></td>
-									<td id="rerun-status-{item.id}">{item.status}</td>
+									<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-failed">{item.status}</div></td>
 									<td>{item.start_time}</td>
 									<td>{item.update_time}</td>
 									<td style="width:110px; text-align: right;" class="re-run-cell">
@@ -67,4 +67,22 @@
 	.pipeline-run-log-container{ padding: 0px !important; }
 	.pipeline-run-log-content::before{ content: 'Logs'; position: absolute; margin-left: -32px; font-size: 12px; margin-top: 4px; }
 	.pipeline-run-log-content { height: 200px; overflow-y: scroll; padding-left: 37px !important; background: black; color: white; } 
+
+	.rerun-loading-badge {
+		color: #3498db !important; animation: pulseBoxOnly .6s ease-in-out infinite alternate !important;
+	}
+
+	.rerun-stat-lbl { 
+		font: 9px monospace; border-radius: 4px; letter-spacing: 0.5px; padding: 3px; border-radius: 4px; text-align: center;
+		color: red; background: transparent !important;
+	}
+
+	@keyframes pulseBoxOnly {
+		from { border: 1px solid rgba(52, 152, 219, 0.2); transform: scale(0.96); }
+		to { border: 1px solid rgba(52, 152, 219, 1); transform: scale(1); }
+	}
+
+	.rerun-loading-failed { background-color: red !important; color: white;  }
+
+	.rerun-loading-success { background-color: green !important; color: white;  }	
 </style>

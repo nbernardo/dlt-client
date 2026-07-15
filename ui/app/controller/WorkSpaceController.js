@@ -561,6 +561,14 @@ export class WorkSpaceController extends BaseController {
         });
         //This will be used to revert pipeline
         socket.on('pplineError', ({ componentId, sid, error, exec_id }) => {
+
+            if(exec_id && String(error).trim() === 'success'){
+                const oldVals = this.wSpaceComponent.pplService.pipelineRun.value?.success || {};
+                const fails = this.wSpaceComponent.pplService.pipelineRun.value?.fails || {};
+                this.wSpaceComponent.pplService.pipelineRun = { sucess: { ...oldVals, [exec_id]: null }, fails }
+                return;
+            }
+
             if(exec_id){
                 const sucess = this.wSpaceComponent.pplService.pipelineRun.value?.success || {};
                 const oldVals = this.wSpaceComponent.pplService.pipelineRun.value?.fails || {};
@@ -593,12 +601,6 @@ export class WorkSpaceController extends BaseController {
         });
 
         socket.on('pplineSuccess', ({ sid, exec_id }) => {
-            if(exec_id){
-                const oldVals = this.wSpaceComponent.pplService.pipelineRun.value?.success || {};
-                const fails = this.wSpaceComponent.pplService.pipelineRun.value?.fails || {};
-                this.wSpaceComponent.pplService.pipelineRun = { sucess: { ...oldVals, [exec_id]: null }, fails }
-                return;
-            }
 
             const tasks = this.pplineSteps[sid];
             this.pplineStatus = PPLineStatEnum.Finished;

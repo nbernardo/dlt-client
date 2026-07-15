@@ -37,19 +37,46 @@ export class PipelineRunSummary extends ViewComponent {
 
 			const failedRuns = Object.keys(val.fails);
 			failedRuns.forEach(execId => {
-				document.querySelector(`#rerun-status-${execId}`).innerHTML = 'Manual run failed';
-				document.querySelector(`#rerun-icon-${execId}`).style.display = '';
-				document.querySelector(`#rerun-loading-icon-${execId}`).style.display = 'none';
+				const showPlayIcon = true;
+				this.handleUIElements(execId, 'Manual run failed', showPlayIcon, !showPlayIcon);
+				try { delete this.pplService.pipelineRun.value.fails[execId]; } catch (error) { }
+			});
+
+			const successRuns = Object.keys(val.sucess);
+			successRuns.forEach(execId => {
+				const showPlayIcon = true;
+				this.handleUIElements(execId, 'Manual run success', showPlayIcon, !showPlayIcon);
 				try { delete this.pplService.pipelineRun.value.fails[execId]; } catch (error) { }
 			});
 		});
 	}
 
 	async immediateRun(pipelineName, execId){
-		document.querySelector(`#rerun-status-${execId}`).innerHTML = 'Running';
-		document.querySelector(`#rerun-icon-${execId}`).style.display = 'none';
-		document.querySelector(`#rerun-loading-icon-${execId}`).style.display = '';
+		const showPlayIcon = false;
+		this.handleUIElements(execId, 'Running', showPlayIcon, !showPlayIcon);
 		await PipelineService.immediatePipelineRun(pipelineName, execId);
+	}
+
+	handleUIElements(execId, statDescription, showPlayIcon, showRunLoading){
+		
+		document.querySelector(`#rerun-status-label-${execId}`).classList.remove('rerun-loading-badge');
+		document.querySelector(`#rerun-status-label-${execId}`).classList.remove('rerun-loading-failed');
+		document.querySelector(`#rerun-status-label-${execId}`).classList.remove('rerun-loading-success');
+
+		if(statDescription === 'Running')
+			document.querySelector(`#rerun-status-label-${execId}`).classList.add('rerun-loading-badge');
+		
+		if(String(statDescription).includes('failed'))
+			document.querySelector(`#rerun-status-label-${execId}`).classList.add('rerun-loading-failed');
+
+		if(String(statDescription).includes('success'))
+			document.querySelector(`#rerun-status-label-${execId}`).classList.add('rerun-loading-success');
+		
+
+		document.querySelector(`#rerun-status-label-${execId}`).innerHTML = statDescription;
+		if(String(statDescription).includes('success') === false)
+			document.querySelector(`#rerun-icon-${execId}`).style.display = showPlayIcon ? '' : 'none';
+		document.querySelector(`#rerun-loading-icon-${execId}`).style.display = showRunLoading ? '': 'none';
 	}
 
 	async getLogs(execId){
