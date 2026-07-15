@@ -47,6 +47,7 @@ class PipelineDWPhaseRunner:
         self.context = None
         self.pipeline = None
         self.params = None
+        self.exec_id = None
         
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self._future: Optional[concurrent.futures.Future] = None
@@ -133,6 +134,8 @@ class PipelineDWPhaseRunner:
                 con.close()
                 msg = f'Completed Data Warehouse data ingestions'
                 handle_pipeline_log(msg, self.logger, context=self.context)
+                #self.context.emit_ppsuccess(exec_id=self.exec_id)
+                self.context.emit_error(error='success', exec_id=self.exec_id)
 
                 return result
             
@@ -217,7 +220,7 @@ class PipelineDWPhaseRunner:
         dest_native_conn = DuckdbUtil.get_connection_for(f'{db_path}{dwname}.duckdb')
         runner = PipelineDWPhaseRunner(source_db, dest_native_conn, dwname, dataset)
 
-        [params, runner.logger, runner.context] = [refs.get('params'), refs.get('logger'), refs.get('context')]
+        [params, runner.logger, runner.context, runner.exec_id] = [refs.get('params'), refs.get('logger'), refs.get('context'), refs.get('exec_id')]
         [runner.pipeline, runner.params] = params.get('pipeline'), params
 
         cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger)

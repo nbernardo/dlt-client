@@ -635,7 +635,7 @@ class DltPipeline:
                 job_tag = f'{job_start_time}_{stg_storage}'
                 triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
                 refs = { **refs, 'params': params, 'dataset_name': pipeline_metadata[7], 'dest_tables': pipeline_metadata[9], 'tables_pks': pipeline_metadata[10] }
-                refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context }
+                refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context, 'exec_id': exec_id }
                 
                 schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
 
@@ -661,7 +661,7 @@ class DltPipeline:
 
             params = { **params, 'storage_path': storage_path, 'cp_status': CP.FAILED, 'manual_run': False }
             PipelineCheckpoint.update(pipeline, None, params)
-            param_list = { **param_list, 'context': context, 'logger': logger, 'manual_run': False }
+            param_list = { **param_list, 'context': context, 'logger': logger }
 
             DltPipeline._retry(ppline_file_path, param_list, job_start_time, namespace, pipeline, str(err))
 
@@ -670,9 +670,16 @@ class DltPipeline:
     def _retry(ppline_file_path, param_list, job_start_time, namespace, pipeline, err):
         
         exp_backoff = param_list.get('exp_backoff')
-        if exp_backoff > 1:
+
+        if param_list.get('retry_on_manual'):
             error = {'message': f'{err}', 'componentId': None }
             param_list.get('context').emit_error(error=error, exec_id = param_list.get('exec_id'))
+            return
+        
+        # In case it's manual run it'll retry once only
+        if param_list.get('manual_run'):
+            param_list['retry_on_manual'] = True
+
         if exp_backoff > 6:
             param_list = None
             return
@@ -702,7 +709,6 @@ class DltPipeline:
     @staticmethod
     def _handle_trigger(triggers, namespace, pipeline, job_start_time, context: RequestContext, exec_id):
 
-        context.emit_ppsuccess(exec_id=exec_id)
         if len(triggers) > 0:
             curr_trigger = triggers.pop(0)
             unity, wait_time = curr_trigger['time'], int(curr_trigger['unity'])
