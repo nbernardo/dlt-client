@@ -34,6 +34,7 @@ destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinati
 template_dir = f'{root_dir}/pipeline_templates'
 SUCCESS_RUN_MESSAGE = 'Pipeline run terminated successfully'
 DW_WAIT_SEC = int(env('STAGE_TO_DW_WAIT_SEC'))
+JOB_RETRY_COUNT = int(env('JOB_RETRY_COUNT')) - 1 if int(env('JOB_RETRY_COUNT')) > 0 else 1
 
 def is_SAWarning(message):
     """ validate if there was SQLAlchemy warning (e.g. no rewriting existing table) """
@@ -607,7 +608,7 @@ class DltPipeline:
             # delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
             # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
             cp_status = CP.STAGED if context.pipeline_metadata.stage_storage else CP.DONE
-            params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline }
+            params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline, 'context': context }
 
             proc = await asyncio.create_subprocess_exec('python', ppline_file, stdout=PIPE, stdin=PIPE, stderr=PIPE, env=env_vars)
             proc.stdin.write(str(job_start_time).encode() + b'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process
@@ -645,7 +646,7 @@ class DltPipeline:
         except (Exception, duckdb.IOException) as err:
             if proc: proc.kill()
             # DB Lock release in the pplication level
-            if(param_list.get('exp_backoff') > 6):
+            if(param_list.get('exp_backoff') > JOB_RETRY_COUNT):
                 DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
                 message = f'Error while running job for {db_file.split('/')[1]} pipeline'
                 
@@ -657,7 +658,11 @@ class DltPipeline:
             if refs.get('pipeline_exception'):
                 handle_pipeline_log(refs.get('error_message'), logger, error=True)
                 context.emit_ppline_job_trace(refs.get('error_message'),error=True)
-            if(param_list.get('exp_backoff') > 2): DltPipeline.send_fail_email(job_start_time, context)
+
+            if(param_list.get('exp_backoff') > JOB_RETRY_COUNT): 
+                error = {'message': f'Job failed', 'componentId': None }
+                DltPipeline.ui_fail_notify(context, error, params.get('exec_id'))
+                DltPipeline.send_fail_email(job_start_time, context)
 
             params = { **params, 'storage_path': storage_path, 'cp_status': CP.FAILED, 'manual_run': False }
             PipelineCheckpoint.update(pipeline, None, params)
@@ -667,20 +672,25 @@ class DltPipeline:
 
 
     @staticmethod
+    def ui_fail_notify(context: RequestContext, err, exec_id):
+        context.emit_error(error=err, exec_id = exec_id)
+
+
+    @staticmethod
     def _retry(ppline_file_path, param_list, job_start_time, namespace, pipeline, err):
         
         exp_backoff = param_list.get('exp_backoff')
 
         if param_list.get('retry_on_manual'):
             error = {'message': f'{err}', 'componentId': None }
-            param_list.get('context').emit_error(error=error, exec_id = param_list.get('exec_id'))
+            DltPipeline.ui_fail_notify(param_list.get('context'), error, param_list.get('exec_id'))
             return
         
         # In case it's manual run it'll retry once only
         if param_list.get('manual_run'):
             param_list['retry_on_manual'] = True
 
-        if exp_backoff > 6:
+        if exp_backoff > JOB_RETRY_COUNT:
             param_list = None
             return
 

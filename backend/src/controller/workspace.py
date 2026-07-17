@@ -184,7 +184,7 @@ def create_ppline_schedule(namespace):
 @workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['GET'])
 def get_ppline_schedule(namespace):
     try:
-        return Workspace.get_ppline_schedule(namespace)
+        return { 'pipelline_schedule': Workspace.get_ppline_schedule(namespace) }
     except Exception as error:
         print(f'Error while trying to fetch pipeline schedule')
         print(error)
@@ -207,6 +207,7 @@ def get_initial_data(namespace):
     is_lancedb_on_duckdb = is_extension_installed('lance')  
 
     try:
+        from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
         total_pipelines = 0
         if os.path.exists(f'{BasePipeline.folder}/pipeline/{namespace}'):
             total_pipelines = len(os.listdir(f'{BasePipeline.folder}/pipeline/{namespace}'))
@@ -216,6 +217,7 @@ def get_initial_data(namespace):
             'ai_agent_namespace_details': ai_agent_namespace_details,
             'total_pipelines':  total_pipelines,
             'is_lancedb_on_duckdb':  is_lancedb_on_duckdb,
+            'run_history': PipelineCheckpoint.get_run_history(namespace)
         }
     
     except Exception as error:
@@ -346,7 +348,7 @@ def delete_data_file(namespace, filename):
 
     try:
         os.remove(file_to_remove) if os.path.exists(file_to_remove) else None
-        return { 'error': False, 'result': f'Files {filename} removed sucessfully.' }
+        return { 'error': False, 'result': f'Files {filename} removed successfully.' }
     
     except Exception as err:
         print('Error while removing data file: ')

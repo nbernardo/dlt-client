@@ -54,7 +54,7 @@ class PipelineCheckpoint:
                     'id': params.get('exec_id'), 'pipeline': pipeline, 'status': params.get('state'), 'namespace': namespace, 
                     'start_time': params.get('start_time'), 'update_time': params.get('updt_time'), 'storage_path': params.get('dest_storage'), 
                     'stage_source': stage_source, 'dest_tables': params.get('dest_tables'), 'tables_pks': params.get('tables_pks'), 
-                    'dataset_name': params.get('dataset_name')
+                    'dataset_name': params.get('dataset_name'), 'manual_run_count': 0
                 }]
                 tbl.add(rows_to_insert)
                 #if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
@@ -85,6 +85,7 @@ class PipelineCheckpoint:
                 values = { 
                     'status': f"'{params.get('cp_status')}'", 'update_time': f"'{datetime.now().timestamp()}'", 'retry_count': f"'{retry_count}'"
                 }
+                
             else:
                 values['manual_run_count'] = 'manual_run_count + 1'
                 values['status'] = f"'{cp.MANUAL}'"
