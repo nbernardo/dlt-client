@@ -1,10 +1,11 @@
-import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { State } from "../../../../@still/component/type/ComponentType.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
 import { PipelineService } from "../../../services/PipelineService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { Workspace } from "../../workspace/Workspace.js";
+
+export const runStatus = { MANUAL_FAIL: 'Manual run failed', MANUAL_SUCCESS: 'Manual run success', PROGRESS: 'Running' }
 
 export class PipelineRunSummary extends ViewComponent {
 
@@ -20,8 +21,7 @@ export class PipelineRunSummary extends ViewComponent {
 	$parent;
 
 	/**
-	 * @Inject
-	 * @Path services/
+	 * @Inject @Path services/
 	 * @type { PipelineService } */
 	pplService;
 
@@ -33,49 +33,39 @@ export class PipelineRunSummary extends ViewComponent {
 
 	async stAfterInit(){
 		this.container = document.querySelector(`.${this.cmpInternalId}`);
-		this.pplService.pipelineRun.onChange(val => {
-
-			const failedRuns = Object.keys(val.fails);
-			failedRuns.forEach(execId => {
-				const showPlayIcon = true;
-				this.handleUIElements(execId, 'Manual run failed', showPlayIcon, !showPlayIcon);
-				try { delete this.pplService.pipelineRun.value.fails[execId]; } catch (error) { }
-			});
-
-			const successRuns = Object.keys(val.sucess);
-			successRuns.forEach(execId => {
-				const showPlayIcon = true;
-				this.handleUIElements(execId, 'Manual run success', showPlayIcon, !showPlayIcon);
-				try { delete this.pplService.pipelineRun.value.fails[execId]; } catch (error) { }
-			});
-		});
 	}
 
 	async immediateRun(pipelineName, execId){
 		const showPlayIcon = false;
-		this.handleUIElements(execId, 'Running', showPlayIcon, !showPlayIcon);
+		this.handleUIElements(execId, runStatus.PROGRESS, showPlayIcon, !showPlayIcon);
 		await PipelineService.immediatePipelineRun(pipelineName, execId);
 	}
 
 	handleUIElements(execId, statDescription, showPlayIcon, showRunLoading){
 		
-		document.querySelector(`#rerun-status-label-${execId}`).classList.remove('rerun-loading-badge');
-		document.querySelector(`#rerun-status-label-${execId}`).classList.remove('rerun-loading-failed');
-		document.querySelector(`#rerun-status-label-${execId}`).classList.remove('rerun-loading-success');
+		const statuLabel = document.querySelector(`#rerun-status-label-${execId}`);
+		if(!statuLabel) return;
 
-		if(statDescription === 'Running')
-			document.querySelector(`#rerun-status-label-${execId}`).classList.add('rerun-loading-badge');
+		statuLabel.classList.remove('rerun-loading-badge');
+		statuLabel.classList.remove('rerun-loading-failed');
+		statuLabel.classList.remove('rerun-loading-success');
+
+		if(statDescription === runStatus.PROGRESS)
+			statuLabel.classList.add('rerun-loading-badge');
 		
-		if(String(statDescription).includes('failed'))
-			document.querySelector(`#rerun-status-label-${execId}`).classList.add('rerun-loading-failed');
+		if(String(statDescription) === runStatus.MANUAL_FAIL)
+			statuLabel.classList.add('rerun-loading-failed');
 
 		if(String(statDescription).includes('success'))
-			document.querySelector(`#rerun-status-label-${execId}`).classList.add('rerun-loading-success');
+			statuLabel.classList.add('rerun-loading-success');
 		
 
-		document.querySelector(`#rerun-status-label-${execId}`).innerHTML = statDescription;
-		if(String(statDescription).includes('success') === false)
+		statuLabel.innerHTML = statDescription;
+		if(String(statDescription) === runStatus.MANUAL_SUCCESS)
+			document.querySelector(`#rerun-icon-${execId}`).style.display = 'none';
+		else if(String(statDescription).includes('success') === false)
 			document.querySelector(`#rerun-icon-${execId}`).style.display = showPlayIcon ? '' : 'none';
+
 		document.querySelector(`#rerun-loading-icon-${execId}`).style.display = showRunLoading ? '': 'none';
 	}
 

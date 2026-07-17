@@ -11,7 +11,7 @@ import { UserService } from "./UserService.js";
 export class PipelineService extends BaseService {
 
     table = new ServiceEvent([]);
-    pipelineRun = new ServiceEvent();
+    pipelineRun = new ServiceEvent({ fails: {}, success: {} });
     static tableListStore;
     static jsonHeaders = { 'Content-Type': 'application/json' };
     static pipelineSourcesAndSestinationsMap = {};

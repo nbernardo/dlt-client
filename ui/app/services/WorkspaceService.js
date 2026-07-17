@@ -297,12 +297,15 @@ export class WorkspaceService extends BaseService {
 
     static async getPipelineSchedules() {
         const namespace = await UserService.getNamespace();
-        const url = '/workcpace/ppline/schedule/' + namespace;
+        const url = '/workspace/ppline/badges/' + namespace;
         const response = await $still.HTTPClient.get(url);
         
         if (response.ok && !response.error){
             const result = await response.json();
-            return Object.values(result?.data || {});
+            return {
+                schedules: Object.values(result?.data?.pipelline_schedule || {}),
+                runFails: (result?.data?.run_history || []).length,
+            };
         }
         return null;
     }

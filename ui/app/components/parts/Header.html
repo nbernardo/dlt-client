@@ -14,11 +14,11 @@
 			<div onclick="component.showPipelineRuns()"
 				class="action-icon counter-icon generic-context-drop-menu" 
 				style="cursor: pointer; border: none;">
-				<i class="fas fa-code-branch" style="font-size: 20px; scale: -1 1;"></i>
+				<i class="fas fa-code-branch ppline-runs-error-badge-icon" style="font-size: 20px; scale: -1 1;"></i>
 				<!-- <img src="app/assets/imgs/routine.png" width="25" alt=""> -->
-				<span style="top: 14px; margin-left: -9px;">
-					<output (showIf)="self.showScheduleCounter">@scheduledPipelinesCount</output>					
-					@if(this.scheduledPipelinesCount === -1)
+				<span style="top: 14px; margin-left: -9px;" class="ppline-runs-error-badge-icon-count">
+					<output (showIf)="self.showScheduleCounter">@pipelinesErrorCount</output>					
+					@if(this.pipelinesErrorCount === -1)
 						<div class="mini-loader-container">
 							<div class="mini-loader-dot"></div>
 							<div class="mini-loader-dot"></div>

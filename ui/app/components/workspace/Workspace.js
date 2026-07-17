@@ -628,7 +628,7 @@ export class Workspace extends ViewComponent {
 		}
 
 		const response = await WorkspaceService.getPipelineSchedules();
-		this.headerProxy.scheduledPipelines = response;
+		this.headerProxy.scheduledPipelines = response.schedules;
 		this.schedulePeriodicity = '';
 		this.scheduleTime = '';
 		btnPipelineSchedule.disabled = false;

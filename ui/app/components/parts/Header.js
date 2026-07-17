@@ -9,7 +9,7 @@ import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { StringUtil } from "../../util/StringUtil.js";
 import { UserUtil } from "../auth/UserUtil.js";
-import { PipelineRunSummary } from "../pipeline/summary/PipelineRunSummary.js";
+import { PipelineRunSummary, runStatus } from "../pipeline/summary/PipelineRunSummary.js";
 import { handleHideShowSubmenu } from "../workspace/generic-util.js";
 import { Workspace } from "../workspace/Workspace.js";
 
@@ -33,10 +33,21 @@ export class Header extends ViewComponent {
 	 */
 	workspaceController;
 
+	/**
+	 * @Inject @Path services/
+	 * @type { PipelineService } */
+	pplineService;
+
 	scheduledPipelinesCount = -1;
+	pipelinesErrorCount = -1;
 
 	/** @type { ListState<Array> } */
 	scheduledPipelines = [];
+
+	/** @Prop @type { PipelineRunSummary } */
+	pplineRunSummary = null;
+
+	/** @Prop */ failedPipelines = new Set();
 
 	loggedUser = null;
 
@@ -47,17 +58,14 @@ export class Header extends ViewComponent {
 	$parent;
 
 	stAfterInit(){
-		
+		this.onPipelineEvent();
 		this.userService.on('load', async () => {
 
 			let user = (await this.userService.getLoggedUser());
-
-			if(user?.user)
-				user = user?.user;
+			if(user?.user) user = user?.user;
 
 			if(UserUtil.name === null){
-				UserUtil.name = user.name;
-				UserUtil.email = user.email;
+				UserUtil.name = user.name, UserUtil.email = user.email;
 				Object.freeze(UserUtil);
 			}
 			this.loggedUser = user.name, this.userEmail = user.email;
@@ -75,13 +83,51 @@ export class Header extends ViewComponent {
 		this.handleScheduledPplineHideShow();
 	}
 
+	onPipelineEvent(){
+		this.pplineService.pipelineRun.onChange(val => {
+
+			// Update the PipelineRunsummary component when job ran manually
+			const failedRuns = Object.keys(val.fails);
+			failedRuns.forEach(execId => {
+				if( !this.failedPipelines.has(execId) ){
+					this.failedPipelines.add(execId);
+					this.pipelinesErrorCount = this.failedPipelines.size;
+					document.querySelector('.ppline-runs-error-badge-icon-count').style.background = 'red';
+				}
+
+				if(this.pplineRunSummary){
+					const showPlayIcon = true;
+					this.pplineRunSummary.handleUIElements(execId, runStatus.MANUAL_FAIL, showPlayIcon, !showPlayIcon);
+				}
+			});
+	
+			const successRuns = Object.keys(val.success);
+			successRuns.forEach(execId => {
+				if(this.pplineRunSummary){
+					const showPlayIcon = true;
+					this.pplineRunSummary.handleUIElements(execId, runStatus.MANUAL_SUCCESS, showPlayIcon, !showPlayIcon);
+				}
+				
+				try { 
+					if(this.failedPipelines.has(execId))
+						this.failedPipelines.delete(execId);
+					//delete this.pplineService.pipelineRun.value.fails[execId];
+					this.pipelinesErrorCount = this.failedPipelines.size;
+					if(this.pipelinesErrorCount.values == 0)
+						document.querySelector('.ppline-runs-error-badge-icon-count').style.background = 'green';
+				} catch (error) { }
+			});
+		})
+	}
+
 	async getScheduleList(){
 		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
-		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.data;			
-		this.scheduledPipelines = (scheduledPipelinesInitList || []).map(itm => 
+		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.schedules.data;			
+		this.scheduledPipelines = (scheduledPipelinesInitList.schedules || []).map(itm => 
 			({ pipelineLbl: JSON.parse(itm.schedule_settings).ppline_label, ...itm, lastRun: itm.last_run == null ? 'None' : itm.last_run })
-		);			
-		this.scheduledPipelinesCount = scheduledPipelinesInitList.length || 0;
+		);	
+				
+		this.scheduledPipelinesCount = scheduledPipelinesInitList.schedules.length || 0;
 	}
 
 	async getInitData(){
@@ -97,6 +143,17 @@ export class Header extends ViewComponent {
 		);
 		this.scheduledPipelinesCount = this.workspaceService.schedulePipelinesStore.value.length;
 		this.workspaceService.totalPipelines = namespaceInitData.total_pipelines;
+				
+		(namespaceInitData.run_history || []).forEach(ppline => {
+			this.failedPipelines.add(ppline.id);
+		});
+		
+		this.pipelinesErrorCount = namespaceInitData.run_history?.length || 0;
+
+		if(this.pipelinesErrorCount.value > 0){
+			//document.querySelector('.ppline-runs-error-badge-icon').style.color = 'red';
+			document.querySelector('.ppline-runs-error-badge-icon-count').style.background = 'red';
+		}
 
 	}
 
@@ -128,6 +185,7 @@ export class Header extends ViewComponent {
 		await sleepForSec(1000);
 		AppTemplate.hideLoading();
 		
+		this.pplineRunSummary = component;
 		component.runList = runsList;
 	}
 	
