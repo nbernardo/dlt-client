@@ -70,14 +70,14 @@ class PipelineTrigger:
 
 
     @staticmethod
-    def find_all(namespace, leader_pipeline, pipeline = None, order = None):
+    def find_all(namespace, leader_pipeline, pipeline = None, order = None, running = False):
         """Update pipeline_trigger"""
 
         try:
             tbl = PipelineTrigger._get_table()
             PipelineTrigger.migrate(tbl)
 
-            filter = f"leader_pipeline='{leader_pipeline}' AND namespace='{namespace}'"
+            filter = f"leader_pipeline='{leader_pipeline}' AND namespace='{namespace}' {"AND status NOT IN ('STOPED','PAUSED')" if running else ''}"
             if pipeline:
                 filter += f" AND pipeline='{pipeline}'"
             if order:

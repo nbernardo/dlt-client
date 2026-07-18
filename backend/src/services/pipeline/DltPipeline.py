@@ -580,7 +580,7 @@ class DltPipeline:
 
         [refs, job_start_time, proc] = [{ 'job_execution_id': uuid.uuid4() }, None, None]
         params = { 'exp_backoff': param_list.get('exp_backoff',1), 'exec_id': exec_id, 'manual_run': param_list.get('manual_run',False) }
-        triggers = triggers if triggers != None else PipelineTrigger.find_all(namespace, pipeline)
+        triggers = triggers if triggers != None else PipelineTrigger.find_all(namespace, pipeline, running=True)
 
         try:
             stg_storage = pipeline_metadata[8]
