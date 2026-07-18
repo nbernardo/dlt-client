@@ -743,11 +743,12 @@ class DltPipeline:
         cnx = DuckdbUtil.get_workspace_db_instance()
         query = f"UPDATE ppline_schedule SET is_paused='{is_paused}' WHERE namespace='{namespace}' and ppline_name='{ppline}'"
         cnx.execute(query)
-
+        from services.workspace.Workspace import Workspace
         if is_paused != 'paused':
-            from services.workspace.Workspace import Workspace
             Workspace.schedule_pipeline_job(namespace, ppline)
         else:
+            file_path = f'{namespace}/{ppline}'
+            del Workspace.schedule_jobs[file_path]
             tag_name = f'{namespace}_{ppline}'
             if schedule.get_jobs(tag_name):
                 schedule.clear(tag_name)

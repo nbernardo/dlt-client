@@ -423,20 +423,20 @@ class Workspace:
         try:
             cnx = DuckdbUtil.get_connection_for(f'{database}')
             cursor = cnx.cursor()
-            where_clause = f'WHERE {where}' if where is not None else ''
+            and_where_clause = f'AND {where}' if where is not None else ''
             query = f"SELECT \
                         database_name, schema_name, table_name, \
                         estimated_size, column_count FROM \
-                        duckdb_tables {where_clause}"
+                        duckdb_tables {and_where_clause}"
 
-            new_query = f'SELECT DISTINCT\
-                        t.database_name, t.schema_name, t.table_name,\
-                        t.estimated_size, t.column_count,\
-                        column_name, data_type \
-                    FROM duckdb_tables t \
-                    JOIN duckdb_columns c ON t.table_name = c.table_name \
-                        {where_clause} \
-                    ORDER BY t.table_name, column_name'
+            new_query = f"""SELECT DISTINCT
+                        t.database_name, t.schema_name, t.table_name,
+                        t.estimated_size, t.column_count,
+                        column_name, data_type 
+                    FROM duckdb_tables t 
+                    JOIN duckdb_columns c ON t.table_name = c.table_name 
+                        WHERE t.schema_name NOT IN ('dwhperformance_meta') {and_where_clause} 
+                    ORDER BY t.table_name, column_name"""
             
             print(f'Fetching DuckDb tables: {new_query}')
             
