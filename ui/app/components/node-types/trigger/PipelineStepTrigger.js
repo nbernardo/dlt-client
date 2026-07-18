@@ -62,14 +62,18 @@ export class PipelineStepTrigger extends AbstractNode {
 		this.targetPipeline.onChange(val => this.setData('targetPipeline', val));
 
 		if(this.importData?.isImport) {
-			if(Object.values(triggerStatus).includes(this.importData.status))
-				this.buttonLabel = 'Activate Link'
+			if(String(triggerStatus.STATUS_ACTIVE).trim() === String(this.importData.status).trim()){
+				this.assignUpdateFlag(false);
+			}else{
+				this.buttonLabel = 'Activate Link';
+				this.update = true;				
+			}
 			
 			this.showSettings = true;
 			this.notifyReadiness();
 			const { time, timeUnit, targetPipeline, order } = this.importData;
 			setTimeout(() => document.querySelector(`select[placeholder="Select the pipeline"]`).value = targetPipeline, 50);
-			this.triggerValue = time, this.timeUnit = timeUnit, this.update = true, this.triggerOrder = order;
+			this.triggerValue = time, this.timeUnit = timeUnit, this.triggerOrder = order;
 			PipelineService.storePipelineTriggers.push(this);
 		}
 	}
@@ -108,9 +112,9 @@ export class PipelineStepTrigger extends AbstractNode {
 		this.settings = { ppline: targetPipeline.value, triggerValue: triggerValue.value, timeUnit: timeUnit.value, order: triggerOrder };
 	}
 
-	updateTrigger = (status) => this.addPipelineTrigger(triggerStatus[status]);
+	updateTrigger = async (status) => await this.addPipelineTrigger(triggerStatus[status]);
 
-	addPipelineTrigger(status){
+	async addPipelineTrigger(status){
 
 		const currentDiagram = this.$parent.editor.export().drawflow.Home;
 		let originalDiagram = JSON.parse(this.$parent.service.curImportedPipelineJSON).pipelineCode;
@@ -133,14 +137,27 @@ export class PipelineStepTrigger extends AbstractNode {
 		}
 		const diagram = { Home: { data: originalDiagram.data } };
 		const payload = { drawflow: diagram, activeGrid, pplineLbl, settings: PipelineService.storePipelineTriggers.map(trg => ({ ...trg.settings, update: this.update })) };
-		
+
 		if(status) {
 			if(!(this.importData.status in Object.values(triggerStatus)))
 				this.buttonLabel = 'Link trigger';
 			payload.settings[0].status = status;
-		}	
+		}
+		
+		const result = await PipelineService.addTrigger(payload);
 
-		PipelineService.addTrigger(payload)
+		if(result){
+			if([triggerStatus.STATUS_ACTIVE, undefined].includes(status))
+				this.update = false;
+			else
+				this.update = true;
+		}
+	}
+
+	assignUpdateFlag(val){
+		// Due to issues in hte framework assigning twice is needed
+		this.update = val;
+		this.update = val;
 	}
 	
 }

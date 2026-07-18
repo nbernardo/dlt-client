@@ -152,8 +152,10 @@ export class PipelineService extends BaseService {
         let response = await $still.HTTPClient.post('/trigger/' + user, JSON.stringify(code), HTTPHeaders.JSON);
         response = await response.json();
 
-        if (!response.error)
-            return AppTemplate.toast.success(response.result);
+        if (!response.error){
+            AppTemplate.toast.success(response.result);
+            return true;
+        }
         AppTemplate.toast.error(response.result);
     }
 
