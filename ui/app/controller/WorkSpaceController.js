@@ -138,8 +138,8 @@ export class WorkSpaceController extends BaseController {
     }
 
     unmarkOptimizedPipeline = () => {
-        document.querySelector('.analyticsOptimizedPipeline').value = '';
-        WorkSpaceController.isCurrentPipelineOptimized = 0;
+        document.querySelector('.analyticsOptimizedPipeline').value = '1';
+        WorkSpaceController.isCurrentPipelineOptimized = 1;
     }
 
     /** @param { AIAgentExpandViewType } aiAgentExpandView */

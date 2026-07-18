@@ -184,7 +184,7 @@ def create_ppline_schedule(namespace):
 @workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['GET'])
 def get_ppline_schedule(namespace):
     try:
-        return { 'pipelline_schedule': Workspace.get_ppline_schedule(namespace) }
+        return Workspace.get_ppline_schedule(namespace)
     except Exception as error:
         print(f'Error while trying to fetch pipeline schedule')
         print(error)

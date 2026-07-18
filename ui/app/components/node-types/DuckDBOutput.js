@@ -65,8 +65,8 @@ export class DuckDBOutput extends AbstractNode {
 			this.newDBInput.setAttribute('required', true);
 			this.userExistingDW = false;
 			WorkSpaceController.usedExistingDW = null;
-			document.querySelector('.analyticsOptimizedPipeline').value = '';
-			return WorkSpaceController.fromContext().markAnalyticsOptimizedPipeline(0);
+			document.querySelector('.analyticsOptimizedPipeline').value = '1';
+			return WorkSpaceController.fromContext().markAnalyticsOptimizedPipeline(1);
 		}
 		WorkSpaceController.usedExistingDW = dwName;
 		this.userExistingDW = true;

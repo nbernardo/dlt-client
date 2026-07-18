@@ -123,12 +123,12 @@ export class Header extends ViewComponent {
 
 	async getScheduleList(){
 		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
-		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList.schedules.data;			
-		this.scheduledPipelines = (scheduledPipelinesInitList.schedules || []).map(itm => 
+		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList;			
+		this.scheduledPipelines = (scheduledPipelinesInitList || []).map(itm => 
 			({ pipelineLbl: JSON.parse(itm.schedule_settings).ppline_label, ...itm, lastRun: itm.last_run == null ? 'None' : itm.last_run })
 		);	
 				
-		this.scheduledPipelinesCount = scheduledPipelinesInitList.schedules.length || 0;
+		this.scheduledPipelinesCount = scheduledPipelinesInitList?.length || 0;
 	}
 
 	async getInitData(){

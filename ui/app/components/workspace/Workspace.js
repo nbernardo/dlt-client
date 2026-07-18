@@ -37,20 +37,17 @@ export class Workspace extends ViewComponent {
 	editor;
 
 	/**
-	 * @Inject
-	 * @Path services/
+	 * @Inject @Path services/
 	 * @type { PipelineService } */
 	pplService;
 
 	/**
-	 * @Inject
-	 * @Path services/
+	 * @Inject @Path services/
 	 * @type { WorkspaceService } */
 	service;
 
 	/**
-	 * @Controller
-	 * @Path controller/
+	 * @Controller @Path controller/
 	 * @type { WorkSpaceController } */
 	controller;
 
@@ -69,8 +66,7 @@ export class Workspace extends ViewComponent {
 	headerProxy;
 
 	/** 
-	 * @Inject 
-	 * @Path services/ 
+	 * @Inject @Path services/ 
 	 * @type { UserService }*/
 	userService;
 
@@ -154,6 +150,8 @@ export class Workspace extends ViewComponent {
 	scheduleTime;
 
 	/** @Prop */ scheduleDwName;
+
+	/** @Prop */ saveOnly = false;
 
 	stOnRender() {
 		AppTemplate.hideLoading();
@@ -249,8 +247,10 @@ export class Workspace extends ViewComponent {
 		WorkSpaceController.usedExistingDW = null;
 		WorkSpaceController.pipelinePlanId = null;
 		this.controller.isSubmittingPipeline = false;
-		if(actionType === 'onlysave')
+		if(actionType === 'onlysave'){
+			this.isAnyDiagramActive = true, this.saveOnly = true;
 			AppTemplate.toast.success(`Pipeline ${this.activeGrid.value} saved successfully`, 15000);
+		}
 		return result;
 	}
 
@@ -316,6 +316,7 @@ export class Workspace extends ViewComponent {
 
 		const startNode = this.controller.edgeTypeAdded[NodeTypeEnum.START];
 		const activeGrid = this.activeGrid.value.toLowerCase().replace(/\s/g, '_');
+		this.selectedPplineName = activeGrid;
 		let data = this.editor.export();
 		data = { 
 			...data,  user: await UserService.getNamespace(), analyticOptimized: WorkSpaceController.isCurrentPipelineOptimized,
@@ -357,6 +358,8 @@ export class Workspace extends ViewComponent {
 			self.wasDiagramSaved = false;
 			self.isAnyDiagramActive = false;
 			self.isAnyDiagramActive = false;
+			self.saveOnly = false;
+			self.saveOnly = false;
 			self.service.curImportedPipelineJSON = null;
 			PipelineService.storePipelineShortList = [], PipelineService.storePipelineTriggers = [];			
 			(async () => await cb())();
@@ -623,12 +626,15 @@ export class Workspace extends ViewComponent {
 		if ([false, 'failed'].includes(result))
 			AppTemplate.toast.error('Error while scheduling job for ' + this.activeGrid.value);
 		else{
+			if(this.saveOnly){
+				this.headerProxy.scheduledPipelinesCount = (this.headerProxy.scheduledPipelinesCount.value) + 1;
+				this.saveOnly = false;
+			}
 			AppTemplate.toast.success('New schedule for ' + this.activeGrid.value + ' created successfully');
 			await this.leftMenuProxy.showHideDatabase();
 		}
 
-		const response = await WorkspaceService.getPipelineSchedules();
-		this.headerProxy.scheduledPipelines = response.schedules;
+		this.headerProxy.getScheduleList();
 		this.schedulePeriodicity = '';
 		this.scheduleTime = '';
 		btnPipelineSchedule.disabled = false;
