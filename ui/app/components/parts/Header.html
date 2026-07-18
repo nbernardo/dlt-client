@@ -131,53 +131,31 @@
 
 <style>
 
-        .generic-context-drop-menu .submenu {
-			width: 20vw !important;
-			background: rgb(236, 235, 235) !important;
-		}
-
+        .generic-context-drop-menu .submenu { width: 20vw !important; background: rgb(236, 235, 235) !important; }
 
         .generic-context-drop-menu .submenu li {
-            list-style-type: none;
-            padding: 10px 15px;
-            color: #333 !important;
-            border-bottom: 1px solid #ccc;
-            transition: background-color 0.3s;
-			font-weight: bold;
+            list-style-type: none; padding: 10px 15px; color: #333 !important;
+            border-bottom: 1px solid #ccc; transition: background-color 0.3s; font-weight: bold;
         }
 
-        .generic-context-drop-menu .submenu li:last-child {
-            border-bottom: none;
-        }
-
-		.generic-context-drop-menu .submenu li:first-child:hover
-		{
-            background-color: #f8f8f8 !important;
-        }
-
-        .generic-context-drop-menu .submenu li:hover {
-            background-color: #f0f0f0;
-        }
-
-        .generic-context-drop-menu .submenu .list-item-header {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 2px;
-			color: #333;
-        }
+        .generic-context-drop-menu .submenu li:last-child { border-bottom: none; }
+		.generic-context-drop-menu .submenu li:first-child:hover { background-color: #f8f8f8 !important; }
+        .generic-context-drop-menu .submenu li:hover { background-color: #f0f0f0; }
+        .generic-context-drop-menu .submenu .list-item-header { font-weight: bold; display: block; margin-bottom: 2px; color: #333; }
 
         .generic-context-drop-menu .submenu .list-item-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8em;
-            color: #888;
-			font-weight: normal;
-			flex-direction: column;
-			margin-top: 5px;
+            display: flex; justify-content: space-between; font-size: 0.8em;
+            color: #888; font-weight: normal; flex-direction: column; margin-top: 5px;
         }
 
-		.generic-context-drop-menu .submenu .list-item-details:first {
-			margin-top: 2px;
-		}
+		.generic-context-drop-menu .submenu .list-item-details:first { margin-top: 2px; }
+
+		
+		.ppline-runs-error-badge-icon-count { background: green !important; color: white; }
+
+		body .run-fails-signal { animation: pulse-run-fails 1s ease-in-out infinite; background: red !important; }
+		@keyframes pulse-run-fails { 0%, 100% {  scale: 130%; } 50% { scale: 80%; } }
+
+
 
 </style>

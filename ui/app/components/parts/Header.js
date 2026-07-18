@@ -92,7 +92,7 @@ export class Header extends ViewComponent {
 				if( !this.failedPipelines.has(execId) ){
 					this.failedPipelines.add(execId);
 					this.pipelinesErrorCount = this.failedPipelines.size;
-					document.querySelector('.ppline-runs-error-badge-icon-count').style.background = 'red';
+					document.querySelector('.ppline-runs-error-badge-icon-count').classList.add('run-fails-signal');
 				}
 
 				if(this.pplineRunSummary){
@@ -107,16 +107,17 @@ export class Header extends ViewComponent {
 					const showPlayIcon = true;
 					this.pplineRunSummary.handleUIElements(execId, runStatus.MANUAL_SUCCESS, showPlayIcon, !showPlayIcon);
 				}
-				
+
 				try { 
 					if(this.failedPipelines.has(execId))
 						this.failedPipelines.delete(execId);
 					//delete this.pplineService.pipelineRun.value.fails[execId];
 					this.pipelinesErrorCount = this.failedPipelines.size;
-					if(this.pipelinesErrorCount.values == 0)
-						document.querySelector('.ppline-runs-error-badge-icon-count').style.background = 'green';
 				} catch (error) { }
 			});
+
+			if(this.pipelinesErrorCount.value == 0)
+				document.querySelector('.ppline-runs-error-badge-icon-count').classList.remove('run-fails-signal');
 		})
 	}
 
@@ -152,7 +153,7 @@ export class Header extends ViewComponent {
 
 		if(this.pipelinesErrorCount.value > 0){
 			//document.querySelector('.ppline-runs-error-badge-icon').style.color = 'red';
-			document.querySelector('.ppline-runs-error-badge-icon-count').style.background = 'red';
+			document.querySelector('.ppline-runs-error-badge-icon-count').classList.add('run-fails-signal');
 		}
 
 	}

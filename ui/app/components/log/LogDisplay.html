@@ -54,7 +54,7 @@
 		position: fixed;
 		right: 9px;
 		bottom: 22px;
-		z-index: 11;
+		z-index: 100;
 	}
 
 	.log-display-wrapper .terminal-container {
@@ -72,162 +72,74 @@
 		box-sizing: border-box;
 	}
 
-	.log-display-wrapper .terminal-header {
-		color: #9d9999;
-		font-size: 0.9rem;
-		text-align: center;
-		padding-bottom: 5px;
-	}
+	.log-display-wrapper .terminal-header { color: #9d9999; font-size: 0.9rem; text-align: center; padding-bottom: 5px; }
 
 	.log-display-wrapper .terminal-body {
-		flex-grow: 1;
-		overflow-y: auto;
-		overflow-x: hidden;
-		scrollbar-width: thin;
-		scrollbar-color: #444 #111;
-		padding: 5px;
-		padding-top: 11px;
+		flex-grow: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
+		scrollbar-color: #444 #111; padding: 5px; padding-top: 11px;
 	}
 
-	.log-display-wrapper .terminal-body::-webkit-scrollbar {
-		width: 8px;
-	}
+	.log-display-wrapper .terminal-body::-webkit-scrollbar { width: 8px; }
 
-	.log-display-wrapper .terminal-body::-webkit-scrollbar-track {
-		background: #111;
-	}
+	.log-display-wrapper .terminal-body::-webkit-scrollbar-track { background: #111; }
 
-	.log-display-wrapper .terminal-body::-webkit-scrollbar-thumb {
-		background-color: #444;
-		border-radius: 4px;
-		border: 2px solid #111;
-	}
+	.log-display-wrapper .terminal-body::-webkit-scrollbar-thumb { background-color: #444; border-radius: 4px; border: 2px solid #111;}
 
-	.log-display-wrapper .log-output-table {
-		width: 100%;
-		border-collapse: collapse;
-		table-layout: fixed;
-	}
+	.log-display-wrapper .log-output-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 
-	.log-display-wrapper .log-entry td {
-		padding-top: 4px;
-		padding-bottom: 4px;
-		vertical-align: top;
-	}
+	.log-display-wrapper .log-entry td { padding-top: 4px; padding-bottom: 4px; vertical-align: top; }
 
-	.log-display-wrapper .log-entry:nth-child(even) {
-		background-color: rgba(255, 255, 255, 0.03);
-	}
+	.log-display-wrapper .log-entry:nth-child(even) { background-color: rgba(255, 255, 255, 0.03); }
 
-	.log-display-wrapper .timestamp {
-		color: #888;
-		width: 80px;
-	}
+	.log-display-wrapper .timestamp { color: #888; width: 80px; }
 
-	.log-display-wrapper .log-level {
-		font-weight: bold;
-		text-transform: uppercase;
-		width: 50px;
-		text-align: right;
-	}
+	.log-display-wrapper .log-level { font-weight: bold; text-transform: uppercase; width: 50px; text-align: right; }
 
-	.log-display-wrapper .log-level.info {
-		color: var(--info-color);
-	}
+	.log-display-wrapper .log-level.info { color: var(--info-color); }
 
-	.log-display-wrapper .log-level.warn {
-		color: var(--warn-color);
-	}
+	.log-display-wrapper .log-level.warn { color: var(--warn-color); }
 
-	.log-display-wrapper .log-level.error {
-		color: var(--error-color);
-	}
+	.log-display-wrapper .log-level.error { color: var(--error-color); }
 
 	.log-display-wrapper .log-message {
-		color: var(--text-color);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		padding-left: 10px;
-		padding-right: 10px;
-		text-wrap: auto;
+		color: var(--text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-left: 10px;
+		padding-right: 10px; text-wrap: auto;
 	}
 
-	.log-display-wrapper .time-gap-cell {
-		width: 60px;
-	}
+	.log-display-wrapper .time-gap-cell { width: 60px; }
 
-	.log-display-wrapper .bar-cell {
-		width: 100px;
-	}
+	.log-display-wrapper .bar-cell { width: 100px; }
 
-	.log-display-wrapper .bar-container {
-		display: flex;
-		align-items: center;
-		flex-shrink: 0;
-		white-space: nowrap;
-	}
+	.log-display-wrapper .bar-container { display: flex; align-items: center; flex-shrink: 0; white-space: nowrap; }
 
 	.log-display-wrapper .log-chart-bar {
-		height: 8px;
-		background-color: var(--bar-color);
-		border-radius: 4px;
-		min-width: 1px;
-		position: relative;
+		height: 8px; background-color: var(--bar-color); border-radius: 4px; min-width: 1px; position: relative;
 	}
 
 	/* Tooltip for start and end times */
 	.log-display-wrapper .log-chart-bar:hover::after {
-		content: attr(data-tooltip);
-		position: absolute;
-		bottom: 100%;
-		left: 50%;
-		transform: translateX(-50%);
-		background-color: #333;
-		color: white;
-		padding: 4px 8px;
-		border-radius: 4px;
-		font-size: 0.7rem;
-		white-space: nowrap;
-		z-index: 10;
+		content: attr(data-tooltip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background-color: #333;
+		color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap; z-index: 10;
 	}
 
-	.log-display-wrapper .terminal-controls {
-		display: flex;
-		justify-content: center;
-		padding-top: 10px;
-	}
+	.log-display-wrapper .terminal-controls { display: flex; justify-content: center; padding-top: 10px; }
 
 	.log-display-wrapper .scroll-control-btn, .log-display-wrapper .clear-logs-btn {
-		background-color: #333;
-		color: #f0f0f0;
-		border: 1px solid #555;
-		padding: 8px 16px;
-		border-radius: 4px;
-		cursor: pointer;
-		font-family: monospace;
-		font-size: 0.8rem;
-		transition: background-color 0.2s, border-color 0.2s;
+		background-color: #333; color: #f0f0f0; border: 1px solid #555; padding: 8px 16px;
+		border-radius: 4px; cursor: pointer; font-family: monospace;
+		font-size: 0.8rem; transition: background-color 0.2s, border-color 0.2s;
 	}
 
 	.log-display-wrapper .scroll-control-btn:hover, .log-display-wrapper .clear-logs-btn:hover {
-		background-color: #444;
-		border-color: #888;
+		background-color: #444; border-color: #888;
 	}
 
-	.log-display-wrapper .scroll-control-btn:active, .log-display-wrapper .clear-logs-btn:active {
-		background-color: #555;
-	}
+	.log-display-wrapper .scroll-control-btn:active, .log-display-wrapper .clear-logs-btn:active { background-color: #555; }
 
 	/* Mobile responsiveness */
 	@media (max-width: 768px) {
-		.log-display-wrapper .terminal-container {
-			padding: 5px;
-			border-radius: 4px;
-		}
+		.log-display-wrapper .terminal-container { padding: 5px; border-radius: 4px; }
 
-		.log-display-wrapper .terminal-header {
-			font-size: 0.8rem;
-		}
+		.log-display-wrapper .terminal-header { font-size: 0.8rem; }
 	}
 </style>
