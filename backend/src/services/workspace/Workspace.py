@@ -566,11 +566,38 @@ class Workspace:
             if(DuckdbUtil.workspace_table_exists(table) == False):
                 DuckdbUtil.create_ppline_schedule_table()
 
-            cnx = DuckdbUtil.get_workspace_db_instance()
-            cursor = cnx.cursor()
             query = f"INSERT INTO {table} (ppline_name,schedule_settings,namespace,type,periodicity,time,stage_storage)\
                       VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}','{type}','{periodicity}','{time}','{stage_storage}')"
-            cursor.execute(query)
+            DuckdbUtil.get_workspace_db_instance().cursor().execute(query)
+
+        except duckdb.IOException as err:
+            print({ 'error': True, 'error_list': err })
+    
+
+    @staticmethod
+    def save_landingzone(path):
+        try:
+            table = 'landing_zone'
+            if(DuckdbUtil.workspace_table_exists(table) == False):
+                DuckdbUtil.create_landingzone_table()
+            cursor = DuckdbUtil.get_workspace_db_instance().cursor()
+
+            if(Workspace.get_landingzone()):
+                cursor.execute(f"UPDATE {table} SET path = '{path}'")
+            else:
+                cursor.execute(f"INSERT INTO {table} (path) VALUES ('{path}')")
+
+        except duckdb.IOException as err:
+            print({ 'error': True, 'error_list': err })
+    
+
+    @staticmethod
+    def get_landingzone():
+        try:
+            if(DuckdbUtil.workspace_table_exists('landing_zone') == False):
+                DuckdbUtil.create_landingzone_table()
+            result = DuckdbUtil.get_workspace_db_instance().cursor().execute(f"SELECT path FROM landing_zone")
+            return result.fetchone()
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': err })

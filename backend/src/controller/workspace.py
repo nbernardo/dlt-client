@@ -21,6 +21,7 @@ from services.agents.Enums import AgentFlow
 from services.pipeline.DltPipeline import DltPipeline
 from utils.metastore.PipelineMedatata import PipelineMedatata
 import json
+from utils.duckdb_util import DuckdbUtil
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -279,7 +280,6 @@ def message_ai_agent(namespace):
 def run_analytics(namespace, table):
 
     try:
-        from utils.duckdb_util import DuckdbUtil
         import platform
 
         payload = request.get_json()
@@ -789,9 +789,7 @@ def get_bucket_file_schema(namespace, bucket, secret, object = None):
             return {
                 'error': False,
                 'result': {
-                    'data': result['data'],
-                    'message': result['message'],
-                    'rows_returned': len(result['data'])
+                    'data': result['data'], 'message': result['message'], 'rows_returned': len(result['data'])
                 }
             }
         
@@ -799,6 +797,43 @@ def get_bucket_file_schema(namespace, bucket, secret, object = None):
         print(f'Error while previewing S3 file: {str(err)}')
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while previewing S3 file: {str(err)}' }
+
+
+def _load_landingzone_files(filelist, files_path):
+    from controller.file_upload import format_size
+    files = []
+    for filename in filelist:
+       filepath = os.path.join(files_path, filename)
+       if os.path.isfile(filepath):
+           size_bytes, file_type = os.path.getsize(filepath), filepath.split('.')[-1]
+           size_value, size_unit = format_size(size_bytes)
+           files.append({'name': filename, 'size': size_value, 'unit': size_unit, 'type': file_type})
+    return files
+
+
+@workspace.route('/workspace/landing-zone/check', methods=['POST'])
+def check_landing_zone_folder():
+    try:
+        files_path = request.get_json().get('path')
+        files = _load_landingzone_files(os.listdir(files_path), files_path)
+        Workspace.save_landingzone(files_path)
+
+        return { 'error': False, 'result': files }
+    except Exception as err:
+        return { 'error': True, 'result': str(err) }
+
+
+@workspace.route('/workspace/landing-zone', methods=['GET'])
+def get_landing_zone():
+    try:
+        landingzone, files = Workspace.get_landingzone(), []
+        files_path = landingzone[0] if landingzone else None
+        if files_path:
+            files = _load_landingzone_files(os.listdir(files_path), files_path)
+        return { 'error': False, 'result': { 'path': Workspace.get_landingzone(), 'files': files } }
+    except Exception as err:
+        return { 'error': True, 'result': str(err) }
+
 
 
 @workspace.route('/workspace/s3/<namespace>/<connection_name>/preview', methods=['POST'])
@@ -813,10 +848,7 @@ def preview_s3_file_with_secrets(namespace, connection_name):
         rows = payload.get('rows', 10)
         
         if not file_key:
-            return {
-                'error': True,
-                'result': 'file_key parameter is required'
-            }
+            return { 'error': True, 'result': 'file_key parameter is required' }
         
         result = BucketConnector.preview_s3_file_with_polars(namespace, connection_name, file_key, rows)
         
@@ -825,17 +857,10 @@ def preview_s3_file_with_secrets(namespace, connection_name):
         else:
             return {
                 'error': False,
-                'result': {
-                    'data': result['data'],
-                    'message': result['message'],
-                    'rows_returned': len(result['data'])
-                }
+                'result': { 'data': result['data'], 'message': result['message'], 'rows_returned': len(result['data']) }
             }
         
     except Exception as err:
         print(f'Error while previewing S3 file with secrets: {str(err)}')
         traceback.print_exc()
-        return {
-            'error': True,
-            'result': f'Error while previewing S3 file: {str(err)}'
-        }
+        return { 'error': True, 'result': f'Error while previewing S3 file: {str(err)}' }

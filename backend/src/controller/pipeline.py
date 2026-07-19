@@ -11,6 +11,7 @@ import traceback
 from services.agents import AgentFactory
 from utils.metastore.meta_storage import MetaStore
 from utils.metastore.PipelineMedatata import PipelineMedatata
+from controller.file_upload import format_size
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -466,20 +467,10 @@ def revert_and_notify_failure(
         pipeline_instance.revert_ppline()
     for node in all_nodes:
         node.notify_failure_to_ui('Pipeline', message,False)
-        
+
 
 @pipeline.route('/scriptfiles/<user>/')
 def scriptfiles(user):
-
-   def format_size(size_bytes):
-       if size_bytes < 1024:
-           return size_bytes, "bytes"
-       elif size_bytes < 1024**2:
-           return round(size_bytes/1024, 1), "KB"
-       elif size_bytes < 1024**3:
-           return round(size_bytes/(1024**2), 1), "MB"
-       else:
-           return round(size_bytes/(1024**3), 1), "GB"
    
    try:
         files_path = BasePipeline.folder+'/pipeline/'+user+'/'

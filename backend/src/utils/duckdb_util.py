@@ -125,6 +125,17 @@ class DuckdbUtil:
         cnx.execute(query)
 
     @staticmethod
+    def create_landingzone_table():
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        cnx.execute('CREATE SEQUENCE landingzone_sequence;')
+
+        query = "CREATE TABLE IF NOT EXISTS landing_zone (\
+            id INTEGER PRIMARY KEY DEFAULT nextval('landingzone_sequence'),\
+            path VARCHAR,\
+            namespace VARCHAR)"
+        cnx.execute(query)
+
+    @staticmethod
     def create_pipeline_logs_table():
         """
         Create the pipeline_logs table for persistent log storage.

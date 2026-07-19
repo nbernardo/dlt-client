@@ -5,6 +5,7 @@ from services.pipeline.DltPipeline import DltPipeline
 from controller.file_upload import BaseUpload
 from utils.BucketConnector import BucketConnector
 from utils.pipeline import NodeType
+from services.workspace.Workspace import Workspace
 
 class Bucket(TemplateNodeType):
     """
@@ -51,7 +52,12 @@ class Bucket(TemplateNodeType):
             self.component_id = data['componentId']
             # bucket_url is mapped in /pipeline_templates/simple.txt
             user_folder = BaseUpload.upload_folder+'/'+context.user
-            self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
+
+            landingzone = Workspace.get_landingzone()
+            if landingzone and data.get('namespacePath',None) == False:
+                self.bucket_url = landingzone[0]
+            else:
+                self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder
 
             self.parse_to_literal = ['read_file_type']
             self.namespace = data['namespace']
