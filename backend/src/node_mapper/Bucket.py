@@ -54,7 +54,7 @@ class Bucket(TemplateNodeType):
             user_folder = BaseUpload.upload_folder+'/'+context.user
 
             landingzone = Workspace.get_landingzone()
-            if landingzone and data.get('namespacePath',None) == False:
+            if landingzone and data.get('namespacePath',False) == False:
                 self.bucket_url = landingzone[0]
             else:
                 self.bucket_url = data['bucketUrl'] if int(data['bucketFileSource']) == 2 else user_folder

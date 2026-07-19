@@ -72,13 +72,13 @@ def load_select_tables_from_db():
         db_table = db_table.with_name(f"{table}_{original_pipeline_name}")
         db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
 
+        if schema != None and schema != '': db_table.apply_hints(table_name=f"{schema}_{table}")
         if staged_table: # In case the tables will be in stage area
             db_table.apply_hints(table_name=Helper.prefix_and_suffix_table(table, tbl_stage))
-        if(len(increment_by_fields) > 0):
-            if increment_by_fields[idx] != '':
+
+        if(len(increment_by_fields) > 0 and increment_by_fields[idx] != ''):
                 db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx]))
-        
-        db_table.apply_hints(table_name=table)
+
         source.append(db_table)
 
     print('Starting pipeline run', flush=True)
