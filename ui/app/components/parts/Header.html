@@ -48,11 +48,6 @@
 				</ul> -->
 			</div>
 
-			<!-- <div (click)="navigateTo('Workspace')" class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
-				tooltip-y="-10" onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
-				<img src="app/assets/imgs/app.png" width="25" alt="">
-			</div> -->
-
 			<div 
 				class="action-icon counter-icon generic-context-drop-menu" 
 				style="cursor: pointer; border: none;">
@@ -107,7 +102,10 @@
 					</ul>
 				</div>
 			</span>
-
+			<div (click)="navigateTo('Workspace')" class="action-icon" tooltip="Workspace" tooltip-y="10" tooltip-x="0"
+				tooltip-y="-10" onclick="component.showHideLogsDisplay()" style="cursor: pointer; border: none;">
+				<img src="app/assets/imgs/app.png" width="25" alt="">
+			</div>
 			<div class="action-icon" tooltip="Configurations" tooltip-y="10" tooltip-x="0" 
 				(click)="navigateTo('Config')"
 				style="cursor: pointer; border: none;">

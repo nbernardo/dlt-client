@@ -27,36 +27,36 @@
 			<hr>
 
 			<div class="space-y-3">
-				<h2 class="form-title">Add User</h2>
+				<h2 class="form-title">Landing zone</h2>
 				<form>
 					<div>
-						<label for="email" class="form-label">User's Email Address</label>
-						<input type="email" id="email" name="email" class="form-input"
-							placeholder="e.g., jane.doe@example.com" required>
-					</div>
-					<div>
-						<label for="role" class="form-label">User Role & Access Control</label>
-						<select id="role" name="role" class="form-input" required>
-							<option value="" disabled selected>Select a role...</option>
-							<option value="admin">Admin (Full Control)</option>
-							<option value="editor">Editor (Upload, Modify, Delete)</option>
-							<option value="viewer">Viewer (View & Download Only)</option>
-						</select>
-					</div>
-					<div>
-						<label for="message" class="form-label">Personal Message (Optional)</label>
-						<textarea id="message" name="message" rows="3" class="form-input"
-							placeholder="Add a personal note to the invitation..."></textarea>
-					</div>
-					<div class="btn-container">
-						<button type="submit" disabled class="btn btn-primary">
-							Send Invitation
-						</button>
-						<button type="reset" disabled class="btn btn-secondary">
-							Clear Form
-						</button>
+						<label for="email" class="form-label">Folder Path</label>
+						<div style="display: flex; gap: 3px;">
+							<input (value)="landingZonePath"
+								class="form-input" placeholder="e.g., /home/user-name/folder-name" required style="flex: 2;">
+							<button type="button" onclick="component.checkPath()" class="btn btn-secondary" style="flex: 0.2;">Save</button>
+						</div>
 					</div>
 				</form>
+				<div style="max-height: 200px; overflow-y: auto; width: 100%;">
+					<table style="width: 100%; margin-top: 10px; border-collapse: collapse; table-layout: fixed;">
+						<thead style="position: sticky; top: 0; background-color: white; z-index: 1;">
+							<tr style="text-align: left;">
+								<th style="width: 60%;">File name</th>
+								<th style="width: 25%;">Type</th>
+								<th style="width: 15%;">Size</th>
+							</tr>
+						</thead>
+						<tbody (forEach)="landingZoneFiles">
+							<tr each="item">
+								<td name="{item.name}"
+									style="width: 60%;" class="text-shrinked">{item.name}</td>
+								<td style="width: 25%;" class="text-shrinked">{item.type}</td>
+								<td style="width: 15%;" class="text-shrinked">{item.size} {item.unit}</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
 		<div class="chart-section">
@@ -80,7 +80,7 @@
 
 <style>
 	.config-comp-panel-container {
-
+		.text-shrinked { text-overflow: ellipsis; overflow: hidden; text-align: left; padding-right: 5px; }
 		font-family: 'Inter', sans-serif;
 		padding: 1rem;
 		min-height: 100vh;
