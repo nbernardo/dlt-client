@@ -123,11 +123,14 @@ export class Header extends ViewComponent {
 
 	async getScheduleList(){
 		const scheduledPipelinesInitList = await WorkspaceService.getPipelineSchedules();
-		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList;			
-		this.scheduledPipelines = (scheduledPipelinesInitList || []).map(itm => 
-			({ pipelineLbl: JSON.parse(itm.schedule_settings).ppline_label, ...itm, lastRun: itm.last_run == null ? 'None' : itm.last_run })
-		);	
-				
+		this.workspaceService.schedulePipelinesStore = scheduledPipelinesInitList;
+		const scheduleList = []
+		for(const s of (scheduledPipelinesInitList || [])){
+			if(s.schedule_settings !== null)
+				scheduleList.push({ pipelineLbl: JSON.parse(s.schedule_settings).ppline_label, ...s, lastRun: s.last_run == null ? 'None' : s.last_run })
+		}
+
+		this.scheduledPipelines = scheduleList;
 		this.scheduledPipelinesCount = scheduledPipelinesInitList?.length || 0;
 	}
 
@@ -138,10 +141,13 @@ export class Header extends ViewComponent {
 		this.$parent.extentionWarning = !namespaceInitData.is_lancedb_on_duckdb;		
 		this.$parent.extentionWarning = !namespaceInitData.is_lancedb_on_duckdb;		
 		this.workspaceService.aiAgentNamespaceDetails = namespaceInitData.ai_agent_namespace_details;
-		this.workspaceService.schedulePipelinesStore = Object.values(namespaceInitData.schedules.data);			
-		this.scheduledPipelines = this.workspaceService.schedulePipelinesStore.value.map(itm =>
-			({ pipelineLbl: JSON.parse(itm.schedule_settings).ppline_label, ...itm, lastRun: itm.last_run == null ? 'None' : itm.last_run })
-		);
+		this.workspaceService.schedulePipelinesStore = Object.values(namespaceInitData.schedules.data);
+		const scheduleList = []
+		for(const s of (this.workspaceService.schedulePipelinesStore.value || [])){
+			if(s.schedule_settings !== null)
+				scheduleList.push({ pipelineLbl: JSON.parse(s.schedule_settings).ppline_label, ...s, lastRun: s.last_run == null ? 'None' : s.last_run })
+		}
+		this.scheduledPipelines = scheduleList;
 		this.scheduledPipelinesCount = this.workspaceService.schedulePipelinesStore.value.length;
 		this.workspaceService.totalPipelines = namespaceInitData.total_pipelines;
 				

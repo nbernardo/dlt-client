@@ -9,10 +9,19 @@
 	</div>
 	<div class="box @formWrapClass">
 		<form (formRef)="formRef" onsubmit="return false;">
-			<p>Target Datawahoreuse:</p>
-			<select placeholder="Create a new one" (forEach)="targetDataWarehouses" onchange="component.selectTargetDW(this.value)">
-				<option each="item" value="{item.dwname}.{item.table}">{item.dwname}</option>
-			</select>
+			<span (showIf)="!self.isDbReferenced">
+				<p>Target Datawahoreuse:</p>
+				<select placeholder="Create a new one" (forEach)="targetDataWarehouses" onchange="component.selectTargetDW(this.value)">
+					<option each="item" value="{item.dwname}.{item.table}">{item.table}.{item.dwname}</option>
+				</select>
+			</span>
+			<span (showIf)="self.isDbReferenced">
+				<p>Reference pipeline:</p>
+				<p style="font-weight: bold; padding-bottom: 8px;">
+					<i class="fas fa-retweet" style="color: green; font-size: 16px;"></i>
+					<span style="padding-left: 22px;margin-top: 0px;">@referencePpline</span>
+				</p>
+			</span>
 			<span (showIf)="!self.userExistingDW">
 				<p>Database:</p>
 				<input type="text" class="newDatabaseName" (value)="database" placeholder="Enter the DB name">

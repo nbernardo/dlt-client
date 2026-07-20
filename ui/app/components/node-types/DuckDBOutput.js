@@ -16,6 +16,7 @@ export class DuckDBOutput extends AbstractNode {
 	/** @Prop */ aiGenerated;
 	/** @Prop */ importFields;
 	/** @Prop */ userExistingDW = false;
+	/** @Prop */ referencePpline = false;
 
 	/** @Prop @type { HTMLInputElement } */ newDBInput = false;
 
@@ -45,19 +46,26 @@ export class DuckDBOutput extends AbstractNode {
 	 * @type { WorkSpaceController } */
 	wSpaceController;
 
+	/** @Prop */ isDbReferenced = false;
+
 	/**
 	 * The id will be passed when instantiating DuckDBOutput dinamically
 	 * through the Component.new(type, param) where for para nodeId 
 	 * will be passed
 	 * */
 	stOnRender(data){
-		const { nodeId, isImport, aiGenerated, database, table } = data;
+		const { nodeId, isImport, aiGenerated, database, table, referedPipeline } = data;
 		this.$parent.scheduleDwName = database;
 		
+		if(referedPipeline){
+			this.referencePpline = referedPipeline;
+			this.isDbReferenced = true;
+		}
+
 		this.aiGenerated = aiGenerated;
 		this.nodeId = nodeId;
 		this.isImport = isImport;
-		this.importFields = { database, table };
+		this.importFields = { database, table, referedPipeline };
 	}
 
 	selectTargetDW(dwName){
@@ -68,6 +76,13 @@ export class DuckDBOutput extends AbstractNode {
 			document.querySelector('.analyticsOptimizedPipeline').value = '1';
 			return WorkSpaceController.fromContext().markAnalyticsOptimizedPipeline(1);
 		}
+		const data = WorkSpaceController.getNode(this.nodeId).data;
+		if(dwName.includes('.')){
+			const destDb = dwName.split('.');
+			data['database'] = destDb[0], data['referedPipeline'] = destDb[1];
+		}else
+			data['database'] = dwName;
+
 		WorkSpaceController.usedExistingDW = dwName;
 		this.userExistingDW = true;
 		this.newDBInput.removeAttribute('required');
@@ -100,8 +115,12 @@ export class DuckDBOutput extends AbstractNode {
 		}
 
 		setTimeout(async () => {
-			const pipelines = await BIService.getDWPipelines();			
-			this.targetDataWarehouses = (pipelines || []).map(itm => ({ dwname: itm[1], table: itm[0] }));
+			const pipelines = await BIService.getDWPipelines(), dwList = [];	
+			for(const itm of (pipelines || [])){
+				if(itm[3] == null)
+					dwList.push({ dwname: itm[1], table: itm[0] })
+			}
+			this.targetDataWarehouses = dwList;
 		});
 	}
 
