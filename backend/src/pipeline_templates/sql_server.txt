@@ -50,7 +50,7 @@ def load_select_tables_from_db():
     # Bellow mapping: primary_keys = SqlDBComponent.primary_keys
     pks = %primary_keys%
 
-    source, tbl_skma_map, ts = SQLServerUtil.dynamic_mssql_source(tables, pks, connection_string)
+    source, tbl_skma_map, ts = SQLServerUtil.dynamic_mssql_source(tables, pks, connection_string, database_to_connect)
     rels, meta, ddls, big_query = {}, {}, {}, ''
 
     logger.info("Setting up SQL Server data source", extra={'stage': 'data_source_setup','table_count': len(tables),'tables': tables})

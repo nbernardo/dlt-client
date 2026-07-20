@@ -48,6 +48,7 @@ class PipelineDWPhaseRunner:
         self.pipeline = None
         self.params = None
         self.exec_id = None
+        self.incr_fields = None
         
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self._future: Optional[concurrent.futures.Future] = None
@@ -83,7 +84,7 @@ class PipelineDWPhaseRunner:
                 tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr})").fetchall()
                 tbls = list({t[0] for t in tbls})
 
-                def make_resource(table, pk):
+                def make_resource(table, pk, incr_field = None):
                     def _resource():
                         batch_size, offset = 10_000, 0
                         msg = f'Injesting {table} to the Data Warehouse'
@@ -96,7 +97,10 @@ class PipelineDWPhaseRunner:
                             offset += batch_size
 
                     [_resource.__name__, _resource.__qualname__] = [table, table]
-                    return dlt.resource(_resource, name=table, primary_key=pk)
+                    resource = dlt.resource(_resource, name=table, primary_key=[pk,'_e2e_src_db'])
+                    if incr_field != None and incr_field != '':
+                        resource.apply_hints(incremental=dlt.sources.incremental(incr_field))
+                    return resource
 
                 @dlt.resource(name='fk_map')
                 def read_fk_map():
@@ -117,15 +121,21 @@ class PipelineDWPhaseRunner:
                     fk_resource = read_fk_map()
                     fk_resource.apply_hints(primary_key=['table_name', 'fk_col', 'ref_table', 'ref_col'])
                     fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest)
-                    fk_pipeline.run(fk_resource, write_disposition="merge")
+                    fk_pipeline.run(fk_resource, write_disposition={ 'disposition': 'merge', 'strategy': 'scd2' })
                 except:
                     pass
 
-                resources = []
+                resources, count = [], 0
+                incr_fields = str(self.incr_fields).strip('[]')
+                incremental_load_field = incr_fields.split(',')
                 for table in tbls:
                     i = tables.index(table) if table in tables else -1
                     pk = pks[i] if i >= 0 else []
-                    resources.append(make_resource(table, pk))
+                    incr_field = None
+                    if(self.incr_fields != None and not(incr_fields in ['None',''])):
+                        incr_field = incremental_load_field[count] if incremental_load_field[count].strip() != '' else None
+                    resources.append(make_resource(table, pk, incr_field))
+                    count = count + 1
 
                 @dlt.source(name="dynamic_source")
                 def build_source(): return resources
@@ -199,7 +209,7 @@ class PipelineDWPhaseRunner:
         from controller.pipeline import BasePipeline
         
         dwname = data_source.split('_for_',1)[-1]
-        tables, pks, dataset = refs['dest_tables'], refs['tables_pks'], refs['dataset_name']
+        tables, pks, dataset, incr_fields = refs['dest_tables'], refs['tables_pks'], refs['dataset_name'], refs['incr_fields']
         
         if type(tables) == str: 
             tables = tables.strip('[]').replace(' ','').split(',') if tables.__contains__(',') else [tables.strip('[]')]
@@ -221,7 +231,7 @@ class PipelineDWPhaseRunner:
         runner = PipelineDWPhaseRunner(source_db, dest_native_conn, dwname, dataset)
 
         [params, runner.logger, runner.context, runner.exec_id] = [refs.get('params'), refs.get('logger'), refs.get('context'), refs.get('exec_id')]
-        [runner.pipeline, runner.params] = params.get('pipeline'), params
+        [runner.pipeline, runner.params, runner.incr_fields] = params.get('pipeline'), params, incr_fields
 
         cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger)
 

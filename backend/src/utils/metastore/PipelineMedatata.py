@@ -3,6 +3,7 @@ from utils.duckdb_util import DuckdbUtil
 import duckdb
 from utils.db.lancedb import LanceConnectionFactory
 from lancedb import Table
+import traceback
 
 PIPELINE_METADATA_SCHEMA = pa.schema([
     pa.field("pipeline_run_id", pa.string()),
@@ -29,13 +30,16 @@ class PipelineMedatata:
     @staticmethod
     def _get_table() -> Table:
         """Opens or creates the LanceDB pipeline_metadata table"""
+        tbl = None
         try:
-            return PipelineMedatata._get_lance_conn().open_table('pipeline_metadata')
+            tbl = PipelineMedatata._get_lance_conn().open_table('pipeline_metadata')
         except Exception:
             try:
-                return PipelineMedatata._get_lance_conn().create_table('pipeline_metadata', schema=PIPELINE_METADATA_SCHEMA)
+                tbl =  PipelineMedatata._get_lance_conn().create_table('pipeline_metadata', schema=PIPELINE_METADATA_SCHEMA)
             except Exception:
-                return PipelineMedatata._get_lance_conn().open_table('pipeline_metadata')
+                tbl =  PipelineMedatata._get_lance_conn().open_table('pipeline_metadata')
+        PipelineMedatata._migrate_pipeline_metadata(tbl)
+        return tbl
 
 
     @staticmethod
@@ -73,7 +77,7 @@ class PipelineMedatata:
     ):
         """Persists the pipeline metadata — This is called from the pipeline run itself"""
         try:
-            tbl = PipelineMedatata._get_table()
+            tbl, ref_ppline = PipelineMedatata._get_table(), None
             PipelineMedatata._migrate_pipeline_metadata(tbl)
 
             if details['existing_wd'] != None:
@@ -86,19 +90,25 @@ class PipelineMedatata:
             domain_pipeline = params.get('domain_pipeline') if params else details.get('domain_pipeline')
             
             if params: dataset_name = params.get('dataset_name')
+
+            if details.get('existing_wd') != None:
+                if details.get('existing_wd','').__contains__('.'):
+                    ref_ppline = details.get('existing_wd').split('.')[1]
             
             rows_to_insert = [{
                 'namespace': namespace, 'source_secret_name': details.get('source_secret'), 'source_type': details.get('source_type'), 
                 'stage_storage': details.get('stage_storage'), 'pipeline': pipeline, 'dest_secret_name': details.get('destination_secret'), 
                 'dest_type': details['destination_type'], 'source_config': details.get('source_config'), 'domain_pipeline': domain_pipeline,
-                'destination_config': details.get('destination_config'), 'dest_tables': dest_tables, 'tables_pks': tables_pks,
-                'short_query': short_query, 'referenced_secrets': str(details.get('referenced_secrets')), 'dataset_name': dataset_name,
+                'destination_config': details.get('destination_config'), 'dest_tables': dest_tables, 'tables_pks': tables_pks, 
+                'reference_pipeline': ref_ppline, 'short_query': short_query, 'referenced_secrets': str(details.get('referenced_secrets')), 
+                'dataset_name': dataset_name, 'incremental_field': details.get('incr_field')
             }]
 
             tbl.add(rows_to_insert)
             if tbl.version % 100 == 0: PipelineMedatata.compact_metadata()
 
         except Exception as e:
+            traceback.print_exc()
             print(f"Catalog Evolution Update Failed: {str(e)}")
 
 
@@ -123,7 +133,8 @@ class PipelineMedatata:
             result = con.execute(f"""
                 SELECT 
                     pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, 
-                    source_type, dest_type, dataset_name, stage_storage, dest_tables, tables_pks
+                    source_type, dest_type, dataset_name, stage_storage, dest_tables, tables_pks,
+                    incremental_field
                 FROM pipeline_metadata WHERE pipeline = ? {more_filter}
             """, [pipeline]).fetchone()
             con.close()
@@ -143,7 +154,7 @@ class PipelineMedatata:
     def get_domain_pipelines(namespace: str = None, db_path: str = None):
         try:
             con = PipelineMedatata._get_duckdb_conn(False, db_path)
-            result = con.execute(f"SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline::string IN ('true','1') AND namespace = ?", [namespace]).fetchall()
+            result = con.execute(f"SELECT pipeline, dataset_name, namespace, reference_pipeline FROM pipeline_metadata WHERE domain_pipeline::string IN ('true','1') AND namespace = ?", [namespace]).fetchall()
             con.close()
             return result
 
@@ -234,6 +245,9 @@ class PipelineMedatata:
                 'big_query': "cast(null as string)", #added in Apr/05/2026
                 'short_query': "cast(null as string)", #added in Apr/05/2026
                 'domain_pipeline': "cast(null as string)", #added in Apr/05/2026
+                'reference_pipeline': "cast(null as string)", #added in Jul/19/2026
+                'incremental_field': "cast(null as string)", #added in Jul/19/2026
+                'active': "cast(null as string)", #added in Jul/19/2026
             }
 
             for col, expr in new_fields.items():

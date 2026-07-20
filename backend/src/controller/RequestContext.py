@@ -200,6 +200,7 @@ class RequestContext:
         return {
             'dest_tables': self.pipeline_metadata.dest_tables, 
             'tables_pks': self.pipeline_metadata.tables_pks, 
+            'incr_field': self.pipeline_metadata.incr_field, 
             'dest_storage': dest_storage,
             'dataset_name': self.pipeline_metadata.dest_dw_name
         }
@@ -228,3 +229,5 @@ class PipelineMetadata:
         self.dest_dw_name = None
         self.dest_tables = None
         self.tables_pks = None
+        # the list of fields for incremental loading per table
+        self.incr_field = None

@@ -42,6 +42,7 @@ def dynamic_mssql_source(
     tables: list[str],
     primary_keys: list[str],
     connection_string: str,
+    source_db = None
 ):
     table_to_schema_map = {}
 
@@ -70,6 +71,7 @@ def dynamic_mssql_source(
                 for row in result:
                     yield dict(row._mapping)
             
+            table_data.add_map(lambda r: { **r, "_e2e_integration_source": "", "_e2e_src_db": source_db })
             return table_data
         
         try:

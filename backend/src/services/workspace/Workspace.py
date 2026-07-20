@@ -174,7 +174,7 @@ class Workspace:
 
             if _file.endswith('.duckdb') or _file.endswith('.db'):
                 ppline_name = str(_file).replace('.duckdb','')
-                if (ppline_name in ppelines): 
+                if (ppline_name in ppelines and not(ppline_name in pipeline_schedules.get('data', {}))): 
                     if(len(ppelines[ppline_name].values()) > 0): continue
                     
                 if _file not in result:
@@ -182,13 +182,13 @@ class Workspace:
                         del ppelines[ppline_name]
                     result[_file] = {}
 
+                curr_schedule = pipeline_schedules['data'].get(ppline_name, None)
                 if DuckDBCache.get(f'{files_path}{_file}') != None:
-                    curr_schedule = pipeline_schedules['data'].get(ppline_name, {})
                     result[_file][k] = { 
                         'ppline': ppline_name,
                         'dbname': None, 'table': [], 'db_size': None, 'col_count': 0, 'fields': [],
                         'flag': 'Pipeline tables in use by another process/Job',
-                        'is_scheduled': pipeline_schedules['data'].get(ppline_name, None) != None,
+                        'is_scheduled': curr_schedule.get('time') != None,
                         'is_scheduled_paused': curr_schedule.get('is_paused'),
                         'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
                     }
@@ -200,6 +200,14 @@ class Workspace:
                     continue
                 
                 tables = tables_list['tables'].fetchall()
+                if len(tables) == 0:
+                    result[_file]['notable'] = { 
+                        'is_scheduled': curr_schedule.get('time') != None,
+                        'is_scheduled_paused': curr_schedule['is_paused'] if curr_schedule != None else '',
+                        'short_settings': f'{curr_schedule['periodicity']} {curr_schedule['time']} {curr_schedule['type']}' if curr_schedule != None else '',
+                        'ppline': ppline_name, 'dbname': f'REF: {curr_schedule['reference_pipeline']}', 'table': 'No table',
+                    }
+
                 for t in tables:
 
                     if t[2] not in skip_tables:
@@ -216,7 +224,6 @@ class Workspace:
                             continue
 
                         if(k != prev_key):
-                            curr_schedule = pipeline_schedules['data'].get(ppline_name, None)
                             result[_file][k] = { 
                                 'ppline': ppline,
                                 'dbname': dbname,
@@ -226,7 +233,7 @@ class Workspace:
                                 'fields': [{ 'name': col_name, 'type': col_type }],
                                 'dest': 'duckdb',
                                 'connection_name': None,
-                                'is_scheduled': curr_schedule != None,
+                                'is_scheduled': curr_schedule.get('time') != None,
                                 'is_scheduled_paused': curr_schedule['is_paused'] if curr_schedule != None else '',
                                 'short_settings': f'{curr_schedule['periodicity']} {curr_schedule['time']} {curr_schedule['type']}' if curr_schedule != None else '',
                             }
@@ -606,32 +613,40 @@ class Workspace:
     @staticmethod
     def get_ppline_schedule(namespace = None, ppline = None):
 
-        field_names = [
-            'id','ppline_name','schedule_settings','namespace',
-            'type','periodicity','time', 'last_run', 'is_paused'
+        field_names_path = [
+            's.id','s.ppline_name','s.schedule_settings','s.namespace',
+            's.type','s.periodicity','s.time', 's.last_run', 's.is_paused', 
+            'm.reference_pipeline', 'm.pipeline'
         ]
+
+        from utils.metastore.PipelineMedatata import PipelineMedatata
+        # creates a pointer reference for the pipeline_metadata table in lancedb so Duckdb can query it
+        pipeline_metadata = PipelineMedatata._get_table().to_arrow()
 
         try:
             table = 'ppline_schedule'
             if(DuckdbUtil.workspace_table_exists(table) == False):
                 DuckdbUtil.create_ppline_schedule_table()
 
-            where = f"WHERE namespace = '{namespace}'" if namespace != None else ''
-            where = f"{where} AND ppline_name = '{ppline}'" if ppline != None else where
+            where = f"WHERE m.namespace = '{namespace}'" if namespace != None else ''
+            where = f"{where} AND s.ppline_name = '{ppline}'" if ppline != None else where
 
             cnx = DuckdbUtil.get_workspace_db_instance()
-            cursor = cnx.cursor()
-            query = f"SELECT {','.join(field_names)} FROM {table} {where}"
-            cursor.execute(query)
-            result = cursor.fetchall()
+            query = f"""
+                SELECT 
+                    {','.join(field_names_path)} 
+                    FROM {table} s RIGHT JOIN pipeline_metadata m 
+                    ON s.ppline_name = m.pipeline {where}
+            """
+            result = cnx.execute(query).fetch_df().to_dict(orient='records')
             final_data = []
             final_data_map = {}
 
             if(len(result)):
                 for row in result:
-                    row_to_json = dict(zip(field_names,row))
-                    final_data.append({ row_to_json['ppline_name']: row_to_json})
-                    final_data_map[row_to_json['ppline_name']] = row_to_json
+                    ppline_name = row['ppline_name'] if row['ppline_name'] else row['pipeline']
+                    final_data.append({ ppline_name: row})
+                    final_data_map[ppline_name] = row
 
             return { 'data': final_data_map, 'error': False }
 
@@ -672,7 +687,7 @@ class Workspace:
         
             for ppline_name, sched in schedules.items():
                 is_paused = sched['is_paused']
-                if is_paused == 'paused' and immediate == False: continue
+                if (is_paused == 'paused' and immediate == False) or sched['time'] == None: continue
 
                 _namespace = sched['namespace']
                 type = sched['type']
