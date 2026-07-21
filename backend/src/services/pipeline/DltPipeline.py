@@ -634,10 +634,10 @@ class DltPipeline:
             MetaStore.update_metadata(namespace, pipeline, dataset_name, short_query)
             
             if context.pipeline_metadata.stage_storage:
-                job_tag = f'{job_start_time}_{stg_storage}'
+                job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
                 triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
-                refs = { **refs, 'params': params, 'dataset_name': pipeline_metadata[7], 'dest_tables': pipeline_metadata[9], 'tables_pks': pipeline_metadata[10] }
-                refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context, 'exec_id': exec_id, 'incr_fields': pipeline_metadata[11] }
+                refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': mdta[9], 'tables_pks': mdta[10], 'src_db_name': mdta[12] }
+                refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context, 'exec_id': exec_id, 'incr_fields': mdta[11] }
                 
                 schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
 

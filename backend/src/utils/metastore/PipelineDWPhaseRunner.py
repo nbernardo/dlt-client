@@ -97,9 +97,9 @@ class PipelineDWPhaseRunner:
                             offset += batch_size
 
                     [_resource.__name__, _resource.__qualname__] = [table, table]
-                    resource = dlt.resource(_resource, name=table, primary_key=[pk,'_e2e_src_db'])
+                    resource = dlt.resource(_resource, name=table, merge_key='_e2e_pk')
                     if incr_field != None and incr_field != '':
-                        resource.apply_hints(incremental=dlt.sources.incremental(incr_field))
+                        resource.apply_hints(incremental=dlt.sources.incremental('_e2e_update_date'))
                     return resource
 
                 @dlt.resource(name='fk_map')
@@ -121,7 +121,7 @@ class PipelineDWPhaseRunner:
                     fk_resource = read_fk_map()
                     fk_resource.apply_hints(primary_key=['table_name', 'fk_col', 'ref_table', 'ref_col'])
                     fk_pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name='dwhperformance_meta', destination=dest)
-                    fk_pipeline.run(fk_resource, write_disposition={ 'disposition': 'merge', 'strategy': 'scd2' })
+                    fk_pipeline.run(fk_resource, write_disposition='merge')
                 except:
                     pass
 
@@ -140,7 +140,7 @@ class PipelineDWPhaseRunner:
                 @dlt.source(name="dynamic_source")
                 def build_source(): return resources
 
-                result = pipeline.run(build_source(), write_disposition="merge")
+                result = pipeline.run(build_source(), write_disposition={ 'disposition': 'merge', 'strategy': 'scd2' })
                 con.close()
                 msg = f'Completed Data Warehouse data ingestions'
                 handle_pipeline_log(msg, self.logger, context=self.context)

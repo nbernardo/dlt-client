@@ -53,6 +53,8 @@ valid_imports = [
     'import re',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, ChkPoint',
+    'import datetime',
+    'from datetime import datetime, timezone',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}

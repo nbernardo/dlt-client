@@ -42,7 +42,7 @@ def dynamic_mssql_source(
     tables: list[str],
     primary_keys: list[str],
     connection_string: str,
-    source_db = None
+    src_db = None
 ):
     table_to_schema_map = {}
 
@@ -52,11 +52,11 @@ def dynamic_mssql_source(
         primary_keys: list[str],
         connection_string: str,
     ):
-        def create_table_resource(table: str, key):
+        def create_table_resource(table: str, k):
             resource_name = table.replace('.','_')
             
             table_to_schema_map[resource_name] = table
-            @dlt.resource(name=resource_name, primary_key=key)
+            @dlt.resource(name=resource_name, primary_key=k)
             def table_data():
                 engine = create_engine(connection_string)
                 inspector = inspect(engine)
@@ -71,7 +71,7 @@ def dynamic_mssql_source(
                 for row in result:
                     yield dict(row._mapping)
             
-            table_data.add_map(lambda r: { **r, "_e2e_integration_source": "", "_e2e_src_db": source_db })
+            table_data.add_map(lambda r: { **r, '_e2e_pk': f'{r[k]}__{src_db}', '_e2e_src_db': src_db, '_e2e_update_date': datetime.now(timezone.utc) })
             return table_data
         
         try:

@@ -125,7 +125,8 @@ class TemplateNodeType:
 
         add_path_and_import_secret_manager = TemplateNodeType.set_source_path_for_import(ni)
         template = template.replace('%import_from_src%', add_path_and_import_secret_manager)
-
+        self.context.pipeline_metadata.db_src_name = dest_table_name
+        
         # This replacement only happen if pipeline destination is Database otherwise
         # the replacement is done by the specialized source (e.g. InputAPI, Bucket)
         template = template.replace('%ppline_dest_table%', f"'{dest_table_name}'")

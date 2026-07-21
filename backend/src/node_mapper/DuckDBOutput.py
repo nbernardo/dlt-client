@@ -38,6 +38,7 @@ class DuckDBOutput(TemplateNodeType):
                 self.ppline_dest_table = context.pipeline_metadata.dest_tables[0]
             else:
                 self.ppline_dest_table = data.get('tableName', f'random_tbl_{str(uuid.uuid4()).replace('-','_')}')
+            context.pipeline_metadata.db_src_name = self.ppline_dest_table
 
         context.pipeline_metadata.dest_dw_name = self.output_dest_name
 

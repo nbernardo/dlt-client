@@ -99,7 +99,7 @@ class Bucket(TemplateNodeType):
 
             if context.pipeline_metadata.existing_wd != None and self.context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
                 self.ppline_dest_table = context.pipeline_metadata.dest_tables[0]
-
+                context.pipeline_metadata.db_src_name = self.ppline_dest_table
             # To point to the 
             self.bucket_file_source = data['bucketFileSource']
             if(str(data['bucketFileSource']).endswith('.csv') and not str(data['bucketFileSource']).endswith('*.csv')):

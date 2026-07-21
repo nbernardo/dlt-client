@@ -70,11 +70,12 @@ class SqlDBComponent(TemplateNodeType):
         self.increment_by_fields = []
         if data.get('isIncremental'):
             self.increment_by_fields = [key for key in list(data['incrementCols'].values()) if key != None]
-            
+
         context.pipeline_metadata.incr_field = self.increment_by_fields
 
         # source_database fields is mapped in /pipeline_templates/sql_db.txt
         self.source_database = data['database']
+        context.pipeline_metadata.db_src_name = self.source_database
         
         # source_dbengine fields is mapped in /pipeline_templates/sql_db.txt
         self.source_dbengine = data['dbengine']

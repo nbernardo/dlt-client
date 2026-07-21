@@ -4,6 +4,7 @@ import logging
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation
 from src.utils.metastore.meta_storage import MetaStore
+from datetime import datetime, timezone
 
 # Initialize pipeline logger
 logger = PipelineLogger()
@@ -30,15 +31,15 @@ namespace, original_pipeline_name = %namespace%, '%original_pipeline_name%'
 # Execute pipeline with logging enabled
 try:
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
-    reader.add_map(lambda r: { **r, "_e2e_integration_source": original_pipeline_name, "_e2e_src_db": %ppline_dest_table% })
+    pk, src_db = %primary_key%, %ppline_dest_table%
+    reader.add_map(lambda r: { **r, '_e2e_pk': f'{r[pk]}__{src_db}', '_e2e_src_db': src_db, '_e2e_update_date': datetime.now(timezone.utc) })
 
     info = pipeline.run(reader, write_disposition='merge')
     
     # Log pipeline execution results
     if hasattr(info, 'loads_ids') and info.loads_ids:
         logger.info("Pipeline execution completed successfully", extra={
-            'stage': 'pipeline_completion',
-            'loads_ids': str(info.loads_ids),
+            'stage': 'pipeline_completion', 'loads_ids': str(info.loads_ids),
             'dataset_name': getattr(info, 'dataset_name', 'unknown')
         })
     else:

@@ -199,6 +199,7 @@ class DataCatalog:
     @staticmethod
     def get_pipeline_datacatalog(pipeline: str, dbs_path=None, display_fields = False):
         try:
+            DataCatalog._get_table()
             con = DataCatalog._get_duckdb_conn(dbs_path)
             more_fields = ''
             if display_fields:

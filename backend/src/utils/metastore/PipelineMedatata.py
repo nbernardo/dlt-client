@@ -101,7 +101,7 @@ class PipelineMedatata:
                 'dest_type': details['destination_type'], 'source_config': details.get('source_config'), 'domain_pipeline': domain_pipeline,
                 'destination_config': details.get('destination_config'), 'dest_tables': dest_tables, 'tables_pks': tables_pks, 
                 'reference_pipeline': ref_ppline, 'short_query': short_query, 'referenced_secrets': str(details.get('referenced_secrets')), 
-                'dataset_name': dataset_name, 'incremental_field': details.get('incr_field')
+                'dataset_name': dataset_name, 'incremental_field': details.get('incr_field'), 'db_src_name': details.get('db_src_name')
             }]
 
             tbl.add(rows_to_insert)
@@ -134,7 +134,7 @@ class PipelineMedatata:
                 SELECT 
                     pipeline_run_id, namespace, source_secret_name, dest_secret_name, pipeline, 
                     source_type, dest_type, dataset_name, stage_storage, dest_tables, tables_pks,
-                    incremental_field
+                    incremental_field, db_src_name
                 FROM pipeline_metadata WHERE pipeline = ? {more_filter}
             """, [pipeline]).fetchone()
             con.close()
@@ -248,6 +248,7 @@ class PipelineMedatata:
                 'reference_pipeline': "cast(null as string)", #added in Jul/19/2026
                 'incremental_field': "cast(null as string)", #added in Jul/19/2026
                 'active': "cast(null as string)", #added in Jul/19/2026
+                'db_src_name': "cast(null as string)", #added in Jul/20/2026
             }
 
             for col, expr in new_fields.items():
