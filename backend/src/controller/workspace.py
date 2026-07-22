@@ -835,6 +835,16 @@ def get_landing_zone():
         return { 'error': True, 'result': str(err) }
 
 
+from controller.user_management import require_permission
+
+@workspace.route('/workspace/user/token', methods=['GET'])
+@require_permission('regular:requester')
+def get_user_token():
+    try:
+        return { 'error': False, 'result': { 'token': request.token } }
+    except Exception as err:
+        return { 'error': True, 'result': str(err) }
+
 
 @workspace.route('/workspace/s3/<namespace>/<connection_name>/preview', methods=['POST'])
 def preview_s3_file_with_secrets(namespace, connection_name):

@@ -310,6 +310,7 @@ def send_ppline_completion_email(
     ppline_strt_dt, ppline_end_dt, start_time = ppline_time.get('start'), ppline_time.get('end'), ppline_time.get('ts')
     count_query = '\n UNION \n'.join([f"SELECT '{tbl}' as tbl, COUNT(*) as count FROM {skma}.{tbl} {filter}" for tbl in tbls])
     total_record_per_table, tbls_email_content = con.execute(count_query), ''
+    style, row_sep = 'style="padding: 0 8px; text-align: center;"', '=' * 50
     
     if total_record_per_table:
         total_record_per_table = total_record_per_table.fetchall()
@@ -317,7 +318,6 @@ def send_ppline_completion_email(
     else:
         tbls_email_content = ''.join([f'<tr><td {style}>{tbl}</td><td {style}>0</td></tr>' for tbl in tbls])
 
-    style, row_sep = 'style="padding: 0 8px; text-align: center;"', '=' * 50
     intl = labels[env('APP_LANG')]
 
     table_main_lbl = intl['TBL_MAIN_HEAD']

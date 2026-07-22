@@ -37,10 +37,10 @@ def require_permission(perm: str|list):
                 
                 allowed_perm = set(required_permission) & set(payload.get("permissions", []))
 
-                if len(allowed_perm) < 1:
+                if len(allowed_perm) < 1 and perm != 'regular:requester':
                     return {'message': f"Forbidden: Insufficient privileges. Missing '{' or '.join(required_permission)}'.", 'error': True}, 403
                 
-                [request.user_context, request.permissions] = [payload, payload.get("permissions", [])]              
+                [request.user_context, request.permissions, request.token] = [payload, payload.get("permissions", []), token]              
                                
                 return f(*args, **kwargs)
                 

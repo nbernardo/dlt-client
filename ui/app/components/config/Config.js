@@ -12,10 +12,13 @@ export class Config extends ViewComponent {
 
 	landingZoneFiles = [];
 
+	userToken = null;
+
 	/** @Proxy @type { Header } */ headerProxy;
 
 	async stAfterInit() {
 		AppTemplate.hideLoading();
+		await this.getUserToken();
 		//setTimout to avoid the component/page load to 
 		// block due to the Chart library
 		const { totalPipelines } = this.headerProxy.workspaceService;
@@ -25,20 +28,21 @@ export class Config extends ViewComponent {
 	}
 
 	renderCharts(totalPipelines, shcedulePipelines) {
-
-		const pipelineChart = document.getElementById('pipelineChart');
-		new Chart(pipelineChart, {
-			type: 'pie',
-			data: {
-				labels: ['Scheduled', 'Created'],
-				datasets: [{
-					label: 'Pipelines',
-					data: [Number(shcedulePipelines), Number(totalPipelines)],
-					borderWidth: 1
-				}]
-			},
-			options: { scales: { y: { beginAtZero: true } } }
-		});
+		try {			
+			const pipelineChart = document.getElementById('pipelineChart');
+			new Chart(pipelineChart, {
+				type: 'pie',
+				data: {
+					labels: ['Scheduled', 'Created'],
+					datasets: [{
+						label: 'Pipelines',
+						data: [Number(shcedulePipelines), Number(totalPipelines)],
+						borderWidth: 1
+					}]
+				},
+				options: { scales: { y: { beginAtZero: true } } }
+			});
+		} catch (error) {}
 
 		// const recordsIngestion = document.getElementById('recordsIngestion');
 		// new Chart(recordsIngestion, {
@@ -67,9 +71,20 @@ export class Config extends ViewComponent {
 			JSON.stringify({ path: this.landingZonePath.value }),
 			HTTPHeaders.JSON
 		)
+		/workspace/user/token
 		result = await result.json();
 		if(result.error)
 			return AppTemplate.toast.error(result.result);
 		this.landingZoneFiles = result.result;
+	}
+
+	async getUserToken(){
+		let result = await $still.HTTPClient.get('/workspace/user/token')
+		result = await result.json();
+		console.log(`THE USER TOKEN IS: `, result);
+		
+		if(result.error)
+			return AppTemplate.toast.error(result.result);
+		this.userToken = result.result;
 	}
 }

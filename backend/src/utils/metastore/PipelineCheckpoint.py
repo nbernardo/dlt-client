@@ -93,7 +93,6 @@ class PipelineCheckpoint:
                 filter = f"id LIKE '{params.get('exec_id').strip()}%' AND status = '{cp.FAILED}'"
 
             res = tbl.update(where=filter, values_sql=values)
-            print(f"Rows matched and updated: {res.rows_updated}")
 
         except Exception as e:
             print(f"PipelineCheckpoint Update Failed: {str(e)}")
