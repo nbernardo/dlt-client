@@ -484,6 +484,7 @@ class DltPipeline:
                     pass
             context.emit_ppline_job_trace(SUCCESS_RUN_MESSAGE)
         
+        """
         await result.wait()
         error_messages, status = None, True
         if result.returncode != 0:
@@ -505,11 +506,11 @@ class DltPipeline:
                 if status == False:
                     context.emit_ppline_job_trace(message, error=True)
                     status = False
-
         if(status):
-            context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
-            context.emit_ppsuccess()
-            handle_pipeline_log(f'pipeline.success.conclusion', logger)
+        """
+        context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
+        context.emit_ppsuccess()
+        handle_pipeline_log(f'pipeline.success.conclusion', logger)
 
         clear_job_transaction_id(job_execution_id)
 

@@ -93,8 +93,10 @@ class PipelineHelper:
             [tbls, ts, skma] = [list(additionals['ddls'].keys()), additionals['ts'], additionals['db_name']]
             tbls = [table.replace('.','_') for table in additionals['tbls']] if tmplt_type == 'MSSQL' else tbls
 
-            metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
-            MetaStore.persist_catalog(tbls, pipeline, info, additionals, len(metadatas) > 1 if metadatas else 0)
+            #metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
+            #MetaStore.persist_catalog(tbls, pipeline, info, additionals, len(metadatas) > 1 if metadatas else 0)
+            MetaStore.persist_catalog(tbls, pipeline, info, additionals, None)
+            print('Passed catalog persistance')
 
             if stage in [1,2,3]:
                 PipelineHelper.add_tables_contrains(con, tbls, additionals, stage)
