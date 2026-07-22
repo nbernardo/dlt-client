@@ -68,8 +68,7 @@ def load_select_tables_from_db():
             db_table = sql_table(table=table,  credentials=credentials, schema=schema)
         else:
             db_table = sql_table(table=table,  credentials=credentials)
-            
-        db_table = db_table.with_name(f"{table}_{original_pipeline_name}")
+
         db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
 
         if schema != None and schema != '': db_table.apply_hints(table_name=f"{schema}_{table}")
