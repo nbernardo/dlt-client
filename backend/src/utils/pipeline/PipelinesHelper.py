@@ -83,7 +83,7 @@ class PipelineHelper:
         tmplt_type = additionals.get('tmplt')
 
         # TODO: Implement the flow to activate/deactivate bigtable generation
-        generate_big_table = False
+        generate_big_table, skma = False, ''
 
         try:
             pipeline_name = pipeline.pipeline_name
@@ -92,8 +92,6 @@ class PipelineHelper:
 
             [tbls, ts, skma] = [list(additionals['ddls'].keys()), additionals['ts'], additionals['db_name']]
             tbls = [table.replace('.','_') for table in additionals['tbls']] if tmplt_type == 'MSSQL' else tbls
-
-            send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time, tmplt_type)
 
             metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
             MetaStore.persist_catalog(tbls, pipeline, info, additionals, len(metadatas) > 1 if metadatas else 0)
@@ -121,6 +119,7 @@ class PipelineHelper:
 
         finally:
             con.close()
+            send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time, tmplt_type)
             sys.exit(0) # Gracefully terminates the sub-process
 
 

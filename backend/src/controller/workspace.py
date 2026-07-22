@@ -377,7 +377,7 @@ def call_scheduled_job():
                         #response.raise_for_status()
                     if response.status_code == 200 or response.status_code == 204:
                         break
-                    time.sleep(.5)
+                    time.sleep(1)
 
             except CatalogException:
                 pass
