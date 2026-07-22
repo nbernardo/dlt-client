@@ -10,8 +10,18 @@ from services.pipeline.DltPipeline import DltPipeline
 import schedule
 import time as timelib
 from utils.cache_util import DuckDBCache
+import threading
+from flask import current_app
 
 pattern = r'^use.*$'
+
+
+def _run_async(fn, *args, **kw):
+    app = current_app._get_current_object()
+    def wrapped():
+        with app.app_context():
+            fn(*args, **kw)
+    threading.Thread(target=wrapped, daemon=True).start()
 
 class Workspace:
     
@@ -697,18 +707,18 @@ class Workspace:
                 tag_name = f'{_namespace}_{ppline_name}'
 
                 if(immediate):
-                    DltPipeline.run_pipeline_job_sync(file_path, namespace, exec_id=exec_id)
+                    _run_async(DltPipeline.run_pipeline_job_sync, file_path, namespace, exec_id=exec_id)
                     break
 
                 if periodicity == 'daily':
-                    schedule.every().day.at(sched['time']).do(DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
+                    schedule.every().day.at(sched['time']).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
                 else:
                     time = int(sched['time'])
                     if(Workspace.schedule_jobs.get(file_path,None) != True):
                         if(type == 'min'):
-                            schedule.every(time).minutes.do(DltPipeline.run_pipeline_job_sync, file_path, _namespace).tag(tag_name)
+                            schedule.every(time).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace).tag(tag_name)
                         if(type == 'hour'):
-                            schedule.every(time).hours.do(DltPipeline.run_pipeline_job_sync, file_path, _namespace).tag(tag_name)
+                            schedule.every(time).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace).tag(tag_name)
 
                         print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
                         Workspace.schedule_jobs[file_path] = True

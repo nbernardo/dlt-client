@@ -552,7 +552,8 @@ class DltPipeline:
         ppline_file_path, storage_path, p = file_path, None, param_list
 
         [ppline_file, pipeline] = [f'{destinations_dir}/{file_path}.py', file_path.replace(f'{namespace}/','')]
-        [pipeline_metadata, db_file] = [PipelineMedatata.get_pipeline_metadata(pipeline, namespace), file_path]
+        pipeline_metadata = await asyncio.to_thread(PipelineMedatata.get_pipeline_metadata, pipeline, namespace)
+        db_file = file_path
 
         [exec_id, sock_id] = [param_list.get('exec_id', create_execution_id()), DuckdbUtil.get_socket_id(namespace)]
 
@@ -581,7 +582,8 @@ class DltPipeline:
 
         [refs, job_start_time, proc] = [{ 'job_execution_id': uuid.uuid4() }, None, None]
         params = { 'exp_backoff': param_list.get('exp_backoff',1), 'exec_id': exec_id, 'manual_run': param_list.get('manual_run',False) }
-        triggers = triggers if triggers != None else PipelineTrigger.find_all(namespace, pipeline, running=True)
+
+        triggers = triggers if triggers != None else await asyncio.to_thread(PipelineTrigger.find_all, namespace, pipeline, running=True)
 
         try:
             stg_storage = pipeline_metadata[8]
@@ -600,7 +602,7 @@ class DltPipeline:
             if('storage_path' not in params): params['storage_path'] = params['dest_storage']
             
             # Register pipeline run initiation and start time. Or update in case of retry flow
-            _1, storage_path, _2 = PipelineCheckpoint.persist(pipeline_metadata[4], namespace, stg_storage, params)
+            _1, storage_path, _2 = await asyncio.to_thread(PipelineCheckpoint.persist, pipeline_metadata[4], namespace, stg_storage, params)
             pipeline = pipeline_metadata[4]
 
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{db_file}.duckdb')
@@ -620,7 +622,8 @@ class DltPipeline:
                 if not line: break
                 
                 line = line.decode().strip()
-                if DltPipeline._handle_pipeline_trace(line, refs, context, logger) == False or not line: 
+                result = await asyncio.to_thread(DltPipeline._handle_pipeline_trace, line, refs, context, logger)
+                if result == False or not line: 
                     break
 
             pipeline_exception = refs.get('pipeline_exception')
@@ -629,9 +632,10 @@ class DltPipeline:
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             [short_query, dataset_name] = [refs.get('short_query'), pipeline_metadata[7]]
 
-            DltPipeline.update_pipline_runtime(namespace, ppline_name, dt)
-            PipelineCheckpoint.update(pipeline, None, params)
-            MetaStore.update_metadata(namespace, pipeline, dataset_name, short_query)
+            await asyncio.to_thread(DltPipeline.update_pipline_runtime, namespace, ppline_name, dt)
+            await asyncio.to_thread(PipelineCheckpoint.update, pipeline, None, params)
+
+            await asyncio.to_thread(MetaStore.update_metadata, namespace, pipeline, dataset_name, short_query)
             
             if context.pipeline_metadata.stage_storage:
                 job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
@@ -666,7 +670,7 @@ class DltPipeline:
                 DltPipeline.send_fail_email(job_start_time, context)
 
             params = { **params, 'storage_path': storage_path, 'cp_status': CP.FAILED, 'manual_run': False }
-            PipelineCheckpoint.update(pipeline, None, params)
+            await asyncio.to_thread(PipelineCheckpoint.update, pipeline, None, params)
             param_list = { **param_list, 'context': context, 'logger': logger }
 
             DltPipeline._retry(ppline_file_path, param_list, job_start_time, namespace, pipeline, str(err))

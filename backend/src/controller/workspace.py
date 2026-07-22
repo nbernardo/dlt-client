@@ -149,7 +149,7 @@ def update_socket_id(namespace, socket_id):
 @workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['POST'])
 def create_ppline_schedule(namespace):
     import schedule
-
+    from services.workspace.Workspace import _run_async
     ppline_name = None
     try:
         payload = request.get_json()
@@ -164,12 +164,12 @@ def create_ppline_schedule(namespace):
         Workspace.schedule_jobs[file_path] = True
 
         if periodicity == 'daily':
-            schedule.every().day.at(time).do(DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
+            schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
         else:
             if(type == 'min'):
-                schedule.every(int(time)).minutes.do(DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
+                schedule.every(int(time)).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
             if(type == 'hour'):
-                schedule.every(int(time)).hours.do(DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
+                schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
 
         schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
         print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
