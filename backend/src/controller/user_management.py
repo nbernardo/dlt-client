@@ -17,7 +17,7 @@ user_management = Blueprint('authentication', __name__)
 asyncio.run(UserService.init_db())
 
 def generate_user_jwt(username: str, permissions: list) -> str:
-    payload = {'sub': username, 'permissions': permissions, 'exp': datetime.utcnow() + timedelta(hours=24), 'iat': datetime.utcnow()}
+    payload = {'sub': username, 'permissions': permissions, 'exp': datetime.utcnow() + timedelta(hours=24*30), 'iat': datetime.utcnow()}
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
