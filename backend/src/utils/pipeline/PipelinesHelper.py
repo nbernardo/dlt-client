@@ -120,8 +120,8 @@ class PipelineHelper:
             print('Error on running here: ', str(err))
 
         finally:
-            con.close()
             send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time, tmplt_type)
+            con.close()
             sys.exit(0) # Gracefully terminates the sub-process
 
 
