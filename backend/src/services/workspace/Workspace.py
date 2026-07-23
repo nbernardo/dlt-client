@@ -584,7 +584,10 @@ class Workspace:
                 DuckdbUtil.create_ppline_schedule_table()
 
             query = f"INSERT INTO {table} (ppline_name,schedule_settings,namespace,type,periodicity,time,stage_storage)\
-                      VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}','{type}','{periodicity}','{time}','{stage_storage}')"
+                      VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}','{type}','{periodicity}','{time}','{stage_storage}')\
+                      ON CONFLICT (ppline_name,namespace)\
+                      DO UPDATE SET schedule_settings = EXCLUDED.schedule_settings, type = EXCLUDED.type, periodicity = EXCLUDED.periodicity, time = EXCLUDED.time, stage_storage = EXCLUDED.stage_storage;\
+                    "
             DuckdbUtil.get_workspace_db_instance().cursor().execute(query)
 
         except duckdb.IOException as err:

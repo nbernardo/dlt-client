@@ -678,7 +678,8 @@ def get_run_history(namespace):
     
 
 @pipeline.route('/ppline/run/<namespace>/<pipeline>/<exec_id>', methods=['POST'])
-def immediate_pipeline_run(namespace, pipeline, exec_id):
+@pipeline.route('/ppline/run/<namespace>/<pipeline>', methods=['POST'])
+def immediate_pipeline_run(namespace, pipeline, exec_id = None):
     try:
         DltPipeline.immediate_run(namespace, pipeline, exec_id)
         return { 'error': False, 'result': { 'result': 'Pipeline run in progress' } }

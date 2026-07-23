@@ -108,7 +108,7 @@ class DuckdbUtil:
     @staticmethod
     def create_ppline_schedule_table():
         cnx = DuckdbUtil.get_workspace_db_instance()
-        cnx.execute('CREATE SEQUENCE ppline_schedul_sequence;')
+        cnx.execute('CREATE SEQUENCE IF NOT EXISTS ppline_schedul_sequence;')
 
         query = "CREATE TABLE IF NOT EXISTS ppline_schedule (\
             id INTEGER PRIMARY KEY DEFAULT nextval('ppline_schedul_sequence'),\
@@ -121,8 +121,9 @@ class DuckdbUtil:
             schedule_settings JSON,  \
             is_paused VARCHAR,\
             stage_storage VARCHAR\
-            )"
+            );"
         cnx.execute(query)
+        cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_ppline_name_namespace ON ppline_schedule (ppline_name, namespace);')
 
     @staticmethod
     def create_landingzone_table():

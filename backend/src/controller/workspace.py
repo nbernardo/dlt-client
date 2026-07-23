@@ -155,24 +155,30 @@ def create_ppline_schedule(namespace):
         payload = request.get_json()
         settings = payload['settings']
         ppline_name = payload['ppline_name']
-        type, periodicity, time = settings['type'], settings['periodicity'], settings['time']
+        _type, periodicity, time = settings['type'], settings['periodicity'], settings['time']
         # socket_id = payload['socket_id']
 
-        Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace, type, periodicity, time)
+        if (_type not in ['min','hour']) and periodicity != 'daily':
+                raise RuntimeError('Invalid schedule settings')
+        
+        int(time)
+
+        Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace, _type, periodicity, time)
         file_path = f'{namespace}/{ppline_name}'
         tag_name = f'{namespace}_{ppline_name}'
+        schedule.clear(tag_name)
         Workspace.schedule_jobs[file_path] = True
-
+        
         if periodicity == 'daily':
             schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
         else:
-            if(type == 'min'):
+            if(_type == 'min'):
                 schedule.every(int(time)).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
-            if(type == 'hour'):
+            if(_type == 'hour'):
                 schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
 
         schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
-        print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
+        print(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
         schedule.run_pending()
 
     except Exception as error:
@@ -841,7 +847,7 @@ from controller.user_management import require_permission
 @require_permission('regular:requester')
 def get_user_token():
     try:
-        return { 'error': False, 'result': { 'token': request.token } }
+        return { 'error': False, 'result': { 'token': request.token if hasattr(request, 'token') else '' } }
     except Exception as err:
         return { 'error': True, 'result': str(err) }
 
