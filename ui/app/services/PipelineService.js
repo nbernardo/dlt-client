@@ -75,7 +75,7 @@ export class PipelineService extends BaseService {
 
     static async immediatePipelineRun(pipeline, execId){
         const namespace = await UserService.getNamespace();
-        const url = `/ppline/run/${namespace}/${pipeline}/${execId}`;
+        const url = `/ppline/run/${namespace}/${pipeline}${execId ? `/${execId}` : ''}`;
         const response = await $still.HTTPClient.post(url);
         const { result } = await response.json();
         return result.result;

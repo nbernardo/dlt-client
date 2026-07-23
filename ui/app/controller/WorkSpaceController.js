@@ -757,8 +757,8 @@ export class WorkSpaceController extends BaseController {
 
     }
 
-    copyToClipboard(content) {
-        navigator.clipboard.writeText(content);
+    async copyToClipboard(content) {
+        await navigator.clipboard.writeText(content);
     }
 
     shouldDisableNodeFormInputs = true;

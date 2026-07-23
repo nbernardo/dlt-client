@@ -10,10 +10,15 @@
 
 			<div class="space-y-3">
 				<h2 class="form-title">User token:</h2>
-				<p>@userToken</p>
+				<div style="display: flex; gap: 7px; align-items: center; margin-top: 6px;">
+					<i 
+						onclick="component.copyTokenToClipboard()"
+						class="fa fa-copy clipboard-copy-icon" style="color: rgb(99, 98, 98); float: left;"></i>
+					<div class="truncate-text">@userToken</div>
+				</div>
 			</div>
 
-			<hr>
+			<br>
 
 			<div class="space-y-3">
 				<h2 class="form-title">Rename Namespace/Tenant</h2>
@@ -86,6 +91,7 @@
 </div>
 
 <style>
+
 	.config-comp-panel-container {
 		.text-shrinked { text-overflow: ellipsis; overflow: hidden; text-align: left; padding-right: 5px; }
 		font-family: 'Inter', sans-serif;
@@ -97,6 +103,10 @@
 		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 		/* padding: 1.5rem; */
 		width: 100%;
+	}
+	.clipboard-copy-icon:hover{
+		color: rgb(19, 19, 19);
+		cursor: pointer;
 	}
 
 	.config-comp-panel-container .header {

@@ -175,7 +175,8 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	pipelineTreeViewTemplate(dbfile, flag, schedule){
-		const { isScheduled, scheduleSettings, isSchedulePaused } = schedule;
+		let { isScheduled, scheduleSettings, isSchedulePaused } = schedule;
+		isScheduled = String(scheduleSettings).includes('None None None') ? false : isScheduled;
 		return `<div class="ppline-treeview">
 					<span
 						tooltip-x="0" tooltip-y="-15" tooltip="${dbfile}" 

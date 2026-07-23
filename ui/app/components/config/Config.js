@@ -3,6 +3,7 @@ import { ViewComponent } from "../../../@still/component/super/ViewComponent.js"
 import { HTTPHeaders } from "../../../@still/helper/http.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { Header } from "../parts/Header.js";
+import { Workspace } from "../workspace/Workspace.js";
 
 export class Config extends ViewComponent {
 
@@ -15,6 +16,8 @@ export class Config extends ViewComponent {
 	userToken = null;
 
 	/** @Proxy @type { Header } */ headerProxy;
+
+	/** @type { Workspace } */ $parent;
 
 	async stAfterInit() {
 		AppTemplate.hideLoading();
@@ -73,18 +76,17 @@ export class Config extends ViewComponent {
 		)
 		/workspace/user/token
 		result = await result.json();
-		if(result.error)
-			return AppTemplate.toast.error(result.result);
+		if(result.error) return AppTemplate.toast.error(result.result);
 		this.landingZoneFiles = result.result;
 	}
 
 	async getUserToken(){
 		let result = await $still.HTTPClient.get('/workspace/user/token')
 		result = await result.json();
-		console.log(`THE USER TOKEN IS: `, result);
 		
-		if(result.error)
-			return AppTemplate.toast.error(result.result);
-		this.userToken = result.result;
+		if(result.error) return AppTemplate.toast.error(result.result);
+		this.userToken = result.result.token;
 	}
+
+	copyTokenToClipboard = async () => await navigator.clipboard.writeText(this.userToken.value);
 }

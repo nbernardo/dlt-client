@@ -129,9 +129,13 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */ wasDiagramSaved = false;
 
-	/** @Prop */ selectedPplineName = false;
+	/** @Prop */ selectedPplineName = true;
 
 	/** @Prop */ openAgent = false;
+
+	/** @Prop */ savingPipeline = false;
+
+	/** @Prop */ schedulingPipeline = false;
 
 	/** @Prop */ extentionWarning;
 
@@ -232,11 +236,13 @@ export class Workspace extends ViewComponent {
 
 		if (this.wasDiagramSaved && this.controller.pipelineSuccess) return this.controller.twiceDiagramSaveAlert('save');
 
+		this.savingPipeline = true;
 		const data = await this.preparePipelineContent();
 		if (data === null) return data;
 		if(actionType !== 'onlysave') this.logProxy.showLogs = true;
 		let result = await this.pplService.createOrUpdatePipeline(data, false, actionType);
 		result = await result.json();
+		this.savingPipeline = false;
 
 		if(!result.error) this.wasDiagramSaved = true;
 		else {
@@ -622,7 +628,9 @@ export class Workspace extends ViewComponent {
 				ppline_label: this.activeGrid.value,
 			}
 		};
+		this.schedulingPipeline = true;
 		const result = await this.service.schedulePipeline(JSON.stringify(payload));
+		this.schedulingPipeline = false;
 		if ([false, 'failed'].includes(result))
 			AppTemplate.toast.error('Error while scheduling job for ' + this.activeGrid.value);
 		else{
@@ -683,5 +691,9 @@ export class Workspace extends ViewComponent {
 	showAPIData = (contentId) => expoandApiTestData(contentId);
 
 	showDataCatalog = () => this.dataCatalogUIProxy.showPopup();
+
+	immediatePipelineRun = async () => {
+		await PipelineService.immediatePipelineRun(this.selectedPplineName);
+	}
 	
 }

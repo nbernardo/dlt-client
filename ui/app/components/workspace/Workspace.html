@@ -11,6 +11,7 @@
 		</div>
 	</dialog>
 
+	
 	<st-loader center (showIf)="self.showLoading" (label)="Building the workspace">
 		<div id="drawflowContainer" (showIf)="!self.showLoading">
 			<st-element component="Header" proxy="headerProxy" showLogsIcon="true"></span></st-element>
@@ -138,7 +139,14 @@
 
 													</div>
 												</div>
-												<button onclick="component.scheduleJob()" id="btnPipelineSchedule" class="btn btn-primary" disabled>
+												<button onclick="component.scheduleJob()" id="btnPipelineSchedule" class="btn btn-primary schedule-pipeline-btn" disabled>
+													<span (showIf)="self.schedulingPipeline">
+														<div class="mini-loader-container oracle-dn-loader" style="width: 32px; display: flex;">
+															<div class="mini-loader-dot"></div>
+															<div class="mini-loader-dot"></div>
+															<div class="mini-loader-dot"></div>
+														</div>
+													</span>
 													Schedule Job
 												</button>
 											</form>
@@ -151,7 +159,14 @@
 									onclick="component.viewPipelineDiagram(event, null, true, true)" 
 									style="display: flex; align-items: center; margin-left: 10px; border-left: 1px solid lightgr; cursor: pointer;" class="schedule-job-menu">
 									<img src="app/assets/imgs/duplicate.svg" style="background: black; border-radius: 5px; padding: 1px;" width="20" alt="">
-									&nbsp;Use as template
+									&nbsp;Use as template&nbsp;&nbsp;
+								</div>
+							</span>
+							<span (showIf)="self.isAnyDiagramActive">
+								<div onclick="component.immediatePipelineRun()"
+									style="display: flex; align-items: center; margin-left: 10px; border-left: 1px solid lightgr; cursor: pointer;" class="immediate-run-menu">
+									<i class="fas fa-play" style="color: green; cursor: pointer;" title="Replay"></i>
+									&nbsp;Run now
 								</div>
 							</span>
 							<li style="display: none;" onclick="controller.changeModule('Other'); controller.changeModule(event);">Space 2</li>
@@ -182,6 +197,13 @@
 								<i class="fa fa-play"></i> Run & Save
 							</div> -->
 							<div class="btn-export save-pipeline-btn" (showIf)="self.showSaveButton" onclick="component.savePipeline('onlysave')">
+								<span (showIf)="self.savingPipeline">
+									<div class="mini-loader-container oracle-dn-loader" style="width: 32px;">
+										<div class="mini-loader-dot"></div>
+										<div class="mini-loader-dot"></div>
+										<div class="mini-loader-dot"></div>
+									</div>
+								</span>
 								<i class="fa fa-save"></i> Save
 							</div>
 							<div class="btn-export update-pipeline-btn" (showIf)="!self.showSaveButton" onclick="component.updatePipeline()">
@@ -213,5 +235,11 @@
 	.save-pipeline-btn, .update-pipeline-btn{ position: relative; margin-left: 4px; }
 	.update-pipeline-btn{ right: 25px; background: #4ea9ff7a; cursor: not-allowed; }
 	.save-and-run-pipeline-btn { background: #008000d6; }
+	.save-pipeline-btn, .schedule-pipeline-btn { 
+		display: flex; gap: 7px; align-items: center; width: 111px; justify-content: center; 
+		.mini-loader-dot { width: 6px; height: 7px; }
+	}
+	.schedule-pipeline-btn { width: 100%; margin-top: 5px; }
+	.immediate-run-menu:hover { color: grey; }
 </style>
 <div class="ai-agent-placeholder" (showIf)="self.openAgent"></div>
