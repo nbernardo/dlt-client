@@ -137,6 +137,8 @@ export class Workspace extends ViewComponent {
 
 	/** @Prop */ schedulingPipeline = false;
 
+	/** @Prop */ isImmediateRun = false;
+
 	/** @Prop */ extentionWarning;
 
 	selectedLeftTab = 'content-diagram';
@@ -366,6 +368,7 @@ export class Workspace extends ViewComponent {
 			self.isAnyDiagramActive = false;
 			self.saveOnly = false;
 			self.saveOnly = false;
+			self.isImmediateRun = false;
 			self.service.curImportedPipelineJSON = null;
 			PipelineService.storePipelineShortList = [], PipelineService.storePipelineTriggers = [];			
 			(async () => await cb())();
@@ -693,7 +696,12 @@ export class Workspace extends ViewComponent {
 	showDataCatalog = () => this.dataCatalogUIProxy.showPopup();
 
 	immediatePipelineRun = async () => {
+		if(this.isImmediateRun) return;
+		this.isImmediateRun = true;
+		this.logProxy.showLogs = true;
+		this.logProxy.appendLogEntry('info', `Manual running of ${this.selectedPplineName}`, Date.now());
 		await PipelineService.immediatePipelineRun(this.selectedPplineName);
+		this.isImmediateRun = false;
 	}
 	
 }
