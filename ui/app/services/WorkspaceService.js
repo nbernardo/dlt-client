@@ -295,9 +295,9 @@ export class WorkspaceService extends BaseService {
         return false;
     }
 
-    static async getPipelineSchedules() {
+    static async getPipelineSchedules(pipelineName) {
         const namespace = await UserService.getNamespace();
-        const url = '/workcpace/ppline/schedule/' + namespace;
+        const url = `/workcpace/ppline/schedule/${namespace}${pipelineName ? '/'+ pipelineName : ''}`;
         const response = await $still.HTTPClient.get(url);
         
         if (response.ok && !response.error){
@@ -305,6 +305,17 @@ export class WorkspaceService extends BaseService {
             return Object.values(result?.data || {});
         }
         return null;
+    }
+
+    static async deleteSchedule(pipelineName, id) {
+        const url = `/workcpace/ppline/schedule/${(await UserService.getNamespace())}/${pipelineName}/${id}`;
+        let response = await $still.HTTPClient.delete(url);
+        response = await response.json();
+        
+        if (response.ok && !response.error)
+            return AppTemplate.toast.error(response.result)
+        AppTemplate.toast.success('Pipeline schedule deleted sucessfully');
+        return response;
     }
 
     static async getPipelineInitialData() {

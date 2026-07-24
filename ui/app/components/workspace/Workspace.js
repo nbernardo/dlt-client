@@ -154,6 +154,7 @@ export class Workspace extends ViewComponent {
 	schedulePeriodicity;
 	scheduleTimeType = 'min';
 	scheduleTime;
+	activeScheduleList;
 
 	/** @Prop */ scheduleDwName;
 
@@ -535,6 +536,9 @@ export class Workspace extends ViewComponent {
 			const response = await self.service.readDiagramFile(await UserService.getNamespace(), pplineName);
 			const result = JSON.parse(response);
 
+			if(result?.dbDetails?.schedules)
+				self.activeScheduleList = Object.values(result.dbDetails.schedules)
+
 			self.controller.importingPipelineSourceDetails = null;
 
 			if(result?.dbDetails?.SqlDBComponent && (result?.dbDetails?.SqlDBComponent || {}).sourceDb)
@@ -632,10 +636,12 @@ export class Workspace extends ViewComponent {
 			}
 		};
 		this.schedulingPipeline = true;
-		const result = await this.service.schedulePipeline(JSON.stringify(payload));
+		let result = await this.service.schedulePipeline(JSON.stringify(payload));
+		result = JSON.parse(result);
+
 		this.schedulingPipeline = false;
-		if ([false, 'failed'].includes(result))
-			AppTemplate.toast.error('Error while scheduling job for ' + this.activeGrid.value);
+		if (result.error)
+			AppTemplate.toast.error(result.message, 10000);
 		else{
 			if(this.saveOnly){
 				this.headerProxy.scheduledPipelinesCount = (this.headerProxy.scheduledPipelinesCount.value) + 1;
@@ -644,6 +650,9 @@ export class Workspace extends ViewComponent {
 			AppTemplate.toast.success('New schedule for ' + this.activeGrid.value + ' created successfully');
 			await this.leftMenuProxy.showHideDatabase();
 		}
+		
+		if(result?.data?.all_schedules)
+			this.activeScheduleList = result.data.all_schedules;
 
 		this.headerProxy.getScheduleList();
 		this.schedulePeriodicity = '';
@@ -702,6 +711,26 @@ export class Workspace extends ViewComponent {
 		this.logProxy.appendLogEntry('info', `Manual running of ${this.selectedPplineName}`, Date.now());
 		await PipelineService.immediatePipelineRun(this.selectedPplineName);
 		this.isImmediateRun = false;
+	}
+
+	switchScheduleTab(tabName) {
+		const isNew = tabName === 'new';
+
+		document.querySelector('.pipeline-context-drop-menu #tab-new-schedule').style.display = isNew ? 'block' : 'none';
+		document.querySelector('.pipeline-context-drop-menu #tab-list-schedule').style.display = isNew ? 'none' : 'block';
+
+		const buttons = document.querySelectorAll('.pipeline-context-drop-menu .tab-headers .tab-btn');
+		buttons[0].style.opacity = isNew ? '1' : '0.4';
+		buttons[1].style.opacity = isNew ? '0.4' : '1';
+	}
+
+	deleteSchedule = async (id) => {
+		let result = await WorkspaceService.deleteSchedule(this.selectedPplineName, id)
+		if(result){
+			if((result || []).length < 1)
+				this.headerProxy.scheduledPipelinesCount = parseInt(this.headerProxy.scheduledPipelinesCount.value) - 1;
+			this.activeScheduleList = result;
+		}
 	}
 	
 }

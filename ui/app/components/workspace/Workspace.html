@@ -98,58 +98,71 @@
 										&nbsp;Schedule a job <span class="menu-added-arrow">⌄</span>
 									</div>
 									<ul class="submenu schedule-drop-submenu" style="display: none; background: #a2a6ab;">
-										<li class="context-content">
-											<div style="color: black; font-weight: bold;">New Pipeline Job Schedule</div>
-											<form (formRef)="pplineScheduleFormRef">
-												<div>
-													<label for="email" style="color: black;" class="form-label">Pipeline Name</label>
-													<input type="text" disabled (value)="activeGrid" class="form-input">
-												</div>
-												<div class="form-group-input">
-													<label for="role" style="color: black;" class="form-label">Schedule Peridicity</label>
-													<select (value)="schedulePeriodicity">
-														<option value="" disabled selected>Select an option...</option>
-														<option value="every">Every</option>
-														<option value="daily">Daily</option>
-														<option disabled value="weekly">Weekly</option>
-														<option disabled value="monthly">Monthly</option>
-													</select>
-												</div>
-												<div class="form-group-input">
-													<label for="email" style="color: black;" class="form-label">Time setting</label>
-													
-													<div class="time-setting" style="display: flex;">
-
-														<span (showIf)="self.schedulePeriodicitySelected == 'every'">
-															<div style="display: flex; gap: 3px;">
-																<input class="time-setting-input form-input" type="number" (value)="scheduleTime" placeholder="e.g. 10">
-																<select (value)="scheduleTimeType">
-																	<option value="min">Min</option>
-																	<option value="hour">Hour</option>
-																</select>
+										<li class="context-content" style="border-right: none; padding-top: 11px;">
+											<div class="tab-headers" style="display: flex; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 6px;">
+												<button type="button" class="tab-btn active" onclick="component.switchScheduleTab('new')">New Schedule</button>
+												<button type="button" class="tab-btn" onclick="component.switchScheduleTab('list')" style="opacity: 0.4;">List of Schedules</button>
+											</div>
+											<div id="tab-new-schedule" class="tab-content" style="display: block;">
+												<form (formRef)="pplineScheduleFormRef">
+													<div>
+														<label for="email" style="color: black;" class="form-label">Pipeline Name</label>
+														<input type="text" disabled (value)="activeGrid" class="form-input">
+													</div>
+													<div class="form-group-input">
+														<label for="role" style="color: black;" class="form-label">Schedule Peridicity</label>
+														<select (value)="schedulePeriodicity">
+															<option value="" disabled selected>Select an option...</option>
+															<option value="every">Every</option>
+															<option value="daily">Daily</option>
+															<option disabled value="weekly">Weekly</option>
+															<option disabled value="monthly">Monthly</option>
+														</select>
+													</div>
+													<div class="form-group-input">
+														<label for="email" style="color: black;" class="form-label">Time setting</label>
+														
+														<div class="time-setting" style="display: flex;">
+	
+															<span (showIf)="self.schedulePeriodicitySelected == 'every'">
+																<div style="display: flex; gap: 3px;">
+																	<input class="time-setting-input form-input" type="number" (value)="scheduleTime" placeholder="e.g. 10">
+																	<select (value)="scheduleTimeType">
+																		<option value="min">Min</option>
+																		<option value="hour">Hour</option>
+																	</select>
+																</div>
+															</span>
+	
+															<span (showIf)="self.schedulePeriodicitySelected == 'daily'">
+																<input 
+																	onchange="component.changeScheduleTime(this.value)"
+																	style="width: 12em;" placeholder="e.g. 12:00" 
+																	type="time" (value)="scheduleTime" class="form-input">
+															</span>
+	
+														</div>
+													</div>
+													<button onclick="component.scheduleJob()" id="btnPipelineSchedule" class="btn btn-primary schedule-pipeline-btn" disabled>
+														<span (showIf)="self.schedulingPipeline">
+															<div class="mini-loader-container oracle-dn-loader" style="width: 32px; display: flex;">
+																<div class="mini-loader-dot"></div>
+																<div class="mini-loader-dot"></div>
+																<div class="mini-loader-dot"></div>
 															</div>
 														</span>
-
-														<span (showIf)="self.schedulePeriodicitySelected == 'daily'">
-															<input 
-																onchange="component.changeScheduleTime(this.value)"
-																style="width: 12em;" placeholder="e.g. 12:00" 
-																type="time" (value)="scheduleTime" class="form-input">
-														</span>
-
-													</div>
-												</div>
-												<button onclick="component.scheduleJob()" id="btnPipelineSchedule" class="btn btn-primary schedule-pipeline-btn" disabled>
-													<span (showIf)="self.schedulingPipeline">
-														<div class="mini-loader-container oracle-dn-loader" style="width: 32px; display: flex;">
-															<div class="mini-loader-dot"></div>
-															<div class="mini-loader-dot"></div>
-															<div class="mini-loader-dot"></div>
-														</div>
-													</span>
-													Schedule Job
-												</button>
-											</form>
+														Schedule Job
+													</button>
+												</form>
+											</div>
+											<div id="tab-list-schedule" class="tab-content" style="display: none;">
+												<ul (forEach)="activeScheduleList">
+													<li each="item" class="ppline-schedule-item-{item.id}">
+														<i class="fas fa-trash-alt" style="font-size: 12px; color: red;" onclick="component.deleteSchedule('{item.id}')"></i>
+														&nbsp;{item.periodicity} - {item.time}
+													</li>
+												</ul>
+											</div>
 										</li>
 									</ul>
 								</li>
@@ -241,5 +254,18 @@
 	}
 	.schedule-pipeline-btn { width: 100%; margin-top: 5px; }
 	.immediate-run-menu:hover { color: grey; }
+	.schedule-tab { font-weight: bold; cursor: pointer; background: none; border: none; padding: 4px 8px; }
+	#tab-list-schedule { 
+		font-size: 15px; 
+		li { display: block; margin: 2px 0; border-right: none; line-height: 20px; border-radius: 3px; background: #ffffff40; padding-left: 3px;  } 
+		ul { color: black; margin: 0; } 
+	}
+	.pipeline-context-drop-menu button { background: none; border: none; cursor: pointer; }
+	.schedule-drop-submenu { padding-top: 10px; }
+	.del-schedule-btn { color: rgba(255, 0, 0, 0.736); :hover{ color: red; }  }
+	.del-schedule-btn{
+		width: 16px; height: 18px; border: 1px solid; display: flex; float: left; justify-content: center; border-radius: 5px;
+		align-items: center; margin-top: 1px; background: red; color: white;
+	}
 </style>
 <div class="ai-agent-placeholder" (showIf)="self.openAgent"></div>
