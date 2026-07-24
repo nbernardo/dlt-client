@@ -576,23 +576,96 @@ class Workspace:
             print({ 'error': True, 'error_list': err })
     
 
-    @staticmethod
-    def create_ppline_schedule(ppline_name, schedule_settings, namespace, type, periodicity, time, stage_storage = None):
+    def parse_time_to_minutes(time_str: str) -> int:
+        clean_str = str(time_str).strip()
+        if ":" in clean_str:
+            hours, minutes = map(int, clean_str.split(":"))
+            return (hours * 60 + minutes) % 1440
+        raise ValueError(f"Expected 'HH:MM' daily time format, got '{time_str}'.")
+
+
+    def _validate_interval_schedule(table, db, ppline_name, namespace):
+        check_interval_sql = f"SELECT time FROM {table} WHERE ppline_name = ? AND namespace = ? LIMIT 1"
+        conflict = db.execute(check_interval_sql, [ppline_name, namespace]).fetchone()
+
+        if conflict:
+            return {
+                'error': True, 'type': 'INTERVAL_LIMIT_EXCEEDED',
+                'message': (
+                    f"Schedule creation blocked: An existing schedule ('{conflict[0]}') "
+                    f"already exists for '{ppline_name}' under namespace '{namespace}'. "
+                    f"Interval schedules cannot be added alongside existing schedules."
+                )
+            }
+        return None
+
+
+    def _validate_daily_schedule(table, db, ppline_name, namespace, time_str):
+        try:
+            new_time_min = Workspace.parse_time_to_minutes(time_str)
+        except ValueError:
+            return { 'error': True, 'message': f"Invalid time format: '{time_str}'. Daily schedules must use 'HH:MM' format." }
+
+        check_daily_sql = f"""
+            SELECT time FROM {table} WHERE ppline_name = ? AND namespace = ? AND time LIKE '%:%'
+            AND LEAST(
+                ABS((TRY_CAST(SPLIT_PART(time, ':', 1) AS INT) * 60 + TRY_CAST(SPLIT_PART(time, ':', 2) AS INT)) - ?),
+                1440 - ABS((TRY_CAST(SPLIT_PART(time, ':', 1) AS INT) * 60 + TRY_CAST(SPLIT_PART(time, ':', 2) AS INT)) - ?)
+            ) < 15
+        """
+        conflicts = db.execute(check_daily_sql, [ppline_name, namespace, new_time_min, new_time_min]).fetchall()
+
+        if conflicts:
+            conflict_times = [row[0] for row in conflicts]
+            return {
+                'error': True, 'type': 'VALIDATION_OVERLAP_ERROR',
+                'message': (
+                    f"Schedule creation blocked: Existing fixed daily schedule found at {', '.join(conflict_times)}. "
+                    f"Daily time schedules for '{ppline_name}' must be at least 15 minutes apart."
+                ),
+                'details': { 'requested_time': time_str, 'conflicting_schedules': conflict_times, 'min_required_gap': 15 }
+            }
+        return None
+
+
+    def create_ppline_schedule(ppline_name, schedule_settings, namespace, type, periodicity, time, stage_storage=None):
         try:
             table = 'ppline_schedule'
-            if(DuckdbUtil.workspace_table_exists(table) == False):
+            db = DuckdbUtil.get_workspace_db_instance().cursor()
+
+            if not DuckdbUtil.workspace_table_exists(table):
                 DuckdbUtil.create_ppline_schedule_table()
 
-            query = f"INSERT INTO {table} (ppline_name,schedule_settings,namespace,type,periodicity,time,stage_storage)\
-                      VALUES ('{ppline_name}', '{schedule_settings}', '{namespace}','{type}','{periodicity}','{time}','{stage_storage}')\
-                      ON CONFLICT (ppline_name,namespace)\
-                      DO UPDATE SET schedule_settings = EXCLUDED.schedule_settings, type = EXCLUDED.type, periodicity = EXCLUDED.periodicity, time = EXCLUDED.time, stage_storage = EXCLUDED.stage_storage;\
-                    "
-            DuckdbUtil.get_workspace_db_instance().cursor().execute(query)
+            time_str = str(time).strip() 
+            is_interval = ":" not in time_str
 
-        except duckdb.IOException as err:
-            print({ 'error': True, 'error_list': err })
-    
+            validation_error = (
+                Workspace._validate_interval_schedule(table, db, ppline_name, namespace)
+                if is_interval
+                else Workspace._validate_daily_schedule(table, db, ppline_name, namespace, time_str)
+            )
+
+            if validation_error: return validation_error
+
+            insert_sql = f"""
+                INSERT INTO {table} (ppline_name, schedule_settings, namespace, type, periodicity, time, stage_storage)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """
+            db.execute(insert_sql, [ppline_name, schedule_settings, namespace, type, periodicity, time_str, stage_storage])
+
+            return {
+                'error': False, 'message': 'Pipeline schedule created successfully.',
+                'data': {
+                    'ppline_name': ppline_name, 'namespace': namespace, 'time': time_str, 
+                    'all_schedules': Workspace.get_ppline_schedule(namespace, ppline_name)
+                }
+            }
+
+        except duckdb.Error as err:
+            return {'error': True, 'type': 'DATABASE_ERROR', 'message': f"Database error: {str(err)}"}
+        except Exception as err:
+            return {'error': True, 'type': 'UNEXPECTED_ERROR', 'message': f"Unexpected error: {str(err)}"}
+
 
     @staticmethod
     def save_landingzone(path):
@@ -621,10 +694,22 @@ class Workspace:
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': err })
-    
+
 
     @staticmethod
-    def get_ppline_schedule(namespace = None, ppline = None):
+    def del_ppline_schedule(namespace, pipeline, id):
+
+        try:
+            query = f"DELETE FROM ppline_schedule WHERE id = ?"
+            DuckdbUtil.get_workspace_db_instance().execute(query, [id])
+            result = Workspace.get_ppline_schedule(namespace,pipeline)
+            return result
+        except Exception as err:
+            return { 'error': True, 'result': str(err) }
+
+
+    @staticmethod
+    def get_ppline_schedule(namespace = None, ppline = None, suffixed = True):
 
         field_names_path = [
             's.id','s.ppline_name','s.schedule_settings','s.namespace',
@@ -652,14 +737,19 @@ class Workspace:
                     ON s.ppline_name = m.pipeline {where}
             """
             result = cnx.execute(query).fetch_df().to_dict(orient='records')
-            final_data = []
+            #final_data = []
             final_data_map = {}
+
+            if ppline: return result
 
             if(len(result)):
                 for row in result:
                     ppline_name = row['ppline_name'] if row['ppline_name'] else row['pipeline']
-                    final_data.append({ ppline_name: row})
-                    final_data_map[ppline_name] = row
+                    #final_data.append({ f'{ppline_name}${}: row})
+                    if suffixed == False:
+                        final_data_map[f'{ppline_name}'] = row
+                    else:
+                        final_data_map[f'{ppline_name}^{row['time']}'] = row
 
             return { 'data': final_data_map, 'error': False }
 
@@ -695,46 +785,49 @@ class Workspace:
     @staticmethod
     def schedule_pipeline_job(namespace = None, ppline = None, immediate = False, exec_id = None):
         result = Workspace.get_ppline_schedule(namespace, ppline)
-        if result['error'] != True:
-            schedules = result['data'] if 'data' in result else {}
         
-            for ppline_name, sched in schedules.items():
-                is_paused = sched['is_paused']
-                if (is_paused == 'paused' and immediate == False) or sched['time'] == None: continue
+        if type(result) == list:
+            schedules = { f'{ppline}^{rec.get('time')}': rec for rec in result }
 
-                _namespace = sched['namespace']
-                type = sched['type']
-                periodicity = sched['periodicity']
+        elif result['error'] != True:
+            schedules = result['data'] if 'data' in result else {}
+            schedules = schedules
+        
+        for ppline_name, sched in schedules.items():
+            is_paused = sched['is_paused']
+            ppline_name = ppline_name.split('^')[0]
+            if (is_paused == 'paused' and immediate == False) or sched['time'] == None: continue
 
-                file_path = f'{_namespace}/{ppline_name}'
-                tag_name = f'{_namespace}_{ppline_name}'
+            _namespace = sched['namespace']
+            _type = sched['type']
+            periodicity = sched['periodicity']
+            time = sched['time']
+            file_path = f'{_namespace}/{ppline_name}'
+            tag_name = f'{_namespace}_{ppline_name}_{time.replace(':','')}'
 
-                if(immediate):
-                    _run_async(DltPipeline.run_pipeline_job_sync, file_path, namespace, exec_id=exec_id)
-                    break
+            if(immediate):
+                _run_async(DltPipeline.run_pipeline_job_sync, file_path, _namespace, exec_id=exec_id)
+                break
+            
+            if periodicity == 'daily':
+                schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
+            else:
+                time = int(time)
+                if(Workspace.schedule_jobs.get(file_path,None) != True):
+                    if(_type == 'min'):
+                        schedule.every(time).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
+                    if(_type == 'hour'):
+                        schedule.every(time).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
+                    print(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
+                    Workspace.schedule_jobs[file_path] = True
 
-                if periodicity == 'daily':
-                    schedule.every().day.at(sched['time']).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
-                else:
-                    time = int(sched['time'])
-                    if(Workspace.schedule_jobs.get(file_path,None) != True):
-                        if(type == 'min'):
-                            schedule.every(time).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace).tag(tag_name)
-                        if(type == 'hour'):
-                            schedule.every(time).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace).tag(tag_name)
-
-                        print(f'Schedule a job for {file_path} to happen {periodicity} {time} {type}')
-                        Workspace.schedule_jobs[file_path] = True
-
-            # The infinit loop will be running in a separate thread
-            # which will consider all scheduled jobs, when if specified
-            # the jobe name (whithin a namespace), it'll run in the mai thread
-            if (namespace == None and ppline == None and immediate == False):
-                while True:
-                    schedule.run_pending()
-                    timelib.sleep(1)
-        else:
-            ...
+        # The infinit loop will be running in a separate thread
+        # which will consider all scheduled jobs, when if specified
+        # the jobe name (whithin a namespace), it'll run in the mai thread
+        if (namespace == None and ppline == None and immediate == False):
+            while True:
+                schedule.run_pending()
+                timelib.sleep(1)
 
         
     @staticmethod

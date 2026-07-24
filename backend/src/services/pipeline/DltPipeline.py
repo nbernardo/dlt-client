@@ -535,8 +535,8 @@ class DltPipeline:
     job_refs = {}
 
     @staticmethod
-    def run_pipeline_job_sync(file_path, namespace, lead_pipeline = None, exec_id = None):
-        param_list = { 'exp_backoff': 1 }
+    def run_pipeline_job_sync(file_path, namespace, lead_pipeline = None, exec_id = None, sched_time = None):
+        param_list = { 'exp_backoff': 1, 'sched_time': sched_time }
         if(exec_id): param_list = { **param_list, 'exec_id': exec_id, 'manual_run': True }
         asyncio.run(DltPipeline.run_pipeline_job(file_path, namespace, lead_pipeline,param_list=param_list))
 
@@ -633,7 +633,7 @@ class DltPipeline:
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             [short_query, dataset_name] = [refs.get('short_query'), pipeline_metadata[7]]
 
-            await asyncio.to_thread(DltPipeline.update_pipline_runtime, namespace, ppline_name, dt)
+            await asyncio.to_thread(DltPipeline.update_pipline_runtime, namespace, ppline_name, dt, param_list.get('sched_time'))
             await asyncio.to_thread(PipelineCheckpoint.update, pipeline, None, params)
 
             await asyncio.to_thread(MetaStore.update_metadata, namespace, pipeline, dataset_name, short_query)
@@ -738,29 +738,34 @@ class DltPipeline:
 
 
     @staticmethod
-    def update_pipline_runtime(namespace, ppline, time):
+    def update_pipline_runtime(namespace, ppline, time, sched_time):
         cnx = DuckdbUtil.get_workspace_db_instance()
-        query = f"UPDATE ppline_schedule SET last_run='{time}' WHERE namespace='{namespace}' and ppline_name='{ppline}'"
+        query = f"UPDATE ppline_schedule SET last_run='{time}' WHERE namespace='{namespace}' and ppline_name='{ppline}' and time='{sched_time}'"
         cnx.execute(query)
 
 
     @staticmethod
     def update_pipline_pause_status(namespace, ppline, is_paused):
+        from services.workspace.Workspace import Workspace
+        
         cnx = DuckdbUtil.get_workspace_db_instance()
         query = f"UPDATE ppline_schedule SET is_paused='{is_paused}' WHERE namespace='{namespace}' and ppline_name='{ppline}'"
         cnx.execute(query)
-        from services.workspace.Workspace import Workspace
+
         if is_paused != 'paused':
             Workspace.schedule_pipeline_job(namespace, ppline)
         else:
             file_path = f'{namespace}/{ppline}'
-            del Workspace.schedule_jobs[file_path]
-            tag_name = f'{namespace}_{ppline}'
-            if schedule.get_jobs(tag_name):
-                schedule.clear(tag_name)
+            if (file_path in Workspace.schedule_jobs): del Workspace.schedule_jobs[file_path]
+            schedules = Workspace.get_ppline_schedule(namespace, ppline)
+            
+            for sched in schedules:
+                tag_name = f'{namespace}_{ppline}_{sched['time'].replace(':','')}'
+                if schedule.get_jobs(tag_name):
+                    schedule.clear(tag_name)
 
-            if schedule.get_jobs(f'{tag_name}-tracinglog'):
-                schedule.clear(f'{tag_name}-tracinglog')
+                if schedule.get_jobs(f'{tag_name}-tracinglog'):
+                    schedule.clear(f'{tag_name}-tracinglog')
 
 
     @staticmethod
@@ -811,7 +816,10 @@ class DltPipeline:
                 connection_name = node['data'].get('connectionName')
                 if connection_name:
                     datasource_details['Bucket'] = MetaStore.get_pipeline_metadata(f'{namespace}_at_{pipeline_name}')
-            
+
+            from services.workspace.Workspace import Workspace
+            datasource_details['schedules'] = Workspace.get_ppline_schedule(namespace, pipeline_name)
+
             #if not(not(datasource_details)):
             #    del datasource_details['details']
                 

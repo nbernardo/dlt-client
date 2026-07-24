@@ -123,7 +123,7 @@ class DuckdbUtil:
             stage_storage VARCHAR\
             );"
         cnx.execute(query)
-        cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_ppline_name_namespace ON ppline_schedule (ppline_name, namespace);')
+        #cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_ppline_name_namespace ON ppline_schedule (ppline_name, namespace);')
 
     @staticmethod
     def create_landingzone_table():
@@ -196,8 +196,8 @@ class DuckdbUtil:
         cnx = DuckdbUtil.get_workspace_db_instance()
         cursor = cnx.cursor()
         query = f"SELECT socket_id FROM socket_connection WHERE namespace = '{namespace}'"
-        result = cursor.execute(query).fetchall()[0][0]   
-        return result
+        result = cursor.execute(query).fetchall()   
+        return result[0][0] if len(result) > 0 else None
 
 
     @staticmethod

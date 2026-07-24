@@ -63,7 +63,7 @@ def list_pipelines(namespace, socket_id = None):
 
         if metadata != None: metadata = json.loads(metadata)
 
-        pipeline_schedules = Workspace.get_ppline_schedule(namespace)
+        pipeline_schedules = Workspace.get_ppline_schedule(namespace,suffixed=False)
         ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules, catalog, metadata, namespace)
         duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, namespace, ppelines, pipeline_schedules)
     
@@ -161,37 +161,45 @@ def create_ppline_schedule(namespace):
         if (_type not in ['min','hour']) and periodicity != 'daily':
                 raise RuntimeError('Invalid schedule settings')
         
-        int(time)
+        try: int(time)
+        except:
+            try: int(str(time).replace(':','')) and str(time).split(':')[1]
+            except: ...
 
-        Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace, _type, periodicity, time)
+        result = Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace, _type, periodicity, time)
         file_path = f'{namespace}/{ppline_name}'
-        tag_name = f'{namespace}_{ppline_name}'
+        tag_name = f'{namespace}_{ppline_name}_{time.replace(':','')}'
         schedule.clear(tag_name)
         Workspace.schedule_jobs[file_path] = True
         
         if periodicity == 'daily':
-            schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
+            schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
         else:
             if(_type == 'min'):
-                schedule.every(int(time)).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
+                schedule.every(int(time)).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
             if(_type == 'hour'):
-                schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace).tag(tag_name)
+                schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
 
         schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
         print(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
         schedule.run_pending()
 
+        return result
+
     except Exception as error:
         print(f'Error while trying to schedule {ppline_name} pipeline')
         print(error)
         return 'failed'
-    return 'success'
 
 
 @workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['GET'])
-def get_ppline_schedule(namespace):
+@workspace.route('/workcpace/ppline/schedule/<namespace>/<pipeline>/<sched_id>', methods=['DELETE'])
+def get_ppline_schedule(namespace, pipeline = None, sched_id = None):
     try:
-        return Workspace.get_ppline_schedule(namespace)
+        if str(request.method).lower() == 'delete':
+            return Workspace.del_ppline_schedule(namespace, pipeline, sched_id)
+        result = Workspace.get_ppline_schedule(namespace)
+        return result
     except Exception as error:
         print(f'Error while trying to fetch pipeline schedule')
         print(error)
