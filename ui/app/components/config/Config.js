@@ -1,6 +1,7 @@
 import { $still } from "../../../@still/component/manager/registror.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
 import { HTTPHeaders } from "../../../@still/helper/http.js";
+import { Router } from "../../../@still/routing/router.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { Header } from "../parts/Header.js";
 import { Workspace } from "../workspace/Workspace.js";
@@ -89,4 +90,9 @@ export class Config extends ViewComponent {
 	}
 
 	copyTokenToClipboard = async () => await navigator.clipboard.writeText(this.userToken.value);
+
+	async pwdChangeRoute(){
+		const { user } = await this.headerProxy.userService.getLoggedUser();
+		Router.goto('Login', { urlParams: `pwd=change`, data: { user: user.userEmail } })
+	}
 }

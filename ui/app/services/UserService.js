@@ -4,7 +4,7 @@ import { HTTPHeaders } from "../../@still/helper/http.js";
 import { Router } from "../../@still/routing/router.js";
 import { StillAppSetup } from "../../config/app-setup.js";
 
-class UserModel { username; password; }
+class UserModel { username; password; passwordConfirm; oldPassword; }
 
 export class UserService extends BaseService {
 
@@ -22,13 +22,16 @@ export class UserService extends BaseService {
             if(provider === 'managed'){
                 this.managedUser = true;
                 const creds = {username, password};
-                let jwt = await $still.HTTPClient.post('/user/login', JSON.stringify(creds), HTTPHeaders.JSON);
-                jwt = await jwt.json()
-                if('tenant' in (jwt || {})){  
-                    const user = { name: jwt.username, email: jwt.tenant, tkn: null, permissions: jwt.permissions, userEmail: username };
+                let auth = await $still.HTTPClient.post('/user/login', JSON.stringify(creds), HTTPHeaders.JSON);
+                auth = await auth.json()
+                if('tenant' in (auth || {})){  
+                    if(auth.password_changed === 'No'){
+                        return { user: null, success: null, exception: false, passwordRst: true }
+                    }
+                    const user = { name: auth.username, email: auth.tenant, tkn: null, permissions: auth.permissions, userEmail: username };
                     localStorage.setItem('loggedIn', JSON.stringify(user))
                     this.userDetailes = { user, success: true, exception: false };
-                    UserService.namespace = jwt.tenant;
+                    UserService.namespace = auth.tenant;
                     return this.userDetailes;
                 }else
                     return { success: false, exception: true, user: null };
@@ -42,6 +45,29 @@ export class UserService extends BaseService {
                 return this.userDetailes;
             };
 			return { success: false, exception: true, user: null };
+
+		} catch (err) {
+			return { success: false, exception: true, user: null };
+		}
+	  
+	}
+    
+    async passwordChange({ username, password, passwordConfirm, oldPassword } = UserModel){
+
+		try{
+
+            this.managedUser = true;
+            const creds = {password, passwordConfirm, oldPassword, username};
+            let auth = await $still.HTTPClient.post('/user/password/change', JSON.stringify(creds), HTTPHeaders.JSON);
+            auth = await auth.json()
+            if('tenant' in (auth || {})){  
+                const user = { name: auth.username, email: auth.tenant, tkn: null, permissions: auth.permissions, username, userEmail: username };
+                localStorage.setItem('loggedIn', JSON.stringify(user))
+                this.userDetailes = { user, success: true, exception: false };
+                UserService.namespace = auth.tenant;
+                return this.userDetailes;
+            }else
+                return { success: false, exception: true, user: null, result: auth.result, error: auth.error };
 
 		} catch (err) {
 			return { success: false, exception: true, user: null };

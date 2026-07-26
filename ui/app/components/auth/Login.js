@@ -15,25 +15,25 @@ export class Login extends ViewComponent {
 
 	loginSuccess = null;
 
-	/** @Prop */
-	loggedUser = null;
+	/** @Prop */ loggedUser = null;
 
-	/** @Prop */
-	isAnonumousLogin = env('anonymousLogin');
+	/** @Prop */ isAnonumousLogin = env('anonymousLogin');
 
-	/** @Prop */
-	devAuthN = env('devauthn.active');
+	/** @Prop */ devAuthN = env('devauthn.active');
 
-	/** @Prop */
-	activeTab = 'managed';
+	/** @Prop */ activeTab = 'managed';
 
-	/** @Prop */
-	activeIdiom = 'pt';
+	/** @Prop */ activeIdiom = 'pt';
+
+	/** @Prop */ showTabs = true;
+
+	/** @Prop */ pwdChangeAlrtShow = false;
+
+	/** @Prop */ loading = false;
 
 	/**
 	 * @Inject @Path services/
-	 * @type { UserService }
-	 */
+	 * @type { UserService } */
 	userService;
 
 	/** @type { State<String> } */
@@ -41,25 +41,65 @@ export class Login extends ViewComponent {
 
 	/** @type { State<String> } */
 	password;
+	
+	/** @type { State<String> } */
+	oldPassword;
+	
+	/** @type { State<String> } */
+	passwordConfirm;
+
+	/** @type { State<String> } */
+	pwdChangeAlrtMsg;
+
+	stBeforeInit(){
+		this.pwdChangeAlrtMsg = '';
+		
+		if(Router.routeUrlParams?.pwd === 'change'){
+			this.showTabs = false;
+			this.username = Router.data(this).user;
+			this.activeTab = 'passwordChange';
+		}
+	}
 
 	async stAfterInit(){
+		this.pwdChangeAlrtShow = false;
 		this.userService.on('load', () => this.userService.auth0Connect());
 	}
 
 	async login(provider){
-
+		this.loading = true;
 		if(this.isAnonumousLogin){
 			this.userService.anonymousLogin();
+			this.loading = false;
 			return this.handleSuccessLogin();
 		}
 		
 		if(this.devAuthN){ this.username = env('devauthn.user'), this.password = env('devauthn.pwd'); }
 
 		let { username, password } = this;
-		const { user, success } = await this.userService.login(provider, {username: username.value, password: password.value });
+		const { user, success, passwordRst } = await this.userService.login(provider, {username: username.value, password: password.value });
+		if(passwordRst){
+			this.password = '', this.passwordConfirm = '', this.oldPassword = '';
+			this.showTabs = false, this.loading = false;
+			return this.activeTab = 'passwordChange';
+		}
 		
 		if(success === false) this.loginSuccess = false;
+		this.loading = false;
 		if(user)  this.handleSuccessLogin();
+		
+	}
+
+	async changePassword(){
+		this.loading = true, this.pwdChangeAlrtShow = false;
+		let { password, passwordConfirm, oldPassword, username } = this;
+		const payload = { username: username.value, password: password.value, passwordConfirm: passwordConfirm.value, oldPassword: oldPassword.value }
+		const { user, success, error } = await this.userService.passwordChange(payload);
+		if([false,null,undefined].includes(success)){
+			this.pwdChangeAlrtShow = true, this.pwdChangeAlrtMsg = error;
+		}else
+			if(user)  this.handleSuccessLogin();
+		this.loading = false;
 		
 	}
 
@@ -78,9 +118,7 @@ export class Login extends ViewComponent {
 
 	switchLogin(tab, btn){ 
 		this.activeTab = tab;
-		document
-			.querySelectorAll('.auth-tabs .tab-btn')
-			.forEach(b => b.classList.remove('active'));
+		document.querySelectorAll('.auth-tabs .tab-btn').forEach(b => b.classList.remove('active'));
 
 		btn.classList.add('active'); 
 	}

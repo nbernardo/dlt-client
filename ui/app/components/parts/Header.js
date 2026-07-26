@@ -164,8 +164,7 @@ export class Header extends ViewComponent {
 	}
 
 	navigateTo = (routeName) => {
-		if(routeName == Router.getCurrentViewName())
-			return
+		if(routeName == Router.getCurrentViewName()) return
 		this.workspaceController.startedAgent = null;
 		AppTemplate.showLoading();
 		Router.goto(routeName);

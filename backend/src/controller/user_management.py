@@ -43,6 +43,37 @@ def register_user():
     return async_to_sync(async_register)()
 
 
+def _get_auth_response(login_process):
+    response_data = async_to_sync(login_process)()
+
+    if(type(response_data) == tuple):
+        return response_data[0]
+    
+    [age, tkn] = [3600 * 24, response_data.get('access_token')]
+
+    response = make_response(jsonify(response_data), 200)
+    response.set_cookie(key='access_token', value=tkn, httponly=False, secure=False, samesite='Lax', max_age=age)
+    response.set_cookie(key='logged_in', value='true', httponly=False, secure=False, samesite='Lax', max_age=age)
+
+    return response
+
+
+def _get_login_data(row):
+    permissions_list = row[2].split(",") if row[2] else []
+    username, tenant, pwd_state, email = row[0], row[3], row[4], row[5]       
+    access_token = generate_user_jwt(row[0], permissions_list)
+
+    return { 
+        'access_token': access_token, 'tkn_typ': "Bearer", 'tenant': tenant, 'password_changed': pwd_state, 
+        'permissions': permissions_list, 'email': email, 'username': username, 'login_active': True
+    }
+
+
+async def _is_valid_password(row, password):
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, lambda: bcrypt.checkpw(password.encode("utf-8"), row[1]))
+
+
 @user_management.route("/user/login", methods=["POST"])
 def login_user():
     data = request.get_json() or {}
@@ -55,31 +86,43 @@ def login_user():
         if not row:
             return {'error': 'Unauthorized: Invalid email or password credentials supplied.'}, 401
 
-        loop = asyncio.get_running_loop()
-        is_valid_password = await loop.run_in_executor(None, lambda: bcrypt.checkpw(password.encode("utf-8"), row[1]))
+        is_valid_password = await _is_valid_password(row, password)
 
         if not is_valid_password:
             return {'error': 'Unauthorized: Invalid email or password credentials supplied.'}, 401
-
-        permissions_list = row[2].split(",") if row[2] else []
-        username, tenant, pwd_state, email = row[0], row[3], row[4], row[5]       
-        access_token = generate_user_jwt(row[0], permissions_list)
-
-        return { 
-            'access_token': access_token, 'tkn_typ': "Bearer", 'tenant': tenant, 'password_changed': pwd_state, 
-            'permissions': permissions_list, 'email': email, 'username': username, 'login_active': True
-        }
+        return _get_login_data(row)
 
     try:
-        response_data = async_to_sync(async_login)()
-        [age, tkn] = [3600 * 24, response_data.get('access_token')]
+        return _get_auth_response(async_login)
+    except Exception as e:
+        return jsonify({'error': f'Internal Server Error: {str(e)}'}), 500
 
-        response = make_response(jsonify(response_data), 200)
 
-        response.set_cookie(key='access_token', value=tkn, httponly=False, secure=False, samesite='Lax', max_age=age)
-        response.set_cookie(key='logged_in', value='true', httponly=False, secure=False, samesite='Lax', max_age=age)
+@user_management.route("/user/password/change", methods=["POST"])
+def password_change():
+    data = request.get_json() or {}
+    useremail = data.get('username')
+    password = data.get('password')
+    password_confirm = data.get('passwordConfirm')
+    old_password = data.get('oldPassword')
 
-        return response
+    async def async_login():
+        
+        row = await UserService.handle_login(useremail)
+        is_valid_password = await _is_valid_password(row, old_password)
+
+        if not is_valid_password:
+            return {'error': 'Unauthorized: Invalid Old password.'}, 401
+        if password_confirm != password:
+            return {'error': 'Password and confirmation are different.'}, 401
+        
+        hashed_pwd = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        result = await UserService.change_password(useremail,hashed_pwd)
+
+        return _get_login_data(row) if result == True else { 'error': True, 'result': result }
+
+    try:
+        return _get_auth_response(async_login)
     except Exception as e:
         return jsonify({'error': f'Internal Server Error: {str(e)}'}), 500
 

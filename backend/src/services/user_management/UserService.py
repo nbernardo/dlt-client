@@ -219,7 +219,19 @@ class UserService:
                 row = await cursor.fetchone()
 
         return row
+
     
+    async def change_password(useremail, password):
+        try:
+            async with get_db_connection() as conn:
+                await conn.execute(
+                    "UPDATE users SET hashed_password = ?, password_changed = 'Yes' WHERE email = ?", (password, useremail)
+                )
+                await conn.commit()
+                return True
+        except Exception as err:
+                return f'Error while changing the password: {str(err)}'
+
 
     async def update_permission(permissions, email):
         async with get_db_connection() as conn:

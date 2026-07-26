@@ -19,8 +19,13 @@
 		</div>
 
 		<div class="auth-tabs">
-			<button class="tab-btn active" onclick="component.switchLogin('managed', this)">$bundle.login.managed</button>
-			<button class="tab-btn" onclick="component.switchLogin('unmanaged', this)">$bundle.login.notManaged</button>
+			<span (showIf)="self.showTabs">
+				<button class="tab-btn active" onclick="component.switchLogin('managed', this)">$bundle.login.managed</button>
+				<button class="tab-btn" onclick="component.switchLogin('unmanaged', this)">$bundle.login.notManaged</button>
+			</span>
+			<span (showIf)="!self.showTabs">
+				<button class="tab-btn active" style="width: 200% !important;">Password Change</button>
+			</span>
 		</div>
 
 		<!-- In case anonymous login is false, hence negating the flag. Show social login -->
@@ -46,6 +51,9 @@
 		</span>
 
 		<span (showIf)="self.activeTab == 'managed'">
+			<div style="height: 35px; margin-top: -6px; text-align: center;">
+				<st-loader small (showIf)="self.loading" color="green" (label)="Login in progress">
+			</div>
 			<form>
 				<div class="form-group">
 					<label for="username">Username</label>
@@ -72,6 +80,32 @@
 						<img src="app/assets/imgs/flags/en.png" onclick="component.changeIdiom('en')" alt="English" title="English" width="16">
 					</label>
 				</div>
+			</form>
+		</span>
+		
+		<span (showIf)="self.activeTab == 'passwordChange'">
+			<div style="height: 35px; margin-top: -6px; text-align: center;">
+				<st-loader small (showIf)="self.loading" color="green" (label)="Passowrd change in progress">
+				<span (showIf)="self.pwdChangeAlrtShow">
+					<p style="color: red; font-weight: bold;">@pwdChangeAlrtMsg</p>
+				</span>
+			</div>
+			<form>
+				<div class="form-group" style="margin-top: 10px;">
+					<label for="password">Old Password</label>
+					<input type="password" (value)="oldPassword" required placeholder="Enter password">
+				</div>
+				<div class="form-group">
+					<label for="password">New Password</label>
+					<input type="password" (value)="password" required placeholder="Enter password">
+				</div>
+				<div class="form-group">
+					<label for="password">New Password confirm</label>
+					<input type="password" (value)="passwordConfirm" required placeholder="Enter password">
+				</div>
+				<span>
+					<button class="submit-btn" type="button" onclick="component.changePassword()">Change the password</button>
+				</span>
 			</form>
 		</span>
 	</div>
