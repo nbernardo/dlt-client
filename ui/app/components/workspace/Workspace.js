@@ -704,13 +704,15 @@ export class Workspace extends ViewComponent {
 
 	showDataCatalog = () => this.dataCatalogUIProxy.showPopup();
 
-	immediatePipelineRun = async () => {
+	/** @param { HTMLElement } el */
+	immediatePipelineRun = async (el) => {
 		if(this.isImmediateRun) return;
 		this.isImmediateRun = true;
 		this.logProxy.showLogs = true;
+		el.style.opacity = '0.2';
 		this.logProxy.appendLogEntry('info', `Manual running of ${this.selectedPplineName}`, Date.now());
 		await PipelineService.immediatePipelineRun(this.selectedPplineName);
-		this.isImmediateRun = false;
+		//this.isImmediateRun = false;
 	}
 
 	switchScheduleTab(tabName) {

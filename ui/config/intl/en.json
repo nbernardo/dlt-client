@@ -69,7 +69,9 @@
 		"dictionarySuccess":"Data dictionary updated sucessfully"
 	},
 	"pplineSummary": {
-		"tabRunsLbl": "Summary of pipeline runs"
+		"tabFailedRunsLbl": "Summary of failed pipeline",
+		"tabOkRunsLbl": "Summary of success pipeline",
+		"tabArchiveRunsLbl": "Failed archived runs"
 	},
 	"execIdLbl": "Execution ID",
 	"traceErrorLbl": "Error trace",

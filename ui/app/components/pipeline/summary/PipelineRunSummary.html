@@ -2,8 +2,9 @@
 	<h2 class="sr-only">Data Dictionary and Role-Based Access Control Manager</h2>
 
 	<nav class="tabs">
-		<div class="tab active">$bundle.pplineSummary.tabRunsLbl</div>
-		<!-- <div class="tab" onclick="controller.switchTab('rbac',this)">$bundle.gov.rbacLbl</div> -->
+		<div class="tab active" onclick="component.getSuccessPipelineHistory('FAILED', this,1)">$bundle.pplineSummary.tabFailedRunsLbl</div>
+		<div class="tab" onclick="component.getSuccessPipelineHistory('COMPLETED_DWH', this,2)">$bundle.pplineSummary.tabOkRunsLbl</div>
+		<div class="tab" onclick="component.getSuccessPipelineHistory('ARCHIVED', this,3)">$bundle.pplineSummary.tabArchiveRunsLbl</div>
 	</nav>
 
 	<st-loader (label)="Loading pipeline runs..." (showIf)="self.loading"/>
@@ -16,41 +17,108 @@
 					<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="pipline-summary-search" oninput="controller.renderDict()">
 				</div>
 				<div class="table-wrap">
-					<div class="grid-scroll-container">
-						<table>
-							<thead>
-								<tr>
-									<th>Pipeline</th>
-									<th>$bundle.execIdLbl</th>
-									<th>$bundle.traceErrorLbl</th>
-									<th>Status</th>
-									<th>$bundle.startRunTime</th>
-									<th>$bundle.endRunTime</th>
-									<th style="width:110px; text-align: right;" class="re-run-cell">$bundle.gov.actionsLbl</th>
-								</tr>
-							</thead>
-							<tbody (forEach)="runList">
-								<tr each="item">
-									<td>{item.pipeline}</td>
-									<td>{item.id}</td>
-									<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
-											onclick="component.getLogs('{item.id}')">View trace</span></td>
-									<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-failed">{item.status}</div></td>
-									<td>{item.start_time}</td>
-									<td>{item.update_time}</td>
-									<td style="width:110px; text-align: right;" class="re-run-cell">
-										<span id="rerun-icon-{item.id}">
-											<i	onclick="component.immediateRun('{item.pipelineUniqueName}','{item.id}')"
-												class="fas fa-play" style="color: green; cursor: pointer;" title="Replay"></i>
-										</span>
-										<span id="rerun-loading-icon-{item.id}" style="display: none;">
-											<img src="/app/assets/imgs/loading_.gif" alt="" width="20">
-										</span>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
+					<span (showIf)="self.showHistory == 1">
+						<div class="grid-scroll-container">
+							<table>
+								<thead>
+									<tr>
+										<th>Pipeline</th>
+										<th>$bundle.execIdLbl</th>
+										<th>$bundle.traceErrorLbl</th>
+										<th>Status</th>
+										<th>$bundle.startRunTime</th>
+										<th>$bundle.endRunTime</th>
+										<th class="re-run-cell">$bundle.gov.actionsLbl</th>
+									</tr>
+								</thead>
+								<tbody (forEach)="runList">
+									<tr each="item">
+										<td>{item.pipeline}</td>
+										<td>{item.id}</td>
+										<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
+												onclick="component.getLogs('{item.id}')">View trace</span></td>
+										<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-failed">{item.status}</div></td>
+										<td>{item.start_time}</td>
+										<td>{item.update_time}</td>
+										<td class="re-run-cell">
+											<span id="rerun-icon-{item.id}">
+												<i onclick="component.immediateRun('{item.pipelineUniqueName}','{item.id}')" title="Rerun failed pipeline"
+													class="fas fa-play" style="color: green; cursor: pointer;" title="Replay"></i>
+												<span id="archive-failed-{item.id}" style="margin-left: 7px;" onclick="component.archiveFailedRun('{item.pipelineUniqueName}','{item.id}')">
+													<img src="/app/assets/imgs/archive-failed-ppline.png" title="Archive failed log" width="20">
+												</span>
+											</span>
+											<span id="rerun-loading-icon-{item.id}" style="display: none; cursor: auto;">
+												<img src="/app/assets/imgs/loading_.gif" alt="" width="20">
+											</span>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</span>
+					
+					<span (showIf)="self.showHistory == 2">
+						<div class="grid-scroll-container">
+							<table>
+								<thead>
+									<tr>
+										<th>Pipeline</th>
+										<th>$bundle.execIdLbl</th>
+										<th>$bundle.traceErrorLbl</th>
+										<th>Status</th>
+										<th>$bundle.startRunTime</th>
+										<th>$bundle.endRunTime</th>
+										<th style="width:110px; text-align: right;" class="re-run-cell">$bundle.gov.actionsLbl</th>
+									</tr>
+								</thead>
+								<tbody (forEach)="successRuns">
+									<tr each="item">
+										<td>{item.pipeline}</td>
+										<td>{item.id}</td>
+										<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
+												onclick="component.getLogs('{item.id}')">View trace</span></td>
+										<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-success">SUCCESS</div></td>
+										<td>{item.start_time}</td>
+										<td>{item.update_time}</td>
+										<td style="width:110px; text-align: right;" class="re-run-cell">
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</span>
+					
+					<span (showIf)="self.showHistory == 3">
+						<div class="grid-scroll-container">
+							<table>
+								<thead>
+									<tr>
+										<th>Pipeline</th>
+										<th>$bundle.execIdLbl</th>
+										<th>$bundle.traceErrorLbl</th>
+										<th>Status</th>
+										<th>$bundle.startRunTime</th>
+										<th>$bundle.endRunTime</th>
+										<th style="width:110px; text-align: right;" class="re-run-cell">$bundle.gov.actionsLbl</th>
+									</tr>
+								</thead>
+								<tbody (forEach)="archivedRuns">
+									<tr each="item">
+										<td>{item.pipeline}</td>
+										<td>{item.id}</td>
+										<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
+												onclick="component.getLogs('{item.id}')">View trace</span></td>
+										<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-archived">ARCHIVED</div></td>
+										<td>{item.start_time}</td>
+										<td>{item.update_time}</td>
+										<td style="width:110px; text-align: right;" class="re-run-cell">
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</span>
 				</div>
 			</div>
 	
@@ -63,14 +131,16 @@
 
 </div>
 <style>
-	.re-run-cell { text-align: center !important; }
+	.re-run-cell { 
+		text-align: center !important; gap: 8px; width:110px; text-align: right;
+		span:first-child { display: flex; align-items: center; }
+		img { cursor: pointer; } 
+	}
 	.pipeline-run-log-container{ padding: 0px !important; }
 	.pipeline-run-log-content::before{ content: 'Logs'; position: absolute; margin-left: -32px; font-size: 12px; margin-top: 4px; }
 	.pipeline-run-log-content { height: 200px; overflow-y: scroll; padding-left: 37px !important; background: black; color: white; } 
 
-	.rerun-loading-badge {
-		color: #3498db !important; animation: pulseBoxOnly .6s ease-in-out infinite alternate !important;
-	}
+	.rerun-loading-badge { color: #3498db !important; animation: pulseBoxOnly .6s ease-in-out infinite alternate !important; }
 
 	.rerun-stat-lbl { 
 		font: 9px monospace; border-radius: 4px; letter-spacing: 0.5px; padding: 3px; border-radius: 4px; text-align: center;
@@ -84,5 +154,7 @@
 
 	.rerun-loading-failed { background-color: red !important; color: white;  }
 
-	.rerun-loading-success { background-color: green !important; color: white;  }	
+	.rerun-loading-success { background-color: green !important; color: white;  }
+	.rerun-loading-archived { background-color: orange !important; color: white;  }
+
 </style>

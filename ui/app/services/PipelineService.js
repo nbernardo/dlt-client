@@ -65,20 +65,29 @@ export class PipelineService extends BaseService {
         return PipelineService.storePipelineShortList;
     }
 
-    static async getPipelinesRunHistory(){
+    static async getPipelinesRunHistory(status){
         const namespace = await UserService.getNamespace();
-        const url = '/ppline/run/history/' + namespace;
+        const url = `/ppline/run/history/${namespace}${status ? `/${status}` : ''}`;
         const response = await $still.HTTPClient.get(url);
         const { result } = await response.json();
         return result.result;
     }
 
-    static async immediatePipelineRun(pipeline, execId){
-        const namespace = await UserService.getNamespace();
-        const url = `/ppline/run/${namespace}/${pipeline}${execId ? `/${execId}` : ''}`;
+    static immediatePipelineRun = async(pipeline, execId) => await PipelineService.handlePipelineCheckpoint(pipeline, execId)
+        
+    static async handlePipelineCheckpoint(pipeline, execId, archive){
+        let namespace = await UserService.getNamespace(), url;
+        if(archive)
+            url = `/ppline/archive/${namespace}/${pipeline}${execId ? `/${execId}` : ''}`;
+        else
+            url = `/ppline/run/${namespace}/${pipeline}${execId ? `/${execId}` : ''}`;
         const response = await $still.HTTPClient.post(url);
+        
+        if(archive) return await response.json();
+
         const { result } = await response.json();
         return result.result;
+
     }
 
     static async getDataCatalog(pipeline){

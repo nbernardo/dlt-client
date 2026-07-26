@@ -2,6 +2,7 @@ import { BaseController } from "../../../../@still/component/super/service/BaseC
 import { StillAppSetup } from "../../../../config/app-setup.js";
 import { AppTemplate } from "../../../../config/app-template.js";
 import { UserService } from "../../../services/UserService.js";
+import { switchActiveTab } from "../../../util/tabs.js";
 import { GovernanceMainComponent } from "../GovernanceMainComponent.js";
 
 export class DataGovernanceController extends BaseController {
@@ -39,10 +40,7 @@ export class DataGovernanceController extends BaseController {
     /** @returns { UserService } */ userService = () => this.obj.$parent.userService;
 
     switchTab(t, el) {
-        this.$$('.tab').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        this.$$('.section').forEach(s => s.style.display = 'none');
-        this.$('#sec-' + t).style.display = 'block';
+        switchActiveTab(this, t, el);
 
         if (t === 'users-perms') {
             (async () => await this.renderUsersAndPermissionsTab())();
