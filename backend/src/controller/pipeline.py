@@ -668,20 +668,27 @@ def short_pipeline_list(namespace):
     
 
 @pipeline.route('/ppline/run/history/<namespace>', methods=['GET'])
-def get_run_history(namespace):
+@pipeline.route('/ppline/run/history/<namespace>/<status>', methods=['GET'])
+def get_run_history(namespace, status = None):
     from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
     try:
-        run_history = PipelineCheckpoint.get_run_history(namespace)
+        run_history = PipelineCheckpoint.get_run_history(namespace, status)
         return { 'error': False, 'result': { 'result': run_history } }
     except Exception as err:
         return { 'error': True, 'result': { 'result': str(err) } }
     
 
 @pipeline.route('/ppline/run/<namespace>/<pipeline>/<exec_id>', methods=['POST'])
+@pipeline.route('/ppline/archive/<namespace>/<pipeline>/<exec_id>', methods=['POST'])
 @pipeline.route('/ppline/run/<namespace>/<pipeline>', methods=['POST'])
-def immediate_pipeline_run(namespace, pipeline, exec_id = None):
+def immediate_pipeline_action(namespace, pipeline, exec_id = None):
     try:
-        DltPipeline.immediate_run(namespace, pipeline, exec_id)
+        if str(request.url).__contains__('/ppline/archive/'):
+            from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
+            result = PipelineCheckpoint.archive_failure(namespace, pipeline, exec_id)
+            return result
+        else:
+            DltPipeline.immediate_run(namespace, pipeline, exec_id)
         return { 'error': False, 'result': { 'result': 'Pipeline run in progress' } }
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }

@@ -100,6 +100,18 @@ class PipelineCheckpoint:
 
 
     @staticmethod
+    def archive_failure(namespace, pipeline, exec_id):
+        try:
+            tbl = PipelineCheckpoint._get_table()
+            values = { 'status': f"'{Checkpoint.ARCHIVE}'" }
+            filter = f"id LIKE '{exec_id}%' AND status = '{Checkpoint.FAILED}' AND pipeline = '{pipeline}' AND namespace = '{namespace}'"
+            tbl.update(where=filter, values_sql=values)
+            return { 'error': False, 'result': { 'result': '' } }
+        except Exception as err:
+            return { 'error':True, 'result': { 'result': f'Pipeline {pipeline} failed - {str(err)}' } }
+
+
+    @staticmethod
     def check_dest_storge_usage(storage_path, pipeline):
         """Update pipeline checkpoint"""
 
@@ -155,15 +167,15 @@ class PipelineCheckpoint:
 
 
     @staticmethod
-    def get_run_history(namespace):
+    def get_run_history(namespace, status = None):
 
         from utils.duckdb_util import DuckdbUtil
         import json
 
         cnx = DuckdbUtil.get_workspace_db_instance()
         query = f"""
-            SELECT cp.* FROM main.ppline_schedule ps RIGHT JOIN checkpoint cp ON ps.ppline_name = cp.pipeline
-            WHERE cp.status = 'FAILED' and cp.namespace = '{namespace}'
+            SELECT DISTINCT ON (cp.id) cp.* FROM main.ppline_schedule ps RIGHT JOIN checkpoint cp ON ps.ppline_name = cp.pipeline
+            WHERE cp.status = '{status if status else 'FAILED'}' and cp.namespace = '{namespace}'
         """
         # checkpoint variables creates the checkpoint table used in the query
         checkpoint = PipelineCheckpoint._get_table().to_arrow()
