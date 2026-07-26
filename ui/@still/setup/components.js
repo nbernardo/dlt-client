@@ -1906,10 +1906,9 @@ export class Components {
 
                 sheet.insertRule(`@keyframes still-cmp-loaderspin ${keyFrame}`,sheet.cssRules.length);
                 sheet.insertRule(`st-loader-cntr{ display: flex;  }`, sheet.cssRules.length)
-
-                if(cleanMatch.indexOf(' center ') > 0)
-                    sheet.insertRule(`st-loader-cntr{ position:absolute;left:50%;top:50%;transform:translate(-50%, -50%);}`, sheet.cssRules.length)
             }
+            if(cleanMatch.indexOf(' center ') > 0)
+                sheet.insertRule(`st-loader-cntr{ position:absolute;left:50%;top:50%;transform:translate(-50%, -50%);}`, sheet.cssRules.length);
             const lblStartPos = complement.indexOf('(label)="');
             if(cleanMatch.indexOf(' small ') > 0) size = 'still-cmp-loaderspin-small';
             if(cleanMatch.indexOf(' tiny ') > 0) size = 'still-cmp-loaderspin-tiny';
@@ -1918,7 +1917,7 @@ export class Components {
                 lbl = complement.slice(lblStartPos+9).slice(0,complement.slice(lblStartPos+9).indexOf('"'));            
                 complement = complement.replace(`(label)="${lbl}"`,'')
             }
-
+            
             return `
             <st-loader-cntr style="flex-direction:column;align-items:center;text-align: center; ${topStyle}" ${complement}>
                 <div ${clrStyle} class="still-cmp-loader ${size} ${speed}"></div><span class="still-cmp-loader-lbl">${lbl}</span>
