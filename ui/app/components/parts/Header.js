@@ -7,6 +7,7 @@ import { WorkSpaceController } from "../../controller/WorkSpaceController.js";
 import { PipelineService } from "../../services/PipelineService.js";
 import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
+import { startPingWorker } from "../../util/livenessWebWorker.js";
 import { UserUtil } from "../auth/UserUtil.js";
 import { PipelineRunSummary, runStatus } from "../pipeline/summary/PipelineRunSummary.js";
 import { handleHideShowSubmenu } from "../workspace/generic-util.js";
@@ -49,9 +50,10 @@ export class Header extends ViewComponent {
 	/** @Prop */ failedPipelines = new Set();
 
 	loggedUser = null;
-
+	
 	/** @Prop */ showLogsIcon = true;
 	/** @Prop */ showScheduleCounter = false;
+	/** @Prop */ applicationStatus = '';
 
 	/** @type { Workspace } */
 	$parent;
@@ -68,7 +70,7 @@ export class Header extends ViewComponent {
 				Object.freeze(UserUtil);
 			}
 			this.loggedUser = user.name, this.userEmail = user.email;
-
+			setTimeout(() => startPingWorker(this),1);
 		});
 
 		this.scheduledPipelines.onChange(val => this.scheduledPipelinesCount = val.length || 0);

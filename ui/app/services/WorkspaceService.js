@@ -18,8 +18,6 @@ import { Workspace } from "../components/workspace/Workspace.js";
 import { UserService } from "./UserService.js";
 import { constructTablePath } from "./DestinationUtil.js";
 import { PipelineService } from "./PipelineService.js";
-import { AIAgent } from "../components/agent/AIAgent.js";
-import { AIUtil } from "../util/AIUtil.js";
 import { PipelineStepTrigger } from "../components/node-types/trigger/PipelineStepTrigger.js";
 
 export class ObjectDataTypes {
@@ -255,7 +253,6 @@ export class WorkspaceService extends BaseService {
             AppTemplate.toast.warn('No data file found under ' + namespace);
         else if (response.ok)
             filesList = (await response.text());
-
         return filesList;
     }
 
@@ -269,7 +266,6 @@ export class WorkspaceService extends BaseService {
                 // hence bellow we're clearing things up so to have an array with the proper field names
                 const fieldList = fields.split('[')[1].split(']')[0].replace(/\'\s{0,}/g, '').split(',')
                     .map((name, id) => ({ name: name.trim(), id, type: 'string' }));
-
                 this.dataSourceFieldsMap.set(selectdFile, fieldList);
             }
         }
@@ -279,7 +275,9 @@ export class WorkspaceService extends BaseService {
     
     async updateSocketId(socketId) {
         const namespace = await UserService.getNamespace();
-        const response = await $still.HTTPClient.post('/workcpace/socket_id/' + namespace + '/' + socketId);
+        const { user } = await this.component.userService.getLoggedUser();
+
+        const response = await $still.HTTPClient.post('/workcpace/socket_id/' + namespace + '/' + socketId+'/'+user.userEmail);
         if (response.ok)
             return await response.text();
         return null;
@@ -323,9 +321,8 @@ export class WorkspaceService extends BaseService {
         const url = '/workcpace/init/' + namespace;
         const response = await $still.HTTPClient.get(url);
         
-        if (response.ok && !response.error){
+        if (response.ok && !response.error)
             return await response.json();
-        }
         return null;
     }
 
