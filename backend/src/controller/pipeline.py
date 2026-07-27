@@ -688,7 +688,8 @@ def immediate_pipeline_action(namespace, pipeline, exec_id = None):
             result = PipelineCheckpoint.archive_failure(namespace, pipeline, exec_id)
             return result
         else:
-            DltPipeline.immediate_run(namespace, pipeline, exec_id)
+            user = request.get_json().get('user')
+            DltPipeline.immediate_run(namespace, pipeline, exec_id, user)
         return { 'error': False, 'result': { 'result': 'Pipeline run in progress' } }
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }

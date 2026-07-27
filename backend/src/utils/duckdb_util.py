@@ -77,7 +77,9 @@ class DuckdbUtil:
 
     @staticmethod
     def migrate_socket_conection_table():
-        DuckdbUtil.get_workspace_db_instance().execute("ALTER TABLE socket_connection ADD COLUMN IF NOT EXISTS user VARCHAR")
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        cnx.execute("ALTER TABLE socket_connection ADD COLUMN IF NOT EXISTS user VARCHAR")
+        cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS socket_id_user ON socket_connection (namespace,user)')
 
 
     @staticmethod
@@ -203,7 +205,7 @@ class DuckdbUtil:
         cursor = cnx.cursor()
         query = f"SELECT socket_id FROM socket_connection WHERE namespace = '{namespace}'"
         query = f"{query} AND user = '{user}'" if user != None else query
-        result = cursor.execute(query).fetchall()   
+        result = cursor.execute(query).fetchall()
         return result[0][0] if len(result) > 0 else None
 
 

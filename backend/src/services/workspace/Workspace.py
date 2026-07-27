@@ -174,7 +174,7 @@ class Workspace:
         #folder = Workspace.get_duckdb_path_on_ppline()        
         file_list = os.listdir(files_path)
         result = { 'db_path': files_path } 
-        tables = None
+        tables = []
         k = None
         prev_key = None
 
@@ -211,11 +211,12 @@ class Workspace:
                 
                 tables = tables_list['tables'].fetchall()
                 if len(tables) == 0:
+                    sched = curr_schedule if curr_schedule else {}
                     result[_file]['notable'] = { 
-                        'is_scheduled': curr_schedule.get('time') != None,
-                        'is_scheduled_paused': curr_schedule['is_paused'] if curr_schedule != None else '',
-                        'short_settings': f'{curr_schedule['periodicity']} {curr_schedule['time']} {curr_schedule['type']}' if curr_schedule != None else '',
-                        'ppline': ppline_name, 'dbname': f'REF: {curr_schedule['reference_pipeline']}', 'table': 'No table',
+                        'is_scheduled': sched.get('time') != None,
+                        'is_scheduled_paused': sched.get('is_paused') if sched != None else '',
+                        'short_settings': f'{sched.get('periodicity')} {sched.get('time')} {sched.get('type')}' if sched != None else '',
+                        'ppline': ppline_name, 'dbname': f'REF: {sched.get('reference_pipeline')}', 'table': 'No table',
                     }
 
                 for t in tables:
@@ -244,8 +245,8 @@ class Workspace:
                                 'dest': 'duckdb',
                                 'connection_name': None,
                                 'is_scheduled': curr_schedule.get('time') != None,
-                                'is_scheduled_paused': curr_schedule['is_paused'] if curr_schedule != None else '',
-                                'short_settings': f'{curr_schedule['periodicity']} {curr_schedule['time']} {curr_schedule['type']}' if curr_schedule != None else '',
+                                'is_scheduled_paused': curr_schedule.get('is_paused') if curr_schedule != None else '',
+                                'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
                             }
 
                         else:
@@ -551,7 +552,8 @@ class Workspace:
             cnx = DuckdbUtil.get_workspace_db_instance()
             cursor = cnx.cursor()
             query = f"INSERT INTO socket_connection (namespace,socket_id,user) VALUES ('{namespace}', '{new_sock_id}', '{user}')\
-                      ON CONFLICT (namespace) DO UPDATE SET namespace = EXCLUDED.namespace, socket_id = EXCLUDED.socket_id;"
+                      ON CONFLICT (namespace,user) \
+                      DO UPDATE SET namespace = EXCLUDED.namespace, user = EXCLUDED.user, socket_id = EXCLUDED.socket_id;"
             
             cursor.execute(query)
 
@@ -786,7 +788,7 @@ class Workspace:
 
 
     @staticmethod
-    def schedule_pipeline_job(namespace = None, ppline = None, immediate = False, exec_id = None):
+    def schedule_pipeline_job(namespace = None, ppline=None, immediate=False, exec_id=None, user=None):
         result = Workspace.get_ppline_schedule(namespace, ppline)
         
         if type(result) == list:
@@ -809,7 +811,7 @@ class Workspace:
             tag_name = f'{_namespace}_{ppline_name}_{time.replace(':','')}'
 
             if(immediate):
-                _run_async(DltPipeline.run_pipeline_job_sync, file_path, _namespace, exec_id=exec_id)
+                _run_async(DltPipeline.run_pipeline_job_sync, file_path, _namespace, exec_id=exec_id, user=user)
                 break
             
             if periodicity == 'daily':

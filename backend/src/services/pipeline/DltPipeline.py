@@ -535,8 +535,8 @@ class DltPipeline:
     job_refs = {}
 
     @staticmethod
-    def run_pipeline_job_sync(file_path, namespace, lead_pipeline = None, exec_id = None, sched_time = None):
-        param_list = { 'exp_backoff': 1, 'sched_time': sched_time }
+    def run_pipeline_job_sync(file_path, namespace, lead_pipeline=None, exec_id=None, sched_time=None, user=None):
+        param_list = { 'exp_backoff': 1, 'sched_time': sched_time, 'req_user': user }
         if(exec_id): param_list = { **param_list, 'exec_id': exec_id, 'manual_run': True }
         asyncio.run(DltPipeline.run_pipeline_job(file_path, namespace, lead_pipeline,param_list=param_list))
 
@@ -548,15 +548,15 @@ class DltPipeline:
         lead_pipeline = None, 
         triggers = None, 
         job_tag = None,
-        param_list: dict = {'exp_backoff': 1}
+        param_list: dict = {'exp_backoff': 1, 'req_user': None}
     ):
-        ppline_file_path, storage_path, p = file_path, None, param_list
+        [ppline_file_path, storage_path, p] = [file_path, None, param_list]
 
         [ppline_file, pipeline] = [f'{destinations_dir}/{file_path}.py', file_path.replace(f'{namespace}/','')]
         pipeline_metadata = await asyncio.to_thread(PipelineMedatata.get_pipeline_metadata, pipeline, namespace)
         db_file = file_path
 
-        [exec_id, sock_id] = [param_list.get('exec_id', create_execution_id()), DuckdbUtil.get_socket_id(namespace)]
+        [exec_id, sock_id] = [p.get('exec_id', create_execution_id()), DuckdbUtil.get_socket_id(namespace, p.get('req_user',None))]
 
         context: RequestContext = p.get('context', RequestContext(pipeline_metadata[4], sock_id, exec_id=exec_id, namespace=namespace))
         logger = p.get('logger', DltPipeline.get_pipeline_logger(context))
@@ -769,9 +769,9 @@ class DltPipeline:
 
 
     @staticmethod
-    def immediate_run(namespace, ppline, exec_id = None):
+    def immediate_run(namespace, ppline, exec_id = None, user = None):
         from services.workspace.Workspace import Workspace
-        Workspace.schedule_pipeline_job(namespace, ppline, immediate=True, exec_id=exec_id)
+        Workspace.schedule_pipeline_job(namespace, ppline, immediate=True, exec_id=exec_id, user=user)
                         
 
     @staticmethod
