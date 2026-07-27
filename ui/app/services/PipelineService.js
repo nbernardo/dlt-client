@@ -75,13 +75,15 @@ export class PipelineService extends BaseService {
 
     static immediatePipelineRun = async(pipeline, execId) => await PipelineService.handlePipelineCheckpoint(pipeline, execId)
         
-    static async handlePipelineCheckpoint(pipeline, execId, archive){
-        let namespace = await UserService.getNamespace(), url;
+    static async handlePipelineCheckpoint(pipeline, execId, archive, user){
+        let namespace = await UserService.getNamespace(), url, payload = {};
         if(archive)
             url = `/ppline/archive/${namespace}/${pipeline}${execId ? `/${execId}` : ''}`;
-        else
+        else{
             url = `/ppline/run/${namespace}/${pipeline}${execId ? `/${execId}` : ''}`;
-        const response = await $still.HTTPClient.post(url);
+            payload = { user: UserService.getUserName() };
+        }
+        const response = await $still.HTTPClient.post(url, JSON.stringify(payload), HTTPHeaders.JSON);
         
         if(archive) return await response.json();
 

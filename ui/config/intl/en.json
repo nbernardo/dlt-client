@@ -76,5 +76,6 @@
 	"execIdLbl": "Execution ID",
 	"traceErrorLbl": "Error trace",
 	"startRunTime": "Start time",
-	"endRunTime": "End time"
+	"endRunTime": "End time",
+	"manualAttempts": "Manual attempts count"
 }

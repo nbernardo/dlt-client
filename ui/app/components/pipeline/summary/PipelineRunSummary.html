@@ -26,6 +26,7 @@
 										<th>$bundle.execIdLbl</th>
 										<th>$bundle.traceErrorLbl</th>
 										<th>Status</th>
+										<th>$bundle.manualAttempts</th>
 										<th>$bundle.startRunTime</th>
 										<th>$bundle.endRunTime</th>
 										<th class="re-run-cell">$bundle.gov.actionsLbl</th>
@@ -38,6 +39,7 @@
 										<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
 												onclick="component.getLogs('{item.id}')">View trace</span></td>
 										<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-failed">{item.status}</div></td>
+										<td style="text-align: center;">{item.manual_run_count}</td>
 										<td>{item.start_time}</td>
 										<td>{item.update_time}</td>
 										<td class="re-run-cell">
@@ -67,6 +69,7 @@
 										<th>$bundle.execIdLbl</th>
 										<th>$bundle.traceErrorLbl</th>
 										<th>Status</th>
+										<!-- <th>$bundle.manualAttempts</th> -->
 										<th>$bundle.startRunTime</th>
 										<th>$bundle.endRunTime</th>
 										<th style="width:110px; text-align: right;" class="re-run-cell">$bundle.gov.actionsLbl</th>
@@ -79,6 +82,7 @@
 										<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
 												onclick="component.getLogs('{item.id}')">View trace</span></td>
 										<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-success">SUCCESS</div></td>
+										<!-- <td style="text-align: center;">{item.manual_run_count}</td> -->
 										<td>{item.start_time}</td>
 										<td>{item.update_time}</td>
 										<td style="width:110px; text-align: right;" class="re-run-cell">
@@ -98,6 +102,7 @@
 										<th>$bundle.execIdLbl</th>
 										<th>$bundle.traceErrorLbl</th>
 										<th>Status</th>
+										<!-- <th>$bundle.manualAttempts</th> -->
 										<th>$bundle.startRunTime</th>
 										<th>$bundle.endRunTime</th>
 										<th style="width:110px; text-align: right;" class="re-run-cell">$bundle.gov.actionsLbl</th>
@@ -110,6 +115,7 @@
 										<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
 												onclick="component.getLogs('{item.id}')">View trace</span></td>
 										<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-archived">ARCHIVED</div></td>
+										<!-- <td style="text-align: center;">{item.manual_run_count}</td> -->
 										<td>{item.start_time}</td>
 										<td>{item.update_time}</td>
 										<td style="width:110px; text-align: right;" class="re-run-cell">

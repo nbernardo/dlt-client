@@ -76,5 +76,6 @@
 	"execIdLbl": "ID Execucao",
 	"traceErrorLbl": "Rastreio do erro",
 	"startRunTime": "Hora Inicio",
-	"endRunTime": "Hora termino"
+	"endRunTime": "Hora termino",
+	"manualAttempts": "Tentativas manual"
 }

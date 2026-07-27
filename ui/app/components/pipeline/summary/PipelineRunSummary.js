@@ -164,6 +164,7 @@ export class PipelineRunSummary extends ViewComponent {
 		row.update_time = new Date(upTime * 1000).toISOString().split('.')[0].replace('T',' ');
 		row.pipelineUniqueName = row.pipeline;
 		row.pipeline = StringUtil.snakeToCamel(row.pipeline);
+		row.status = row.manual_run_count > 0 ? runStatus.MANUAL_FAIL : row.status;
 
 		return row;
 

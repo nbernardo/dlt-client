@@ -122,6 +122,8 @@ export class UserService extends BaseService {
         return UserService.namespace;
     }
 
+    static getUserName = () => JSON.parse(localStorage.getItem('loggedIn')).userEmail
+
     async getUsersList(){
         let users = await $still.HTTPClient.get('/user', HTTPHeaders.BearerTkn(this.getTkn()));
         return await users.json();
