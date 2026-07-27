@@ -714,7 +714,7 @@ class Workspace:
 
         field_names_path = [
             's.id','s.ppline_name','s.schedule_settings','s.namespace',
-            's.type','s.periodicity','s.time', 's.last_run', 's.is_paused', 
+            's.type','s.periodicity','s.time', 'MAX(s.last_run) OVER() as last_run', 's.is_paused', 
             'm.reference_pipeline', 'm.pipeline'
         ]
 
@@ -730,12 +730,14 @@ class Workspace:
             where = f"WHERE m.namespace = '{namespace}'" if namespace != None else ''
             where = f"{where} AND s.ppline_name = '{ppline}'" if ppline != None else where
 
+
             cnx = DuckdbUtil.get_workspace_db_instance()
             query = f"""
-                SELECT 
+                SELECT DISTINCT ON (s.id)
                     {','.join(field_names_path)} 
                     FROM {table} s RIGHT JOIN pipeline_metadata m 
                     ON s.ppline_name = m.pipeline {where}
+                ORDER BY s.id ASC, s.last_run DESC
             """
             result = cnx.execute(query).fetch_df().to_dict(orient='records')
             #final_data = []
