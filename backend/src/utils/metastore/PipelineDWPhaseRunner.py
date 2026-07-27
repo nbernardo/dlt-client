@@ -81,8 +81,12 @@ class PipelineDWPhaseRunner:
             try:
                 con = duckdb.connect(self.source_db_path, read_only=True)
                 tbls_fltr = str([f'{t}' for t in tables]).strip('[]')
-                tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr})").fetchall()
+                fetch_table_query = f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr})"
+                handle_pipeline_log(f'Fetch tables query: {fetch_table_query}', self.logger, context=self.context)
+                tbls = con.execute(fetch_table_query).fetchall()
+                handle_pipeline_log(f'Fetch tables query result: {str(tbls)}', self.logger, context=self.context)
                 tbls = list({t[0] for t in tbls})
+                handle_pipeline_log(f'Fetch tables query result parsed: {str(tbls)}', self.logger, context=self.context)
 
                 def make_resource(table, pk, incr_field = None):
                     def _resource():
@@ -234,5 +238,8 @@ class PipelineDWPhaseRunner:
         [runner.pipeline, runner.params, runner.incr_fields] = params.get('pipeline'), params, incr_fields
 
         cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger)
-
+        handle_pipeline_log(
+            f'Tables, PKs and Incr-fields to ingest: Tables: {str(tables)}, Pks: {str(pks)}, Incr-fields: {str(incr_fields)}', 
+            refs.get('logger'), context=refs.get('context')
+        )
         runner.run_async(tables, pks, dataset, callback=cb)
