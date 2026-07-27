@@ -542,14 +542,15 @@ class Workspace:
     
 
     @staticmethod
-    def update_socket_id(namespace, new_sock_id):
+    def update_socket_id(namespace, new_sock_id, user):
         try:
             if(DuckdbUtil.workspace_table_exists('socket_connection') == False):
                 DuckdbUtil.create_socket_conection_table()
+            DuckdbUtil.migrate_socket_conection_table()
 
             cnx = DuckdbUtil.get_workspace_db_instance()
             cursor = cnx.cursor()
-            query = f"INSERT INTO socket_connection (namespace,socket_id) VALUES ('{namespace}', '{new_sock_id}')\
+            query = f"INSERT INTO socket_connection (namespace,socket_id,user) VALUES ('{namespace}', '{new_sock_id}', '{user}')\
                       ON CONFLICT (namespace) DO UPDATE SET namespace = EXCLUDED.namespace, socket_id = EXCLUDED.socket_id;"
             
             cursor.execute(query)

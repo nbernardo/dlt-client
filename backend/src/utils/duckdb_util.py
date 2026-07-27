@@ -72,6 +72,12 @@ class DuckdbUtil:
             socket_id VARCHAR,\
             PRIMARY KEY (namespace))"
         cnx.execute(query)
+        DuckdbUtil.migrate_socket_conection_table()
+
+
+    @staticmethod
+    def migrate_socket_conection_table():
+        DuckdbUtil.get_workspace_db_instance().execute("ALTER TABLE socket_connection ADD COLUMN IF NOT EXISTS user VARCHAR")
 
 
     @staticmethod
@@ -192,10 +198,11 @@ class DuckdbUtil:
 
 
     @staticmethod
-    def get_socket_id(namespace):
+    def get_socket_id(namespace, user = None):
         cnx = DuckdbUtil.get_workspace_db_instance()
         cursor = cnx.cursor()
         query = f"SELECT socket_id FROM socket_connection WHERE namespace = '{namespace}'"
+        query = f"{query} AND user = '{user}'" if user != None else query
         result = cursor.execute(query).fetchall()   
         return result[0][0] if len(result) > 0 else None
 

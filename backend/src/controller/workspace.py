@@ -140,9 +140,10 @@ def disconnect_duckdb():
     return result
 
 
+@workspace.route('/workcpace/socket_id/<namespace>/<socket_id>/<user>', methods=['POST'])
 @workspace.route('/workcpace/socket_id/<namespace>/<socket_id>', methods=['POST'])
-def update_socket_id(namespace, socket_id):
-    Workspace.update_socket_id(namespace, socket_id)
+def update_socket_id(namespace, socket_id, user = None):
+    Workspace.update_socket_id(namespace, socket_id,user)
     return ''
 
 
@@ -888,3 +889,7 @@ def preview_s3_file_with_secrets(namespace, connection_name):
         print(f'Error while previewing S3 file with secrets: {str(err)}')
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while previewing S3 file: {str(err)}' }
+
+
+@workspace.route('/workspace/live', methods=['GET'])
+def is_alive(): return 'Ok'
