@@ -19,6 +19,14 @@ export function startPingWorker(workspaceHeader){
         };
     `;
 
+    (async () => {
+        const pingResult = await fetch(StillHTTPClient.getBaseUrl()+'/workspace/live', { method: 'GET' });
+        if((await pingResult.text()) === 'Ok')
+            setUiConnectionStatus(true);
+        else
+            setUiConnectionStatus(false);
+    })();
+
     console.log(`Starting ping worker`);
     const blob = new Blob([workerCode], { type: 'application/javascript' });
     const workerUrl = URL.createObjectURL(blob);
@@ -26,11 +34,12 @@ export function startPingWorker(workspaceHeader){
 
     URL.revokeObjectURL(workerUrl);
     pingWorker.postMessage({ endpoint: StillHTTPClient.getBaseUrl() })
+    pingWorker.onmessage = (evt) => { setUiConnectionStatus(evt.data.live) }
+    
+}
+
+function setUiConnectionStatus(val){
     const placeHolder = document.querySelector('.application-status-semaphore');
-
-    pingWorker.onmessage = (evt) => {
-        placeHolder.style.background = evt.data.live ? 'green' : 'red';
-        placeHolder.parentElement.style.color = evt.data.live ? 'green' : 'red';
-    }
-
+    placeHolder.style.background = val ? 'green' : 'red';
+    placeHolder.parentElement.style.color = val ? 'green' : 'red';
 }
