@@ -78,6 +78,10 @@ def load_select_tables_from_db():
         if(len(increment_by_fields) > 0 and increment_by_fields[idx] != ''):
                 db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx]))
 
+        print(f'Resource status {table}',flush=True)
+        print(db_table,flush=True)
+        print('',flush=True)
+
         source.append(db_table)
 
     print('Starting pipeline run', flush=True)

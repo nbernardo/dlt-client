@@ -77,9 +77,10 @@ class PipelineDWPhaseRunner:
 
             os.environ["SCHEMA__NAMING"] = "direct"
             skma = source_schema[0] if type(source_schema) == list else source_schema
+            handle_pipeline_log(f'Connecting to stage source: {self.source_db_path}', self.logger, context=self.context)
+            con = duckdb.connect(self.source_db_path, read_only=True)
 
             try:
-                con = duckdb.connect(self.source_db_path, read_only=True)
                 tbls_fltr = str([f'{t}' for t in tables]).strip('[]')
                 fetch_table_query = f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr})"
                 handle_pipeline_log(f'Fetch tables query: {fetch_table_query}', self.logger, context=self.context)
@@ -154,6 +155,7 @@ class PipelineDWPhaseRunner:
                 return result
             
             except Exception as err:
+                con.close()
                 self.params['cp_status'] = Checkpoint.FAILED_INGEST_DW
                 PipelineCheckpoint.update(self.pipeline, params=self.params)
                 error = traceback.format_exc()
