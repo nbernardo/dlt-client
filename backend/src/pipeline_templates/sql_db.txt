@@ -76,7 +76,7 @@ def load_select_tables_from_db():
             db_table.apply_hints(table_name=Helper.prefix_and_suffix_table(table, tbl_stage))
 
         if(len(increment_by_fields) > 0 and increment_by_fields[idx] != ''):
-                db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx]))
+                db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx], on_cursor_value_missing='include'))
 
         print(f'Resource status {table}',flush=True)
         print(db_table,flush=True)
