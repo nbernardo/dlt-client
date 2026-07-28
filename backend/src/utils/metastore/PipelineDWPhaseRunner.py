@@ -133,14 +133,14 @@ class PipelineDWPhaseRunner:
                 resources, count = [], 0
                 incr_fields = str(self.incr_fields).strip('[]')
                 incremental_load_field = incr_fields.split(',')
+
                 for table in tbls:
                     i = tables.index(table) if table in tables else -1
                     pk = pks[i] if i >= 0 else []
                     incr_field = None
-                    if(self.incr_fields != None and not(incr_fields in ['None',''])):
-                        incr_field = incremental_load_field[count] if incremental_load_field[count].strip() != '' else None
+                    if self.incr_fields is not None and not (incr_fields in ['None', '']):
+                        incr_field = incremental_load_field[i] if i >= 0 and incremental_load_field[i].strip() != '' else None
                     resources.append(make_resource(table, pk, incr_field))
-                    count = count + 1
 
                 @dlt.source(name="dynamic_source")
                 def build_source(): return resources
