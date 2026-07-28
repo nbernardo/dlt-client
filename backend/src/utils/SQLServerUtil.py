@@ -71,7 +71,7 @@ def dynamic_mssql_source(
                 for row in result:
                     yield dict(row._mapping)
             
-            table_data.add_map(lambda r: { **r, '_e2e_pk': f'{r[k]}__{src_db}', '_e2e_src_db': src_db, '_e2e_update_date': datetime.now(timezone.utc) })
+            table_data.add_map(lambda r: { **r, '_e2e_pk': f'{r[k]}__{src_db}', '_e2e_src_db': src_db })
             return table_data
         
         try:

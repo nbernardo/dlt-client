@@ -32,7 +32,7 @@ namespace, original_pipeline_name = %namespace%, '%original_pipeline_name%'
 try:
     logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution'})
     pk, src_db = %primary_key%, %ppline_dest_table%
-    reader.add_map(lambda r: { **r, '_e2e_pk': f'{r[pk]}__{src_db}', '_e2e_src_db': src_db, '_e2e_update_date': datetime.now(timezone.utc) })
+    reader.add_map(lambda r: { **r, '_e2e_pk': f'{r[pk]}__{src_db}', '_e2e_src_db': src_db })
 
     info = pipeline.run(reader, write_disposition='merge')
     
