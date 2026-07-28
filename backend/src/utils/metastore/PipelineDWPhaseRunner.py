@@ -102,7 +102,7 @@ class PipelineDWPhaseRunner:
                             offset += batch_size
 
                     [_resource.__name__, _resource.__qualname__] = [table, table]
-                    resource = dlt.resource(_resource, name=table, merge_key='_e2e_pk')
+                    resource = dlt.resource(_resource, name=table, primary_key='_e2e_pk')
                     if incr_field != None and incr_field != '':
                         resource.apply_hints(incremental=dlt.sources.incremental(incr_field, on_cursor_value_missing='include'))
                     return resource
