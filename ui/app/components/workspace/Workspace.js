@@ -189,6 +189,7 @@ export class Workspace extends ViewComponent {
 
 	async stAfterInit() {
 		this.drawFlowContainer = document.getElementById('drawflow');
+		this.dynamicViewPlaceholder = document.querySelector('.dynamicViewPlaceholder');
 		this.pplService.on('load', () => console.log(`Service loaded with updated: `, this.pplService));
 		this.service.on('load', () => this.service.component = this);
 		this.buildWorkspaceView();
@@ -197,7 +198,6 @@ export class Workspace extends ViewComponent {
 		this.onLeftTabChange();
 		this.handlePplineSchedulePopup();
 		this.resetWorkspace();
-		this.dynamicViewPlaceholder = document.querySelector('.dynamicViewPlaceholder');
 	}
 
 	onLeftTabChange() {
