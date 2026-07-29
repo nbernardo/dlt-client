@@ -233,12 +233,25 @@ class SQLDatabase:
         message, error = '', False
 
         try:
-            with create_engine(query_string).connect() as conn:
-                if dbengine == 'oracle':
-                    conn.execute(text("SELECT 1 FROM DUAL"))
-                else:
+            dd = ''
+
+            if dbengine == 'postgresql':
+                with create_engine(
+                    query_string,
+                    pool_pre_ping=True,  
+                    pool_recycle=600,
+                    pool_size=10,
+                    max_overflow=20
+                ).connect() as conn:
                     conn.execute(text("SELECT 1"))
-                error = False
+                    error = False
+            else:
+                with create_engine(query_string).connect() as conn:
+                    if dbengine == 'oracle':
+                        conn.execute(text("SELECT 1 FROM DUAL"))
+                    else:
+                        conn.execute(text("SELECT 1"))
+                    error = False
         except Exception as e:
             error = True
             message = f'Error while trying to connect to Database {str(e)}'

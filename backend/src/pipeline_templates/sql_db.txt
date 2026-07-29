@@ -5,6 +5,10 @@ from sys import path
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper
 
+os.environ["SOURCES__SQL_DATABASE__ENGINE_KWARGS"] = json.dumps({
+    "connect_args": {"sslmode": "require"}
+})
+
 logger = PipelineLogger()
 logger.info("Starting SQL database pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db'})
 
