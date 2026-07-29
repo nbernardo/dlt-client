@@ -10,7 +10,7 @@ from utils.logging.pipeline_logger_config import handle_pipeline_log
 import traceback
 from flask import current_app
 import sys
-import io
+from pathlib import Path
 
 
 def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logger):
@@ -27,7 +27,9 @@ def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logge
         traceback.print_exc()
         print(f"\n[Callback Hook] Error: {error}")
     finally:
-        runner.shutdown() 
+        db_stage_file = Path(runner.source_db_path)
+        db_stage_file.unlink(missing_ok=True)
+        runner.shutdown()
         return
 
 

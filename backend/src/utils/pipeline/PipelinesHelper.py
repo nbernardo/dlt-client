@@ -122,6 +122,8 @@ class PipelineHelper:
         finally:
             send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time, tmplt_type)
             con.close()
+            print('--------- Sucessfull Email send ---------', flush=True)
+            print('RUN_SUCCESSFULLY', flush=True) # Notify the main process about pipeline run completion
             sys.exit(0) # Gracefully terminates the sub-process
 
 
@@ -301,7 +303,7 @@ def send_ppline_completion_email(
 ):
     from internationalization.email import labels
 
-    filter = f"WHERE _e2e_ts = '{ts}'" if tmplt_type != 'MSSQL' else ''
+    filter = '' #f"WHERE _e2e_ts = '{ts}'" if tmplt_type != 'MSSQL' else ''
 
     tbls_fltr = str([f'{t}' for t in tbls]).strip('[]')
     tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr}) ").fetchall()

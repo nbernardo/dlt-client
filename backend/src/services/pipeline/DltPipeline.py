@@ -412,6 +412,8 @@ class DltPipeline:
     def _handle_pipeline_trace(line, refs: dict, context: RequestContext, logger: logging.Logger):
         line = line.strip()
         
+        if line == '': return True
+        
         if(line.startswith('DATA=__dlt__destination__datasetname__:')):
             refs['dataset_name'] = line.split(':')[1]
             return False # No error, just pipeline completion
@@ -467,7 +469,7 @@ class DltPipeline:
         return True
 
 
-    async def handle_job_final_state(context: RequestContext, pipeline_exception, line, job_execution_id, result, logger: logging.Logger, start_time):
+    async def handle_job_final_state(context: RequestContext, pipeline_exception, line, job_execution_id, proc, logger: logging.Logger, start_time):
         if isinstance(line, bytes):
             line = line.decode().strip()
 
@@ -483,7 +485,7 @@ class DltPipeline:
                 if(has_ppline_job('end',job_execution_id)):
                     pass
             context.emit_ppline_job_trace(SUCCESS_RUN_MESSAGE)
-        
+        await proc.communicate()
         """
         await result.wait()
         error_messages, status = None, True
@@ -620,11 +622,10 @@ class DltPipeline:
 
             while True:
                 line = await proc.stdout.readline()
-                if not line: break
                 
                 line = line.decode().strip()
                 result = await asyncio.to_thread(DltPipeline._handle_pipeline_trace, line, refs, context, logger)
-                if result == False or not line: 
+                if result == False: 
                     break
 
             pipeline_exception = refs.get('pipeline_exception')
@@ -643,7 +644,6 @@ class DltPipeline:
                 triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
                 refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': mdta[9], 'tables_pks': mdta[10], 'src_db_name': mdta[12] }
                 refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context, 'exec_id': exec_id, 'incr_fields': mdta[11] }
-                await proc.communicate()
                 schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
 
             # DB Lock release in the pplication level

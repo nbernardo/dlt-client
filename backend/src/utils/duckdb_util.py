@@ -204,7 +204,7 @@ class DuckdbUtil:
         cnx = DuckdbUtil.get_workspace_db_instance()
         cursor = cnx.cursor()
         query = f"SELECT socket_id FROM socket_connection WHERE namespace = '{namespace}'"
-        query = f"{query} AND user = '{user}'" if user != None else query
+        query = f"{query} AND (user = '{user}' OR user <> '{user}')" if user != None else query
         result = cursor.execute(query).fetchall()
         return result[0][0] if len(result) > 0 else None
 

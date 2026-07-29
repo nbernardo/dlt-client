@@ -21,7 +21,6 @@ class MetaStore:
         print(f'DATA=__dlt__destination__datasetname__:{pipeline.config.dataset_name}', flush=True)
         print(f'__dlt__transaction_id:{getattr(pipeline._last_trace, 'transaction_id')}', flush=True)
         print(load_info, flush=True) # Print pipeline completion details for main process and UI
-        print('RUN_SUCCESSFULLY', flush=True) # Notify the main process about pipeline run completion
         print(f'Analyzing/Generating the data catalog for pipeline with transaction_id {getattr(pipeline._last_trace, 'transaction_id')}')
         
         # TODO: Implement UI based feature flag to trigger this call
