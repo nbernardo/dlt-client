@@ -97,7 +97,11 @@ class PipelineDWPhaseRunner:
                         msg = f'Injesting {table} to the Data Warehouse'
                         handle_pipeline_log(msg, self.logger, context=self.context)
                         while True:
-                            rows = con.execute(f'SELECT * FROM "{skma}"."{table}" LIMIT {batch_size} OFFSET {offset}').fetchall()
+                            rows = con.execute(f'''
+                                SELECT *, md5(concat_ws('|', * EXCLUDE (_e2e_src_db))) AS _e2e_row_hash
+                                FROM "{skma}"."{table}"
+                                LIMIT {batch_size} OFFSET {offset}
+                            ''').fetchall()
                             if not rows: break
                             columns = [desc[0] for desc in con.description]
                             yield [dict(zip(columns, row)) for row in rows]
@@ -147,7 +151,7 @@ class PipelineDWPhaseRunner:
                 @dlt.source(name="dynamic_source")
                 def build_source(): return resources
 
-                result = pipeline.run(build_source(), write_disposition={ 'disposition': 'merge', 'strategy': 'scd2' })
+                result = pipeline.run(build_source(), write_disposition={ 'disposition': 'merge', 'strategy': 'scd2', 'row_version_column_name': '_e2e_row_hash' })
                 con.close()
                 msg = f'Completed Data Warehouse data ingestions'
                 handle_pipeline_log(msg, self.logger, context=self.context)
