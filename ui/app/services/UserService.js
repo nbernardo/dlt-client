@@ -88,8 +88,9 @@ export class UserService extends BaseService {
 	}
 
     static async isAuthenticated(){
-        await auth0GetConnection();
-        return await UserService.auth0Client.isAuthenticated() || localStorage.getItem('loggedIn')
+        //await auth0GetConnection(); Disabled due to not us
+        // return await UserService.auth0Client.isAuthenticated() || localStorage.getItem('loggedIn')
+        return localStorage.getItem('loggedIn')
     }
 
     async getLoggedUser(){

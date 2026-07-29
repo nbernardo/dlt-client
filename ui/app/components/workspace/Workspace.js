@@ -362,6 +362,7 @@ export class Workspace extends ViewComponent {
 			if(document.getElementById('pplineNamePlaceHolder').querySelector('state'))
 				document.getElementById('pplineNamePlaceHolder').querySelector('state').innerHTML = 'Enter pipeline name';
 			document.getElementById('pplineNamePlaceHolder').contentEditable = true;
+			document.querySelector('.immediate-run-menu').style.opacity = '1';
 			if (self.showSaveButton !== true)
 				self.showSaveButton = true;
 			self.wasDiagramSaved = false;
