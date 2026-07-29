@@ -96,19 +96,25 @@ class PipelineDWPhaseRunner:
                         batch_size, offset = 10_000, 0
                         msg = f'Injesting {table} to the Data Warehouse'
                         handle_pipeline_log(msg, self.logger, context=self.context)
+
+                        if isinstance(pk, list) and pk: order_col = pk[0]
+                        elif isinstance(pk, str) and pk: order_col = pk
+                        else: order_col = '1'
+
                         while True:
                             rows = con.execute(f'''
-                                SELECT *, md5(concat_ws('|', * EXCLUDE (_e2e_src_db))) AS _e2e_row_hash
-                                FROM "{skma}"."{table}"
-                                LIMIT {batch_size} OFFSET {offset}
+                                SELECT *, md5(concat_ws('|', COLUMNS(*))) AS _e2e_row_hash FROM "{skma}"."{table}"
+                                ORDER BY {order_col} LIMIT {batch_size} OFFSET {offset}
                             ''').fetchall()
+
                             if not rows: break
+
                             columns = [desc[0] for desc in con.description]
                             yield [dict(zip(columns, row)) for row in rows]
                             offset += batch_size
 
                     [_resource.__name__, _resource.__qualname__] = [table, table]
-                    resource = dlt.resource(_resource, name=table, primary_key='_e2e_pk')
+                    resource = dlt.resource(_resource, name=table, primary_key='_e2e_pk', merge_key='_e2e_pk')
                     if incr_field != None and incr_field != '':
                         resource.apply_hints(incremental=dlt.sources.incremental(incr_field, on_cursor_value_missing='include'))
                     return resource

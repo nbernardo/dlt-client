@@ -244,7 +244,7 @@ class Workspace:
                                 'fields': [{ 'name': col_name, 'type': col_type }],
                                 'dest': 'duckdb',
                                 'connection_name': None,
-                                'is_scheduled': curr_schedule.get('time') != None,
+                                'is_scheduled': curr_schedule.get('time') != None if curr_schedule != None else '',
                                 'is_scheduled_paused': curr_schedule.get('is_paused') if curr_schedule != None else '',
                                 'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
                             }
