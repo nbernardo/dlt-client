@@ -615,12 +615,19 @@ class DltPipeline:
             # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
             cp_status = CP.STAGED if context.pipeline_metadata.stage_storage else CP.DONE
             params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline, 'context': context }
+            handle_pipeline_log(f'PARAMS WITH CONTEXT {str(params)}', logger, False)
 
             proc = await asyncio.create_subprocess_exec('python', ppline_file, stdout=PIPE, stdin=PIPE, stderr=PIPE, env=env_vars)
+            handle_pipeline_log(f'Pipeline subprocess instantiation {str(params)}', logger, False)
             proc.stdin.write(str(job_start_time).encode() + b'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process
+            handle_pipeline_log(f'Before draining process for the sent time to subprocess', logger, False)
             await proc.stdin.drain()
-
+            handle_pipeline_log(f'After draining process for the sent time to subprocess', logger, False)
+            
+            count = 0
             while True:
+                count = count + 1
+                handle_pipeline_log(f'Process running iteration {count}', logger, False)
                 line = await proc.stdout.readline()
                 
                 line = line.decode().strip()
@@ -629,14 +636,18 @@ class DltPipeline:
                     break
 
             pipeline_exception = refs.get('pipeline_exception')
+            handle_pipeline_log(f'Pipeline run exception {str(pipeline_exception)}', logger, False)
             await DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger, job_start_time)
+            handle_pipeline_log(f'Stage pipeline phase ran', logger, False)
 
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             [short_query, dataset_name] = [refs.get('short_query'), pipeline_metadata[7]]
 
+            handle_pipeline_log(f'Stage runtime update', logger, False)
             await asyncio.to_thread(DltPipeline.update_pipline_runtime, namespace, ppline_name, dt, param_list.get('sched_time'))
+            handle_pipeline_log(f'Pipeline checkpoint update', logger, False)
             await asyncio.to_thread(PipelineCheckpoint.update, pipeline, None, params)
-
+            handle_pipeline_log(f'Pipeline metadata update', logger, False)
             await asyncio.to_thread(MetaStore.update_metadata, namespace, pipeline, dataset_name, short_query)
             
             if context.pipeline_metadata.stage_storage:
