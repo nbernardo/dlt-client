@@ -801,7 +801,9 @@ class Workspace:
         
         if len(list(schedules.items())) == 0 and immediate:
             file_path = f'{namespace}/{ppline}'
-            _run_async(DltPipeline.run_pipeline_job_sync, file_path, namespace, exec_id=None, user=user)
+            print(f'Immediate run for {file_path}')
+            _run_async(DltPipeline.run_pipeline_job_sync, file_path, namespace, exec_id=exec_id, user=user)
+            print(f'After Immediate run for {file_path}')
             
         else:
             for ppline_name, sched in schedules.items():
