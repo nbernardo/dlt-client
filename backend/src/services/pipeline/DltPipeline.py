@@ -615,8 +615,8 @@ class DltPipeline:
             # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
             cp_status = CP.STAGED if context.pipeline_metadata.stage_storage else CP.DONE
             params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline, 'context': context }
-            handle_pipeline_log(f'PARAMS WITH CONTEXT {str(params)}', logger, False)
-
+            handle_pipeline_log(f'Sub process pipeline file {ppline_file}', logger, False)
+            
             proc = await asyncio.create_subprocess_exec('python', ppline_file, stdout=PIPE, stdin=PIPE, stderr=PIPE, env=env_vars)
             handle_pipeline_log(f'Pipeline subprocess instantiation {str(params)}', logger, False)
             proc.stdin.write(str(job_start_time).encode() + b'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process
