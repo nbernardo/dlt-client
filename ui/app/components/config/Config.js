@@ -75,7 +75,7 @@ export class Config extends ViewComponent {
 			JSON.stringify({ path: this.landingZonePath.value }),
 			HTTPHeaders.JSON
 		)
-		/workspace/user/token
+		
 		result = await result.json();
 		if(result.error) return AppTemplate.toast.error(result.result);
 		this.landingZoneFiles = result.result;
