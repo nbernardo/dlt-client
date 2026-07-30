@@ -134,6 +134,11 @@ class PipelineDWPhaseRunner:
                 dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
                 pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest, progress='log')
 
+                working_dir = pipeline.working_dir
+                if os.path.exists(working_dir):
+                    import shutil
+                    shutil.rmtree(working_dir)
+
                 try:
                     fk_resource = read_fk_map()
                     fk_resource.apply_hints(primary_key=['table_name', 'fk_col', 'ref_table', 'ref_col'])
