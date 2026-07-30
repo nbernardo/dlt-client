@@ -798,33 +798,35 @@ class Workspace:
             schedules = result['data'] if 'data' in result else {}
             schedules = schedules
         
-        for ppline_name, sched in schedules.items():
-            is_paused = sched['is_paused']
-            ppline_name = ppline_name.split('^')[0]
-            if (is_paused == 'paused' and immediate == False) or sched['time'] == None: continue
-
-            _namespace = sched['namespace']
-            _type = sched['type']
-            periodicity = sched['periodicity']
-            time = sched['time']
-            file_path = f'{_namespace}/{ppline_name}'
-            tag_name = f'{_namespace}_{ppline_name}_{time.replace(':','')}'
-
-            if(immediate):
-                _run_async(DltPipeline.run_pipeline_job_sync, file_path, _namespace, exec_id=exec_id, user=user)
-                break
+        
+        if len(list(schedules.items())) == 0 and immediate:
+            file_path = f'{namespace}/{ppline}'
+            _run_async(DltPipeline.run_pipeline_job_sync, file_path, namespace, exec_id=None, user=user)
             
-            if periodicity == 'daily':
-                schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
-            else:
-                time = int(time)
-                if(Workspace.schedule_jobs.get(file_path,None) != True):
-                    if(_type == 'min'):
-                        schedule.every(time).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
-                    if(_type == 'hour'):
-                        schedule.every(time).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
-                    print(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
-                    Workspace.schedule_jobs[file_path] = True
+        else:
+            for ppline_name, sched in schedules.items():
+                is_paused = sched['is_paused']
+                ppline_name = ppline_name.split('^')[0]
+                if (is_paused == 'paused' and immediate == False) or sched['time'] == None: continue
+
+                _namespace = sched['namespace']
+                _type = sched['type']
+                periodicity = sched['periodicity']
+                time = sched['time']
+                file_path = f'{_namespace}/{ppline_name}'
+                tag_name = f'{_namespace}_{ppline_name}_{time.replace(':','')}'
+                
+                if periodicity == 'daily':
+                    schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
+                else:
+                    time = int(time)
+                    if(Workspace.schedule_jobs.get(file_path,None) != True):
+                        if(_type == 'min'):
+                            schedule.every(time).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
+                        if(_type == 'hour'):
+                            schedule.every(time).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
+                        print(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
+                        Workspace.schedule_jobs[file_path] = True
 
         # The infinit loop will be running in a separate thread
         # which will consider all scheduled jobs, when if specified

@@ -6,11 +6,12 @@ from utils.metastore.PipelineCheckpoint import PipelineCheckpoint
 from utils.pipeline.Enums import Checkpoint
 import duckdb
 import os
-from utils.logging.pipeline_logger_config import handle_pipeline_log
+from utils.logging.pipeline_logger_config import handle_pipeline_log, PipelineLogger
 import traceback
 from flask import current_app
 import sys
 from pathlib import Path
+from contextlib import contextmanager
 
 
 def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logger):
@@ -34,13 +35,35 @@ def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logge
 
 
 class PipelineDWPhaseRunner:
+
+    @contextmanager
+    def _capture_stdout(self):
+        original_write = sys.stdout.write
+
+        def patched_write(text):
+            if text.strip():
+                handle_pipeline_log(
+                    text.strip(),
+                    self.logger,
+                    context=self.context,
+                )
+            return original_write(text)
+
+        sys.stdout.write = patched_write
+        try:
+            yield
+        finally:
+            sys.stdout.write = original_write
+
+
     def __init__(self, source_db_path, dest_conn_wrapper, pipeline_name, dataset_name):
         """ 
         Initializes the async wrapper.
         @param source_db_path: The filesystem string path to your source file (e.g., 'path/data.duckdb')
         @param dest_conn_wrapper: The SQLAlchemy Connection object returned from raw_connection()
         """
-        self.source_db_path = source_db_path      
+        self.source_db_path = source_db_path
+        self.wd_db_path = None
         self.dest_conn_wrapper = dest_conn_wrapper
         self.pipeline_name = pipeline_name
         self.dataset_name = dataset_name
@@ -73,9 +96,6 @@ class PipelineDWPhaseRunner:
     def _run_pipeline(self, tables, pks, source_schema=None):
 
         with self.app.app_context():
-            original_write = self._capture_stdout(
-                    lambda msg: handle_pipeline_log(f'[Data Warehouse ingest] {msg}', self.logger, context=self.context)
-                )
 
             os.environ["SCHEMA__NAMING"] = "direct"
             skma = source_schema[0] if type(source_schema) == list else source_schema
@@ -132,6 +152,7 @@ class PipelineDWPhaseRunner:
 
                 dataset_name = self.dataset_name[0] if type(self.dataset_name) == list else self.dataset_name
                 dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
+                
                 pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest, progress='log')
                 
                 import dlt.common.storages.file_storage as file_storage_module
@@ -141,7 +162,7 @@ class PipelineDWPhaseRunner:
                     full_path = os.path.join(self.storage_path, file_path) if not os.path.isabs(file_path) else file_path
                     if os.path.exists(full_path):
                         return _original_delete(self, file_path, *a, **kw)
-
+                # Monkeypatching/replacing the original dlt delete method
                 file_storage_module.FileStorage.delete = _safe_delete
 
                 try:
@@ -152,8 +173,7 @@ class PipelineDWPhaseRunner:
                 except:
                     pass
 
-                resources, count = [], 0
-                incr_fields = str(self.incr_fields).strip('[]')
+                incr_fields, resources = str(self.incr_fields).strip('[]'), []
                 incremental_load_field = incr_fields.split(',')
 
                 for table in tbls:
@@ -167,13 +187,15 @@ class PipelineDWPhaseRunner:
                 @dlt.source(name="dynamic_source")
                 def build_source(): return resources
 
-                result = pipeline.run(build_source(), write_disposition={ 'disposition': 'merge', 'strategy': 'scd2', 'row_version_column_name': '_e2e_row_hash' })
+                result = None
+                with self._capture_stdout():
+                    result = pipeline.run(build_source(), write_disposition={ 'disposition': 'merge', 'strategy': 'scd2', 'row_version_column_name': '_e2e_row_hash' })
+                
                 con.close()
                 msg = f'Completed Data Warehouse data ingestions'
                 handle_pipeline_log(msg, self.logger, context=self.context)
                 #self.context.emit_ppsuccess(exec_id=self.exec_id)
                 self.context.emit_error(error='success', exec_id=self.exec_id)
-
                 return result
             
             except Exception as err:
@@ -185,19 +207,8 @@ class PipelineDWPhaseRunner:
                 handle_pipeline_log(f'Error while ingesting to Datawarehouse: {str(error)}', self.logger, error=True, context=self.context)
 
             finally:
-                self._restore_stdout(original_write)
+                con.close()
 
-
-    def _capture_stdout(self, callback):
-        original_write = sys.stdout.write
-        def patched_write(text):
-            if text.strip(): callback(text)
-            return original_write(text)
-        sys.stdout.write = patched_write
-        return original_write
-
-    def _restore_stdout(self, original_write):
-        sys.stdout.write = original_write
 
 
     def run_async(self, tables, pks, source_schema: Optional[str] = None, callback: Optional[Callable] = None) -> concurrent.futures.Future:
@@ -257,6 +268,7 @@ class PipelineDWPhaseRunner:
 
         dest_native_conn = DuckdbUtil.get_connection_for(f'{db_path}{dwname}.duckdb')
         runner = PipelineDWPhaseRunner(source_db, dest_native_conn, dwname, dataset)
+        runner.wd_db_path = f'{db_path}{dwname}.duckdb'
 
         [params, runner.logger, runner.context, runner.exec_id] = [refs.get('params'), refs.get('logger'), refs.get('context'), refs.get('exec_id')]
         [runner.pipeline, runner.params, runner.incr_fields] = params.get('pipeline'), params, incr_fields
