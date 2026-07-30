@@ -628,7 +628,13 @@ class DltPipeline:
             while True:
                 count = count + 1
                 handle_pipeline_log(f'Process running iteration {count}', logger, False)
-                line = await proc.stdout.readline()
+                line_bytes = await proc.stdout.readline()
+
+                if not line_bytes:
+                    returncode = await proc.wait()
+                    stderr_output = (await proc.stderr.read()).decode().strip()
+                    handle_pipeline_log(f'Subprocess ended (EOF). returncode={returncode}, stderr={stderr_output}', logger, error=True,)
+                    break
                 
                 line = line.decode().strip()
                 result = await asyncio.to_thread(DltPipeline._handle_pipeline_trace, line, refs, context, logger)
