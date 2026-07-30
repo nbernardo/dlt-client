@@ -688,6 +688,7 @@ def immediate_pipeline_action(namespace, pipeline, exec_id = None):
             result = PipelineCheckpoint.archive_failure(namespace, pipeline, exec_id)
             return result
         else:
+            print('Manual Run - in the controller')
             user = request.get_json().get('user')
             DltPipeline.immediate_run(namespace, pipeline, exec_id, user)
         return { 'error': False, 'result': { 'result': 'Pipeline run in progress' } }

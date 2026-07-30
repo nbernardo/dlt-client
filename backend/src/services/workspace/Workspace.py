@@ -798,7 +798,7 @@ class Workspace:
             schedules = result['data'] if 'data' in result else {}
             schedules = schedules
         
-        
+        print(f'Manual Run - In the schedule Job With {len(list(schedules.items()))} and {immediate}')
         if len(list(schedules.items())) == 0 and immediate:
             file_path = f'{namespace}/{ppline}'
             print(f'Immediate run for {file_path}')
