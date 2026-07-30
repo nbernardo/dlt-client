@@ -133,11 +133,16 @@ class PipelineDWPhaseRunner:
                 dataset_name = self.dataset_name[0] if type(self.dataset_name) == list else self.dataset_name
                 dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
                 pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest, progress='log')
+                
+                import dlt.common.storages.file_storage as file_storage_module
+                _original_delete = file_storage_module.FileStorage.delete
 
-                working_dir = pipeline.working_dir
-                if os.path.exists(working_dir):
-                    import shutil
-                    shutil.rmtree(working_dir)
+                def _safe_delete(self, file_path, *a, **kw):
+                    full_path = os.path.join(self.storage_path, file_path) if not os.path.isabs(file_path) else file_path
+                    if os.path.exists(full_path):
+                        return _original_delete(self, file_path, *a, **kw)
+
+                file_storage_module.FileStorage.delete = _safe_delete
 
                 try:
                     fk_resource = read_fk_map()
