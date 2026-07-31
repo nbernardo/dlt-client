@@ -235,47 +235,54 @@ class PipelineDWPhaseRunner:
 
     def run(namespace, data_source, refs):
 
-        msg = 'Preprocessing Stage to Datawarehouse data ingestion'
-        handle_pipeline_log(msg, refs.get('logger'), context=refs.get('context'))
-        job_tag, triggers_cb = refs.get('job_tag'), refs.get('triggers', lambda: None)
+        try:
+            msg = 'Preprocessing Stage to Datawarehouse data ingestion'
+            handle_pipeline_log(msg, refs.get('logger'), context=refs.get('context'))
+            job_tag, triggers_cb = refs.get('job_tag'), refs.get('triggers', lambda: None)
 
-        import schedule
-        schedule.clear(job_tag)
-        if not data_source: return
+            import schedule
+            schedule.clear(job_tag)
+            if not data_source: return
 
-        import platform
-        from utils.duckdb_util import DuckdbUtil
-        from controller.pipeline import BasePipeline
-        
-        dwname = data_source.split('_for_',1)[-1]
-        tables, pks, dataset, incr_fields = refs['dest_tables'], refs['tables_pks'], refs['dataset_name'], refs['incr_fields']
-        
-        if type(tables) == str: 
-            tables = tables.strip('[]').replace(' ','').split(',') if tables.__contains__(',') else [tables.strip('[]')]
+            import platform
+            from utils.duckdb_util import DuckdbUtil
+            from controller.pipeline import BasePipeline
+            
+            dwname = data_source.split('_for_',1)[-1]
+            tables, pks, dataset, incr_fields = refs['dest_tables'], refs['tables_pks'], refs['dataset_name'], refs['incr_fields']
+            
+            if type(tables) == str: 
+                tables = tables.strip('[]').replace(' ','').split(',') if tables.__contains__(',') else [tables.strip('[]')]
 
-        if type(dataset) == str: 
-            dataset = dataset.strip('[]').replace(' ','').split(',') if dataset.__contains__(',') else [dataset.strip('[]')]
+            if type(dataset) == str: 
+                dataset = dataset.strip('[]').replace(' ','').split(',') if dataset.__contains__(',') else [dataset.strip('[]')]
 
-        if type(pks) == str: 
-            pks = pks.strip('[]').replace(' ','').split(',') if pks.__contains__(',') else [pks.strip('[]')]
-        
-        tables = [table.split('.')[-1] if str(table).__contains__('.') else table for table in tables]
-        data_source = data_source[-1] if str(data_source).__contains__('/') else data_source
-        
-        sep = '/' if platform.system() != 'Windows' else '\\\\'
-        db_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}'
-        source_db = f"{db_path}{data_source}.duckdb"
+            if type(pks) == str: 
+                pks = pks.strip('[]').replace(' ','').split(',') if pks.__contains__(',') else [pks.strip('[]')]
+            
+            tables = [table.split('.')[-1] if str(table).__contains__('.') else table for table in tables]
+            data_source = data_source[-1] if str(data_source).__contains__('/') else data_source
+            
+            sep = '/' if platform.system() != 'Windows' else '\\\\'
+            db_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}'
+            source_db = f"{db_path}{data_source}.duckdb"
 
-        dest_native_conn = DuckdbUtil.get_connection_for(f'{db_path}{dwname}.duckdb')
-        runner = PipelineDWPhaseRunner(source_db, dest_native_conn, dwname, dataset)
-        runner.wd_db_path = f'{db_path}{dwname}.duckdb'
+            dest_native_conn = DuckdbUtil.get_connection_for(f'{db_path}{dwname}.duckdb')
+            runner = PipelineDWPhaseRunner(source_db, dest_native_conn, dwname, dataset)
+            runner.wd_db_path = f'{db_path}{dwname}.duckdb'
 
-        [params, runner.logger, runner.context, runner.exec_id] = [refs.get('params'), refs.get('logger'), refs.get('context'), refs.get('exec_id')]
-        [runner.pipeline, runner.params, runner.incr_fields] = params.get('pipeline'), params, incr_fields
+            [params, runner.logger, runner.context, runner.exec_id] = [refs.get('params'), refs.get('logger'), refs.get('context'), refs.get('exec_id')]
+            [runner.pipeline, runner.params, runner.incr_fields] = params.get('pipeline'), params, incr_fields
 
-        cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger)
-        handle_pipeline_log(
-            f'Tables, PKs and Incr-fields to ingest: Tables: {str(tables)}, Pks: {str(pks)}, Incr-fields: {str(incr_fields)}', 
-            refs.get('logger'), context=refs.get('context')
-        )
-        runner.run_async(tables, pks, dataset, callback=cb)
+            cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger)
+            handle_pipeline_log(
+                f'Tables, PKs and Incr-fields to ingest: Tables: {str(tables)}, Pks: {str(pks)}, Incr-fields: {str(incr_fields)}', 
+                refs.get('logger'), context=refs.get('context')
+            )
+            runner.run_async(tables, pks, dataset, callback=cb)
+
+        except Exception as err:
+            handle_pipeline_log(
+                f'Datawarehouse Phase runner exception {str(err)}', 
+                refs.get('logger'), context=refs.get('context')
+            )
