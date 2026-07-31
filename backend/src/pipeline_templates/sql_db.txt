@@ -5,10 +5,6 @@ from sys import path
 %import_from_src%
 from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper
 
-os.environ["SOURCES__SQL_DATABASE__ENGINE_KWARGS"] = json.dumps({
-    "connect_args": {"sslmode": "require"}
-})
-
 logger = PipelineLogger()
 logger.info("Starting SQL database pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db'})
 
@@ -27,12 +23,13 @@ logger.info("Fetching database connection secrets", extra={'stage': 'authenticat
 secret = SecretManager.get_db_secret_from_ppline(namespace, connection_name)
 
 connection_string = secret['connection_url']
+connection_params = f'?sslmode=require' if secret['dbengine'] == 'postgresql' else ''
 
 # Bellow mapping: source_database = SqlDBComponent.source_database
 database_to_connect = %source_database%
 logger.info("Establishing database connection", extra={'stage': 'database_connection', 'database': database_to_connect})
 
-credentials, additionals = ConnectionStringCredentials(connection_string), {}
+credentials, additionals = ConnectionStringCredentials(f'{connection_string}{connection_params}'), {}
 
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()

@@ -622,19 +622,9 @@ class DltPipeline:
             proc.stdin.write(str(job_start_time).encode() + b'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process
             handle_pipeline_log(f'Before draining process for the sent time to subprocess', logger, False)
             await proc.stdin.drain()
-            handle_pipeline_log(f'After draining process for the sent time to subprocess', logger, False)
-            
-            count = 0
-            while True:
-                count = count + 1
-                handle_pipeline_log(f'Process running iteration {count}', logger, False)
-                line_bytes = await proc.stdout.readline()
 
-                if not line_bytes:
-                    returncode = await proc.wait()
-                    stderr_output = (await proc.stderr.read()).decode().strip()
-                    handle_pipeline_log(f'Subprocess ended (EOF). returncode={returncode}, stderr={stderr_output}', logger, error=True,)
-                    break
+            while True:
+                line = await proc.stdout.readline()
                 
                 line = line.decode().strip()
                 result = await asyncio.to_thread(DltPipeline._handle_pipeline_trace, line, refs, context, logger)
