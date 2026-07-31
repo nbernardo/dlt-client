@@ -6,8 +6,6 @@ from controller.pipeline import BasePipeline
 from controller.file_upload import BaseUpload
 from flask_cors import cross_origin
 import threading
-import requests
-import time
 import traceback
 from flask import abort, send_file
 from utils.cache_util import DuckDBCache
@@ -22,6 +20,8 @@ from services.pipeline.DltPipeline import DltPipeline
 from utils.metastore.PipelineMedatata import PipelineMedatata
 import json
 from utils.duckdb_util import DuckdbUtil
+import schedule
+import os
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -149,7 +149,6 @@ def update_socket_id(namespace, socket_id, user = None):
 
 @workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['POST'])
 def create_ppline_schedule(namespace):
-    import schedule
     from services.workspace.Workspace import _run_async
     ppline_name = None
     try:
@@ -371,34 +370,32 @@ def delete_data_file(namespace, filename):
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while removing data file: {str(err)}' }
 
-    
-import os
-def call_scheduled_job():
-    from duckdb import CatalogException
+
+
+
+pattern = r'^use.*$'
+
+def call_scheduled_job(app):
+    import os
+    print("call_scheduled_job ENTERED", flush=True)
 
     if os.path.exists('/.dockerenv'):
-        # In case the app is running in Docker we call the schedul implementation 
-        # straight instead of API call (else case),
+        print("Docker path", flush=True)
         debounce_call_scheduled_job()
-        
     else:
-        def call_end_point():
-            try:
-                time.sleep(2)
+        import time
+        def run_scheduler():
+            print("======= Job Schedule THREAD STARTED =======", flush=True)
+            Workspace.schedule_pipeline_job()
+            with app.app_context():
                 while True:
-                    response = requests.post(f'{env('APP_SRV_ADDR')}/workcpace/ppline/job/schedule/')
-                    if hasattr(response, 'raise_for_status'):
-                        pass
-                        #response.raise_for_status()
-                    if response.status_code == 200 or response.status_code == 204:
-                        break
+                    print("Job Scheduler is running", flush=True)
+                    schedule.run_pending()
                     time.sleep(1)
 
-            except CatalogException:
-                pass
-
-        task = threading.Thread(target=call_end_point)
-        task.start()
+        scheduler_thread = threading.Thread(target=run_scheduler, daemon=False)
+        scheduler_thread.start()
+        print("======= Job Scheduler called =======", flush=True)
     
 
 def debounce_call_scheduled_job():

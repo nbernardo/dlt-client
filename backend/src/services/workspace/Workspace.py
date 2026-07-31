@@ -798,12 +798,10 @@ class Workspace:
             schedules = result['data'] if 'data' in result else {}
             schedules = schedules
         
-        print(f'Manual Run - In the schedule Job With {len(list(schedules.items()))} and {immediate}')
         if len(list(schedules.items())) == 0 and immediate:
+            print(f'Manual Run - In the schedule Job With {len(list(schedules.items()))} and {immediate}')
             file_path = f'{namespace}/{ppline}'
-            print(f'Immediate run for {file_path}')
             _run_async(DltPipeline.run_pipeline_job_sync, file_path, namespace, exec_id=exec_id, user=user)
-            print(f'After Immediate run for {file_path}')
             
         else:
             for ppline_name, sched in schedules.items():
@@ -829,14 +827,6 @@ class Workspace:
                             schedule.every(time).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
                         print(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
                         Workspace.schedule_jobs[file_path] = True
-
-        # The infinit loop will be running in a separate thread
-        # which will consider all scheduled jobs, when if specified
-        # the jobe name (whithin a namespace), it'll run in the mai thread
-        if (namespace == None and ppline == None and immediate == False):
-            while True:
-                schedule.run_pending()
-                timelib.sleep(1)
 
         
     @staticmethod
