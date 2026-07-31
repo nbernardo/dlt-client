@@ -23,7 +23,7 @@ logger.info("Fetching database connection secrets", extra={'stage': 'authenticat
 secret = SecretManager.get_db_secret_from_ppline(namespace, connection_name)
 
 connection_string = secret['connection_url']
-connection_params = f'?sslmode=require' if secret['dbengine'] == 'postgresql' else ''
+connection_params = f'?sslmode=prefer' if secret['dbengine'] == 'postgresql' else ''
 
 # Bellow mapping: source_database = SqlDBComponent.source_database
 database_to_connect = %source_database%

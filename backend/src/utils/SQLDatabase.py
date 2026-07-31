@@ -233,15 +233,14 @@ class SQLDatabase:
         message, error = '', False
 
         try:
-            dd = ''
 
             if dbengine == 'postgresql':
                 with create_engine(
-                    query_string,
-                    pool_pre_ping=True,  
-                    pool_recycle=600,
-                    pool_size=10,
-                    max_overflow=20
+                    query_string+'?sslmode=prefer',
+                    pool_pre_ping=True,
+                    pool_recycle=1800,
+                    isolation_level="AUTOCOMMIT",
+                    use_native_hstore=False
                 ).connect() as conn:
                     conn.execute(text("SELECT 1"))
                     error = False
