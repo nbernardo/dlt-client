@@ -65,10 +65,11 @@ def load_select_tables_from_db():
             schema, table = tables[idx].split('.')
         logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
         
+        engine_kwargs = {'pool_pre_ping': True, 'pool_recycle': 1800} if secret['dbengine'] == 'postgresql' else {}
         if schema != '':
-            db_table = sql_table(table=table,  credentials=credentials, schema=schema)
+            db_table = sql_table(table=table,  credentials=credentials, schema=schema, engine_kwargs=engine_kwargs)
         else:
-            db_table = sql_table(table=table,  credentials=credentials)
+            db_table = sql_table(table=table,  credentials=credentials, engine_kwargs=engine_kwargs)
 
         db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
 
