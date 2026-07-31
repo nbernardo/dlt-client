@@ -296,7 +296,13 @@ class SQLConnection:
 
         connection_string = str(connection_string).replace(postgress_prefix,psycopa2_driver_prefix)
 
-        connection = create_engine(connection_string)
+        connection = create_engine(
+            connection_string+'?sslmode=prefer',
+            pool_pre_ping=True,
+            pool_recycle=1800,
+            isolation_level="AUTOCOMMIT",
+            use_native_hstore=False
+        )
         SQLDatabase.connections['postgresql'][connection_key] = connection, database
 
         return connection, database

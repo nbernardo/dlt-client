@@ -173,6 +173,9 @@ class PipelineCheckpoint:
         import json
 
         cnx = DuckdbUtil.get_workspace_db_instance()
+        # checkpoint variables creates the checkpoint table used in the query
+        checkpoint = PipelineCheckpoint._get_table().to_arrow()
+
         query = f"""
             SELECT * FROM (
                 SELECT DISTINCT ON (cp.id) cp.*
@@ -183,8 +186,6 @@ class PipelineCheckpoint:
             )
             ORDER BY TRY_CAST(update_time AS TIMESTAMP) DESC
         """
-        # checkpoint variables creates the checkpoint table used in the query
-        checkpoint = PipelineCheckpoint._get_table().to_arrow()
         result = cnx.query(query).df()
 
         return json.loads(result.to_json(orient="records"))
