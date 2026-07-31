@@ -639,14 +639,15 @@ class DltPipeline:
             dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             [short_query, dataset_name] = [refs.get('short_query'), pipeline_metadata[7]]
 
-            handle_pipeline_log(f'Stage runtime update', logger, False)
             await asyncio.to_thread(DltPipeline.update_pipline_runtime, namespace, ppline_name, dt, param_list.get('sched_time'))
-            handle_pipeline_log(f'Pipeline checkpoint update', logger, False)
+            handle_pipeline_log(f'Stage runtime update', logger, False)
             await asyncio.to_thread(PipelineCheckpoint.update, pipeline, None, params)
-            handle_pipeline_log(f'Pipeline metadata update', logger, False)
+            handle_pipeline_log(f'Pipeline checkpoint update', logger, False)
             await asyncio.to_thread(MetaStore.update_metadata, namespace, pipeline, dataset_name, short_query)
-            
+            handle_pipeline_log(f'Pipeline metadata update', logger, False)
+            handle_pipeline_log(f'====== Before Data warehouse stage ====== {context.pipeline_metadata.stage_storage}', logger, False)
             if context.pipeline_metadata.stage_storage:
+                handle_pipeline_log(f'====== Next -> Data warehouse stage ======', logger, False)
                 job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
                 triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
                 refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': mdta[9], 'tables_pks': mdta[10], 'src_db_name': mdta[12] }
