@@ -57,7 +57,7 @@ add_app_custom_handlers(app)
 
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
     app.register_blueprint(logs)
-    call_scheduled_job()
+    call_scheduled_job(app)
     setup_logging(app)
     DuckDBCache.connect()
     DuckdbUtil.initialize_logging_tables()
