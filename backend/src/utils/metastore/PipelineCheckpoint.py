@@ -174,8 +174,14 @@ class PipelineCheckpoint:
 
         cnx = DuckdbUtil.get_workspace_db_instance()
         query = f"""
-            SELECT DISTINCT ON (cp.id) cp.* FROM main.ppline_schedule ps RIGHT JOIN checkpoint cp ON ps.ppline_name = cp.pipeline
-            WHERE cp.status = '{status if status else 'FAILED'}' and cp.namespace = '{namespace}'
+            SELECT * FROM (
+                SELECT DISTINCT ON (cp.id) cp.*
+                FROM main.ppline_schedule ps
+                RIGHT JOIN checkpoint cp ON ps.ppline_name = cp.pipeline
+                WHERE cp.status = '{status if status else 'FAILED'}' AND cp.namespace = '{namespace}'
+                ORDER BY cp.id, TRY_CAST(cp.update_time AS TIMESTAMP) DESC
+            )
+            ORDER BY TRY_CAST(update_time AS TIMESTAMP) DESC
         """
         # checkpoint variables creates the checkpoint table used in the query
         checkpoint = PipelineCheckpoint._get_table().to_arrow()

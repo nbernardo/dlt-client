@@ -193,16 +193,16 @@ class Workspace:
                     result[_file] = {}
 
                 curr_schedule = pipeline_schedules['data'].get(ppline_name, None)
-                if DuckDBCache.get(f'{files_path}{_file}') != None:
-                    result[_file][k] = { 
-                        'ppline': ppline_name,
-                        'dbname': None, 'table': [], 'db_size': None, 'col_count': 0, 'fields': [],
-                        'flag': 'Pipeline tables in use by another process/Job',
-                        'is_scheduled': curr_schedule.get('time') != None,
-                        'is_scheduled_paused': curr_schedule.get('is_paused'),
-                        'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
-                    }
-                    continue
+                # if DuckDBCache.get(f'{files_path}{_file}') != None:
+                #     result[_file][k] = { 
+                #         'ppline': ppline_name,
+                #         'dbname': None, 'table': [], 'db_size': None, 'col_count': 0, 'fields': [],
+                #         'flag': 'Pipeline tables in use by another process/Job',
+                #         'is_scheduled': curr_schedule.get('time') != None,
+                #         'is_scheduled_paused': curr_schedule.get('is_paused'),
+                #         'short_settings': f'{curr_schedule.get('periodicity')} {curr_schedule.get('time')} {curr_schedule.get('type')}' if curr_schedule != None else '',
+                #     }
+                #     continue
                 files_path = files_path[0:-1] if str(files_path).endswith('/') else files_path
                 tables_list = Workspace.get_tables(f'{files_path}/{_file}',None, user)
 
