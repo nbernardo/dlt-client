@@ -204,6 +204,7 @@ class PipelineDWPhaseRunner:
                 PipelineCheckpoint.update(self.pipeline, params=self.params)
                 error = traceback.format_exc()
                 f'Error while ingesting to Datawarehouse: {str(error)}'
+                self.context.emit_error(error='Error', exec_id=self.exec_id)
                 handle_pipeline_log(f'Error while ingesting to Datawarehouse: {str(error)}', self.logger, error=True, context=self.context)
 
             finally:

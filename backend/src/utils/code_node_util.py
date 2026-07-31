@@ -53,6 +53,7 @@ valid_imports = [
     'import re',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, ChkPoint',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, get_sql_connection',
     'import datetime',
     'from datetime import datetime, timezone',
 ]

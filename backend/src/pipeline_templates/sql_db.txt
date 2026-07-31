@@ -3,7 +3,7 @@ from dlt.sources.credentials import ConnectionStringCredentials
 from dlt.sources.sql_database import sql_database, sql_table
 from sys import path
 %import_from_src%
-from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, get_sql_connection
 
 logger = PipelineLogger()
 logger.info("Starting SQL database pipeline", extra={'stage': 'initialization', 'template_type': 'sql_db'})
@@ -22,14 +22,11 @@ print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
 logger.info("Fetching database connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
 secret = SecretManager.get_db_secret_from_ppline(namespace, connection_name)
 
-connection_string = secret['connection_url']
-connection_params = f'?sslmode=prefer' if secret['dbengine'] == 'postgresql' else ''
-
 # Bellow mapping: source_database = SqlDBComponent.source_database
 database_to_connect = %source_database%
 logger.info("Establishing database connection", extra={'stage': 'database_connection', 'database': database_to_connect})
 
-credentials, additionals = ConnectionStringCredentials(f'{connection_string}{connection_params}'), {}
+custom_engine, additionals = get_sql_connection(secret['connection_url'], secret['dbengine']), {}
 
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()
@@ -65,26 +62,8 @@ def load_select_tables_from_db():
             schema, table = tables[idx].split('.')
         logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
         
-        engine_kwargs = {}
-        if secret['dbengine'] == 'postgresql':
-            engine_kwargs = {
-                "pool_pre_ping": True,
-                "pool_recycle": 600,
-                "isolation_level": "AUTOCOMMIT",
-                "use_native_hstore": False,
-                "connect_args": {
-                    "keepalives": 1, 
-                    "keepalives_idle": 5, 
-                    "keepalives_interval": 2,
-                    "keepalives_count": 3, 
-                    "options": "-c statement_timeout=0"
-                }
-            }
-
-        if schema != '':
-            db_table = sql_table(table=table,  credentials=credentials, schema=schema, engine_kwargs=engine_kwargs)
-        else:
-            db_table = sql_table(table=table,  credentials=credentials, engine_kwargs=engine_kwargs)
+        db_table = sql_table(table=table,  credentials=custom_engine, schema=schema)\
+            if schema != '' else sql_table(table=table,  credentials=custom_engine)
 
         db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
 
@@ -107,9 +86,8 @@ def load_select_tables_from_db():
     info = pipeline.run(source, write_disposition='merge', %table_format%)
     
     if hasattr(info, 'loads_ids') and info.loads_ids:
-        logger.info("SQL database pipeline execution completed successfully", extra={
-            'stage': 'pipeline_completion', 'loads_ids': str(info.loads_ids), 'tbl_count': len(tables), 'dataset_name': getattr(info, 'dataset_name', 'unknown'), 'template_type': 'sql_db'
-        })
+        extra = {'stage': 'pipeline_completion', 'loads_ids': str(info.loads_ids), 'tbl_count': len(tables), 'dataset_name': getattr(info, 'dataset_name', 'unknown'), 'template_type': 'sql_db'}
+        logger.info("SQL database pipeline execution completed successfully", extra=extra)
     else:
         logger.info("SQL database pipeline execution completed", extra={ 'stage': 'pipeline_completion', 'tbl_count': len(tables), 'template_type': 'sql_db' })
     

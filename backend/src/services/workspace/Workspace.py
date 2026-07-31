@@ -798,7 +798,7 @@ class Workspace:
             schedules = result['data'] if 'data' in result else {}
             schedules = schedules
         
-        if len(list(schedules.items())) == 0 and immediate:
+        if len(list(schedules.items())) >= 0 and immediate:
             print(f'Manual Run - In the schedule Job With {len(list(schedules.items()))} and {immediate}')
             file_path = f'{namespace}/{ppline}'
             _run_async(DltPipeline.run_pipeline_job_sync, file_path, namespace, exec_id=exec_id, user=user)
