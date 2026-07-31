@@ -99,7 +99,7 @@ class RequestContext:
         This emit Websocket error message for a
         specific pipeline execution step
         """
-        emit(
+        socketio.emit(
             RequestContext.step_error,
             {'componentId': obj.component_id if obj != None else '',
                 'sid': self.socket_sid, 'error': error, 'time': self.get_time(), 'exec_id': exec_id },
@@ -114,7 +114,7 @@ class RequestContext:
         This emit Websocket success message for a
         specific pipeline execution step
         """
-        emit(
+        socketio.emit(
             RequestContext.step_success,
             {'componentId': obj.component_id,
                 'data': data, 'sid': self.socket_sid, 'time': self.get_time()},
@@ -129,7 +129,7 @@ class RequestContext:
         This emit Websocket success message for a
         specific pipeline execution step
         """
-        emit(
+        socketio.emit(
             RequestContext.step_success,
             {'componentId': component_id,
                 'data': data, 'sid': self.socket_sid, 'time': self.get_time()},
@@ -144,7 +144,7 @@ class RequestContext:
         This emit Websocket success message for a
         specific pipeline execution step
         """
-        emit(
+        socketio.emit(
             RequestContext.step_start,
             {'componentId': obj.component_id, 'data': data,
                 'sid': self.socket_sid, 'time': self.get_time()},
@@ -160,7 +160,7 @@ class RequestContext:
         specific pipeline execution step
         """
         if not self.success_emitted:
-            emit(
+            socketio.emit(
                 RequestContext.ppline_success,
                 {'success': data, 'sid': self.socket_sid, 'time': self.get_time(), 'exec_id': exec_id },
                 to=self.socket_sid,
@@ -175,7 +175,7 @@ class RequestContext:
         This emit trace to UI so it can be used to print accordingly 
         (e.g. logs)
         """
-        emit(
+        socketio.emit(
             RequestContext.ppline_trace,
             { 'data': data, 'sid': self.socket_sid, 'time': self.get_time(), 'error': error, 'job': job, 'warn': warn },
             to=self.socket_sid,
