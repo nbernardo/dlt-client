@@ -14,7 +14,7 @@
 	
 			<div id="sec-pipline-summary" class="section active">
 				<div class="toolbar">
-					<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="pipline-summary-search" oninput="controller.renderDict()">
+					<input type="text" class="search" placeholder="$bundle.gov.inpt.searchLbl" id="pipline-summary-search" onkeyup="component.search(this.value)">
 				</div>
 				<div class="table-wrap">
 					<span (showIf)="self.showHistory == 1">

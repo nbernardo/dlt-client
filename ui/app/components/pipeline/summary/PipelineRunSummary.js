@@ -125,7 +125,8 @@ export class PipelineRunSummary extends ViewComponent {
 						<div class="txt-bold">${item.timestamp}</div><div class="txt-mute">#${item.id}</div>
 					</td>
 					<td>
-						<div class="txt-bold has-pipeline-complete has-pipeline-complete-${item.is_complete}"></div>
+						<!-- <div class="txt-bold has-pipeline-complete has-pipeline-complete-${item.is_complete}"></div> -->
+						<div class="txt-bold has-pipeline-complete has-pipeline-complete-${item.log_level != 'ERROR'}"></div>
 					</td>
 					<td><span class="log-tag log-type-${item.log_level}">${item.log_level}</span></td>
 					<td><div class="txt-mute">${item.execution_id}</div></td>
@@ -145,15 +146,19 @@ export class PipelineRunSummary extends ViewComponent {
 		}
 	}
 
+	/** @Prop */ runHistoryState = { success: [], archive: [], fails: undefined }
 	async getSuccessPipelineHistory(status, el, grid){
 		this.showHistory = grid;
 		switchActiveTab(this, null, el)
 		const result = await PipelineService.getPipelinesRunHistory(status);
-		if(grid == 2)
+		if(grid == 2){
 			this.successRuns = result.map(PipelineRunSummary.parseRunListResult);
-		if(grid == 3)
+			this.runHistoryState.success = this.successRuns.value;
+		}
+		if(grid == 3){
 			this.archivedRuns = result.map(PipelineRunSummary.parseRunListResult);
-			
+			this.runHistoryState.archive = this.archivedRuns.value;
+		}
 	}
 	
 	static parseRunListResult(row){
@@ -168,6 +173,23 @@ export class PipelineRunSummary extends ViewComponent {
 
 		return row;
 
+	}
+
+	search(value){
+		if(this.showHistory == 1){
+			if(!this.runHistoryState.fails) 
+				this.runHistoryState.fails = this.runList.value;
+			this.runList = value === '' ? this.runHistoryState.fails : this.runList.value.filter(r => this.genericLogic(r, value));
+		}
+		if(this.showHistory == 2)
+			this.successRuns = value === '' ? this.runHistoryState.success : this.successRuns.value.filter(r => this.genericLogic(r, value));
+		if(this.showHistory == 3)
+			this.archivedRuns = value === '' ? this.runHistoryState.archive : this.archivedRuns.value.filter(r => this.genericLogic(r, value));
+	}
+	
+	genericLogic(itm, value){
+		return itm.pipeline.toLowerCase().indexOf(value.toLowerCase()) >= 0 
+				|| itm.id.toLowerCase().indexOf(value.toLowerCase()) > 0
 	}
 
 }
