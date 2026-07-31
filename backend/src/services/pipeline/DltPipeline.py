@@ -511,7 +511,8 @@ class DltPipeline:
         if(status):
         """
         context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
-        context.emit_ppsuccess()
+        #context.emit_ppsuccess()
+        context.success_emitted = True
         handle_pipeline_log(f'pipeline.success.conclusion', logger)
 
         clear_job_transaction_id(job_execution_id)
