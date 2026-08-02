@@ -5,8 +5,8 @@ from services.workspace.SecretManager import SecretManager
 import traceback
 import re
 from utils.pipeline.Enums import DestinationType, ProviderURL
-from flask import jsonify
 import base64
+import logging
 
 
 def serialize_value(val):
@@ -48,7 +48,7 @@ class DestinationQueryUtil:
                 return { 'error': True, 'result': f'Unsupported destination type: {dest_type}', 'code': 'err' }
                 
         except Exception as err:
-            print(f'Error executing query: {query}')
+            logging.error(f'Error executing query: {query}')
             print(traceback.format_exc())
             return { 'error': True, 'result': str(err), 'code': 'err' }
 
@@ -69,7 +69,7 @@ class DestinationQueryUtil:
             return {'result': result, 'fields': fields}
             
         except Exception as err:
-            print(f'Error querying DuckDB: {str(err)}')
+            logging.error(f'Error querying DuckDB: {str(err)}')
             raise
 
 
@@ -89,12 +89,12 @@ class DestinationQueryUtil:
             result = [tuple(row) for row in df.iter_rows()]
             fields = ','.join(df.columns)
                 
-            print(f'Query successful using Polars, returned {len(result)} rows')
+            logging.info(f'Query successful using Polars, returned {len(result)} rows')
             return {'result': result, 'fields': fields, 'db_engine': db_engine, 'db_name': secret.get('database'), 'db_host': secret.get('host') }
             
         except Exception as err:
-            print(f'Error querying SQL database: {str(err)}')
-            print(f'Connection: {connection_name}, Namespace: {namespace}')
+            logging.error(f'Error querying SQL database: {str(err)}')
+            logging.error(f'Connection: {connection_name}, Namespace: {namespace}')
             raise
 
 
@@ -118,8 +118,8 @@ class DestinationQueryUtil:
             return { 'result': rows, 'fields': fields, 'db_engine': db_engine }
             
         except Exception as err:
-            print(f'Error querying SQL database: {str(err)}')
-            print(f'Connection: {connection_name}, Namespace: {namespace}')
+            logging.error(f'Error querying SQL database: {str(err)}')
+            logging.error(f'Connection: {connection_name}, Namespace: {namespace}')
             return { 'error': True, 'result': str(err) }
 
 

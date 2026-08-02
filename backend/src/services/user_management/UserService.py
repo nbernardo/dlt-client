@@ -7,6 +7,7 @@ import functools
 from flask import request
 import jwt
 from services.user_management.UserAccessLevel import UserAccessLevel
+import logging
 
 DB_ENCRYPTION_KEY = os.environ.get("SQLITE_DB_ENCRYPTION_KEY")
 ROOT_USERNAME = os.environ.get("ROOT_USERNAME", "root")
@@ -136,9 +137,9 @@ class UserService:
                     (ROOT_USERNAME, hashed_root_password, root_permissions, 'No', NAMESPACE, f'{ROOT_USERNAME}@{NAMESPACE}')
                 )
                 await conn.commit()
-                print("[SEED] Root user seeded successfully.")
+                logging.error("[SEED] Root user seeded successfully.")
             else:
-                print("[SEED] Root user already exists. Skipping seed step.")
+                logging.error("[SEED] Root user already exists. Skipping seed step.")
 
 
     async def seed_rbac():

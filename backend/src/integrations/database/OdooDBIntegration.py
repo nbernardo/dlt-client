@@ -1,5 +1,6 @@
 from utils.DestinationQueryUtil import DestinationQueryUtil
 from utils.metastore.PipelineMedatata import PipelineMedatata
+import logging
 
 class OdooDBIntegration:
         
@@ -29,7 +30,7 @@ class OdooDBIntegration:
             result = DestinationQueryUtil._query_sql_database(query, namespace, connection_name)
             return result
         except Exception as err:
-            print(f'Error while fetching Odoo modules: {str(err)}')
+            logging.error(f'Error while fetching Odoo modules: {str(err)}')
             return {}
     
 
@@ -152,5 +153,5 @@ class OdooDBIntegration:
             return { 'tables': tables.get('result', {}), 'relations': relations.get('result', {}) }
         
         except Exception as err:
-            print(f'Error while fetching Odoo modules: {str(err)}')
+            logging.error(f'Error while fetching Odoo modules: {str(err)}')
             return {}

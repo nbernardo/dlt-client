@@ -4,6 +4,7 @@ from controller.RequestContext import RequestContext
 import os
 import uuid
 from utils.pipeline import NodeType
+import logging
 
 class DuckDBOutput(TemplateNodeType):
     """
@@ -74,4 +75,4 @@ class DuckDBOutput(TemplateNodeType):
                 self.notify_completion_to_ui()
 
         except Exception as err:
-            print(f'Error on querying DB {err}')
+            logging.error(f'Error on querying DB {err}')

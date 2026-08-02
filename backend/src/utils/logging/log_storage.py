@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 from utils.duckdb_util import DuckdbUtil
 import asyncio
+import logging
 
 class DuckDBLogStore:
     """Simplified DuckDB store focusing on batch performance with auto-parsing."""
@@ -71,7 +72,7 @@ class DuckDBLogStore:
             
             conn.executemany(query, batch_data)
         except Exception as e:
-            print(f"DuckDB Batch Write Failed: {e}")
+            logging.error(f"DuckDB Batch Write Failed: {e}")
 
 
     def fetch_perspective(self, pipeline_id=None, execution_id=None, level=None, days_back=None):

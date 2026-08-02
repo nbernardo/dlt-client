@@ -1,6 +1,7 @@
 import duckdb
 import time
 from duckdb import DuckDBPyConnection
+import logging
 
 class DuckdbUtil:
 
@@ -19,7 +20,7 @@ class DuckdbUtil:
                     database_name, schema_name, table_name, \
                     estimated_size, column_count FROM \
                     duckdb_tables {where_clause}"
-        print(f'THE QUERY WILL BE: {query}')
+        logging.info(f'THE QUERY WILL BE: {query}')
         return cursor.execute(query)
     
 
@@ -233,7 +234,7 @@ class DuckdbUtil:
             DuckdbUtil.db_connections[db_filename].query('SELECT 1')
             return DuckdbUtil.db_connections[db_filename]
         except duckdb.ConnectionException as err:
-            print(f'Reconnecting to DB {db_filename}')
+            logging.error(f'Reconnecting to DB {db_filename}')
 
             try: DuckdbUtil.db_connections[db_filename].close() 
             except: pass
@@ -256,9 +257,9 @@ class DuckdbUtil:
         """
         try:
             DuckdbUtil.create_pipeline_logs_table()
-            print("Pipeline logs table initialized successfully")
+            logging.info("Pipeline logs table initialized successfully")
         except Exception as e:
-            print(f"Error initializing logging tables: {e}")
+            logging.error(f"Error initializing logging tables: {e}")
             # Don't raise the exception to prevent application startup failure
             # Logging should be optional and not break the main application
 
@@ -295,7 +296,7 @@ class DuckdbUtil:
 
             return result.to_pylist()
         except Exception as e:
-            print(f"Error while running analytics: {e}")
+            logging.error(f"Error while running analytics: {e}")
 
 
     @staticmethod
@@ -321,7 +322,7 @@ class DuckdbUtil:
             
             return result.to_pylist() if result else result
         except Exception as e:
-            print(f"Error while running analytics: {e}")
+            logging.error(f"Error while running analytics: {e}")
 
 
 
@@ -338,7 +339,7 @@ class DuckdbUtil:
 
             return result.to_pylist()
         except Exception as e:
-            print(f"Error while running analytics: {e}")
+            logging.error(f"Error while running analytics: {e}")
 
 
     @staticmethod
@@ -356,7 +357,7 @@ class DuckdbUtil:
 
             return result.to_pylist()
         except Exception as e:
-            print(f"Error while running analytics: {e}")
+            logging.error(f"Error while running analytics: {e}")
 
 
 

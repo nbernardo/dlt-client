@@ -7,6 +7,7 @@ from sqlglot.optimizer.qualify import qualify
 from collections import defaultdict
 import hashlib
 import re
+import logging
 
 class UserAccessLevel:
 
@@ -85,7 +86,7 @@ class UserAccessLevel:
                 return { 'result': result, 'total_not_allowed': total_not_allowed }
                 
             except Exception as err:
-                print(f'Error while fetching constraint: {str(err)}')
+                logging.error(f'Error while fetching constraint: {str(err)}')
                 return {}
 
 
@@ -105,7 +106,7 @@ class UserAccessLevel:
 
                 return result
             except Exception as err:
-                print(f'Error while fetching constraint: {str(err)}')
+                logging.error(f'Error while fetching constraint: {str(err)}')
 
 
     def extract_and_translate_query(con, sql_query, dw=None, dialect="tsql"):

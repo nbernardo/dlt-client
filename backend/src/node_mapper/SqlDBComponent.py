@@ -2,6 +2,7 @@ from .TemplateNodeType import TemplateNodeType
 from controller.RequestContext import RequestContext
 from services.pipeline.DltPipeline import DltPipeline
 from utils.pipeline import NodeType
+import logging
 
 class SqlDBComponent(TemplateNodeType):
     """
@@ -97,7 +98,7 @@ class SqlDBComponent(TemplateNodeType):
         Run the initial steps
         """
         super().run()
-        print(f'Inited Source SqlDb with : \
+        logging.info(f'Started Source SqlDb with : \
               {self.source_database} and {self.source_tables}\
               and DBEngine is {self.source_dbengine}')
         self.check_db_and_tables(self.source_tables)

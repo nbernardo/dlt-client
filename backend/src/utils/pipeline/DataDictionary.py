@@ -1,5 +1,6 @@
 import duckdb
 from duckdb import DuckDBPyConnection
+import logging
 
 class DataDictionary:
   ...
@@ -23,7 +24,7 @@ class DataDictionary:
       con.execute(query)
 
     except Exception as err:
-      print(f'Error while creating dictionary_table -> {str(err)}')
+      logging.error(f'Error while creating dictionary_table -> {str(err)}')
       ...
 
   
@@ -45,7 +46,7 @@ class DataDictionary:
       
     except Exception as err:
       error = str(err)
-      print(f'Error while updating the dictionary: {str(err)}')
+      logging.error(f'Error while updating the dictionary: {str(err)}')
       
     finally:
       con.close()

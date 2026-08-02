@@ -8,10 +8,9 @@ from utils.duckdb_util import DuckdbUtil
 from tabulate import tabulate
 from services.pipeline.DltPipeline import DltPipeline
 import schedule
-import time as timelib
-from utils.cache_util import DuckDBCache
 import threading
 from flask import current_app
+import logging
 
 pattern = r'^use.*$'
 
@@ -442,10 +441,6 @@ class Workspace:
             cnx = DuckdbUtil.get_connection_for(f'{database}')
             cursor = cnx.cursor()
             and_where_clause = f'AND {where}' if where is not None else ''
-            query = f"SELECT \
-                        database_name, schema_name, table_name, \
-                        estimated_size, column_count FROM \
-                        duckdb_tables {and_where_clause}"
 
             new_query = f"""SELECT DISTINCT
                         t.database_name, t.schema_name, t.table_name,
@@ -456,7 +451,7 @@ class Workspace:
                         WHERE t.schema_name NOT IN ('dwhperformance_meta') {and_where_clause} 
                     ORDER BY t.table_name, column_name"""
             
-            print(f'Fetching DuckDb tables: {new_query}')
+            logging.info(f'Fetching DuckDb tables: {new_query}')
             
             return { 'tables': cursor.execute(new_query) }
         except duckdb.IOException as err:
@@ -499,20 +494,20 @@ class Workspace:
             return { 'result': result, 'fields': fields }
         
         except duckdb.BinderException as err:
-            print(f'Error while running query: {query}')
-            print(str(err))
+            logging.error(f'Error while running query: {query}')
+            logging.error(str(err))
             return { 'error': True, 'result': str(err), 'code': 'err' }
                     
         except duckdb.IOException as err:
 
-            print(f'Error while accessing the DB: query: {query}')
-            print(str(err))
+            logging.error(f'Error while accessing the DB: query: {query}')
+            logging.error(str(err))
             return { 'error': True, 'result': str(err), 'code': 'err' }
         
         except Exception as err:
 
-            print(f'Error while running query: {query}')
-            print(str(err))
+            logging.error(f'Error while running query: {query}')
+            logging.error(str(err))
             return { 'error': True, 'result': str(err), 'code': 'err' }
     
     
@@ -558,7 +553,7 @@ class Workspace:
             cursor.execute(query)
 
         except Exception as err:
-            print({ 'error': True, 'error_list': err })
+            logging.error({ 'error': True, 'error_list': str(err) })
     
 
     @staticmethod
@@ -576,7 +571,7 @@ class Workspace:
             cursor.execute(query)
 
         except duckdb.IOException as err:
-            print({ 'error': True, 'error_list': err })
+            print({ 'error': True, 'error_list': str(err) })
     
 
     def parse_time_to_minutes(time_str: str) -> int:
@@ -684,7 +679,7 @@ class Workspace:
                 cursor.execute(f"INSERT INTO {table} (path) VALUES ('{path}')")
 
         except duckdb.IOException as err:
-            print({ 'error': True, 'error_list': err })
+            print({ 'error': True, 'error_list': str(err) })
     
 
     @staticmethod
@@ -696,19 +691,21 @@ class Workspace:
             return result.fetchone()
 
         except duckdb.IOException as err:
-            print({ 'error': True, 'error_list': err })
+            print({ 'error': True, 'error_list': str(err) })
 
 
     @staticmethod
-    def del_ppline_schedule(namespace, pipeline, id):
+    def del_ppline_schedule(namespace, pipeline, id, time):
 
         try:
             query = f"DELETE FROM ppline_schedule WHERE id = ?"
             DuckdbUtil.get_workspace_db_instance().execute(query, [id])
+            tag_name = f'{namespace}_{pipeline}_{time.replace(':','')}'
             result = Workspace.get_ppline_schedule(namespace,pipeline)
+            schedule.clear(tag_name)
             return result
         except Exception as err:
-            return { 'error': True, 'result': str(err) }
+            return { 'error': True, 'result': str(err) } 
 
 
     @staticmethod
@@ -799,7 +796,7 @@ class Workspace:
             schedules = schedules
         
         if len(list(schedules.items())) >= 0 and immediate:
-            print(f'Manual Run - In the schedule Job With {len(list(schedules.items()))} and {immediate}')
+            logging.info(f'Manual Run - In the schedule Job With {len(list(schedules.items()))} and {immediate}')
             file_path = f'{namespace}/{ppline}'
             _run_async(DltPipeline.run_pipeline_job_sync, file_path, namespace, exec_id=exec_id, user=user)
             
@@ -825,7 +822,7 @@ class Workspace:
                             schedule.every(time).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
                         if(_type == 'hour'):
                             schedule.every(time).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
-                        print(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
+                        logging.info(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
                         Workspace.schedule_jobs[file_path] = True
 
         

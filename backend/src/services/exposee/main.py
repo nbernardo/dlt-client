@@ -12,6 +12,7 @@ from controller.pipeline import BasePipeline
 from controller.user_management import require_permission
 from services.user_management.UserService import UserService
 import asyncio
+import logging
 
 duckdb_bridge = Blueprint('duckdb_bridge', __name__)
 
@@ -91,7 +92,7 @@ def query_parquet(namespace = None, dw = None):
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        print(f"DATABASE ERROR CRASH: {str(e)}")
+        logging.error(f"DATABASE ERROR CRASH: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -131,7 +132,7 @@ def query_parquet_export(namespace = None, dw = None):
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        print(f"DATABASE ERROR CRASH: {str(e)}")
+        logging.error(f"DATABASE ERROR CRASH: {str(e)}")
         if flpath and os.path.exists(flpath):
             os.remove(flpath)
         return jsonify({"error": str(e)}), 500

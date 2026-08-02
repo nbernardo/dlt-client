@@ -16,7 +16,6 @@ class AsyncDuckDBHandler(logging.Handler):
 
 
 def setup_logging(app=None):
-    print('App Version 0.1')
     log_queue = Queue(-1)
     store = DuckDBLogStore()
     

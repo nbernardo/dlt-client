@@ -6,6 +6,7 @@ import traceback
 from services.workspace.supper.SecretManagerType import SecretManagerType
 import utils.database_secret as DBSecret
 from utils.SQLDatabase import SQLConnection
+import logging
 
 
 def referencedSecrets(namespace, secret_names):
@@ -90,7 +91,7 @@ class SecretManager(SecretManagerType):
         except (InvalidPath, InvalidRequest):
             SecretManager.create_namespace(namespace, type)
         except Exception as error:
-            print(f'Error while reading vault namespace for {namespace} - {str(error)}')
+            logging.error(f'Error while reading vault namespace for {namespace} - {str(error)}')
             print(traceback.print_exc())
             exception = True
         finally:
@@ -187,7 +188,7 @@ class SecretManager(SecretManagerType):
             )
             data = secrets['data']['data']
         except Exception as err:
-            print('RUNTIME_WARNING:Error on getting the secrets: ', str(err))
+            logging.error('RUNTIME_WARNING:Error on getting the secrets: ', str(err))
             raise err
         return data
     
@@ -201,7 +202,6 @@ class SecretManager(SecretManagerType):
             path=path,
             mount_point=namespace
         )
-        print(secrets)
         return secrets['data']['keys']
         
 
@@ -214,7 +214,7 @@ class SecretManager(SecretManagerType):
         try:
             secret_paths = SecretManager.vault_instance.secrets.kv.v2.list_secrets(path='main', mount_point=namespace)
         except InvalidPath as err:
-            print('Error while reading secrets list: ')
+            logging.error('Error while reading secrets list: ')
             print(err)
             return None
         
@@ -270,7 +270,7 @@ class SecretManager(SecretManagerType):
             return SecretManager.get_db_secret(namespace, connection_name, from_pipeline = True)
         except:
             import sys
-            print('RUNTIME_ERROR:Error wilhe getting secrets for pipeline database connnectivity')
+            logging.error('RUNTIME_ERROR:Error wilhe getting secrets for pipeline database connnectivity')
             sys.exit(0)
             
 
@@ -303,7 +303,7 @@ class SecretManager(SecretManagerType):
 
 
 if __name__ == '__main__':
-    print('Standalone running')
+    logging.error('Standalone running')
 
     vault_url = ''
     vault_token = ''

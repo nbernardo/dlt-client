@@ -22,6 +22,7 @@ import json
 from utils.duckdb_util import DuckdbUtil
 import schedule
 import os
+import logging
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -180,15 +181,15 @@ def create_ppline_schedule(namespace):
             if(_type == 'hour'):
                 schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
 
-        schedule.every(20).seconds.do(lambda: print(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
-        print(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
+        schedule.every(20).seconds.do(lambda: logging.info(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
+        logging.info(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
         schedule.run_pending()
 
         return result
 
     except Exception as error:
-        print(f'Error while trying to schedule {ppline_name} pipeline')
-        print(error)
+        logging.error(f'Error while trying to schedule {ppline_name} pipeline')
+        logging.error(str(error))
         return 'failed'
 
 
@@ -197,12 +198,13 @@ def create_ppline_schedule(namespace):
 def get_ppline_schedule(namespace, pipeline = None, sched_id = None):
     try:
         if str(request.method).lower() == 'delete':
-            return Workspace.del_ppline_schedule(namespace, pipeline, sched_id)
+            time = request.get_json().get('time')
+            return Workspace.del_ppline_schedule(namespace, pipeline, sched_id, time)
         result = Workspace.get_ppline_schedule(namespace)
         return result
     except Exception as error:
-        print(f'Error while trying to fetch pipeline schedule')
-        print(error)
+        logging.error(f'Error while trying to fetch pipeline schedule')
+        logging.error(str(error))
         return 'failed'
 
 
@@ -236,8 +238,8 @@ def get_initial_data(namespace):
         }
     
     except Exception as error:
-        print(f'Error while trying to connect with AI agent')
-        print(error)
+        logging.error(f'Error while trying to connect with AI agent')
+        logging.error(str(error))
         return 'failed'
 
 
@@ -246,8 +248,8 @@ def start_ai_agent(namespace):
     try:
         return setup_agent(namespace)
     except Exception as error:
-        print(f'Error while trying to connect with AI agent')
-        print(error)
+        logging.error(f'Error while trying to connect with AI agent')
+        logging.error(str(error))
         return 'failed'
     
 
@@ -256,8 +258,8 @@ def start_ai_agent_with_username(namespace, username):
     try:
         return setup_agent(namespace, username)
     except Exception as error:
-        print(f'Error while trying to schedule schedule pipelines')
-        print(error)
+        logging.error(f'Error while trying to schedule schedule pipelines')
+        logging.error(str(error))
         return 'failed'
 
 
@@ -279,8 +281,8 @@ def message_ai_agent(namespace):
         
         return send_message_to_agent_with_local_or_groq(message, namespace, agent_flow=agent_flow)
     except Exception as error:
-        print(f'AI Agent error while processing your request {str(error)}')
-        print(error)
+        logging.error(f'AI Agent error while processing your request {str(error)}')
+        logging.error(str(error))
         traceback.print_exc()
         if agent_flow == AgentFlow.ANALYTICS:
             result = 'Was not able to run your request, seems not match your data, can you refine and make it more clear'
@@ -312,7 +314,7 @@ def run_analytics(namespace, table):
         
     except Exception as error:
         result = f'Erro while running analytics query. {str(error)}'
-        print(result)
+        logging.error(result)
         return { 'error': True, 'result': { 'result': result } }
 
     
@@ -325,8 +327,8 @@ def message_ai_agent_with_username(namespace, username):
         return send_message_to_agent(message, namespace, username)
     
     except Exception as error:
-        print(f'AI Agent error while processing your request {str(error)}')
-        print(error)
+        logging.error(f'AI Agent error while processing your request {str(error)}')
+        logging.error(str(error))
         return 'failed'
     
 
@@ -365,8 +367,8 @@ def delete_data_file(namespace, filename):
         return { 'error': False, 'result': f'Files {filename} removed successfully.' }
     
     except Exception as err:
-        print('Error while removing data file: ')
-        print(err)
+        logging.error('Error while removing data file: ')
+        logging.error(str(err))
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while removing data file: {str(err)}' }
 
@@ -377,25 +379,29 @@ pattern = r'^use.*$'
 
 def call_scheduled_job(app):
     import os
-    print("call_scheduled_job ENTERED", flush=True)
+    logging.info('=== *+*+*+*+*+*+*+*+*+* e2e-Data is up *+*+*+*+*+*+*+*+*+* ===')
+    logging.info('=== *+*+*+*+*+*+*+*+*+* e2e-Data Version 01_of_Aug.02.2026 *+*+*+*+*+*+*+*+*+* ===')
+    logging.info("call_scheduled_job ENTERED")
 
     if os.path.exists('/.dockerenv'):
-        print("Docker path", flush=True)
+        logging.info("Docker path")
         debounce_call_scheduled_job()
     else:
         import time
         def run_scheduler():
-            print("======= Job Schedule THREAD STARTED =======", flush=True)
+            logging.info("======= Job Schedule THREAD STARTED =======")
             Workspace.schedule_pipeline_job()
             with app.app_context():
+                count = 0
                 while True:
-                    print("Job Scheduler is running", flush=True)
+                    count = count + 1
+                    if (count % 10 == 0): logging.info("Job Scheduler is running")
                     schedule.run_pending()
                     time.sleep(1)
 
         scheduler_thread = threading.Thread(target=run_scheduler, daemon=False)
         scheduler_thread.start()
-        print("======= Job Scheduler called =======", flush=True)
+        logging.info("======= Job Scheduler called =======")
     
 
 def debounce_call_scheduled_job():
@@ -438,7 +444,7 @@ def setup_agent(user, namespace = None):
 
         return { 'error': False, 'success': True }
     except Exception as err:
-        print(f'Error while staring the AI agent: {str(err)}')
+        logging.error(f'Error while staring the AI agent: {str(err)}')
         print(err.with_traceback)
         traceback.print_exc()
         return { 'error': f'Error while staring AI Agent: {str(err)}', 'success': False }
@@ -505,8 +511,8 @@ def create_seret(namespace):
         
         return { 'error': False, 'result': 'Secret created successfully' }
     except Exception as err:
-        print('Error while secret creation: '+str(err))
-        print(err)
+        logging.error('Error while secret creation: '+str(err))
+        logging.error(str(err))
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while secret creation: {str(err)}' }
 
@@ -522,8 +528,8 @@ def list_serets(namespace):
         else:
             return { 'error': False, 'result': { 'secret_names': secret_names, 'staged_data': staged_data } }
     except Exception as err:
-        print('Error while fetching secrets list: '+str(err))
-        print(err)
+        logging.error('Error while fetching secrets list: '+str(err))
+        logging.error(str(err))
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while fetching secrets list: {str(err)}' }
 
@@ -539,8 +545,8 @@ def fetch_secret(namespace, type, secretname):
         else:
             return { 'error': False, 'result': secret_details }
     except Exception as err:
-        print('Error while fetching secret: '+str(err))
-        print(err)
+        logging.error('Error while fetching secret: '+str(err))
+        logging.error(str(err))
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while fetching secret: {str(err)}' }
     
@@ -645,7 +651,7 @@ def test_s3_connection():
         return result
         
     except Exception as err:
-        print(f'Error while testing S3 connection: {str(err)}')
+        logging.error(f'Error while testing S3 connection: {str(err)}')
         traceback.print_exc()
         return {
             'result': f'Error while testing S3 connection: {str(err)}',
@@ -664,7 +670,7 @@ def test_s3_connection_with_secrets(namespace, connection_name):
         return result
         
     except Exception as err:
-        print(f'Error while testing S3 connection with secrets: {str(err)}')
+        logging.error(f'Error while testing S3 connection with secrets: {str(err)}')
         traceback.print_exc()
         return {
             'result': f'Error while testing S3 connection: {str(err)}',
@@ -699,7 +705,7 @@ async def list_s3_objects(namespace = None, secret = None):
             return {'error': False, 'result': result['objects']}
         
     except Exception as err:
-        print(f'Error while listing S3 objects: {str(err)}')
+        logging.error(f'Error while listing S3 objects: {str(err)}')
         traceback.print_exc()
         return {
             'error': True,
@@ -725,7 +731,7 @@ def list_s3_objects_with_secrets(namespace, connection_name):
             return {'error': False, 'result': result['objects']}
         
     except Exception as err:
-        print(f'Error while listing S3 objects with secrets: {str(err)}')
+        logging.error(f'Error while listing S3 objects with secrets: {str(err)}')
         traceback.print_exc()
         return {
             'error': True,
@@ -770,7 +776,7 @@ def preview_s3_file(namespace, secret, object):
             }
         
     except Exception as err:
-        print(f'Error while previewing S3 file: {str(err)}')
+        logging.error(f'Error while previewing S3 file: {str(err)}')
         traceback.print_exc()
         return {
             'error': True,
@@ -806,7 +812,7 @@ def get_bucket_file_schema(namespace, bucket, secret, object = None):
             }
         
     except Exception as err:
-        print(f'Error while previewing S3 file: {str(err)}')
+        logging.error(f'Error while previewing S3 file: {str(err)}')
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while previewing S3 file: {str(err)}' }
 
@@ -883,7 +889,7 @@ def preview_s3_file_with_secrets(namespace, connection_name):
             }
         
     except Exception as err:
-        print(f'Error while previewing S3 file with secrets: {str(err)}')
+        logging.error(f'Error while previewing S3 file with secrets: {str(err)}')
         traceback.print_exc()
         return { 'error': True, 'result': f'Error while previewing S3 file: {str(err)}' }
 

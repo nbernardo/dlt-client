@@ -9,9 +9,9 @@ from utils.duckdb_util import DuckdbUtil
 from utils.workspace_util import handle_conversasion_turn_limit
 import traceback
 from services.agents import AgentFactory
-from utils.metastore.meta_storage import MetaStore
 from utils.metastore.PipelineMedatata import PipelineMedatata
 from controller.file_upload import format_size
+import logging
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -131,7 +131,7 @@ def create_new_ppline(fst_connection,
     if len(context.exceptions) > 0:
         message = list(context.exceptions[0].values())[0]['message']
         revert_and_notify_failure(None, all_nodes, message)
-        print(f'TERMINATED WITH EXCEPTIONS: {context.exceptions}')
+        logging.error(f'TERMINATED WITH EXCEPTIONS: {str(context.exceptions)}')
         return { 'error': True, 'result': context.exceptions }
 
     pipeline_instance = DltPipeline() 
@@ -205,11 +205,11 @@ def create_new_version_ppline(fst_connection,
             pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl, True, False)
         
         if result['status'] is False: 
-            print('Error while creating new pipeline version: ', str(result['message']))
+            logging.error('Error while creating new pipeline version: ', str(result['message']))
             success, message = False, result['message'] 
 
     except Exception as err:
-        print('Exception while creating new pipeline version: ', str(result['message']))
+        logging.error('Exception while creating new pipeline version: ', str(result['message']))
         result = { 'message': err }
         success, message = False, result['message']
 
@@ -611,8 +611,8 @@ def message_ai_agent(namespace):
         
         return send_message_to_pipeline_agent_wit_groq(message, namespace)
     except Exception as error:
-        print(f'AI Agent error while processing your request {str(error)}')
-        print(error)
+        logging.error(f'AI Agent error while processing your request {str(error)}')
+        logging.error(error)
         traceback.print_exc()
         result = 'No medatata was loaded about your namespace.'\
               if str(error).strip() == namespace else 'Could not load details about your namespace.'
@@ -643,7 +643,7 @@ def preview_transformation(namespace):
     
     except Exception as err:
         error = f'Error while running transformation preview {str(err)}'
-        print(error)
+        logging.error(error)
         traceback.print_exc()
         return { 'error': True, 'result': { 'result': err } }
     
@@ -688,7 +688,7 @@ def immediate_pipeline_action(namespace, pipeline, exec_id = None):
             result = PipelineCheckpoint.archive_failure(namespace, pipeline, exec_id)
             return result
         else:
-            print('Manual Run - in the controller')
+            logging.info('Manual Run - in the controller')
             user = request.get_json().get('user')
             DltPipeline.immediate_run(namespace, pipeline, exec_id, user)
         return { 'error': False, 'result': { 'result': 'Pipeline run in progress' } }

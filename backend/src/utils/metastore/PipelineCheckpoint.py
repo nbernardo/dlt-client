@@ -3,6 +3,7 @@ from utils.db.lancedb import LanceConnectionFactory
 from lancedb import Table
 from datetime import datetime
 from utils.pipeline.Enums import Checkpoint
+import logging
 
 PIPELINE_CHECKPOINT_SCHEMA = pa.schema([
     pa.field("id", pa.string()), #Represents pipeline execution id when it runs
@@ -60,7 +61,7 @@ class PipelineCheckpoint:
                 #if tbl.version % 100 == 0: PipelineCheckpoint.compact_metadata()
 
         except Exception as e:
-            print(f"PipelineCheckpoint Update Failed: {str(e)}")
+            logging.error(f"PipelineCheckpoint Update Failed: {str(e)}")
             raise RuntimeError(f'PipelineCheckpoint persist Failed: {str(e)}')
         return pipeline, params.get('dest_storage'), params.get('start_time')
 
@@ -95,7 +96,7 @@ class PipelineCheckpoint:
             res = tbl.update(where=filter, values_sql=values)
 
         except Exception as e:
-            print(f"PipelineCheckpoint Update Failed: {str(e)}")
+            logging.error(f"PipelineCheckpoint Update Failed: {str(e)}")
             raise RuntimeError(f'PipelineCheckpoint update Failed: {str(e)}')
 
 
@@ -124,7 +125,7 @@ class PipelineCheckpoint:
             return records[0]['pipeline'] if records else None
 
         except Exception as e:
-            print(f"PipelineCheckpoint Update Failed: {str(e)}")
+            logging.error(f"PipelineCheckpoint Update Failed: {str(e)}")
             raise RuntimeError(f'PipelineCheckpoint update Failed: {str(e)}')
 
 
@@ -141,7 +142,7 @@ class PipelineCheckpoint:
             return records[0]['pipeline'] if records else None
 
         except Exception as e:
-            print(f"PipelineCheckpoint Update Failed: {str(e)}")
+            logging.error(f"PipelineCheckpoint Update Failed: {str(e)}")
             raise RuntimeError(f'PipelineCheckpoint update Failed: {str(e)}')
 
 
@@ -158,12 +159,12 @@ class PipelineCheckpoint:
             for col, expr in new_fields.items():
                 if col not in existing_cols:
                     tbl.add_columns({col: expr})
-                    print(f'pipeline_checkpoint.{col} added')
+                    logging.info(f'pipeline_checkpoint.{col} added')
                 else:
-                    print(f'pipeline_checkpoint.{col} already exists — skipped')
+                    logging.info(f'pipeline_checkpoint.{col} already exists — skipped')
 
         except Exception as e:
-            print(f'pipeline_checkpoint migration failed: {e}')    
+            logging.error(f'pipeline_checkpoint migration failed: {e}')    
 
 
     @staticmethod
@@ -197,4 +198,4 @@ class PipelineCheckpoint:
         tbl = PipelineCheckpoint._get_table()
         tbl.cleanup_old_versions(older_than=timedelta(days=older_than_days))
         tbl.compact_files()
-        print("✅ PipelineCheckpoint compacted")
+        logging.info("✅ PipelineCheckpoint compacted")

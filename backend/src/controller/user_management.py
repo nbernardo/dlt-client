@@ -6,6 +6,7 @@ import jwt
 import aiosqlite
 from asgiref.sync import async_to_sync
 import threading
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from services.user_management.UserService import (
     UserService, JWT_SECRET_KEY, JWT_ALGORITHM, require_permission
@@ -251,5 +252,5 @@ def ge_access_level_by_table(role_name, namespace = None, dw = None):
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        print(f"DATABASE ERROR CRASH: {str(e)}")
+        logging.error(f"DATABASE ERROR CRASH: {str(e)}")
         return jsonify({"error": str(e)}), 500

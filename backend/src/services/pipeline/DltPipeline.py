@@ -781,7 +781,7 @@ class DltPipeline:
     @staticmethod
     def immediate_run(namespace, ppline, exec_id = None, user = None):
         from services.workspace.Workspace import Workspace
-        print('Manual Run - in DltPipeline')
+        logging.info('Manual Run - in DltPipeline')
         Workspace.schedule_pipeline_job(namespace, ppline, immediate=True, exec_id=exec_id, user=user)
                         
 

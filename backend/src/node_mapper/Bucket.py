@@ -6,6 +6,7 @@ from controller.file_upload import BaseUpload
 from utils.BucketConnector import BucketConnector
 from utils.pipeline import NodeType
 from services.workspace.Workspace import Workspace
+import logging
 
 class Bucket(TemplateNodeType):
     """
@@ -118,7 +119,7 @@ class Bucket(TemplateNodeType):
         # No need to handle secrets here - template will handle secret retrieval
         # Following SQLDatabase pattern where secrets are handled in the pipeline template
         try:
-            print(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
+            logging.info(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
         except:
             ...
         return self.check_bucket_url()
