@@ -379,8 +379,15 @@ pattern = r'^use.*$'
 
 def call_scheduled_job(app):
     import os
-    logging.info('=== *+*+*+*+*+*+*+*+*+* e2e-Data is up *+*+*+*+*+*+*+*+*+* ===')
-    logging.info('=== *+*+*+*+*+*+*+*+*+* e2e-Data Version 01_of_Aug.02.2026 *+*+*+*+*+*+*+*+*+* ===')
+    logging.info('''
+               ___   __        ___         _
+         ___  |_  | / _ \     |   \  __ _ | |_  __ _
+        / -_)  / / |  __/  -  | |) |/ _` ||  _|/ _` |
+        \___| /___| \___|     |___/ \__,_| \__|\__,_|
+
+        e2e-Data Version 01_of_Aug.02.2026
+    ''')
+    
     logging.info("call_scheduled_job ENTERED")
 
     if os.path.exists('/.dockerenv'):
@@ -395,7 +402,7 @@ def call_scheduled_job(app):
                 count = 0
                 while True:
                     count = count + 1
-                    if (count % 10 == 0): logging.info("Job Scheduler is running")
+                    if (count % 10 == 0): print(f"{datetime.now()} Job Scheduler is running")
                     schedule.run_pending()
                     time.sleep(1)
 
