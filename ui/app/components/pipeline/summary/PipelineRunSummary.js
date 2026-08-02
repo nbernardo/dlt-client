@@ -1,3 +1,4 @@
+import { sleepForSec } from "../../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { State } from "../../../../@still/component/type/ComponentType.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
@@ -99,21 +100,29 @@ export class PipelineRunSummary extends ViewComponent {
 
 		const collapsableLogs = document.querySelector(`.collapsable-logs-${execId}`);
 		if(collapsableLogs){
-			if(collapsableLogs.style.display == 'none')
+			if(collapsableLogs.style.display == 'none'){
 				return collapsableLogs.style.display = '';
+			}
 			else
 				return collapsableLogs.style.display = 'none';
 		}
+		const logsLoading = `<div class="mini-loader-container mini-loader-container-runlist">
+					 			<div class="mini-loader-dot"></div><div class="mini-loader-dot"></div><div class="mini-loader-dot"></div>
+					 		</div>`;
+		
+		let content = `<tr class="collapsable-logs-${execId}">
+							<td colspan="20" class="pipeline-run-log-container">
+								<div class="pipeline-run-log-content">
+									${logsLoading} <div style="text-align: center;">Loading the logs</div>
+								</div>
+							</td>
+						</tr>`;
+		document.querySelector(`#view-error-trace-${execId}`).parentElement.insertAdjacentHTML('afterend', content);
 
 		const logs = await WorkspaceService.getLogs({ execution_id: execId });
-		let content = '<table>'+this.logsToHTML(logs.all_logs)+'</table>';
-		content = `<tr class="collapsable-logs-${execId}">
-					<td colspan="20" class="pipeline-run-log-container">
-						<div class="pipeline-run-log-content">${content}</div>
-					</td>
-				</tr>`;
-
-		document.querySelector(`#view-error-trace-${execId}`).parentElement.insertAdjacentHTML('afterend', content);
+		await sleepForSec(1000);
+		content = '<table>'+this.logsToHTML(logs.all_logs)+'</table>';
+		document.querySelector(`.collapsable-logs-${execId} div`).innerHTML = '<table>'+this.logsToHTML(logs.all_logs)+'</table>';
 	}
 
 	logsToHTML(logs = []){

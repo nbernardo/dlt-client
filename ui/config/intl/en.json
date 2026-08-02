@@ -74,7 +74,7 @@
 		"tabArchiveRunsLbl": "Failed archived runs"
 	},
 	"execIdLbl": "Execution ID",
-	"traceErrorLbl": "Error trace",
+	"traceErrorLbl": "Trace",
 	"startRunTime": "Start time",
 	"endRunTime": "End time",
 	"manualAttempts": "Manual attempts count"

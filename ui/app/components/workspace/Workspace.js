@@ -727,8 +727,8 @@ export class Workspace extends ViewComponent {
 		buttons[1].style.opacity = isNew ? '0.4' : '1';
 	}
 
-	deleteSchedule = async (id) => {
-		let result = await WorkspaceService.deleteSchedule(this.selectedPplineName, id)
+	deleteSchedule = async (id, time) => {
+		let result = await WorkspaceService.deleteSchedule(this.selectedPplineName, id, time);
 		if(result){
 			if((result || []).length < 1)
 				this.headerProxy.scheduledPipelinesCount = parseInt(this.headerProxy.scheduledPipelinesCount.value) - 1;

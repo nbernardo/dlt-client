@@ -305,9 +305,9 @@ export class WorkspaceService extends BaseService {
         return null;
     }
 
-    static async deleteSchedule(pipelineName, id) {
+    static async deleteSchedule(pipelineName, id, time) {
         const url = `/workcpace/ppline/schedule/${(await UserService.getNamespace())}/${pipelineName}/${id}`;
-        let response = await $still.HTTPClient.delete(url);
+        let response = await $still.HTTPClient.delete(url, JSON.stringify({ time }), HTTPHeaders.JSON);
         response = await response.json();
         
         if (response.ok && !response.error)

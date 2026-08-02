@@ -74,7 +74,7 @@
 		"tabArchiveRunsLbl": "Execucoes falhadas arquivadas"
 	},
 	"execIdLbl": "ID Execucao",
-	"traceErrorLbl": "Rastreio do erro",
+	"traceErrorLbl": "Rastreio",
 	"startRunTime": "Hora Inicio",
 	"endRunTime": "Hora termino",
 	"manualAttempts": "Tentativas manual"

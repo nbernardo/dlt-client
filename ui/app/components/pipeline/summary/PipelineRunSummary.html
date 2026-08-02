@@ -112,8 +112,10 @@
 									<tr each="item">
 										<td>{item.pipeline}</td>
 										<td>{item.id}</td>
-										<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
-												onclick="component.getLogs('{item.id}')">View trace</span></td>
+										<td id="view-error-trace-{item.id}">
+											<span style="text-decoration: underline; color: blue; cursor: pointer;" 
+												onclick="component.getLogs('{item.id}')">View trace</span>
+										</td>
 										<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-archived">ARCHIVED</div></td>
 										<!-- <td style="text-align: center;">{item.manual_run_count}</td> -->
 										<td>{item.start_time}</td>
@@ -162,5 +164,10 @@
 
 	.rerun-loading-success { background-color: green !important; color: white;  }
 	.rerun-loading-archived { background-color: orange !important; color: white;  }
+
+	.mini-loader-container-runlist { 
+		width: 100%; margin-top: 10px; gap: 9px;
+		.mini-loader-dot { width: 14px !important; height: 7px !important; background: white; } 
+	}
 
 </style>
