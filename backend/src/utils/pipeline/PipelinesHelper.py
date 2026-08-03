@@ -460,13 +460,17 @@ def get_sql_connection(connection_string, dbengine):
     from sqlalchemy.pool import NullPool
     from dlt.sources.credentials import ConnectionStringCredentials
 
-    custom_engine = ConnectionStringCredentials(f'{connection_string}')
-
     if dbengine == 'postgresql':
         custom_engine = create_engine(
             f'{connection_string}?sslmode=prefer',
-            pool_pre_ping=True, pool_recycle=600, use_native_hstore=False, poolclass=NullPool,
-            connect_args={ "keepalives": 1, "keepalives_idle": 5, "keepalives_interval": 2, "keepalives_count": 3 }
+            pool_pre_ping=True,
+            pool_recycle=1800,
+            isolation_level="AUTOCOMMIT",
+            use_native_hstore=False
+            #pool_pre_ping=True, pool_recycle=600, use_native_hstore=False, poolclass=NullPool,
+            #connect_args={ "keepalives": 1, "keepalives_idle": 5, "keepalives_interval": 2, "keepalives_count": 3 }
         )
+    else:
+        custom_engine = ConnectionStringCredentials(f'{connection_string}')
     
     return custom_engine

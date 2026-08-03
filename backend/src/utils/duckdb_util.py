@@ -101,7 +101,8 @@ class DuckdbUtil:
                 value VARCHAR,\
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP\
                 )"
-        cnx.execute(query)
+        if cnx:
+            cnx.execute(query)
 
 
     @staticmethod
