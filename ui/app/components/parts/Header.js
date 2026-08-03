@@ -188,12 +188,14 @@ export class Header extends ViewComponent {
 		let runsList = await PipelineService.getPipelinesRunHistory(status);
 		runsList = (runsList || []).map(PipelineRunSummary.parseRunListResult);
 		const { template: uiContent, component } = await Components.newView(PipelineRunSummary, { }, parentId);
+		component.showHideHistoryLoading(true, false);
 		this.$parent.dynamicViewPlaceholder.innerHTML = uiContent;
-		await sleepForSec(1000);
 		AppTemplate.hideLoading();
+		await sleepForSec(1000);
 		
 		this.pplineRunSummary = component;
 		component.runList = runsList;
+		component.showHideHistoryLoading(false, runsList.length > 0);
 	}
 	
 }

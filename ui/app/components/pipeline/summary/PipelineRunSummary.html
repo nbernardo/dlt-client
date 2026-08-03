@@ -1,10 +1,16 @@
 <div class="componentui-main-container @cmpInternalId">
 	<h2 class="sr-only">Data Dictionary and Role-Based Access Control Manager</h2>
 
-	<nav class="tabs">
-		<div class="tab active" onclick="component.getSuccessPipelineHistory('FAILED', this,1)">$bundle.pplineSummary.tabFailedRunsLbl</div>
-		<div class="tab" onclick="component.getSuccessPipelineHistory('COMPLETED_DWH', this,2)">$bundle.pplineSummary.tabOkRunsLbl</div>
-		<div class="tab" onclick="component.getSuccessPipelineHistory('ARCHIVED', this,3)">$bundle.pplineSummary.tabArchiveRunsLbl</div>
+	<nav class="tabs pipeline-run-history">
+		<div class="tab active" onclick="component.getSuccessPipelineHistory('FAILED', this,1)">
+			<img src="/app/assets/imgs/disruption.png" alt=""> $bundle.pplineSummary.tabFailedRunsLbl
+		</div>
+		<div class="tab" onclick="component.getSuccessPipelineHistory('COMPLETED_DWH', this,2)">
+			<img src="/app/assets/imgs/automatically.png" style="width: 20px;"> $bundle.pplineSummary.tabOkRunsLbl
+		</div>
+		<div class="tab" onclick="component.getSuccessPipelineHistory('ARCHIVED', this,3)">
+			<img src="/app/assets/imgs/archived-run.png" style="width: 20px;"> $bundle.pplineSummary.tabArchiveRunsLbl
+		</div>
 	</nav>
 
 	<st-loader (label)="Loading pipeline runs..." (showIf)="self.loading"/>
@@ -32,27 +38,40 @@
 										<th class="re-run-cell">$bundle.gov.actionsLbl</th>
 									</tr>
 								</thead>
-								<tbody (forEach)="runList">
-									<tr each="item">
-										<td>{item.pipeline}</td>
-										<td>{item.id}</td>
-										<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
-												onclick="component.getLogs('{item.id}')">View trace</span></td>
-										<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-failed">{item.status}</div></td>
-										<td style="text-align: center;">{item.manual_run_count}</td>
-										<td>{item.start_time}</td>
-										<td>{item.update_time}</td>
-										<td class="re-run-cell">
-											<span id="rerun-icon-{item.id}">
-												<i onclick="component.immediateRun('{item.pipelineUniqueName}','{item.id}')" title="Rerun failed pipeline"
-													class="fas fa-play" style="color: green; cursor: pointer;" title="Replay"></i>
-												<span id="archive-failed-{item.id}" style="margin-left: 7px;" onclick="component.archiveFailedRun('{item.pipelineUniqueName}','{item.id}')">
-													<img src="/app/assets/imgs/archive-failed-ppline.png" title="Archive failed log" width="20">
+								<span>
+									<tbody (forEach)="runList">
+										<tr each="item">
+											<td>{item.pipeline}</td>
+											<td>{item.id}</td>
+											<td id="view-error-trace-{item.id}"><span style="text-decoration: underline; color: blue; cursor: pointer;" 
+													onclick="component.getLogs('{item.id}')">View trace</span></td>
+											<td id="rerun-status-{item.id}"><div id="rerun-status-label-{item.id}" class="rerun-stat-lbl rerun-loading-failed">{item.status}</div></td>
+											<td style="text-align: center;">{item.manual_run_count}</td>
+											<td>{item.start_time}</td>
+											<td>{item.update_time}</td>
+											<td class="re-run-cell">
+												<span id="rerun-icon-{item.id}">
+													<i onclick="component.immediateRun('{item.pipelineUniqueName}','{item.id}')" title="Rerun failed pipeline"
+														class="fas fa-play" style="color: green; cursor: pointer;" title="Replay"></i>
+													<span id="archive-failed-{item.id}" style="margin-left: 7px;" onclick="component.archiveFailedRun('{item.pipelineUniqueName}','{item.id}')">
+														<img src="/app/assets/imgs/archive-failed-ppline.png" title="Archive failed log" width="20">
+													</span>
 												</span>
-											</span>
-											<span id="rerun-loading-icon-{item.id}" style="display: none; cursor: auto;">
-												<img src="/app/assets/imgs/loading_.gif" alt="" width="20">
-											</span>
+												<span id="rerun-loading-icon-{item.id}" style="display: none; cursor: auto;">
+													<img src="/app/assets/imgs/loading_.gif" alt="" width="20">
+												</span>
+											</td>
+										</tr>
+									</tbody>
+								</span>
+
+								<tbody class="run-summary-noDataFound">
+									<tr class="run-summary-fetchingData-stop" style="display: none;"><td colspan="20" style="text-align: center;">No faild pipeline found</td></tr>
+									<tr class="run-summary-fetchingData-run">
+										<td colspan="20" style="text-align: center;">
+											<div class="mini-loader-container table-body" style="width: 100%;">
+												<div class="mini-loader-dot"></div><div class="mini-loader-dot"></div><div class="mini-loader-dot"></div>
+											</div>
 										</td>
 									</tr>
 								</tbody>
@@ -89,6 +108,16 @@
 										</td>
 									</tr>
 								</tbody>
+								<tbody class="run-summary-noDataFound">
+									<tr class="run-summary-fetchingData-stop" style="display: none;"><td colspan="20" style="text-align: center;">No successful pipeline found</td></tr>
+									<tr class="run-summary-fetchingData-run">
+										<td colspan="20" style="text-align: center;">
+											<div class="mini-loader-container table-body" style="width: 100%;">
+												<div class="mini-loader-dot"></div><div class="mini-loader-dot"></div><div class="mini-loader-dot"></div>
+											</div>
+										</td>
+									</tr>
+								</tbody>
 							</table>
 						</div>
 					</span>
@@ -121,6 +150,16 @@
 										<td>{item.start_time}</td>
 										<td>{item.update_time}</td>
 										<td style="width:110px; text-align: right;" class="re-run-cell">
+										</td>
+									</tr>
+								</tbody>
+								<tbody class="run-summary-noDataFound">
+									<tr class="run-summary-fetchingData-stop" style="display: none;"><td colspan="20" style="text-align: center;">No archived pipeline found</td></tr>
+									<tr class="run-summary-fetchingData-run">
+										<td colspan="20" style="text-align: center;">
+											<div class="mini-loader-container table-body" style="width: 100%;">
+												<div class="mini-loader-dot"></div><div class="mini-loader-dot"></div><div class="mini-loader-dot"></div>
+											</div>
 										</td>
 									</tr>
 								</tbody>
@@ -161,13 +200,17 @@
 	}
 
 	.rerun-loading-failed { background-color: red !important; color: white;  }
-
 	.rerun-loading-success { background-color: green !important; color: white;  }
 	.rerun-loading-archived { background-color: orange !important; color: white;  }
 
 	.mini-loader-container-runlist { 
 		width: 100%; margin-top: 10px; gap: 9px;
-		.mini-loader-dot { width: 14px !important; height: 7px !important; background: white; } 
+		.mini-loader-dot { width: 9px !important; height: 7px !important; background: white; }
 	}
+	.table-body .mini-loader-dot { width: 7px !important; height: 7px !important; background: black; opacity: .5 !important; }
+	.pipeline-run-history .tab{ display: flex; align-items: center; gap: 5px; img { width: 24px; } }
+	.pipeline-run-history .tab.active { opacity: 1 !important; }
+	.pipeline-run-history .tab:not(.active) { opacity: .3 !important; }
+	.pipeline-run-history .tab:hover { opacity: 1 !important; }
 
 </style>

@@ -86,7 +86,6 @@ export class PipelineRunSummary extends ViewComponent {
 		if(String(statDescription).includes('success'))
 			statuLabel.classList.add('rerun-loading-success');
 		
-
 		statuLabel.innerHTML = statDescription;
 		if(String(statDescription) === runStatus.MANUAL_SUCCESS)
 			document.querySelector(`#rerun-icon-${execId}`).style.display = 'none';
@@ -112,9 +111,7 @@ export class PipelineRunSummary extends ViewComponent {
 		
 		let content = `<tr class="collapsable-logs-${execId}">
 							<td colspan="20" class="pipeline-run-log-container">
-								<div class="pipeline-run-log-content">
-									${logsLoading} <div style="text-align: center;">Loading the logs</div>
-								</div>
+								<div class="pipeline-run-log-content">${logsLoading} <div style="text-align: center;">Loading the logs</div></div>
 							</td>
 						</tr>`;
 		document.querySelector(`#view-error-trace-${execId}`).parentElement.insertAdjacentHTML('afterend', content);
@@ -130,21 +127,13 @@ export class PipelineRunSummary extends ViewComponent {
 			item = PipelineRunSummary.parseLogRow(item);
 			return `
 				<tr each="item" class="log-row log-type-${item.log_level}">
-					<td>
-						<div class="txt-bold">${item.timestamp}</div><div class="txt-mute">#${item.id}</div>
-					</td>
-					<td>
-						<!-- <div class="txt-bold has-pipeline-complete has-pipeline-complete-${item.is_complete}"></div> -->
-						<div class="txt-bold has-pipeline-complete has-pipeline-complete-${item.log_level != 'ERROR'}"></div>
-					</td>
+					<td><div class="txt-bold">${item.timestamp}</div><div class="txt-mute">#${item.id}</div></td>
+					<td><div class="txt-bold has-pipeline-complete has-pipeline-complete-${item.log_level != 'ERROR'}"></div></td>
 					<td><span class="log-tag log-type-${item.log_level}">${item.log_level}</span></td>
 					<td><div class="txt-mute">${item.execution_id}</div></td>
 					<td><div class="txt-msg">${item.message}</div></td>
-					<td>
-						<div class="log-pill-wrap"><span class="log-pill">${item.extra_data}</span></div>
-					</td>
-				</tr>
-			`
+					<td><div class="log-pill-wrap"><span class="log-pill">${item.extra_data}</span></div></td>
+				</tr>`;
 		}).join('');
 	}
 
@@ -157,9 +146,13 @@ export class PipelineRunSummary extends ViewComponent {
 
 	/** @Prop */ runHistoryState = { success: [], archive: [], fails: undefined }
 	async getSuccessPipelineHistory(status, el, grid){
+		this.successRuns = [], this.archivedRuns = [];
+		this.showHideHistoryLoading(true, false);
 		this.showHistory = grid;
 		switchActiveTab(this, null, el)
 		const result = await PipelineService.getPipelinesRunHistory(status);
+		
+		this.showHideHistoryLoading(false, result.length > 0);
 		if(grid == 2){
 			this.successRuns = result.map(PipelineRunSummary.parseRunListResult);
 			this.runHistoryState.success = this.successRuns.value;
@@ -181,7 +174,6 @@ export class PipelineRunSummary extends ViewComponent {
 		row.status = row.manual_run_count > 0 ? runStatus.MANUAL_FAIL : row.status;
 
 		return row;
-
 	}
 
 	search(value){
@@ -199,6 +191,16 @@ export class PipelineRunSummary extends ViewComponent {
 	genericLogic(itm, value){
 		return itm.pipeline.toLowerCase().indexOf(value.toLowerCase()) >= 0 
 				|| itm.id.toLowerCase().indexOf(value.toLowerCase()) > 0
+	}
+
+	showHideHistoryLoading(loading, dataFound){
+		const noDataFoundCntr = document.querySelectorAll('.run-summary-noDataFound');
+		const fetchingDataStop = document.querySelectorAll('.run-summary-fetchingData-stop');
+		const fetchingDataRun = document.querySelectorAll('.run-summary-fetchingData-run');
+		
+		noDataFoundCntr.forEach(r => r.style.display = !dataFound ? '' : 'none');
+		fetchingDataStop.forEach(r => r.style.display = !loading ? '' : 'none');
+		fetchingDataRun.forEach(r => r.style.display = loading ? '' : 'none');
 	}
 
 }
