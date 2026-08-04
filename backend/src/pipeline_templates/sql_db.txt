@@ -26,8 +26,6 @@ secret = SecretManager.get_db_secret_from_ppline(namespace, connection_name)
 database_to_connect = %source_database%
 logger.info("Establishing database connection", extra={'stage': 'database_connection', 'database': database_to_connect})
 
-custom_engine, additionals = get_sql_connection(secret['connection_url'], secret['dbengine']), {}
-
 def load_select_tables_from_db():
     dest_folder = Workspace.get_duckdb_path_on_ppline()
     %destination_settings%
@@ -62,6 +60,7 @@ def load_select_tables_from_db():
             schema, table = tables[idx].split('.')
         logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
         
+        custom_engine = get_sql_connection(secret['connection_url'], secret['dbengine'])
         db_table = sql_table(table=table,  credentials=custom_engine, schema=schema)\
             if schema != '' else sql_table(table=table,  credentials=custom_engine)
 
