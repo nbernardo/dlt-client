@@ -56,6 +56,7 @@ valid_imports = [
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, get_sql_connection',
     'import datetime',
     'from datetime import datetime, timezone',
+    'import traceback',
 ]
 
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "open"}
