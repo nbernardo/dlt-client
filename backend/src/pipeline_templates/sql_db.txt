@@ -61,8 +61,8 @@ def load_select_tables_from_db():
         logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
         
         custom_engine = get_sql_connection(secret['connection_url'], secret['dbengine'])
-        db_table = sql_table(table=table,  credentials=custom_engine, schema=schema, backend='pyarrow')\
-            if schema != '' else sql_table(table=table,  credentials=custom_engine, backend='pyarrow')
+        db_table = sql_table(table=table,  credentials=custom_engine, schema=schema, backend='pyarrow', chunk_size=1000)\
+            if schema != '' else sql_table(table=table,  credentials=custom_engine, backend='pyarrow', chunk_size=1000)
 
         db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
 

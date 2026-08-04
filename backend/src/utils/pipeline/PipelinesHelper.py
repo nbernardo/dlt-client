@@ -463,9 +463,15 @@ def get_sql_connection(connection_string, dbengine):
     custom_engine = None
     if dbengine == 'postgresql':
         custom_engine = create_engine(
-            f'{connection_string}?sslmode=prefer',
-            pool_pre_ping=True, pool_recycle=600, use_native_hstore=False, poolclass=NullPool,
-            connect_args={ "keepalives": 1, "keepalives_idle": 5, "keepalives_interval": 2, "keepalives_count": 3 }
+            f'{connection_string}?sslmode=require',
+            poolclass=NullPool,
+            connect_args={
+                "connect_timeout": 10,
+                "keepalives": 1,
+                "keepalives_idle": 30,
+                "keepalives_interval": 10,
+                "keepalives_count": 5,
+            }
         )
     else:
         custom_engine = ConnectionStringCredentials(f'{connection_string}')
