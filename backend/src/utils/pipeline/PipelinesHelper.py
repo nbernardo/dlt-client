@@ -474,7 +474,7 @@ def get_sql_connection(secret, dbengine = None):
             connect_args={"connect_timeout": 10}
         )
     else:
-        custom_engine = ConnectionStringCredentials(f'{connection_string}')
+        custom_engine = create_engine(f'{connection_string}')
     
     return custom_engine
 
