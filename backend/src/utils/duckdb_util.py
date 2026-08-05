@@ -195,8 +195,8 @@ class DuckdbUtil:
     @staticmethod
     def workspace_table_exists(tbl = 'namespace'):
         cnx = DuckdbUtil.get_workspace_db_instance()
-        cursor = cnx.cursor()
-        if cursor:
+        if cnx:
+            cursor = cnx.cursor()
             query = f"SELECT EXISTS (SELECT 1 FROM duckdb_tables WHERE table_name = '{tbl}') as tbl_exists"
             result = cursor.execute(query).fetchall()[0][0]   
             return result
