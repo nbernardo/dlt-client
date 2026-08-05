@@ -54,6 +54,7 @@ valid_imports = [
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, ChkPoint',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, get_sql_connection',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, get_sql_connection, make_table_resource',
     'import datetime',
     'from datetime import datetime, timezone',
     'import traceback',

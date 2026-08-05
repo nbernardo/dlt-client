@@ -487,8 +487,18 @@ def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
         #       to support big_query generation
         if dbengine == 'oracle':
             return _normalize_table_names_backward(secrets, tables, primary_keys)
+        
+        if dbengine == 'postgresql':
+            engine = create_engine(
+                connection_url+'?sslmode=prefer',
+                pool_pre_ping=True,
+                pool_recycle=1800,
+                isolation_level="AUTOCOMMIT",
+                use_native_hstore=False
+            )
+        else:
+            engine = create_engine(connection_url)
 
-        engine = create_engine(connection_url)
         inspector = inspect(engine)
         available = inspector.get_table_names() if dbengine == 'mysql' else inspector.get_table_names(schema=schema)
 

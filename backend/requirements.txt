@@ -31,6 +31,7 @@ dnspython==2.7.0
 duckdb==1.4.4
 duckdb_engine
 eventlet==0.40.3
+fastapi
 fastavro==1.12.0
 filelock==3.19.1
 filetype==1.2.0
@@ -129,6 +130,7 @@ polars
 connectorx
 pyodbc
 psycopg2-binary
+psycopg[binary]
 dlt[postgres]
 dlt[oracle]
 dlt[mysql]
@@ -140,3 +142,4 @@ fastembed
 google-cloud-bigquery
 databricks-sql-connector==3.7.4
 polars[connectorx]
+zstandard

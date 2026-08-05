@@ -455,25 +455,84 @@ def get_table_columns(db_path, db_name, schema_name = None):
     return result
 
 
-def get_sql_connection(connection_string, dbengine):
+def get_sql_connection(secret, dbengine = None):
+    connection_string, dbengine = secret['connection_url'], secret['dbengine']
     from sqlalchemy import create_engine
     from sqlalchemy.pool import NullPool
     from dlt.sources.credentials import ConnectionStringCredentials
 
     custom_engine = None
     if dbengine == 'postgresql':
+        if connection_string.startswith('postgresql://'):
+            connection_string = connection_string.replace('postgresql://', 'postgresql+psycopg://', 1)
+
         custom_engine = create_engine(
-            f'{connection_string}?sslmode=require',
+            f'{connection_string}?sslmode=prefer',
             poolclass=NullPool,
-            connect_args={
-                "connect_timeout": 10,
-                "keepalives": 1,
-                "keepalives_idle": 30,
-                "keepalives_interval": 10,
-                "keepalives_count": 5,
-            }
+            isolation_level="AUTOCOMMIT",
+            use_native_hstore=False,
+            connect_args={"connect_timeout": 10}
         )
     else:
         custom_engine = ConnectionStringCredentials(f'{connection_string}')
     
     return custom_engine
+
+
+
+import dlt
+from sqlalchemy import text
+
+def make_table_resource(engine, table, schema, pk, incr_field=None, page_size=5000):
+    full_tbl = f'{schema}.{table}' if schema else table
+    resource_name = f"{schema}_{table}" if schema else table
+    order_col = incr_field if incr_field else pk
+
+    if incr_field:
+        @dlt.resource(name=resource_name, write_disposition='merge', primary_key=pk)
+        def _resource(cursor=dlt.sources.incremental(incr_field)):
+            last_cursor_val = cursor.last_value
+            last_pk_val = None
+            with engine.connect() as conn:
+                while True:
+                    if last_cursor_val is None:
+                        query = text(f"SELECT * FROM {full_tbl} ORDER BY {incr_field}, {pk} LIMIT :limit")
+                        params = {"limit": page_size}
+                    elif last_pk_val is None:
+                        query = text(f"SELECT * FROM {full_tbl} WHERE {incr_field} >= :cursor_val ORDER BY {incr_field}, {pk} LIMIT :limit")
+                        params = {"cursor_val": last_cursor_val, "limit": page_size}
+                    else:
+                        query = text(f"SELECT * FROM {full_tbl} WHERE ({incr_field}, {pk}) > (:cursor_val, :pk_val) ORDER BY {incr_field}, {pk} LIMIT :limit")
+                        params = {"cursor_val": last_cursor_val, "pk_val": last_pk_val, "limit": page_size}
+
+                    result = conn.execute(query, params)
+                    rows = result.fetchall()
+                    if not rows: break
+
+                    columns = result.keys()
+                    yield [dict(zip(columns, row)) for row in rows]
+
+                    last_row = rows[-1]
+                    row_dict = dict(zip(columns, last_row))
+                    last_cursor_val = row_dict[incr_field]
+                    last_pk_val = row_dict[pk]
+
+                    if len(rows) < page_size: break
+    else:
+        @dlt.resource(name=resource_name, write_disposition='merge', primary_key=pk)
+        def _resource():
+            offset = 0
+            with engine.connect() as conn:
+                while True:
+                    query = text(f"SELECT * FROM {full_tbl} ORDER BY {order_col} LIMIT :limit OFFSET :offset")
+                    result = conn.execute(query, {"limit": page_size, "offset": offset})
+                    rows = result.fetchall()
+                    
+                    if not rows: break
+                    columns = result.keys()
+                    yield [dict(zip(columns, row)) for row in rows]
+                    
+                    if len(rows) < page_size: break
+                    offset += page_size
+
+    return _resource

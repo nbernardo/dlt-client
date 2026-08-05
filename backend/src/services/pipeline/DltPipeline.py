@@ -661,6 +661,9 @@ class DltPipeline:
         
         except (Exception, duckdb.IOException) as err:
             if proc: proc.kill()
+            import traceback
+
+            traceback.print_exc()
             # DB Lock release in the pplication level
             if(param_list.get('exp_backoff') > JOB_RETRY_COUNT):
                 DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
