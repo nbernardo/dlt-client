@@ -292,7 +292,7 @@ class SQLConnection:
         database = secret['database']
 
         postgress_prefix = 'postgresql://'
-        psycopa2_driver_prefix = 'postgresql+psycopg2://'
+        psycopa2_driver_prefix = 'postgresql+psycopg://' 
 
         connection_string = str(connection_string).replace(postgress_prefix,psycopa2_driver_prefix)
 
