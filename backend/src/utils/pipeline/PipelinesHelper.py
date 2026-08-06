@@ -489,51 +489,56 @@ def make_table_resource(engine, table, schema, pk, incr_field=None, page_size=50
     resource_name = f"{schema}_{table}" if schema else table
     order_col = incr_field if incr_field else pk
 
-    if incr_field:
-        @dlt.resource(name=resource_name, write_disposition='merge', primary_key=pk)
-        def _resource(cursor=dlt.sources.incremental(incr_field)):
-            last_cursor_val = cursor.last_value
-            last_pk_val = None
-            with engine.connect() as conn:
-                while True:
-                    if last_cursor_val is None:
-                        query = text(f"SELECT * FROM {full_tbl} ORDER BY {incr_field}, {pk} LIMIT :limit")
-                        params = {"limit": page_size}
-                    elif last_pk_val is None:
-                        query = text(f"SELECT * FROM {full_tbl} WHERE {incr_field} >= :cursor_val ORDER BY {incr_field}, {pk} LIMIT :limit")
-                        params = {"cursor_val": last_cursor_val, "limit": page_size}
-                    else:
-                        query = text(f"SELECT * FROM {full_tbl} WHERE ({incr_field}, {pk}) > (:cursor_val, :pk_val) ORDER BY {incr_field}, {pk} LIMIT :limit")
-                        params = {"cursor_val": last_cursor_val, "pk_val": last_pk_val, "limit": page_size}
+    try:
+        if incr_field:
+            @dlt.resource(name=resource_name, write_disposition='merge', primary_key=pk)
+            def _resource(cursor=dlt.sources.incremental(incr_field)):
+                last_cursor_val = cursor.last_value
+                last_pk_val = None
+                with engine.connect() as conn:
+                    while True:
+                        if last_cursor_val is None:
+                            query = text(f"SELECT * FROM {full_tbl} ORDER BY {incr_field}, {pk} LIMIT :limit")
+                            params = {"limit": page_size}
+                        elif last_pk_val is None:
+                            query = text(f"SELECT * FROM {full_tbl} WHERE {incr_field} >= :cursor_val ORDER BY {incr_field}, {pk} LIMIT :limit")
+                            params = {"cursor_val": last_cursor_val, "limit": page_size}
+                        else:
+                            query = text(f"SELECT * FROM {full_tbl} WHERE ({incr_field}, {pk}) > (:cursor_val, :pk_val) ORDER BY {incr_field}, {pk} LIMIT :limit")
+                            params = {"cursor_val": last_cursor_val, "pk_val": last_pk_val, "limit": page_size}
 
-                    result = conn.execute(query, params)
-                    rows = result.fetchall()
-                    if not rows: break
+                        result = conn.execute(query, params)
+                        rows = result.fetchall()
+                        if not rows: break
 
-                    columns = result.keys()
-                    yield [dict(zip(columns, row)) for row in rows]
+                        columns = result.keys()
+                        yield [dict(zip(columns, row)) for row in rows]
 
-                    last_row = rows[-1]
-                    row_dict = dict(zip(columns, last_row))
-                    last_cursor_val = row_dict[incr_field]
-                    last_pk_val = row_dict[pk]
+                        last_row = rows[-1]
+                        row_dict = dict(zip(columns, last_row))
+                        last_cursor_val = row_dict[incr_field]
+                        last_pk_val = row_dict[pk]
 
-                    if len(rows) < page_size: break
-    else:
-        @dlt.resource(name=resource_name, write_disposition='merge', primary_key=pk)
-        def _resource():
-            offset = 0
-            with engine.connect() as conn:
-                while True:
-                    query = text(f"SELECT * FROM {full_tbl} ORDER BY {order_col} LIMIT :limit OFFSET :offset")
-                    result = conn.execute(query, {"limit": page_size, "offset": offset})
-                    rows = result.fetchall()
-                    
-                    if not rows: break
-                    columns = result.keys()
-                    yield [dict(zip(columns, row)) for row in rows]
-                    
-                    if len(rows) < page_size: break
-                    offset += page_size
+                        if len(rows) < page_size: break
+        else:
+            @dlt.resource(name=resource_name, write_disposition='merge', primary_key=pk)
+            def _resource():
+                offset = 0
+                with engine.connect() as conn:
+                    while True:
+                        query = text(f"SELECT * FROM {full_tbl} ORDER BY {order_col} LIMIT :limit OFFSET :offset")
+                        result = conn.execute(query, {"limit": page_size, "offset": offset})
+                        rows = result.fetchall()
+                        
+                        if not rows: break
+                        columns = result.keys()
+                        yield [dict(zip(columns, row)) for row in rows]
+                        
+                        if len(rows) < page_size: break
+                        offset += page_size
 
-    return _resource
+        return _resource
+    except Exception as err:
+        print('======= Exception while generating the Resource START =======')
+        print(f'ACTUAL EXCEPTION IS: {str(err)}')
+        print('======= Exception while generating the Resource END =======')
