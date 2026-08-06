@@ -54,36 +54,41 @@ def load_select_tables_from_db():
     [source, tbl_stage] = [[], additionals.get('stage')]
     staged_table = tbl_stage in [2,3]
 
-    for idx in range(len(tables)):
-        table, schema, db_table = tables[idx], None, None
-        if tables[idx].__contains__('.'):
-            schema, table = tables[idx].split('.')
-        logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
+    try:
+        for idx in range(len(tables)):
+            table, schema, db_table = tables[idx], None, None
+            if tables[idx].__contains__('.'):
+                schema, table = tables[idx].split('.')
+            logger.debug("Processing table w/ schema", extra={ 'stage': 'table_process', 'table': table, 'schema': schema, 'pk': pks[idx], 'tbl_count': idx + 1, 'total_tables': len(tables) })
+            
+            custom_engine = get_sql_connection(secret)
+            incremental_field = increment_by_fields[idx] if (len(increment_by_fields) > 0 and increment_by_fields[idx] != '') else None
+            db_table = make_table_resource(custom_engine, table, schema, pks[idx], incremental_field)
+
+            db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
+
+            if schema != None and schema != '': db_table.apply_hints(table_name=f"{schema}_{table}")
+            if staged_table: # In case the tables will be in stage area
+                db_table.apply_hints(table_name=Helper.prefix_and_suffix_table(table, tbl_stage))
+
+            if(len(increment_by_fields) > 0 and increment_by_fields[idx] != ''):
+                    db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx], on_cursor_value_missing='include'))
+
+            print(f'Resource status {table}',flush=True)
+            print(db_table,flush=True)
+            print('',flush=True)
+
+            source.append(db_table)
+
+        print('Starting pipeline run', flush=True)
+        logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
         
-        custom_engine = get_sql_connection(secret)
-        incremental_field = increment_by_fields[idx] if (len(increment_by_fields) > 0 and increment_by_fields[idx] != '') else None
-        db_table = make_table_resource(custom_engine, table, schema, pks[idx], incremental_field)
+        info = pipeline.run(source, write_disposition='merge', %table_format%)
+    except Exception as err:
+        print('======= Exception while running the pipeline START =======')
+        print(f'ACTUAL EXCEPTION IS: {str(err)}')
+        print('======= Exception while running the pipeline END =======')
 
-        db_table = convert_fields_type(db_table, pks[idx], additionals, original_pipeline_name, secret['database'])
-
-        if schema != None and schema != '': db_table.apply_hints(table_name=f"{schema}_{table}")
-        if staged_table: # In case the tables will be in stage area
-            db_table.apply_hints(table_name=Helper.prefix_and_suffix_table(table, tbl_stage))
-
-        if(len(increment_by_fields) > 0 and increment_by_fields[idx] != ''):
-                db_table.apply_hints(incremental=dlt.sources.incremental(increment_by_fields[idx], on_cursor_value_missing='include'))
-
-        print(f'Resource status {table}',flush=True)
-        print(db_table,flush=True)
-        print('',flush=True)
-
-        source.append(db_table)
-
-    print('Starting pipeline run', flush=True)
-    logger.info("Starting pipeline execution", extra={'stage': 'pipeline_execution', 'table_count': len(tables)})
-    
-    info = pipeline.run(source, write_disposition='merge', %table_format%)
-    
     if hasattr(info, 'loads_ids') and info.loads_ids:
         extra = {'stage': 'pipeline_completion', 'loads_ids': str(info.loads_ids), 'tbl_count': len(tables), 'dataset_name': getattr(info, 'dataset_name', 'unknown'), 'template_type': 'sql_db'}
         logger.info("SQL database pipeline execution completed successfully", extra=extra)

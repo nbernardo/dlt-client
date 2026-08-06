@@ -459,10 +459,10 @@ def get_sql_connection(secret, dbengine = None):
     connection_string, dbengine = secret['connection_url'], secret['dbengine']
     from sqlalchemy import create_engine
     from sqlalchemy.pool import NullPool
-    from dlt.sources.credentials import ConnectionStringCredentials
 
     custom_engine = None
     if dbengine == 'postgresql':
+        print(f'** Creatin connection engine for Postgres Database **')
         if connection_string.startswith('postgresql://'):
             connection_string = connection_string.replace('postgresql://', 'postgresql+psycopg://', 1)
 
@@ -474,6 +474,7 @@ def get_sql_connection(secret, dbengine = None):
             connect_args={"connect_timeout": 10}
         )
     else:
+        print(f'** Creatin connection engine {dbengine} Database **')
         custom_engine = create_engine(f'{connection_string}')
     
     return custom_engine
