@@ -649,7 +649,7 @@ export class Workspace extends ViewComponent {
 				this.saveOnly = false;
 			}
 			AppTemplate.toast.success('New schedule for ' + this.activeGrid.value + ' created successfully');
-			await this.leftMenuProxy.showHideDatabase();
+			await this.leftMenuProxy.callShowHideDatabase();
 		}
 		
 		if(result?.data?.all_schedules)

@@ -14,6 +14,8 @@ import { WorkSpaceController } from "../../../controller/WorkSpaceController.js"
 import { PipelineService } from "../../../services/PipelineService.js";
 import { StillAppSetup } from "../../../../config/app-setup.js";
 
+const tabToId = { 'content-data-source': 1, 'content-api-catalog': 2, 'content-pipeline-plan': 3, 'content-outputs': 4 };
+
 export class LeftTabs extends ViewComponent {
 
 	isPublic = true;
@@ -77,13 +79,15 @@ export class LeftTabs extends ViewComponent {
 		this.service.on('load', () => this.objectTypes = this.service.objectTypes);
 	}
 
+	async callShowHideDatabase(){
+		await this.showHideDatabase();
+		this.showLoading = false;
+	}
 	/** @param { HTMLElement | null } target */
 	async showHideDatabase(){
 		
-		if(this.fetchingPipelineData == false){
-			this.fetchingPipelineData = true;
-		}else
-			return; //This will prevent the button to be clicked multiple times
+		if(this.fetchingPipelineData == false) this.fetchingPipelineData = true;
+		else return; // This will prevent the button to be clicked multiple times
 
 		this.selectTab('content-outputs');
 		this.dbTreeviewProxy.clearTreeData();
@@ -116,13 +120,12 @@ export class LeftTabs extends ViewComponent {
 				  isSchedulePaused = isScheduledOnly ? tables['_e2e_schedule']?.is_scheduled_paused : data[0]?.is_scheduled_paused;
 
 			const pipeline = this.dbTreeviewProxy.addNode({
-					content: this.pipelineTreeViewTemplate(dbfile, flag, {isScheduled, scheduleSettings, isSchedulePaused}),
-					isTopLevel: true,
+				content: this.pipelineTreeViewTemplate(dbfile, flag, {isScheduled, scheduleSettings, isSchedulePaused}), isTopLevel: true,
 			});
 
 			if(flag) continue;
 
-			let dbSchema = null;
+			let dbSchema = null, tableKey;
 			if(data[0]){
 				const content = this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile)
 				dbSchema = this.dbTreeviewProxy.addNode({ content });
@@ -132,12 +135,10 @@ export class LeftTabs extends ViewComponent {
 				
 				const tableData = data[idx];
 				if(tableData){
-					const tableToQuery = `${tableData.dbname}.${tableData.table}`;
-					const pipelineName = tableData.ppline || dbfile;
+					const tableToQuery = `${tableData.dbname}.${tableData.table}`, pipelineName = tableData.ppline || dbfile;
 					
 					// Construct the correct metadata key based on destination type
 					// CRITICAL: Include pipeline name to avoid conflicts when multiple pipelines have same table names
-					let tableKey;
 					if (nonDuckDBSupport.includes(tableData.dest)) {
 						// For SQL, BigQuery, and Databricks destinations: use ppline.dbname.table format
 						tableKey = `${pipelineName}.${tableData.dbname}.${tableData.table}`;
@@ -178,8 +179,7 @@ export class LeftTabs extends ViewComponent {
 		let { isScheduled, scheduleSettings, isSchedulePaused } = schedule;
 		isScheduled = String(scheduleSettings).includes('None None None') ? false : isScheduled;
 		return `<div class="ppline-treeview">
-					<span
-						tooltip-x="0" tooltip-y="-15" tooltip="${dbfile}" 
+					<span tooltip-x="0" tooltip-y="-15" tooltip="${dbfile}" 
 						class="ppline-treeview-label scheduled-${isScheduled}" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
 				</div>
 				<span class="pipeline-menu-holder">
@@ -205,7 +205,7 @@ export class LeftTabs extends ViewComponent {
 		this.$parent.expandDataTableView(null, this.currentTableToQuery, this.currentDBFile, null, metadata);
 	}
 	
-	refreshTree = async () => await this.showHideDatabase();
+	refreshTree = async () => await this.callShowHideDatabase();
 
 	databaseTreeViewTemplate(tableData, tableToQuery, dbfile, showIcons = true){
 		let tableRow = `<div class='table-name'>${showIcons ? tableIcon : tableIconOpaqued} ${tableData.table}</div>`;
@@ -225,8 +225,7 @@ export class LeftTabs extends ViewComponent {
 		
 		if(showIcons === true) {
 			tableRow += `
-				<span
-					onclick="self.showTableOptions('${cleanTableName}','${dbfile}','${tableToQuery}', '${tableIdentifier}')"
+				<span onclick="self.showTableOptions('${cleanTableName}','${dbfile}','${tableToQuery}', '${tableIdentifier}')"
 					class="pipeline-menu-holder pipeline-menu-holder-table">
 					<img class="dots pipeline-menu-dots ${dbfile}${cleanTableName}" src="app/assets/imgs/file-list/dots.svg" width="12">
 					<div class="pipeline-table-menu-wrapper pipeline-table-menu-wrap-${dbfile}${cleanTableName}"></div>
@@ -259,7 +258,7 @@ export class LeftTabs extends ViewComponent {
 			this.$parent.controller.createDataGovernanceUI();
 		}
 
-		this.showLoading = ({ 'content-data-source': 1, 'content-api-catalog': 2, 'content-pipeline-plan': 3 })[tab];
+		this.showLoading = tabToId[tab];
 		if(tab === 'content-data-source')
 			setTimeout(async () => await this.$parent.controller.createCatalogForm(1),100);
 
@@ -375,7 +374,7 @@ export class LeftTabs extends ViewComponent {
 		const result = await this.service.pausePipelineScheduledJob();
 		if(this.onlyScheduledPplineFilter)
 			document.querySelector('.filterSchedulePPlineToggle').checked = false;
-		if(result === true) await this.showHideDatabase();
+		if(result === true) await this.callShowHideDatabase();
 	}
 
 	async startAIAssistant(retry = false){

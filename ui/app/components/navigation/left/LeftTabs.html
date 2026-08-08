@@ -30,7 +30,7 @@
                 </li>
 
                 <li class="left-menu-item" data-tooltip="Outputs">
-                    <label for="tab-outputs" data-progress="init" onclick="component.showHideDatabase(this)">
+                    <label for="tab-outputs" data-progress="init" onclick="component.callShowHideDatabase(this)">
                         <span class="icon">
                             <img src="app/assets/imgs/left-menu/tables.svg" width="23" alt="">
                         </span>
@@ -152,6 +152,15 @@
                 <section id="data-panel" class="tab-panel data-panel" style="padding-bottom: 110px; padding-top: 0px;">
                     <div style="text-align: center; font-size: 1.3em; width: 96%; color: #da5353;">
                         @dataFetchilgLabel
+                        <span (showIf)="self.showLoading == 4">
+                            <div class="fetching-db-loader">
+                                <div class="mini-loader-container db-secrets-loader">
+                                    <div class="mini-loader-dot"></div>
+                                    <div class="mini-loader-dot"></div>
+                                    <div class="mini-loader-dot"></div>
+                                </div>
+                            </div>
+                        </span>
                     </div>
                     <st-element showBullets="false" component="@treeview/StillTreeView" tooltipXPos="10"
                         (onRefreshClick)="refreshTree()" showRefresh="false" tooltipText="Update tree data"

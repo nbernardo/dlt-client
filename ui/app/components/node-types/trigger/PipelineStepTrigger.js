@@ -35,7 +35,8 @@ export class PipelineStepTrigger extends AbstractNode {
 	/** @Prop */ showSettings = false;
 	/** @Prop */ triggerOrder;
 	/** @Prop */ settings = null;
-	/** @Prop */ update = false;
+	/** @Prop */ update = true;
+	/** @Prop */ container = true;
 
 	/** @type { Workspace } */ $parent;
 
@@ -53,6 +54,7 @@ export class PipelineStepTrigger extends AbstractNode {
 	}
 
 	async stAfterInit(){
+		this.container = document.querySelector(`.${this.cmpInternalId}`);
 		this.showLoading = false;
 		this.triggerAfterValues = Array.from({ length: 61 }, (_, label) => ({label}));
 		this.pipelineList = (await PipelineService.getPipelinesShortList());
@@ -66,13 +68,13 @@ export class PipelineStepTrigger extends AbstractNode {
 				this.assignUpdateFlag(false);
 			}else{
 				this.buttonLabel = 'Activate Link';
-				this.update = true;				
+				this.assignUpdateFlag(true)
 			}
 			
 			this.showSettings = true;
 			this.notifyReadiness();
 			const { time, timeUnit, targetPipeline, order } = this.importData;
-			setTimeout(() => document.querySelector(`select[placeholder="Select the pipeline"]`).value = targetPipeline, 50);
+			setTimeout(() => this.container.querySelector(`select[placeholder="Select the pipeline"]`).value = targetPipeline, 50);
 			this.triggerValue = time, this.timeUnit = timeUnit, this.triggerOrder = order;
 			PipelineService.storePipelineTriggers.push(this);
 		}
@@ -110,6 +112,7 @@ export class PipelineStepTrigger extends AbstractNode {
 	updateSettings(){
 		const { targetPipeline, triggerValue, timeUnit, triggerOrder } = this;
 		this.settings = { ppline: targetPipeline.value, triggerValue: triggerValue.value, timeUnit: timeUnit.value, order: triggerOrder };
+		return this.settings;
 	}
 
 	updateTrigger = async (status) => await this.addPipelineTrigger(triggerStatus[status]);
@@ -125,8 +128,14 @@ export class PipelineStepTrigger extends AbstractNode {
 
 		const nodes = Object.keys(currentDiagram.data);
 		for(const node of nodes){
-			if(originalDiagram.data[node].data.componentId == this.importData.componentId)
-				originalDiagram.data[node].data.status = status || triggerStatus.STATUS_ACTIVE;
+			if(node in originalDiagram.data){
+				if(originalDiagram.data[node].data.componentId == this.importData.componentId){
+					originalDiagram.data[node].data.status = status || triggerStatus.STATUS_ACTIVE;
+					originalDiagram.data[node].data.targetPipeline = this.targetPipeline.value;
+					originalDiagram.data[node].data.time = this.triggerValue.value;
+					originalDiagram.data[node].data.timeUnit = this.timeUnit.value;
+				}
+			}
 
 			if(!(node in originalDiagram.data))
 				originalDiagram.data[node] = currentDiagram.data[node];
@@ -135,8 +144,8 @@ export class PipelineStepTrigger extends AbstractNode {
 				originalDiagram.data[node].inputs = currentDiagram.data[node].inputs;
 			}
 		}
-		const diagram = { Home: { data: originalDiagram.data } };
-		const payload = { drawflow: diagram, activeGrid, pplineLbl, settings: PipelineService.storePipelineTriggers.map(trg => ({ ...trg.settings, update: this.update })) };
+		let diagram = { Home: { data: originalDiagram.data } };
+		const payload = { drawflow: diagram, activeGrid, pplineLbl, settings: [this.updateSettings()] };
 
 		if(status) {
 			if(!(this.importData.status in Object.values(triggerStatus)))
