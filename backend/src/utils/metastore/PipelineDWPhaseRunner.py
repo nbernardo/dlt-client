@@ -14,7 +14,7 @@ from pathlib import Path
 from contextlib import contextmanager
 
 
-def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logger):
+def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logger, email_cb):
     try:
         load_info = future_object.result()
         print("\n[Callback Hook] Success!")
@@ -23,14 +23,17 @@ def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logge
 
         PipelineCheckpoint.update(params.get('pipeline'), params=params)
         #Runs the pipeline trigger in case it exists
+        if email_cb(runner.rec_count_per_table) != None:
+            handle_pipeline_log(f'> Sent email', logger, context=runner.context)
         triggers_cb()
     except Exception as error:
         traceback.print_exc()
         print(f"\n[Callback Hook] Error: {error}")
     finally:
-        db_stage_file = Path(runner.source_db_path)
-        db_stage_file.unlink(missing_ok=True)
-        runner.shutdown()
+        if os.environ.get('KEEP_STAGE_DB',0) in [0,'0']:
+            db_stage_file = Path(runner.source_db_path)
+            db_stage_file.unlink(missing_ok=True)
+            runner.shutdown()
         return
 
 
@@ -74,6 +77,7 @@ class PipelineDWPhaseRunner:
         self.params = None
         self.exec_id = None
         self.incr_fields = None
+        self.rec_count_per_table = {}
         
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self._future: Optional[concurrent.futures.Future] = None
@@ -177,6 +181,7 @@ class PipelineDWPhaseRunner:
                 incremental_load_field = incr_fields.split(',')
 
                 for table in tbls:
+                    self.rec_count_per_table[table] = 0
                     i = tables.index(table) if table in tables else -1
                     pk = pks[i] if i >= 0 else []
                     incr_field = None
@@ -188,8 +193,15 @@ class PipelineDWPhaseRunner:
                 def build_source(): return resources
 
                 result = None
+                pipeline.sync_destination(dataset_name=dataset_name)
+                handle_pipeline_log(f'State after sync: {pipeline.state}', self.logger, context=self.context)
+                pipeline.drop_pending_packages()
+                handle_pipeline_log(f'State before run: {pipeline.state}', self.logger, context=self.context)
+
                 with self._capture_stdout():
                     result = pipeline.run(build_source(), write_disposition={ 'disposition': 'merge', 'strategy': 'scd2', 'row_version_column_name': '_e2e_row_hash' })
+                    count_per_table = pipeline.last_trace.last_normalize_info.row_counts if pipeline.last_trace.last_normalize_info else {}
+                    self.rec_count_per_table = { **self.rec_count_per_table, **count_per_table }
                 
                 con.close()
                 msg = f'Completed Data Warehouse data ingestions'
@@ -240,6 +252,7 @@ class PipelineDWPhaseRunner:
             msg = 'Preprocessing Stage to Datawarehouse data ingestion'
             handle_pipeline_log(msg, refs.get('logger'), context=refs.get('context'))
             job_tag, triggers_cb = refs.get('job_tag'), refs.get('triggers', lambda: None)
+            send_email_cb = refs.get('email_cb', lambda: None)
 
             import schedule
             schedule.clear(job_tag)
@@ -275,7 +288,7 @@ class PipelineDWPhaseRunner:
             [params, runner.logger, runner.context, runner.exec_id] = [refs.get('params'), refs.get('logger'), refs.get('context'), refs.get('exec_id')]
             [runner.pipeline, runner.params, runner.incr_fields] = params.get('pipeline'), params, incr_fields
 
-            cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger)
+            cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger, send_email_cb)
             handle_pipeline_log(
                 f'Tables, PKs and Incr-fields to ingest: Tables: {str(tables)}, Pks: {str(pks)}, Incr-fields: {str(incr_fields)}', 
                 refs.get('logger'), context=refs.get('context')

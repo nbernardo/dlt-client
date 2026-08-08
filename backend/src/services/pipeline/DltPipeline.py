@@ -28,6 +28,7 @@ from internationalization.email import labels
 import asyncio
 from utils.metastore.PipelineDWPhaseRunner import PipelineDWPhaseRunner
 from utils.pipeline import NodeType
+from utils.pipeline.PipelinesHelper import send_success_email
 
 root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
@@ -434,6 +435,10 @@ class DltPipeline:
             refs['short_query'] = line.split(':')[1]
             return True
         
+        if(line.startswith('EMAIL=__send_params__:')):
+            refs['email_params'] = line.split(':',1)[1]
+            return True
+        
         refs['transf_step'] = (line.endswith('Transformation') and line.startswith('dynamic-_cmp'))
 
         if (line == 'RUN_SUCCESSFULLY'):
@@ -611,6 +616,8 @@ class DltPipeline:
 
             DuckdbUtil.check_pipline_db(f'{db_root_path}/{db_file}.duckdb')
             handle_pipeline_log(f'####### WILL RUN JOB FOR {file_path}', logger, False)
+            if(param_list.get('leader_pipeline',None)):
+                handle_pipeline_log(f'>>>>>>>>>>>> {ppline_name} was triggered by {param_list.get('leader_pipeline')} <<<<<<<<<<<<', logger, False)
 
             # delayed_pipeline = PipelineCheckpoint.check_delayed_pipeline(storage_path, pipeline)
             # Register pipeline run completion and end time, and add the found delayed_pipeline as the one taking the lock os storage
@@ -648,10 +655,13 @@ class DltPipeline:
             handle_pipeline_log(f'Pipeline metadata update', logger, False)
             handle_pipeline_log(f'====== Before Data warehouse stage ====== {context.pipeline_metadata.stage_storage}', logger, False)
             if context.pipeline_metadata.stage_storage:
+
                 handle_pipeline_log(f'====== Next -> Data warehouse stage ======', logger, False)
                 job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
                 triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
-                refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': mdta[9], 'tables_pks': mdta[10], 'src_db_name': mdta[12] }
+                send_email_cb = lambda tbls: send_success_email(json.loads(refs.get('email_params')), tbls) if refs.get('email_params') else None
+
+                refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': mdta[9], 'tables_pks': mdta[10], 'src_db_name': mdta[12], 'email_cb': send_email_cb }
                 refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context, 'exec_id': exec_id, 'incr_fields': mdta[11] }
                 handle_pipeline_log(f'====== About so start Data warehouse stage in {DW_WAIT_SEC} ======', logger, False)
                 schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
@@ -743,11 +753,13 @@ class DltPipeline:
             unity, wait_time = curr_trigger['time'], int(curr_trigger['unity'])
             target_pipeline = f'{namespace}/{curr_trigger['pipeline']}'
             [cb, job_tag] = [DltPipeline.run_pipeline_job, f'{target_pipeline}_{job_start_time}']
+            param_list: dict = { 'exp_backoff': 1, 'req_user': None, 'leader_pipeline': curr_trigger['leader_pipeline'] }
 
+            final_cb = lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, triggers, job_tag, param_list=param_list))
             if(unity == 'sec'):
-                schedule.every(wait_time).seconds.do(lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, triggers, job_tag))).tag(job_tag)  
+                schedule.every(wait_time).seconds.do(lambda: final_cb).tag(job_tag)  
             if(unity == 'min'):
-                schedule.every(int(wait_time) * 60).seconds.do(lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, triggers, job_tag))).tag(job_tag)
+                schedule.every(int(wait_time) * 60).seconds.do(lambda: final_cb).tag(job_tag)
 
 
     @staticmethod

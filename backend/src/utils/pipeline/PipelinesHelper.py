@@ -8,7 +8,7 @@ from duckdb import DuckDBPyConnection
 from utils.pipeline.Enums import Checkpoint
 from services.email.SimpleAPIMailer import SimpleAPIMailer
 from datetime import datetime
-
+import json
 
 PipelineLogger = PL
 ChkPoint = Checkpoint
@@ -71,7 +71,7 @@ class PipelineHelper:
 
         start_time = str(sys.stdin.readline())
         ppline_strt_dt, ppline_end_dt = datetime.fromtimestamp(float(start_time)), datetime.now()
-        ppline_time = { 'ts': start_time, 'start': ppline_strt_dt, 'end': ppline_end_dt }
+        ppline_time = { 'ts': start_time, 'start': str(ppline_strt_dt), 'end': str(ppline_end_dt) }
 
         [dest, db_name] = [additionals['dest'], additionals['db_name']]
         [meta, tbls] = [additionals['meta'], additionals['tbls']]
@@ -89,9 +89,13 @@ class PipelineHelper:
             pipeline_name = pipeline.pipeline_name
             namespace, original_pipeline_name = pipeline_name.split('_at_', 1)
             
-
             [tbls, ts, skma] = [list(additionals['ddls'].keys()), additionals['ts'], additionals['db_name']]
             tbls = [table.replace('.','_') for table in additionals['tbls']] if tmplt_type == 'MSSQL' else tbls
+            email_params = json.dumps({
+                'src_db': str(dest.config_params['credentials']), 'org_ppline': original_pipeline_name, 
+                'skma': skma, 'ts': str(ts), 'tbls': tbls, 'ppline_time': ppline_time, 'tmplt_type': tmplt_type
+            })
+            print(f'EMAIL=__send_params__:{email_params}', flush=True)
 
             #metadatas = MetaStore.get_pipeline_catalog(original_pipeline_name, namespace, src_path)
             #MetaStore.persist_catalog(tbls, pipeline, info, additionals, len(metadatas) > 1 if metadatas else 0)
@@ -120,9 +124,7 @@ class PipelineHelper:
             print('Error on running here: ', str(err))
 
         finally:
-            send_ppline_completion_email(con, original_pipeline_name, skma, ts, tbls, ppline_time, tmplt_type)
             con.close()
-            print('--------- Sucessfull Email send ---------', flush=True)
             print('RUN_SUCCESSFULLY', flush=True) # Notify the main process about pipeline run completion
             sys.exit(0) # Gracefully terminates the sub-process
 
@@ -291,34 +293,26 @@ class PipelineHelper:
             return f'{table_name}_e2e_from_{source_ppline}'
         
 
+def send_success_email(params: dict, tbls: dict):
+    con = duckdb.connect(params.get('src_db'))
+    send_ppline_completion_email(con, params.get('org_ppline'), params.get('ppline_time'), tbls)
+
 
 def send_ppline_completion_email(
     con: DuckDBPyConnection,
     pipeline_name: str,
-    skma: str,
-    ts: str,
-    tbls: list,
     ppline_time: dict,
-    tmplt_type
+    reg_per_table: dict = {}
 ):
     from internationalization.email import labels
-
-    filter = '' #f"WHERE _e2e_ts = '{ts}'" if tmplt_type != 'MSSQL' else ''
-
-    tbls_fltr = str([f'{t}' for t in tbls]).strip('[]')
-    tbls = con.execute(f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr}) ").fetchall()
-    tbls = list({t[0] for t in tbls})
     
     ppline_strt_dt, ppline_end_dt, start_time = ppline_time.get('start'), ppline_time.get('end'), ppline_time.get('ts')
-    count_query = '\n UNION \n'.join([f"SELECT '{tbl}' as tbl, COUNT(*) as count FROM {skma}.{tbl} {filter}" for tbl in tbls])
-    total_record_per_table, tbls_email_content = con.execute(count_query), ''
+    tbls_email_content = ''
     style, row_sep = 'style="padding: 0 8px; text-align: center;"', '=' * 50
     
-    if total_record_per_table:
-        total_record_per_table = total_record_per_table.fetchall()
-        tbls_email_content = ''.join([f'<tr><td {style}>{tbl[0]}</td><td {style}>{tbl[1]}</td></tr>' for tbl in list(total_record_per_table)])
-    else:
-        tbls_email_content = ''.join([f'<tr><td {style}>{tbl}</td><td {style}>0</td></tr>' for tbl in tbls])
+    tbls_email_content = ''.join([
+        f'<tr><td {style}>{tbl}</td><td {style}>{r_count}</td></tr>' for tbl, r_count in reg_per_table.items() if not(str(tbl).startswith('_dlt_'))
+    ])
 
     intl = labels[env('APP_LANG')]
 

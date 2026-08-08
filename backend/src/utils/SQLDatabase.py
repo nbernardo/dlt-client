@@ -515,9 +515,10 @@ def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
         for table in actual_tables.keys():
             if table in available:
                 column_defs = []
+                tbl_key = f'{schema+'_' if dbengine != 'mysql' else ''}{table}'
                 cols = inspector.get_columns(table) \
                         if dbengine == 'mysql' else inspector.get_columns(table, schema=schema)
-                schema_metadata[table] = { c['name']: c['type']  for c in cols }
+                schema_metadata[tbl_key] = { c['name']: c['type']  for c in cols }
 
                 for c in cols:
                     null_str = 'NOT NULL' if not c.get('nullable') else ''
@@ -526,7 +527,7 @@ def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
                 fks = inspector.get_foreign_keys(table) \
                         if dbengine == 'mysql' else inspector.get_foreign_keys(table, schema=schema)
 
-                relationships[table] = [
+                relationships[tbl_key] = [
                     { 'columns': fk['constrained_columns'], 'referred_table': fk['referred_table'], 'referred_columns': fk['referred_columns']  }
                     for fk in fks
                 ]
@@ -537,7 +538,7 @@ def additional_parse(secrets, tables, primary_keys=None, pplines_names = {}):
                     r_cols = ', '.join(fk['referred_columns'])
                     column_defs.append(f'  FOREIGN KEY ({l_cols}) REFERENCES {r_table} ({r_cols})')
 
-                ddls[table] = f"CREATE TABLE {table} (\n" + ",\n".join(column_defs) + "\n);"
+                ddls[tbl_key] = f"CREATE TABLE {table} (\n" + ",\n".join(column_defs) + "\n);"
 
         ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
         final_big_query = generate_join_query(actual_tables, relationships, schema_metadata, pplines_names, ts)

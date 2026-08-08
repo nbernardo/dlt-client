@@ -83,7 +83,7 @@ class PipelineTrigger:
             if order:
                 filter += f" AND order='{order}'"
 
-            records = tbl.search().where(f'{filter}').select(['pipeline', 'namespace', 'status', 'unity', 'time']).to_list()
+            records = tbl.search().where(f'{filter}').select(['pipeline', 'namespace', 'status', 'unity', 'time','leader_pipeline']).to_list()
 
             return records if records else []
 
