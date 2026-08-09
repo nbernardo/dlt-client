@@ -12,6 +12,7 @@ from services.agents import AgentFactory
 from utils.metastore.PipelineMedatata import PipelineMedatata
 from controller.file_upload import format_size
 import logging
+from services.workspace.Workspace import Workspace
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -694,3 +695,15 @@ def immediate_pipeline_action(namespace, pipeline, exec_id = None):
         return { 'error': False, 'result': { 'result': 'Pipeline run in progress' } }
     except Exception as err:
         return { 'error': True, 'result': { 'result': err } }
+
+
+@pipeline.route('/ppline/retire/<namespace>/<pipeline>', methods=['POST'])
+def retire_pipeline(namespace, pipeline):
+    try:
+        file_path = BasePipeline.folder+'/pipeline/'+namespace
+        if os.path.exists(f'{file_path}/{pipeline}__toschedule__.py'):
+            os.rename(f'{file_path}/{pipeline}__toschedule__.py', f'{file_path}/{pipeline}__archived__.py')
+            Workspace.del_ppline_schedule(namespace, pipeline, archive=True)
+        return { 'error': False, 'result': f'{pipeline} pipeline archived successfully' }
+    except Exception as err:
+        return { 'error': True, 'result': str(err) }

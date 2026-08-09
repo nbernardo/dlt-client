@@ -183,6 +183,10 @@ class Workspace:
 
             if _file.endswith('.duckdb') or _file.endswith('.db'):
                 ppline_name = str(_file).replace('.duckdb','')
+                if ppelines.get(ppline_name, {}).get('ignore'): 
+                    del ppelines[ppline_name]
+                    continue
+                
                 if (ppline_name in ppelines and not(ppline_name in pipeline_schedules.get('data', {}))): 
                     if(len(ppelines[ppline_name].values()) > 0): continue
                     
@@ -285,7 +289,7 @@ class Workspace:
 
 
     @staticmethod
-    def list_pipeline_from_files(files_path, pipeline_schedules: dict = {}, metadata_by_pipeline = {}, metadata = {}, __namespace = None):
+    def list_pipeline_from_files(files_path, pipeline_schedules: dict = {}, metadata_by_pipeline = {}, metadata = {}, __namespace = None, archived = None):
         
         from utils.pipeline.Enums import SQL_DB
 
@@ -302,6 +306,15 @@ class Workspace:
 
             _file = _file_name
             ppline_name = None
+
+            if archived:
+                if _file.endswith('__archived__.py'):
+                    result[_file.replace('__archived__.py', '')] = {}
+                continue
+
+            if _file.endswith('__archived__.py'):
+                result[_file.replace('__archived__.py', '')] = { 'ignore': True } 
+                continue
 
             is_withmetadata = False
             # Support new format (double underscore)
@@ -358,18 +371,14 @@ class Workspace:
 
                         fields = metadata_by_pipeline.get(f'{namespace}_at_{ppline_name}',{}).get(fields_map_table, [])
 
-
                     if(k != prev_key):
                         if not ('data' in pipeline_schedules): pipeline_schedules['data'] = {}
                         curr_schedule = pipeline_schedules['data'].get(ppline_name)
                         result[ppline_name][table_name] = { 
-                            'ppline': ppline_name,
-                            'dbname': dbname,
+                            'ppline': ppline_name, 'dbname': dbname,
                             'table': actual_table_name,  # Use actual table name from database
-                            'db_size': '',
-                            'col_count': len(fields) if fields else '',
-                            'fields': fields,
-                            'dest': dest_type,
+                            'db_size': '', 'col_count': len(fields) if fields else '',
+                            'fields': fields, 'dest': dest_type,
                             'connection_name': connection_name,
                             'is_scheduled': pipeline_schedules['data'].get(ppline_name, None) != None,
                             'is_scheduled_paused': curr_schedule.get('is_paused') if curr_schedule != None else '',
@@ -695,14 +704,18 @@ class Workspace:
 
 
     @staticmethod
-    def del_ppline_schedule(namespace, pipeline, id, time):
+    def del_ppline_schedule(namespace, pipeline, id = None, time = None, archive = False):
 
         try:
-            query = f"DELETE FROM ppline_schedule WHERE id = ?"
-            DuckdbUtil.get_workspace_db_instance().execute(query, [id])
-            tag_name = f'{namespace}_{pipeline}_{time.replace(':','')}'
+            if archive == False:
+                query = f"DELETE FROM ppline_schedule WHERE id = ?"
+                DuckdbUtil.get_workspace_db_instance().execute(query, [id])
+                tag_name = f'{namespace}_{pipeline}_{time.replace(':','')}'
+                schedule.clear(tag_name)
+            else:
+                query = f"DELETE FROM ppline_schedule WHERE ppline_name = ? AND namespace = ?"
+                DuckdbUtil.get_workspace_db_instance().execute(query, [pipeline, namespace])
             result = Workspace.get_ppline_schedule(namespace,pipeline)
-            schedule.clear(tag_name)
             return result
         except Exception as err:
             return { 'error': True, 'result': str(err) } 

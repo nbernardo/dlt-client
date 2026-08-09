@@ -544,6 +544,17 @@ class DltPipeline:
 
     @staticmethod
     def run_pipeline_job_sync(file_path, namespace, lead_pipeline=None, exec_id=None, sched_time=None, user=None):
+        
+        if sched_time:
+            ppline_name = file_path.split('/')[1]
+            tag_name = f'{namespace}_{ppline_name}_{sched_time.replace(':','')}'
+            fl = f'{destinations_dir}/{file_path}'
+            # Prevent the job from running and clear the schedule
+            if os.path.exists(f'{fl}__archived__.py'):
+                schedule.clear(tag_name)
+                return
+
+
         param_list = { 'exp_backoff': 1, 'sched_time': sched_time, 'req_user': user }
         if(exec_id): param_list = { **param_list, 'exec_id': exec_id, 'manual_run': True }
         asyncio.run(DltPipeline.run_pipeline_job(file_path, namespace, lead_pipeline,param_list=param_list))

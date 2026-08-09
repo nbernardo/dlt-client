@@ -48,9 +48,10 @@ def run_code(user):
 def list_pipelines(namespace, socket_id = None):
     ppelines_path = BasePipeline.folder+'/pipeline/'+namespace+'/'
     duckdb_ppelines_path = BasePipeline.folder+'/duckdb/'+namespace+'/'
+    payload = request.get_json()
 
-    if(socket_id == None):
-        ppelines = Workspace.list_pipeline_from_files(ppelines_path)
+    if(socket_id == None or payload.get('archived')):
+        ppelines = Workspace.list_pipeline_from_files(ppelines_path, archived=payload.get('archived'))
         return { **ppelines }
     else:
         from utils.metastore.DataCatalog import DataCatalog
@@ -65,7 +66,7 @@ def list_pipelines(namespace, socket_id = None):
         if metadata != None: metadata = json.loads(metadata)
 
         pipeline_schedules = Workspace.get_ppline_schedule(namespace,suffixed=False)
-        ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules, catalog, metadata, namespace)
+        ppelines = Workspace.list_pipeline_from_files(ppelines_path, pipeline_schedules, catalog, metadata, namespace, archived=payload.get('archived'))
         duckdb_ppelines = Workspace.list_duckdb_dest_pipelines(duckdb_ppelines_path, namespace, ppelines, pipeline_schedules)
     
     errors_list = None
