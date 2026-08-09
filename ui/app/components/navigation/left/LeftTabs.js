@@ -68,6 +68,8 @@ export class LeftTabs extends ViewComponent {
 
 	/** @Prop */ onlyScheduledPplineFilter = false;
 
+	/** @Prop */ _3ViewProxy = null;
+
 	dataFetchilgLabel = 'Fetching Data';
 	dbSecretsList = [];
 	apiSecretsList = [];
@@ -85,7 +87,7 @@ export class LeftTabs extends ViewComponent {
 	}
 	/** @param { HTMLElement | null } target */
 	async showHideDatabase(proxy = 'dbTreeviewProxy'){
-		this.dataFetchilgLabel = '';
+		this.dataFetchilgLabel = '', this._3ViewProxy = proxy;
 		if(this.fetchingPipelineData == false) this.fetchingPipelineData = true;
 		else return; // This will prevent the button to be clicked multiple times
 
@@ -325,6 +327,11 @@ export class LeftTabs extends ViewComponent {
 		event.preventDefault();
 		this.currentDBFile = dbfile;
 		this.renderDropDownMenu(dbfile, isScheduled, isSchedulePaused);
+		const archiveOption = document.querySelectorAll(`.pipeline-menu-wrap-${dbfile} .hide-from-archv-opt`);
+		if(archiveOption){
+			if (this._3ViewProxy == 'arhivePplineTreeviewProxy') archiveOption.forEach(it => it.style.display = 'none');
+			else archiveOption.forEach(it => it.style.display = '');
+		}
 	}
 
 	showTableOptions(table, dbfile, tableName, tablePath){

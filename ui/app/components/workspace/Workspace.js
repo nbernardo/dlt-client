@@ -551,7 +551,7 @@ export class Workspace extends ViewComponent {
 				self.showSaveButton = false;
 				document.getElementById('pplineNamePlaceHolder').contentEditable = false;
 				self.selectedPplineName = pplineName;
-				self.isAnyDiagramActive = true;
+				self.isAnyDiagramActive = self.leftMenuProxy._3ViewProxy == 'arhivePplineTreeviewProxy' ? false : true;
 			}else{
 				self.controller.shouldDisableNodeFormInputs = false;
 			}
