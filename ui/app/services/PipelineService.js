@@ -170,6 +170,18 @@ export class PipelineService extends BaseService {
         AppTemplate.toast.error(response.result);
     }
 
+    static async archivePipeline(ppline) {
+        const user = await UserService.getNamespace();
+        let response = await $still.HTTPClient.post(`/ppline/retire/${user}/${ppline}`, null, HTTPHeaders.JSON);
+        response = await response.json();
+
+        if (!response.error){
+            AppTemplate.toast.success(response.result);
+            return true;
+        }
+        AppTemplate.toast.error(response.result);
+    }
+
     static async getPipelinesForGernanceView(){
         const pplineList = await BIService.getDWPipelines();
         return (pplineList || []).map(([pipeline, dtset]) => {

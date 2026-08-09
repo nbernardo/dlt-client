@@ -153,6 +153,10 @@ export const stillRoutesMap = {
             PipelineRunSummary: {
                 path: "app/components/pipeline/summary",
                 url: "/pipeline-run-sumary"
+            },
+            ElipsisLoader: {
+                path: "app/components/shared/loader",
+                url: "/elipsis-loader"
             }
         },
         lazyInitial: {}

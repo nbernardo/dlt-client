@@ -28,6 +28,9 @@ export class LeftTabs extends ViewComponent {
 	/** @Proxy @type { StillTreeView } */
 	dbTreeviewProxy;
 
+	/** @Proxy @type { StillTreeView } */
+	arhivePplineTreeviewProxy;
+
 	/** @Proxy @type { FileUpload } */
 	fileUploadProxy;
 
@@ -55,8 +58,6 @@ export class LeftTabs extends ViewComponent {
 
 	/** @Prop */ selectedPrompt = null;
 
-	/** @Prop */ underContructionImg = '/app/assets/imgs/bricks.gif';
-
 	/** @Prop */ showLoading = false;
 
 	/** @Prop */ currentDBFile;
@@ -74,38 +75,39 @@ export class LeftTabs extends ViewComponent {
 	pipelines = [];
 
 	stAfterInit() {
-		this.$parent.controller.leftTab = this;
-		this.setUpPromptMenuEvt();
+		this.$parent.controller.leftTab = this, this.setUpPromptMenuEvt();
 		this.service.on('load', () => this.objectTypes = this.service.objectTypes);
 	}
 
-	async callShowHideDatabase(){
-		await this.showHideDatabase();
+	async callShowHideDatabase(proxyName){
+		await this.showHideDatabase(proxyName);
 		this.showLoading = false;
 	}
 	/** @param { HTMLElement | null } target */
-	async showHideDatabase(){
-		
+	async showHideDatabase(proxy = 'dbTreeviewProxy'){
+		this.dataFetchilgLabel = '';
 		if(this.fetchingPipelineData == false) this.fetchingPipelineData = true;
 		else return; // This will prevent the button to be clicked multiple times
 
 		this.selectTab('content-outputs');
-		this.dbTreeviewProxy.clearTreeData();
-		let response = await this.service.getPipelines(this.$parent.socketData.sid);
+		const /** @type { StillTreeView } */ proxyObject = this[proxy];
+
+		proxyObject.clearTreeData();
+		const payload = proxy == 'arhivePplineTreeviewProxy' ? { archived: true } : {};
+		let response = await this.service.getPipelines(this.$parent.socketData.sid, payload);
 		
 		// Store table metadata for later use (including connection info)
 		this.tableMetadata = {};
 		
 		if(response?.no_data || Object.keys(response).length === 0){
-			this.dataFetchilgLabel = 'No Pipeline data exist in your namespace.'
+			this.dataFetchilgLabel = proxy == 'arhivePplineTreeviewProxy' ? 'No archived Pipeline exist in your namespace.' : 'No Pipeline data exist in your namespace.';
 			return this.fetchingPipelineData = false;
 		}
 
 		if(response?.error === true){
-			this.dbTreeviewProxy.showLoader = false;
-			for(const err of response.trace) {
-				this.$parent.logProxy.appendLogEntry('error', err, Date.now());
-			}
+			proxyObject.showLoader = false;
+			for(const err of response.trace) this.$parent.logProxy.appendLogEntry('error', err, Date.now());
+
 			this.$parent.logProxy.lastLogTime = null;
 			this.fetchingPipelineData = false;
 			return AppTemplate.toast.error(response.message);
@@ -118,17 +120,15 @@ export class LeftTabs extends ViewComponent {
 				  isScheduled = data[0]?.is_scheduled || isScheduledOnly, 
 				  scheduleSettings = isScheduledOnly ? tables['_e2e_schedule']?.short_settings : data[0]?.short_settings,
 				  isSchedulePaused = isScheduledOnly ? tables['_e2e_schedule']?.is_scheduled_paused : data[0]?.is_scheduled_paused;
-
-			const pipeline = this.dbTreeviewProxy.addNode({
-				content: this.pipelineTreeViewTemplate(dbfile, flag, {isScheduled, scheduleSettings, isSchedulePaused}), isTopLevel: true,
-			});
+			const ppline3Content = this.pipelineTreeViewTemplate(dbfile, flag, {isScheduled, scheduleSettings, isSchedulePaused});
+			const pipeline = proxyObject.addNode({ content: ppline3Content, isTopLevel: true });
 
 			if(flag) continue;
 
 			let dbSchema = null, tableKey;
 			if(data[0]){
-				const content = this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile)
-				dbSchema = this.dbTreeviewProxy.addNode({ content });
+				const dbSchemaContent = this.dbSchemaTreeViewTemplate(data[0].dbname, dbfile)
+				dbSchema = proxyObject.addNode({ content: dbSchemaContent });
 			}
 
 			for(const idx in data){
@@ -136,7 +136,6 @@ export class LeftTabs extends ViewComponent {
 				const tableData = data[idx];
 				if(tableData){
 					const tableToQuery = `${tableData.dbname}.${tableData.table}`, pipelineName = tableData.ppline || dbfile;
-					
 					// Construct the correct metadata key based on destination type
 					// CRITICAL: Include pipeline name to avoid conflicts when multiple pipelines have same table names
 					if (nonDuckDBSupport.includes(tableData.dest)) {
@@ -151,8 +150,7 @@ export class LeftTabs extends ViewComponent {
 					this.tableMetadata[tableKey] = {
 						connection_name: tableData.connection_name,
 						dest_type: tableData.dest || 'duckdb',
-						ppline: pipelineName,
-						dbname: tableData.dbname,
+						ppline: pipelineName, dbname: tableData.dbname,
 						table: tableData.table,
 						dbfile: dbfile  // Store dbfile for DuckDB queries
 					};
@@ -160,19 +158,16 @@ export class LeftTabs extends ViewComponent {
 					// Check if destination type is supported for querying
 					const supportedDestinations = getSupportedQueryDestinations();
 					const isQuerySupported = supportedDestinations.includes(tableData.dest || 'duckdb');
-					
-					const table = this.dbTreeviewProxy.addNode({ 
-						content: this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, isQuerySupported),
-					});
+					const content = this.databaseTreeViewTemplate(tableData, tableToQuery, dbfile, isQuerySupported)
+					const table = proxyObject.addNode({ content });
 					dbSchema.addChild(table);
 				}
 			}
 			if(dbSchema !== null) pipeline.addChild(dbSchema);
 		}
 		
-		this.dbTreeviewProxy.renderTree();
-		this.fetchingPipelineData = false;
-		this.dataFetchilgLabel = '';
+		proxyObject.renderTree();
+		this.fetchingPipelineData = false, this.dataFetchilgLabel = '';
 	}
 
 	pipelineTreeViewTemplate(dbfile, flag, schedule){
@@ -428,7 +423,7 @@ export class LeftTabs extends ViewComponent {
 
 	hideSelectedPromptMenu = () => this.promptSamplesMenu.classList.remove('is-active');
 
-	filderPipeline(filter, findAll){
+	filterPipeline(filter, findAll){
 		const filterVal = String(filter).toLowerCase().replace(/\s+/g,'_');
 		const pipelineList = document.querySelectorAll(`.ppline-treeview-label`);
 		const andFilter = this.onlyScheduledPplineFilter ? false : true;
@@ -452,4 +447,20 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	openDataViz = () => this.$parent.dataVizProxy.openPopup();
+
+	async archivePpline(event){
+		event.preventDefault();
+		const title = 'Archiving pipeline.', self = this;
+		const message = `By archiving ${self.currentDBFile} you'll deactivate any existing schedule job. Do you wish to confinue?`;
+		this.$parent.controller.showDialog(message, { type: 'confirm', title, onConfirm });
+		async function onConfirm(){
+			setTimeout(async () =>{
+				self.dbTreeviewProxy.clearTreeData();
+				self.showLoading = 4; // 4 is the loading for the pipelines listing
+				await PipelineService.archivePipeline(self.currentDBFile);
+				await self.$parent.headerProxy.getScheduleList();
+				await self.refreshTree();
+			});
+		}
+	}
 }

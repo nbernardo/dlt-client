@@ -143,11 +143,7 @@ export class WorkspaceService extends BaseService {
     }    async runCode(code, user) {
 
         const url = '/workcpace/code/run/' + user;
-        const result = await $still.HTTPClient.post(url, JSON.stringify(code), {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        const result = await $still.HTTPClient.post(url, JSON.stringify(code), HTTPHeaders.JSON);
 
         return result;
 
@@ -155,22 +151,22 @@ export class WorkspaceService extends BaseService {
 
     static getPipelineList = async (socketId) => await WorkspaceService.self.getPipelines(socketId)
 
-    async getPipelines(socketId){
+    async getPipelines(socketId, payload = {}){
         const user = await UserService.getNamespace();
         //if (this.tableListStore.value == null) {
             const url = '/workcpace/duckdb/list/' + user + '/' + socketId;
-            const response = await $still.HTTPClient.post(url, null, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const { db_path, pipeline_sources_and_destinations, ...tables } = await response.json();
-            PipelineService.pipelineSourcesAndSestinationsMap = (JSON.parse(pipeline_sources_and_destinations) || [])
-                .reduce((accum, curr) => {
-                    accum[curr.pipeline] = { ...curr }
-                    return accum
-                }, {});
+            const response = await $still.HTTPClient.post(url, JSON.stringify({ ...payload }), HTTPHeaders.JSON);
+            const { db_path, pipeline_sources_and_destinations: pplineSourceAndDest, ...tables } = await response.json();
+            if(pplineSourceAndDest){
+                PipelineService.pipelineSourcesAndSestinationsMap = (JSON.parse(pplineSourceAndDest) || [])
+                    .reduce((accum, curr) => {
+                        accum[curr.pipeline] = { ...curr }
+                        return accum
+                    }, {});
+            }
 
             this.dbPath = db_path;
-            this.tableListStore = tables;
+            this.tableListStore = tables || {};
         //}
         return this.tableListStore.value;
     }
@@ -349,9 +345,7 @@ export class WorkspaceService extends BaseService {
             ? UserUtil.email : await UserService.getNamespace();
 
         const url = '/pipeline/agent/' + namespace;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ message }), {
-            headers: { 'content-type': 'Application/json' }
-        });
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ message }), HTTPHeaders.JSON);
         if (response.ok && !response.error)
             return await response.json();
         return null;
@@ -367,9 +361,7 @@ export class WorkspaceService extends BaseService {
 
         const namespace = await UserService.getNamespace();
         const url = '/secret/' + namespace;
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
-            headers: { 'content-type': 'Application/json' }
-        });
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), HTTPHeaders.JSON);
         
         const result = await response.json();
         
@@ -384,9 +376,7 @@ export class WorkspaceService extends BaseService {
     static async testDbConnection(secret, existing) {
 
         const url = existing ? '/workspace/connection/exists/test' : '/workspace/connection/test';
-        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), {
-            headers: { 'content-type': 'Application/json' }
-        });
+        const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), HTTPHeaders.JSON);
         
         const result = await response.json();
         
@@ -467,9 +457,7 @@ export class WorkspaceService extends BaseService {
             data = { 's3Config' : { 'access_key_id': firstValue, 'secret_access_key': secretKey, 'bucket_name': bucketUrl } };
         
         const url = '/workspace/s3/connection/test';
-        const response = await $still.HTTPClient.post(url, JSON.stringify(data), {
-            headers: { 'content-type': 'Application/json' }
-        });
+        const response = await $still.HTTPClient.post(url, JSON.stringify(data), HTTPHeaders.JSON);
         
         const result = await response.json();
         if (response.ok && !result.error){
@@ -617,11 +605,8 @@ export class WorkspaceService extends BaseService {
         const url = `/${namespace}/db/transformation/preview`;
 
         try {
-            const response = await $still.HTTPClient.post(url, JSON.stringify(
-                { connectionName, previewScript, dbEngine, sourceType, fileSource }
-            ),{
-                headers: { 'content-type': 'Application/json' }
-            });
+            const payload = { connectionName, previewScript, dbEngine, sourceType, fileSource }
+            const response = await $still.HTTPClient.post(url, JSON.stringify(payload),HTTPHeaders.JSON);
             const result = await response.json();
             
             if (response.ok && !result.error)
@@ -706,9 +691,7 @@ export class WorkspaceService extends BaseService {
     static async getLogs(filters){
         const namespace = await UserService.getNamespace();
         const url = `/logs/${namespace}`;
-        const response = await $still.HTTPClient.post(url,JSON.stringify({ filters }), {
-                headers: { 'content-type': 'Application/json' }
-        });
+        const response = await $still.HTTPClient.post(url,JSON.stringify({ filters }), HTTPHeaders.JSON);
         const result = await response.json();
         try {
             if (response.ok && !result.error) {
