@@ -252,6 +252,7 @@ class PipelineDWPhaseRunner:
             msg = 'Preprocessing Stage to Datawarehouse data ingestion'
             handle_pipeline_log(msg, refs.get('logger'), context=refs.get('context'))
             job_tag, triggers_cb = refs.get('job_tag'), refs.get('triggers', lambda: None)
+            handle_pipeline_log(f'Triggers captured in the DW run stage {str(triggers_cb)}', refs.get('logger'), context=refs.get('context'))
             send_email_cb = refs.get('email_cb', lambda: None)
 
             import schedule

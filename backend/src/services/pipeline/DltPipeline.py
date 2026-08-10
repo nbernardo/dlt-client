@@ -669,7 +669,8 @@ class DltPipeline:
 
                 handle_pipeline_log(f'====== Next -> Data warehouse stage ======', logger, False)
                 job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
-                triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
+                handle_pipeline_log(f'====== Triggers: ====== \n {str(triggers)}', logger, False)
+                triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id, logger=logger)
                 send_email_cb = lambda tbls: send_success_email(json.loads(refs.get('email_params')), tbls) if refs.get('email_params') else None
 
                 refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': mdta[9], 'tables_pks': mdta[10], 'src_db_name': mdta[12], 'email_cb': send_email_cb }
@@ -757,20 +758,26 @@ class DltPipeline:
 
 
     @staticmethod
-    def _handle_trigger(triggers, namespace, pipeline, job_start_time, context: RequestContext, exec_id):
+    def _handle_trigger(triggers, namespace, pipeline, job_start_time, context: RequestContext, exec_id, logger = None):
+        try:
+            handle_pipeline_log(f'List of trigger about to start {str(triggers)}', logger, True)
+            if len(triggers) > 0:
+                curr_trigger = triggers.pop(0)
+                handle_pipeline_log(f'Next trigger {str(curr_trigger)}', logger, True)
+                unity, wait_time = curr_trigger['time'], int(curr_trigger['unity'])
+                target_pipeline = f'{namespace}/{curr_trigger['pipeline']}'
+                [cb, job_tag] = [DltPipeline.run_pipeline_job, f'{target_pipeline}_{job_start_time}']
+                param_list: dict = { 'exp_backoff': 1, 'req_user': None, 'leader_pipeline': curr_trigger['leader_pipeline'] }
 
-        if len(triggers) > 0:
-            curr_trigger = triggers.pop(0)
-            unity, wait_time = curr_trigger['time'], int(curr_trigger['unity'])
-            target_pipeline = f'{namespace}/{curr_trigger['pipeline']}'
-            [cb, job_tag] = [DltPipeline.run_pipeline_job, f'{target_pipeline}_{job_start_time}']
-            param_list: dict = { 'exp_backoff': 1, 'req_user': None, 'leader_pipeline': curr_trigger['leader_pipeline'] }
-
-            final_cb = lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, triggers, job_tag, param_list=param_list))
-            if(unity == 'sec'):
-                schedule.every(wait_time).seconds.do(lambda: final_cb).tag(job_tag)  
-            if(unity == 'min'):
-                schedule.every(int(wait_time) * 60).seconds.do(lambda: final_cb).tag(job_tag)
+                final_cb = lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, triggers, job_tag, param_list=param_list))
+                if(unity == 'sec'):
+                    handle_pipeline_log(f'The trigger is to run in the next {str(wait_time)} sec', logger, True)
+                    schedule.every(wait_time).seconds.do(lambda: final_cb).tag(job_tag)  
+                if(unity == 'min'):
+                    handle_pipeline_log(f'The trigger is to run in the next {str(wait_time)} min', logger, True)
+                    schedule.every(int(wait_time) * 60).seconds.do(lambda: final_cb).tag(job_tag)
+        except Exception as err:
+            handle_pipeline_log(f'Error while running pipeline trigger {str(triggers)} for {pipeline}', logger, True)
 
 
     @staticmethod
