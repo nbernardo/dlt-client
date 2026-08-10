@@ -669,8 +669,8 @@ class DltPipeline:
 
                 handle_pipeline_log(f'====== Next -> Data warehouse stage ======', logger, False)
                 job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
-                logging.info(f'====== Triggers Logger: ====== \n {str(triggers)}', logger, False)
-                print(f'====== Triggers Print: ====== \n {str(triggers)}', logger, False)
+                logging.info(f'====== Triggers Logger: ====== \n {str(triggers)}')
+                print(f'====== Triggers Print: ====== \n {str(triggers)}')
                 triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id, logger=logger)
                 send_email_cb = lambda tbls: send_success_email(json.loads(refs.get('email_params')), tbls) if refs.get('email_params') else None
 
@@ -761,12 +761,12 @@ class DltPipeline:
     @staticmethod
     def _handle_trigger(triggers, namespace, pipeline, job_start_time, context: RequestContext, exec_id, logger = None):
         try:
-            logging.info(f'List of trigger about to start {str(triggers)}', logger, True)
-            print(f'List of trigger about to start {str(triggers)}', logger, True)
+            logging.info(f'List of trigger about to start {str(triggers)}')
+            print(f'List of trigger about to start {str(triggers)}')
             if len(triggers) > 0:
                 curr_trigger = triggers.pop(0)
-                logging.info(f'Next trigger {str(curr_trigger)}', logger, True)
-                print(f'Next trigger {str(curr_trigger)}', logger, True)
+                logging.info(f'Next trigger {str(curr_trigger)}')
+                print(f'Next trigger {str(curr_trigger)}')
                 unity, wait_time = curr_trigger['time'], int(curr_trigger['unity'])
                 target_pipeline = f'{namespace}/{curr_trigger['pipeline']}'
                 [cb, job_tag] = [DltPipeline.run_pipeline_job, f'{target_pipeline}_{job_start_time}']
@@ -774,16 +774,16 @@ class DltPipeline:
 
                 final_cb = lambda: asyncio.run(cb(target_pipeline, namespace, pipeline, triggers, job_tag, param_list=param_list))
                 if(unity == 'sec'):
-                    logging.info(f'The trigger is to run in the next {str(wait_time)} sec', logger, True)
-                    print(f'The trigger is to run in the next {str(wait_time)} sec', logger, True)
+                    logging.info(f'The trigger is to run in the next {str(wait_time)} sec')
+                    print(f'The trigger is to run in the next {str(wait_time)} sec')
                     schedule.every(wait_time).seconds.do(lambda: final_cb).tag(job_tag)  
                 if(unity == 'min'):
-                    logging.info(f'The trigger is to run in the next {str(wait_time)} min', logger, True)
-                    print(f'The trigger is to run in the next {str(wait_time)} min', logger, True)
+                    logging.info(f'The trigger is to run in the next {str(wait_time)} min')
+                    print(f'The trigger is to run in the next {str(wait_time)} min')
                     schedule.every(int(wait_time) * 60).seconds.do(lambda: final_cb).tag(job_tag)
         except Exception as err:
-            logging.info(f'Error while running pipeline trigger {str(triggers)} for {pipeline}', logger, True)
-            print(f'Error while running pipeline trigger {str(triggers)} for {pipeline}', logger, True)
+            logging.error(f'Error while running pipeline trigger {str(triggers)} for {pipeline}')
+            print(f'Error while running pipeline trigger {str(triggers)} for {pipeline}')
 
 
     @staticmethod
