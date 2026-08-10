@@ -101,7 +101,7 @@ class UserAccessLevel:
 
                 contraints = json.loads(rows[0][0])
                 
-                for table in list(contraints.get('tables').keys()):
+                for table in list(contraints.get('tables',{}).keys()):
                     result[table.replace(f'{dw_name}_','')] = contraints.get('tables').get(table)
 
                 return result

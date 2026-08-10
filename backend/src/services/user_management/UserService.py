@@ -32,7 +32,7 @@ def require_permission(perm: str|list):
                 return {'message': 'Unauthorized: Missing or malformed Authorization header token.', 'error': True}, 401
             
             try:
-                if(token == '' and perm == 'regular:requester'):
+                if(token in ['undefined',None,''] and (perm == 'regular:requester' or 'regular:requester' in perm)):
                     return f(*args, **kwargs)
                 
                 payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
