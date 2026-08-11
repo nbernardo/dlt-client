@@ -103,7 +103,7 @@ class RequestContext:
             RequestContext.step_error,
             {'componentId': obj.component_id if obj != None else '',
                 'sid': self.socket_sid, 'error': error, 'time': self.get_time(), 'exec_id': exec_id },
-            to=self.socket_sid,
+            #to=self.socket_sid,
             namespace=RequestContext.namespace
         )
         socketio.sleep(0)
@@ -118,7 +118,7 @@ class RequestContext:
             RequestContext.step_success,
             {'componentId': obj.component_id,
                 'data': data, 'sid': self.socket_sid, 'time': self.get_time()},
-            to=self.socket_sid,
+            #to=self.socket_sid,
             namespace=RequestContext.namespace
         )
         socketio.sleep(0)
@@ -133,7 +133,7 @@ class RequestContext:
             RequestContext.step_success,
             {'componentId': component_id,
                 'data': data, 'sid': self.socket_sid, 'time': self.get_time()},
-            to=self.socket_sid,
+            #to=self.socket_sid,
             namespace=RequestContext.namespace
         )
         socketio.sleep(0)
@@ -148,7 +148,7 @@ class RequestContext:
             RequestContext.step_start,
             {'componentId': obj.component_id, 'data': data,
                 'sid': self.socket_sid, 'time': self.get_time()},
-            to=self.socket_sid,
+            #to=self.socket_sid,
             namespace=RequestContext.namespace
         )
         socketio.sleep(0)
@@ -163,7 +163,7 @@ class RequestContext:
             socketio.emit(
                 RequestContext.ppline_success,
                 {'success': data, 'sid': self.socket_sid, 'time': self.get_time(), 'exec_id': exec_id },
-                to=self.socket_sid,
+                #to=self.socket_sid,
                 namespace=RequestContext.namespace
             )
         self.success_emitted = True
@@ -188,7 +188,7 @@ class RequestContext:
         socketio.emit(
             RequestContext.ppline_trace,
             {'data': data, 'sid': self.socket_sid, 'time': self.get_time(), 'error': error, 'job': job, 'warn': warn},
-            to=self.socket_sid,
+            #to=self.socket_sid,
             namespace=RequestContext.namespace
         )
         socketio.sleep(0)
