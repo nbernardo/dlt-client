@@ -174,7 +174,7 @@ def create_ppline_schedule(namespace):
         schedule.clear(tag_name)
         Workspace.schedule_jobs[file_path] = True
         
-        if not(result.get('error', False) == False):
+        if result.get('error', False) == False:
             if periodicity == 'daily':
                 schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
             else:
