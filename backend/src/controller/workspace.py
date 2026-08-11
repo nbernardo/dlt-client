@@ -174,13 +174,14 @@ def create_ppline_schedule(namespace):
         schedule.clear(tag_name)
         Workspace.schedule_jobs[file_path] = True
         
-        if periodicity == 'daily':
-            schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
-        else:
-            if(_type == 'min'):
-                schedule.every(int(time)).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
-            if(_type == 'hour'):
-                schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
+        if not(result.get('error', False) == False):
+            if periodicity == 'daily':
+                schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
+            else:
+                if(_type == 'min'):
+                    schedule.every(int(time)).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
+                if(_type == 'hour'):
+                    schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
 
         schedule.every(20).seconds.do(lambda: logging.info(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
         logging.info(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
