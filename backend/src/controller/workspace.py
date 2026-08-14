@@ -626,6 +626,14 @@ def test_api_connections(namespace, exists_conn = None):
     base_url = payload['baseUrl']
     endpoints = payload['endpoints']
 
+    if payload.get('odooConfig'):
+        
+        tables = [table.replace('/','') for table in payload.get('endpoints').get('endPointsGroup').get('apiEndpointPath')]
+        pks = payload.get('endpoints').get('endPointsGroup').get('apiEndpointPathPK')
+        odoo_db, odoo_usr, odoo_pwd = payload.get('odooDB'), payload.get('odooUser'), payload.get('odooPassword')
+
+        return APIClientUtil.test_odoo_connection(base_url, tables, pks, odoo_db, odoo_usr, odoo_pwd)
+
     authentication_type = None
     authTknOrKey = None
     apiKeyName = None
