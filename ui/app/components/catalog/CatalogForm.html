@@ -11,6 +11,10 @@
 
         <div (showIf)="self.secretType == 2">
           <h3>Register New API Settings</h3>
+          <div style="display: flex; font-size: 10px; gap: 2px; margin-top: 12px; font-weight: bold; align-items: center;">
+            <input type="checkbox" onclick="component.setOdooJsonRPC(this.checked)">
+            &nbsp;<img src="/app/assets/imgs/odoo logo.webp" style="width: 42px;" alt=""> specific - JSON-RPC
+          </div>
         </div>
 
         <button class="btn-close" id="closeModal">×</button>
@@ -223,7 +227,7 @@
       
                       <div class="form-group use-pagination-field">
                         <label>Data Selector</label>
-                        <input type="text" (value)="apiEndpointDS1" placeholder="e.g. result">
+                        <input type="text" (value)="apiEndpointDS1" class="apiEndpointDS-field" placeholder="e.g. result">
                       </div>
       
                       <div class="form-group use-pagination-field">
@@ -266,27 +270,54 @@
               </div>
 
               <div>
-                <button style="margin-top: 5px;" class="add-btn-primary" (click)="addEndpointFields()">+ Endpoint</button>
+                <button style="margin-top: 5px;" type="button" class="add-btn-primary" (click)="addEndpointFields()">+ Endpoint</button>
               </div>
 
               <div class="modal-body">
 
-                <!-- Pagination fields -->
-                <div class="form-group">
-                  <div class="use-authentication-check-group">
-                    <label class="bold-lbl">Use Authentication</label>
-                    <input type="checkbox" class="use-auth-checkbox" onclick="component.setUseAuth(this.checked)">
-
-                    <select style="width: 100%; display: none; margin-top: 9px;" class="use-auth-secret-input" onchange="component.onAPIAuthChange(this.value)">
-                      <option value="">Select Auth type</option>
-                      <option value="bearer-token">Bearer Token</option>
-                      <option value="api-key">API Key</option>
-                    </select>
-
+                <span (showIf)="self.whatApiConfigType == 1">
+                  <div class="form-group">
+                    <div class="use-authentication-check-group">
+                      <label class="bold-lbl">Use Authentication</label>
+                      <input type="checkbox" class="use-auth-checkbox" onclick="component.setUseAuth(this.checked)">
+  
+                      <select style="width: 100%; display: none; margin-top: 9px;" class="use-auth-secret-input" onchange="component.onAPIAuthChange(this.value)">
+                        <option value="">Select Auth type</option>
+                        <option value="bearer-token">Bearer Token</option>
+                        <option value="api-key">API Key</option>
+                      </select>
+  
+                    </div>
                   </div>
-                </div>
+                </span>
+                
+                <span (showIf)="self.whatApiConfigType == 2">
+                  <div class="form-group">
+                    <div class="use-authentication-check-group">
+                      <label class="bold-lbl" style="display: flex; align-items: center;">
+                        <img src="/app/assets/imgs/odoo logo.webp" style="width: 52px;" alt="">&nbsp; - Settings
+                      </label>
+                      <div style="display: flex; gap: 4px;">
+                        <div class="form-group">
+                          <label class="odoo-config">Data Source Schema</label>
+                          <input type="text" (value)="odooDB" class="odoo-config-field" placeholder="e.g. mydb.public">
+                        </div>
+                        <div class="form-group">
+                          <label class="odoo-config">Odoo user name</label>
+                          <input type="text" (value)="odooUser" class="odoo-config-field" placeholder="Odoo user">
+                        </div>
+                        <div class="form-group">
+                          <label class="odoo-config">Odoo user pasword</label>
+                          <span class="hidden-secret-value-odoo" style="display: flex; gap: 3px;">
+                            <input type="password" (value)="odooPassword" class="odoo-config-field" placeholder="Odoo password">
+                            <img src="app/assets/imgs/view-svgrepo-com.svg" style="width: 20px;" onclick="component.viewSecretValue('hidden-secret-value-odoo')">
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </span>
                 <div><!-- Only to create an empy colum --></div>
-                <!-- End Pagination fields -->
 
                 <!-- API Key fields -->
                 <div class="form-group">
@@ -375,28 +406,17 @@
 
     .endpoint-group-config{
       /* box-shadow: inset 0 10px 8px -10px rgba(0, 0, 0, 0.5), inset 0 -10px 8px -10px rgba(0, 0, 0, 0.5); */
-      max-height: 45vh; overflow-x: scroll;
+      max-height: 27vh; overflow-x: scroll;
     }
 
     .use-pagination-check{ 
       margin-left: 10px; 
       label { width: 100px; margin-top: 21px; }
     }
-    .use-pagination-check-group{ 
-      display: flex;
-      width: 93px;
-      font-size: 12px;
-    }
+    .use-pagination-check-group{ display: flex; width: 93px; font-size: 12px; }
 
-    .del-endpoint-setting-icon{
-      width: 78px;
-      text-align: center;
-      font-size: 10px;
-      color: red;
-      cursor: pointer;
-      font-weight: bold;
-      float: right;
-    }
+    .del-endpoint-setting-icon{ width: 78px; text-align: center; font-size: 10px; color: red; cursor: pointer; font-weight: bold; float: right; }
+
     fieldset { margin-top: 15px; border-radius: 3px; padding-bottom: 4px; }
     fieldset label { margin-top: 3px; }
     fieldset input { width: 100px; }
@@ -413,29 +433,17 @@
   .api-setting-content{ margin-top: 4px; width: 100%; }
 
 	.hidden-secret-value{
-		display: flex;
-    align-items: center;
+		display: flex; align-items: center;
 		input{ width: 92%; };
 		img{ margin-left: .2em; width: 1.3em; cursor: pointer; };
-    span {
-      font-size: 11px;
-      padding-left: 5px;
-      font-weight: bold;
-      color: red;
-      cursor: pointer;
-    }
+    span { font-size: 11px; padding-left: 5px; font-weight: bold; color: red; cursor: pointer; }
 	}
 
   .secret-field{ text-transform: uppercase; }
 
 	.btn-add-secret {
-		width: 30% !important;
-		display: flex !important;
-		align-items: center !important;
-		margin-top: 10px !important;
-		height: 31px !important;
-		background: #1f2937db !important;
-		color: white !important;
+		width: 30% !important; display: flex !important; align-items: center !important; margin-top: 10px !important;
+		height: 31px !important; background: #1f2937db !important; color: white !important;
 	}
 
 	.database-settings-type { flex-direction: row !important; }
@@ -443,149 +451,51 @@
 
     /* Layout */
     .CatalogForm {
-      	display: flex;
-      	min-height: 100vh;
-
-      	margin: 0;
-      	font-family: Arial, sans-serif;
-      	background-color: #f5f6fa;
-      	color: #333;
-
-		z-index: -2;
-		position: absolute;
-
-		/** position: absolute;
-		width: 100%;
-		z-index: 10;
-		border: 1px solid;
-		bottom: 0;
-		top: 0;
-		left: 0;
-		right: 0; */
+      display: flex; min-height: 100vh; z-index: -2; position: absolute;
+      margin: 0; font-family: Arial, sans-serif; background-color: #f5f6fa; color: #333;
     }
 
     /* Main content */
-    .CatalogForm .content {
-      flex-grow: 1;
-      padding: 20px;
-    }
+    .CatalogForm .content { flex-grow: 1; padding: 20px; }
 
-    .CatalogForm .content-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
+    .CatalogForm .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 
-    .CatalogForm .btn {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
+    .CatalogForm .btn { padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
 
     /* Table */
-    .CatalogForm table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 6px;
-      overflow: hidden;
-    }
+    .CatalogForm table { width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; }
 
     .CatalogForm th,
-    .CatalogForm td {
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid #e2e8f0;
-    }
+    .CatalogForm td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; }
 
-    .CatalogForm th {
-      background-color: #f1f5f9;
-      font-weight: bold;
-    }
+    .CatalogForm th { background-color: #f1f5f9; font-weight: bold; }
 
-    .CatalogForm tr:hover {
-      background-color: #f9fafb;
-    }
+    .CatalogForm tr:hover { background-color: #f9fafb; }
 
     /* Modal */
     .CatalogFormModel {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.4);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
+      background-color: rgba(0, 0, 0, 0.4); justify-content: center; align-items: center; 
     }
 
-    .CatalogFormModel .modal-content {
-      background: #fff;
-      border-radius: 6px;
-      width: 600px;
-      padding: 20px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    }
+    .CatalogFormModel .modal-content { background: #fff; border-radius: 6px; width: 600px; padding: 20px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); }
 
-    .CatalogFormModel .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
+    .CatalogFormModel .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 
-    .CatalogFormModel .modal-header h3 {
-      margin: 0;
-    }
+    .CatalogFormModel .modal-header h3 { margin: 0; }
 
-    .CatalogFormModel .modal-body {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-	  margin-top: 20px;
-    }
+    .CatalogFormModel .modal-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
 
-    .CatalogFormModel .form-group {
-      display: flex;
-      flex-direction: column;
-    }
+    .CatalogFormModel .form-group { display: flex; flex-direction: column; }
 
-    .CatalogFormModel label {
-      font-size: 0.9rem;
-      margin-bottom: 4px;
-      color: #374151;
-    }
+    .CatalogFormModel label { font-size: 0.9rem; margin-bottom: 4px; color: #374151; }
 
     .CatalogFormModel input,
-    .CatalogFormModel select {
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 0.9rem;
-    }
+    .CatalogFormModel select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
 
-    .CatalogFormModel .modal-footer .buttons-wrapper {
-      margin-top: 16px;
-      text-align: right;
-	  display: flex;
-	  justify-content: space-between;
-    }
+    .CatalogFormModel .modal-footer .buttons-wrapper { margin-top: 16px; text-align: right; display: flex; justify-content: space-between; }
 
-    .CatalogFormModel .btn-close {
-      background: #ef4444;
-      border: none;
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+    .CatalogFormModel .btn-close { background: #ef4444; border: none; color: #fff; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
 
-    .CatalogFormModel .btn-close:hover {
-      background: #dc2626;
-    }
+    .CatalogFormModel .btn-close:hover { background: #dc2626; }
   </style>

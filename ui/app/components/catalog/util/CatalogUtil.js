@@ -180,7 +180,8 @@ export function handleAddEndpointField(endpointCounter, component, details) {
 
     // Creates the field for entering the endpoint data selector
     fieldName = `apiEndpointDS${endpointCounter}`;
-    const primaryDataSelector = newStilComponentField(self, { placeholder: 'e.g. result', fieldName });
+    const disabled = component.whatApiConfigType === 2 ? true : false;
+    const primaryDataSelector = newStilComponentField(self, { placeholder: 'e.g. result', fieldName, className: 'apiEndpointDS-field', disabled });
     formGroup2.insertAdjacentHTML('beforeend', `<label>Data Selector</label>${primaryDataSelector}`);
 
     // Creates the field for entering the endpoint data primary key
@@ -223,10 +224,10 @@ export function handleAddEndpointField(endpointCounter, component, details) {
 }
 
 /** @param { EndpointGroupType } self */
-function newStilComponentField(self, { fieldName, placeholder = '', required, className, paginateField }){
+function newStilComponentField(self, { fieldName, placeholder = '', required, className, paginateField, disabled }){
 
     /** @type { InParams } */
-    const settings = { required: required != true ? false : true, placeholder, value: null };
+    const settings = { required: required != true ? false : true, placeholder, value: null, disabled: disabled };
  
     if(self.details){        
         const fieldCategory = fieldName.slice(0, fieldName.length - 1);
@@ -468,18 +469,25 @@ export async function testConnection(obj, secretType, isDbConnEditing){
         apiEndpointPathPK1 = apiEndpointPathPK1.value, 
         apiEndpointDS1 = apiEndpointDS1.value;
         const endpoints = { ...obj.parseAPICatalogFields(), apiEndpointPath1, apiEndpointPathPK1, apiEndpointDS1 };
-        const payload = { endpoints, baseUrl: obj.apiBaseUrl.value, keyName: obj.apiKeyName.value }
+        let payload = { endpoints, baseUrl: obj.apiBaseUrl.value, keyName: obj.apiKeyName.value }
 
-        if(['api-key','bearer-token'].includes(obj.apiAuthType) === false) 
+        if(obj.whatApiConfigType === 2){
+            const { odooDB, odooUser, odooPassword } = obj;
+            payload = { ...payload, odooDB: odooDB.value, odooUser: odooUser.value, odooPassword: odooPassword.value, odooConfig: true };
             response = await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
-        if(obj.apiAuthType === 'api-key')
-            response = await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue.value, ...payload }, obj.endPointEditorContent);
-        else if(obj.apiAuthType === 'bearer-token')
-            response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue.value, ...payload }, obj.endPointEditorContent);
+        }else{
+            if(['api-key','bearer-token'].includes(obj.apiAuthType) === false) 
+                response = await WorkspaceService.testAPIConnection(payload, obj.endPointEditorContent);
+            if(obj.apiAuthType === 'api-key')
+                response = await WorkspaceService.testAPIConnection({ apiKeyValue: obj.apiKeyValue.value, ...payload }, obj.endPointEditorContent);
+            else if(obj.apiAuthType === 'bearer-token')
+                response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue.value, ...payload }, obj.endPointEditorContent);
+        }
+
         
         document.querySelector('.APITestResponse').innerHTML = response.content;
         document.querySelector('.APITestResponse').classList.add('APITestResponse-show');
-        enableTestBtn(btn, obj, response.errors == 0);
+        enableTestBtn(btn, obj, (response.errors == 0 || response.errors === undefined));
     }
 
 }
@@ -546,3 +554,5 @@ export function changeType(obj, connectionType = null, groupType = 'regular'){
 	}
     if(connectionType == 2) obj.kvSecretType = 'regular';
 }
+
+export function disableAPIEndpointDS1(flag){  }

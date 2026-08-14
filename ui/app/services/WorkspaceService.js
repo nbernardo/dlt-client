@@ -400,6 +400,26 @@ export class WorkspaceService extends BaseService {
         
         if (response.ok && !result.error){
 
+            if(Object.prototype.toString.call(result) === '[object Object]'){
+                let tables = Object.keys(result.result), content = `<table border="1" style="width: 100%;">`;
+                content += tables.map(t =>  
+                {
+                    const isError = result.result[t].error;
+                    return WorkspaceService.self.component.parseEvents(`
+                        <tr style="background: ${isError ? '#ff00004a;' : '#0cdb0c33'}">
+                            <td style="padding: 5px; display: flex;">${t}</td>
+                            <td style="padding: 5px;">
+                                <span style="cursor: pointer; color: blue; text-decoration: underline;" onclick="inner.showAPIData('odoo-col-list-${t.replace('.','_')}', true)">Show Data</span>
+                                <div id="odoo-col-list-${t.replace('.','_')}" style="display:none;">${Object.entries(result.result[t]).map(r => `<b>${r[0]}</b> = ${r[1]}`).join('<br>')}</div>
+                            </td>
+                        </tr>
+                    `)
+                }
+                );
+                content += `</table>`;
+                return { errors: 0, content, totalEndpoints: result.length };
+            }
+
             const totalEndpoints = result.length;
             result = result.map(it => {
 

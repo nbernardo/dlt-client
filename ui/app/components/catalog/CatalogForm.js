@@ -34,6 +34,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ showOracleDNCheckBox = false;
 	/** @Prop */ kvSecretTypeFlag = 'regular';
 	/** @Prop */ connectionSecretType;
+	/** @Prop */ whatApiConfigType = 1;
 
 	// DB catalog/secrets fields
 	dbEngine;
@@ -69,6 +70,10 @@ export class CatalogForm extends ViewComponent {
 	fullEndpointPath = '';
 	/** @Prop */ endPointEditorContent;
 	/** @Prop */ isDbConnEditing = false;
+
+	odooDB;
+	odooUser;
+	odooPassword;
 
 	endpointCounter = 1;
 
@@ -276,7 +281,7 @@ export class CatalogForm extends ViewComponent {
 
 	showDialog(reset = false, type = null){		
 		if(type === 'api') {
-			this.markRequiredApiFields(true);
+			this.markRequiredFields(true);
 			this.showTestConnection = true;
 		}
 		if(reset) {
@@ -321,7 +326,7 @@ export class CatalogForm extends ViewComponent {
 			document.querySelectorAll('input[name="dbSettingType"]').forEach(opt => opt.checked = false);
 			self.isNewSecret = false;
 			self.showTestConnection = false;
-			self.markRequiredApiFields(false);
+			self.markRequiredFields(false);
 			document.querySelector('.connectio-test-status').style.background = 'rgb(182, 182, 182)';
 			
 			for(const btn of self.dynamicEndpointsDelButtons)
@@ -558,9 +563,15 @@ export class CatalogForm extends ViewComponent {
 		showHidePaginateEndpoint(1, false);
 	}
 
-	markRequiredApiFields = (flag) => {
-		if(flag) document.querySelectorAll('.api-required-field').forEach(ipt => ipt.setAttribute('required',true));
-		else document.querySelectorAll('.api-required-field').forEach(ipt => ipt.removeAttribute('required'));
+	markRequiredFields = (flag, fields = 'api-required-field') => {
+		if(flag) document.querySelectorAll(`.${fields}`).forEach(ipt => ipt.setAttribute('required',true));
+		else document.querySelectorAll(`.${fields}`).forEach(ipt => ipt.removeAttribute('required'));
+	}
+
+	setOdooJsonRPC(flag){
+		this.whatApiConfigType = flag ? 2 : 1;
+		document.querySelectorAll('.apiEndpointDS-field').forEach(l => l.disabled = flag);
+		this.markRequiredFields(flag, 'odoo-config-field');
 	}
 
 }
