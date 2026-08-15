@@ -9,6 +9,7 @@ from utils.pipeline.Enums import Checkpoint
 from services.email.SimpleAPIMailer import SimpleAPIMailer
 from datetime import datetime
 import json
+from utils.pipeline import OdooAPIHelper as OdooAPI
 
 PipelineLogger = PL
 ChkPoint = Checkpoint
@@ -291,6 +292,10 @@ class PipelineHelper:
             return f'_e2e_domain_{table_name}_stage_2_'
         if type == 100:
             return f'{table_name}_e2e_from_{source_ppline}'
+        
+    
+    def graceful_terminate():
+        sys.exit(0)
         
 
 def send_success_email(params: dict, tbls: dict):

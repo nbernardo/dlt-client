@@ -46,6 +46,8 @@ valid_imports = [
     'from databricks import sql',
     'from dlt.sources.helpers.rest_client.auth import APIKeyAuth',
     'from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, parse_aggregation, OdooAPI',
+    'from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, parse_aggregation, OdooAPI',
     'import sqlalchemy.exc',
     'from src.utils.metastore.meta_storage import MetaStore',
     'from src.utils.metastore.meta_storage.MetaStore import crate_or_update_catalog_from_file',

@@ -265,6 +265,7 @@ class PipelineDWPhaseRunner:
             
             dwname = data_source.split('_for_',1)[-1]
             tables, pks, dataset, incr_fields = refs['dest_tables'], refs['tables_pks'], refs['dataset_name'], refs['incr_fields']
+            incr_fields = refs.get('_odoo_incr_fields_') if incr_fields == None else incr_fields
             
             if type(tables) == str: 
                 tables = tables.strip('[]').replace(' ','').split(',') if tables.__contains__(',') else [tables.strip('[]')]

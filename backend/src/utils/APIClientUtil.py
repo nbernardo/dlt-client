@@ -148,64 +148,7 @@ def test_api(
 
 
 
-import requests
-
-
-_COLUMN_TYPES = {
-    "char", "text", "html", "integer", "float", "monetary", "boolean",
-    "date", "datetime", "selection", "many2one", "binary", "reference",
-}
-
-def odoo_call(url: str, service: str, method: str, args: list):
-    resp = requests.post(
-        f"{url}/jsonrpc",
-        json={ "jsonrpc": "2.0", "method": "call", "params": {"service": service, "method": method, "args": args}, "id": 1, },
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    if "error" in data:
-        return { 'error': True, 'result': str(data["error"]) }
-    return { 'error': False, 'result': data["result"] }
-
-
-def get_column_fields(url: str, db: str, uid: int, password: str, table: str):
-    fields_result = odoo_call(
-        url, "object", "execute_kw", [db, uid, password, table, "fields_get", [], {"attributes": ["type", "store"]}],
-    )
-    if fields_result.get('error'):
-        return fields_result
-
-    fields_meta = fields_result['result']
-    columns = {
-        name: meta["type"]
-        for name, meta in fields_meta.items()
-        if meta["type"] in _COLUMN_TYPES and meta.get("store")
-    }
-    return { 'error': False, 'result': columns }
-
+from node_mapper.InputAPI import InputAPI
 
 def test_odoo_connection(url: str, tables: list, pks: list, db: str, user: str, password: str):
-    db_name, result = db.split('.')[0], {}
-    auth_result = odoo_call(url, "common", "login", [db_name, user, password])
-    if auth_result.get('error') or not auth_result.get('result'):
-        return auth_result
-
-    for table in tables:
-
-        fields_result = get_column_fields(url, db_name, auth_result['result'], password, table)
-        if fields_result.get('error'):
-            result[table] = fields_result
-            continue
-        field_names = list(fields_result['result'].keys())
-
-        rows = odoo_call(
-            url, "object", "execute_kw",
-            [db_name, auth_result['result'], password, table, "search_read", [[]], { "fields": field_names, "limit": 1 }],
-        )
-        if rows.get('error'):
-            result[table] = rows
-            continue
-
-        result[table] = rows['result'][0] if rows['result'] else None
-
-    return { 'error': False, 'result': result }
+    return InputAPI().test_odoo_connection(url, tables, pks, db, user, password)

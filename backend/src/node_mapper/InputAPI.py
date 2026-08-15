@@ -6,21 +6,25 @@ import requests
 from requests.exceptions import ConnectionError, Timeout, RequestException
 from utils.pipeline import NodeType
 
+
+_ODOO_COLUMN_TYPES = {
+    "char", "text", "html", "integer", "float", "monetary", "boolean",
+    "date", "datetime", "selection", "many2one", "binary", "reference",
+}
+
 class InputAPI(TemplateNodeType):
     """
     Bucket type mapping class
     """
 
-    def __init__(self, data: dict, context: RequestContext = None, component_id = None):
+    def __init__(self, data: dict = None, context: RequestContext = None, component_id = None):
         """
         Initialize the instance
         """
-        
+        if data == None: return
         try:
             self.context = context
             self.template_type = None
-            template = DltPipeline.get_api_templete()
-            self.template = self.parse_destination_string(template,'\n')
             self.component_id = component_id
             
             # When instance is created only to get the template 
@@ -54,10 +58,28 @@ class InputAPI(TemplateNodeType):
                                         .replace('\t','')\
                                         .replace("'",'')
             
-            url_status, url_call_error = InputAPI.check_base_url_exists(secret['apiSettings'])
-            if url_status == False:
-                return self.notify_failure_to_ui('InputAPI',url_call_error)
+            template = DltPipeline.get_api_templete()
+
+            if secret.get('apiSettings', {}).get('isOdoo'):
+
+                template = DltPipeline.get_api_templete('api_odoo.txt')
+                db = secret.get('apiSettings').get('odooDB')
+                pwd = secret.get('apiSettings').get('odooPassword')
+                usr = secret.get('apiSettings').get('odooUser')
+                tables = self.source_tables.strip('[]').replace("'",'').replace(' ','').split(',')
+                test = self.test_odoo_connection(self.base_url, tables, self.primary_keys, db, usr, pwd)
+                
+                if len(test.get('failed_tables', [])) > 0 or test.get('error'):
+                    url_call_error = test.get('result') if test.get('error') else\
+                        f'Error found about {str(test.get('failed_tables'))} tables'
+                    
+                    return self.notify_failure_to_ui('InputAPI',url_call_error)
+            else:
+                url_status, url_call_error = InputAPI.check_base_url_exists(secret['apiSettings'])
+                if url_status == False:
+                    return self.notify_failure_to_ui('InputAPI',url_call_error)
             
+            self.template = self.parse_destination_string(template,'\n')
             # Bellow field (paginate_params) is mapped in /pipeline_templates/api.txt
             self.paginate_params = self.get_paginate_params(secret).replace('"','')
             
@@ -143,3 +165,59 @@ class InputAPI(TemplateNodeType):
             return False, f'Timeout error: Request to {url} timed out.'
         except RequestException as e:
             return False, f'An unexpected error occurred for {url}: {e}'
+        
+
+    def odoo_call(self, url: str, service: str, method: str, args: list):
+        resp = requests.post(
+            f"{url}/jsonrpc",
+            json={ "jsonrpc": "2.0", "method": "call", "params": {"service": service, "method": method, "args": args}, "id": 1, },
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if "error" in data:
+            return { 'error': True, 'result': str(data["error"]) }
+        return { 'error': False, 'result': data["result"] }
+
+
+    def get_column_fields(self, url: str, db: str, uid: int, password: str, table: str):
+        fields_result = self.odoo_call(
+            url, "object", "execute_kw", [db, uid, password, table, "fields_get", [], {"attributes": ["type", "store"]}],
+        )
+        if fields_result.get('error'):
+            return fields_result
+
+        fields_meta = fields_result['result']
+        columns = {
+            name: meta["type"]
+            for name, meta in fields_meta.items()
+            if meta["type"] in _ODOO_COLUMN_TYPES and meta.get("store")
+        }
+        return { 'error': False, 'result': columns }
+
+
+    def test_odoo_connection(self, url: str, tables: list, pks: list, db: str, user: str, password: str):
+        db_name, result, failed_tables = db, {}, []
+        auth_result = self.odoo_call(url, "common", "login", [db_name, user, password])
+        if auth_result.get('error') or not auth_result.get('result'):
+            return auth_result
+
+        for table in tables:
+
+            fields_result = self.get_column_fields(url, db_name, auth_result['result'], password, table)
+            if fields_result.get('error'):
+                result[table] = fields_result
+                continue
+            field_names = list(fields_result['result'].keys())
+
+            rows = self.odoo_call(
+                url, "object", "execute_kw",
+                [db_name, auth_result['result'], password, table, "search_read", [[]], { "fields": field_names, "limit": 1 }],
+            )
+            if rows.get('error'):
+                result[table] = rows
+                failed_tables.append(table)
+                continue
+
+            result[table] = rows['result'][0] if rows['result'] else None
+
+        return { 'error': False, 'result': result, 'failed_tables': failed_tables }

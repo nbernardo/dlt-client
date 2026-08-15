@@ -326,8 +326,8 @@ class DltPipeline:
         return DltPipeline.return_template(f'{template_dir}/simple_s3_auth_transform_field.txt', '')
 
     @staticmethod
-    def get_api_templete():
-        return DltPipeline.return_template(f'{template_dir}/api.txt', '')
+    def get_api_templete(template = None):
+        return DltPipeline.return_template(f'{template_dir}/{template if template != None else 'api.txt'}', '')
 
     @staticmethod
     def get_transform_template():
@@ -429,6 +429,14 @@ class DltPipeline:
         
         if(line.startswith('TABLESPK=__tables_pks__:')):
             refs['tables_pks'] = line.split(':')[1].split(',')
+            return True
+                
+        if(line.startswith('TABLESINCR=__tables_incr_fields__:')):
+            refs['_odoo_incr_fields_'] = line.split(':')[1].split(',')
+            return True
+        
+        if(line.startswith('ODOODB_SOURCE=__db_source__:')):
+            refs['_odoo_data_source_'] = line.split(':')[1].split(',')
             return True
         
         if(line.startswith('SHORT_QUERY=__e2e_short_query_:')):
@@ -655,31 +663,35 @@ class DltPipeline:
             await DltPipeline.handle_job_final_state(context, pipeline_exception, line, refs.get('job_execution_id'), proc, logger, job_start_time)
             handle_pipeline_log(f'Stage pipeline phase ran', logger, False)
 
-            dt  = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # _odoo_data_source_ is the edge case for Odoo JSON-RPC API 
+            [dt, stg_storage]  = [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), refs.get('_odoo_data_source_', stg_storage)]
             [short_query, dataset_name] = [refs.get('short_query'), pipeline_metadata[7]]
+            stg_storage = stg_storage[0] if type(stg_storage) == list else stg_storage
 
             await asyncio.to_thread(DltPipeline.update_pipline_runtime, namespace, ppline_name, dt, param_list.get('sched_time'))
-            handle_pipeline_log(f'Stage runtime update', logger, False)
             await asyncio.to_thread(PipelineCheckpoint.update, pipeline, None, params)
-            handle_pipeline_log(f'Pipeline checkpoint update', logger, False)
             await asyncio.to_thread(MetaStore.update_metadata, namespace, pipeline, dataset_name, short_query)
-            handle_pipeline_log(f'Pipeline metadata update', logger, False)
-            handle_pipeline_log(f'====== Before Data warehouse stage ====== {context.pipeline_metadata.stage_storage}', logger, False)
+            handle_pipeline_log(f'====== Before Data warehouse stage ====== {stg_storage}', logger, False)
+            
             if context.pipeline_metadata.stage_storage:
 
                 handle_pipeline_log(f'====== Next -> Data warehouse stage ======', logger, False)
+                
                 job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
                 triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
                 send_email_cb = lambda tbls: send_success_email(json.loads(refs.get('email_params')), tbls) if refs.get('email_params') else None
+                # Below else is Edge case for Odoo JSON-RPC API 
+                dst_tbl = mdta[9] if mdta[9] else ['public_'+tbl.replace('.','_').replace('/','') for tbl in refs['dest_tables']]
+                tbls_pk = mdta[10] if mdta[10] else refs['tables_pks']
 
-                refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': mdta[9], 'tables_pks': mdta[10], 'src_db_name': mdta[12], 'email_cb': send_email_cb }
+                refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': dst_tbl, 'tables_pks': tbls_pk, 'src_db_name': mdta[12], 'email_cb': send_email_cb }
                 refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context, 'exec_id': exec_id, 'incr_fields': mdta[11] }
                 handle_pipeline_log(f'====== About so start Data warehouse stage in {DW_WAIT_SEC} ======', logger, False)
                 schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
 
             # DB Lock release in the pplication level
             DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
-        
+
         except (Exception, duckdb.IOException) as err:
             if proc: proc.kill()
             import traceback
@@ -840,7 +852,7 @@ class DltPipeline:
                 code = file.read()
                 pipeline_code = json.loads(code)
 
-            datasource_details = None
+            datasource_details = {}
             node_list = pipeline_code['content']['Home']['data']
             database_obj = { node['name']: node for _, node in node_list.items() if (node['name'] in ['Bucket','SqlDBComponent']) }
 

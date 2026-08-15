@@ -1,0 +1,67 @@
+%metadata_section%import dlt
+%auth_strategy%
+%import_from_src%
+from src.utils.pipeline.PipelinesHelper import PipelineLogger, PipelineHelper as Helper, parse_aggregation, OdooAPI
+from src.services.workspace.Workspace import Workspace
+from src.services.workspace.SecretManager import SecretManager
+
+# Initialize pipeline logger
+logger = PipelineLogger()
+logger.info("Starting API pipeline", extra={'stage': 'initialization', 'template_type': 'api'})
+
+# Bellow mapping: connection_name = InputAPI.connection_name
+connection_name, original_pipeline_name = %connection_name%, '%original_pipeline_name%'
+
+# Bellow mapping: namespace = InputAPI.namespace
+namespace = %namespace%
+print(f'fetching "{connection_name}" secrets for DB connection', flush=True)
+logger.info("Fetching API connection secrets", extra={'stage': 'authentication', 'namespace': namespace, 'connection_name': connection_name})
+secret = SecretManager.get_pipeline_secret(namespace, connection_name)
+
+tables = %resource_names%
+pks = %primary_keys%
+secrets, url = secret.get('apiSettings'), %base_url%
+
+logger.info("Initializing API client", extra={'stage': 'client_setup', 'base_url': url, 'resource_count': len(tables)})
+
+@dlt.source
+def odoo_source():
+
+    db, pwd, usr = secrets.get('odooDB'), secrets.get('odooPassword'), secrets.get('odooUser')
+    uid = OdooAPI.get_uid(url, db, usr, pwd)
+
+    logger.info(f'Pipeline resource generations for', extra={'tables': str(tables), 'priimary_keys': str(pks)})
+    def create_resource(table: str, pk: str, schema: str = None):
+        skma = schema+'_' if schema else ''
+        updated = dlt.sources.incremental("write_date", initial_value="1970-01-01 00:00:00")
+
+        @dlt.resource(name=f"{skma}{table.replace('.','_')}", write_disposition="merge", primary_key=[pk, "_source"])
+        def resource(updated=updated):
+            domain = [("write_date", ">", updated.last_value)] if updated.last_value else []
+            logger.info(f'Processing table {table} start', extra={'stage': 'data-fetching', 'connection_name': connection_name})
+            for page in OdooAPI.paginated_search_read(url, db, uid, pwd, table, domain):
+                for row in page:
+                    [row["_source"], row["_e2e_pk"], row["_e2e_src_db"]] = [url, f'{row["id"]}_{url}', url]
+
+                yield page
+            logger.info(f'Processing table {table} end', extra={'stage': 'data-fetching-completed', 'connection_name': connection_name})
+        return resource()
+
+    return [create_resource(tables[x].replace('/',''), pks[x], 'public') for x in range(len(tables))]
+
+
+dest_folder = Workspace.get_duckdb_path_on_ppline()
+%destination_settings%
+
+try:
+    info = pipeline.run(odoo_source())
+    print(info)
+    print(f'DEST_TABLES=__dest_tables__:{','.join(tables)}', flush=True)
+    print(f'TABLESPK=__tables_pks__:{','.join(pks)}', flush=True)
+    print(f'ODOODB_SOURCE=__db_source__:{ppline_name}', flush=True)
+    incr_keys = str(['write_date'] * len(tables)).strip('[]').replace(' ','').replace("'",'')
+    print(f'TABLESINCR=__tables_incr_fields__:{incr_keys}', flush=True)
+    print('RUN_SUCCESSFULLY', flush=True)
+    Helper.graceful_terminate()
+except Exception as err:
+    logger.error(f'Error while processing {original_pipeline_name} pipeline', extra={'error': str(err)})
