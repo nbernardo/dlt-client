@@ -401,7 +401,7 @@ export class WorkspaceService extends BaseService {
         if (response.ok && !result.error){
 
             if(Object.prototype.toString.call(result) === '[object Object]'){
-                let tables = Object.keys(result.result), content = `<table border="1" style="width: 100%;">`;
+                let tables = Object.keys(result.result), content = `<table border="1" style="width: 100%;" cellspacing="0" cellpadding="0">`;
                 content += tables.map(t =>  
                 {
                     const isError = result.result[t].error;
@@ -415,7 +415,7 @@ export class WorkspaceService extends BaseService {
                         </tr>
                     `)
                 }
-                );
+                ).join('');
                 content += `</table>`;
                 return { errors: 0, content, totalEndpoints: result.length };
             }

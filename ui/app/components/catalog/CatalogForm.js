@@ -428,9 +428,11 @@ export class CatalogForm extends ViewComponent {
 					return AppTemplate.toast.error(`Secret with name ${this.connectionName.value} already exists`);
 				
 			}else{
+				const isOdoo = this.whatApiConfigType === 2;
 				apiSettings = {
 					...this.parseAPICatalogFields(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
-					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value, apiAuthType: this.apiAuthType
+					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value, apiAuthType: this.apiAuthType,
+					isOdoo, odooDB: this.odooDB.value, odooPassword: this.odooPassword.value, odooUser: this.odooUser.value
 				};
 			}
 			const connectionName = this.dataBaseSettingType != null ? this.connectionName.value : this.apiConnName.value;
