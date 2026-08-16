@@ -168,14 +168,18 @@ class InputAPI(TemplateNodeType):
         
 
     def odoo_call(self, url: str, service: str, method: str, args: list):
-        resp = requests.post(
-            f"{url}/jsonrpc",
-            json={ "jsonrpc": "2.0", "method": "call", "params": {"service": service, "method": method, "args": args}, "id": 1, },
-        )
+        try:
+            resp = requests.post(
+                f"{url}/jsonrpc",
+                json={ "jsonrpc": "2.0", "method": "call", "params": {"service": service, "method": method, "args": args}, "id": 1, },
+            )
+        except Exception as err:
+            return { 'error': True, 'result': { 'data': { 'message': str(err) } } }
+        
         resp.raise_for_status()
         data = resp.json()
         if "error" in data:
-            return { 'error': True, 'result': str(data["error"]) }
+            return { 'error': True, 'result': data["error"] }
         return { 'error': False, 'result': data["result"] }
 
 

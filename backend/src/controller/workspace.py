@@ -623,33 +623,46 @@ from utils import APIClientUtil
 def test_api_connections(namespace, exists_conn = None):
 
     payload = request.get_json()
-    base_url = payload['baseUrl']
-    endpoints = payload['endpoints']
+    [base_url, endpoints] = [payload['baseUrl'], payload['endpoints']]
 
     if payload.get('odooConfig'):
         
         tables = [table.replace('/','') for table in payload.get('endpoints').get('endPointsGroup').get('apiEndpointPath')]
         pks = payload.get('endpoints').get('endPointsGroup').get('apiEndpointPathPK')
         odoo_db, odoo_usr, odoo_pwd = payload.get('odooDB'), payload.get('odooUser'), payload.get('odooPassword')
+    
+        result = APIClientUtil.test_odoo_connection(base_url, tables, pks, odoo_db, odoo_usr, odoo_pwd)
+        return result
 
-        return APIClientUtil.test_odoo_connection(base_url, tables, pks, odoo_db, odoo_usr, odoo_pwd)
+    authentication_type = authTknOrKey = apiKeyName = None
 
-    authentication_type = None
-    authTknOrKey = None
-    apiKeyName = None
     if 'apiKeyValue' in payload: 
-        authentication_type = 'api-key'
-        authTknOrKey = payload['apiKeyValue']
-        apiKeyName = payload['keyName']
+        [authentication_type, authTknOrKey, apiKeyName] = ['api-key', payload['apiKeyValue'], payload['keyName']]
     if 'apiTknValue' in payload: 
-        authentication_type = 'bearer-token'
-        authTknOrKey = payload['apiTknValue']
+        [authentication_type, authTknOrKey] = ['bearer-token', payload['apiTknValue']]
 
-    result = APIClientUtil.test_api(
-        namespace, base_url, authentication_type, None, endpoints, authTknOrKey, apiKeyName
-    )
+    result = APIClientUtil.test_api(namespace, base_url, authentication_type, None, endpoints, authTknOrKey, apiKeyName)
     
     return result
+
+
+@workspace.route('/workspace/<namespace>/api/secret/', methods=['PUT'])
+def update_api_secrets(namespace):
+
+    payload = request.get_json()
+
+    secret = SecretManager.get_secret(namespace, payload.get('connectionName'))
+    odoo_db, odoo_usr, odoo_pwd = payload.get('odooDB'), payload.get('odooUser'), payload.get('odooPassword')
+    updating_secret = secret.get('apiSettings')
+    updating_secret['odooDB'], updating_secret['odooUser'], updating_secret['odooPassword'] = odoo_db, odoo_usr, odoo_pwd
+
+    pre_path = f'main/api'
+    sec_management: SecretManager = SecretManager.set_namespace(namespace, '')
+    sec_management.create_secret(namespace, payload, f'{pre_path}/{payload.get('connectionName')}')
+
+    return {}
+
+
 @workspace.route('/workspace/s3/connection/test', methods=['POST'])
 def test_s3_connection():
     """
@@ -670,10 +683,7 @@ def test_s3_connection():
     except Exception as err:
         logging.error(f'Error while testing S3 connection: {str(err)}')
         traceback.print_exc()
-        return {
-            'result': f'Error while testing S3 connection: {str(err)}',
-            'error': True
-        }
+        return { 'result': f'Error while testing S3 connection: {str(err)}', 'error': True }
 
 
 @workspace.route('/workspace/s3/connection/<namespace>/<connection_name>/test', methods=['POST'])
@@ -689,10 +699,7 @@ def test_s3_connection_with_secrets(namespace, connection_name):
     except Exception as err:
         logging.error(f'Error while testing S3 connection with secrets: {str(err)}')
         traceback.print_exc()
-        return {
-            'result': f'Error while testing S3 connection: {str(err)}',
-            'error': True
-        }
+        return { 'result': f'Error while testing S3 connection: {str(err)}', 'error': True }
 
 
 @workspace.route('/workspace/<namespace>/s3/<secret>/objects/', methods=['POST'])

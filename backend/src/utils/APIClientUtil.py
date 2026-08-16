@@ -134,7 +134,11 @@ def test_api(
         if data_selector and data_selector != '':
             return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': data.json().get(data_selector,[]), '3-Success': True }
         else:
-            return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': data.json(), '3-Success': True }
+            result, success = None, True
+            try: result = data.json()
+            except: 
+                result, success = data.text, False
+            return { '1-Endpoint': full_path, '2-StatusCode': data.status_code, 'data': result, '3-Success': success }
 
     api_responses = []
     params_tuple = zip(resource_names, endpoints_params, primary_keys, data_selectors, paginate_params)
