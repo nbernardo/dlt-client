@@ -12,6 +12,7 @@ from flask import current_app
 import sys
 from pathlib import Path
 from contextlib import contextmanager
+from utils.duckdb_util import DuckdbUtil
 
 
 def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logger, email_cb):
@@ -33,7 +34,7 @@ def on_pipeline_finished(future_object, runner, params: dict, triggers_cb, logge
         if os.environ.get('KEEP_STAGE_DB',0) in [0,'0']:
             db_stage_file = Path(runner.source_db_path)
             db_stage_file.unlink(missing_ok=True)
-            runner.shutdown()
+        runner.shutdown()
         return
 
 
@@ -100,8 +101,8 @@ class PipelineDWPhaseRunner:
     def _run_pipeline(self, tables, pks, source_schema=None):
 
         with self.app.app_context():
-
             os.environ["SCHEMA__NAMING"] = "direct"
+            os.environ["RUNTIME__LOG_LEVEL"] = "DEBUG"
             skma = source_schema[0] if type(source_schema) == list else source_schema
             handle_pipeline_log(f'Connecting to stage source: {self.source_db_path}', self.logger, context=self.context)
             con = duckdb.connect(self.source_db_path, read_only=True)
@@ -127,12 +128,13 @@ class PipelineDWPhaseRunner:
 
                         while True:
                             rows = con.execute(f'''
-                                SELECT *, md5(concat_ws('|', COLUMNS(*))) AS _e2e_row_hash FROM "{skma}"."{table}"
+                                SELECT *, 
+                                    md5(_e2e_pk || '|' || concat_ws('|', COLUMNS(* EXCLUDE (_e2e_pk, _e2e_src_db, _dlt_load_id, _dlt_id)))) AS _e2e_row_hash 
+                                FROM "{skma}"."{table}"
                                 ORDER BY {order_col} LIMIT {batch_size} OFFSET {offset}
                             ''').fetchall()
 
                             if not rows: break
-
                             columns = [desc[0] for desc in con.description]
                             yield [dict(zip(columns, row)) for row in rows]
                             offset += batch_size
@@ -158,7 +160,8 @@ class PipelineDWPhaseRunner:
                 dest = dlt.destinations.duckdb(credentials=DuckDbCredentials(self.dest_conn_wrapper))
                 
                 pipeline = dlt.pipeline(pipeline_name=self.pipeline_name, dataset_name=dataset_name, destination=dest, progress='log')
-                
+                # Put dlt generated query method call
+                # self.print_del_query_log()
                 import dlt.common.storages.file_storage as file_storage_module
                 _original_delete = file_storage_module.FileStorage.delete
 
@@ -202,12 +205,13 @@ class PipelineDWPhaseRunner:
                     result = pipeline.run(build_source(), write_disposition={ 'disposition': 'merge', 'strategy': 'scd2', 'row_version_column_name': '_e2e_row_hash' })
                     count_per_table = pipeline.last_trace.last_normalize_info.row_counts if pipeline.last_trace.last_normalize_info else {}
                     self.rec_count_per_table = { **self.rec_count_per_table, **count_per_table }
-                
+
                 con.close()
                 msg = f'Completed Data Warehouse data ingestions'
                 handle_pipeline_log(msg, self.logger, context=self.context)
                 #self.context.emit_ppsuccess(exec_id=self.exec_id)
                 self.context.emit_error(error='success', exec_id=self.exec_id)
+                self.dest_conn_wrapper.commit()
                 return result
             
             except Exception as err:
@@ -221,6 +225,8 @@ class PipelineDWPhaseRunner:
 
             finally:
                 con.close()
+                self.dest_conn_wrapper.close()
+                del DuckdbUtil.db_connections[self.wd_db_path]
 
 
 
@@ -246,6 +252,22 @@ class PipelineDWPhaseRunner:
         self._executor.shutdown(wait=True) 
 
 
+    def print_del_query_log(self):
+        from dlt.destinations.impl.duckdb.sql_client import DuckDbSqlClient
+
+        for method_name in ("execute_sql", "execute_many", "execute_fragments"):
+            if hasattr(DuckDbSqlClient, method_name):
+                original = getattr(DuckDbSqlClient, method_name)
+                def make_logged(orig, name):
+                    def logged(self, sql, *args, **kwargs):
+                        print(f"----- {name} -----")
+                        print(sql)
+                        print("----- END -----")
+                        return orig(self, sql, *args, **kwargs)
+                    return logged
+                setattr(DuckDbSqlClient, method_name, make_logged(original, method_name))
+
+
     def run(namespace, data_source, refs):
 
         try:
@@ -260,7 +282,6 @@ class PipelineDWPhaseRunner:
             if not data_source: return
 
             import platform
-            from utils.duckdb_util import DuckdbUtil
             from controller.pipeline import BasePipeline
             
             dwname = data_source.split('_for_',1)[-1]
@@ -284,6 +305,7 @@ class PipelineDWPhaseRunner:
             source_db = f"{db_path}{data_source}.duckdb"
 
             dest_native_conn = DuckdbUtil.get_connection_for(f'{db_path}{dwname}.duckdb')
+            
             runner = PipelineDWPhaseRunner(source_db, dest_native_conn, dwname, dataset)
             runner.wd_db_path = f'{db_path}{dwname}.duckdb'
 

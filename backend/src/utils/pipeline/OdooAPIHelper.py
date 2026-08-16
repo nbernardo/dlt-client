@@ -103,6 +103,9 @@ def paginated_search_read(
     which can silently skip or duplicate rows as records are written."""
     field_types = get_column_fields(url, db, uid, password, model)
     fields = list(field_types.keys())
+    domain = list(domain)
+    if "active" in field_types:
+        domain.append(("active", "in", [True, False]))
 
     offset = 0
     while True:

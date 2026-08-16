@@ -72,41 +72,6 @@ class DltPipeline:
         return env_vars
 
 
-    def create(self, data):
-        """
-        This is the pipeline creation
-        """
-        file_name = data['pipeline']
-
-        file_path = f'{destinations_dir}/{file_name}.py'
-        file_open_flag = 'x+'
-        
-        template = DltPipeline.get_template()
-
-        if int(data['bucketFileSource']) == 2:
-            template = DltPipeline.get_s3_no_auth_template()
-
-        if os.path.exists(file_path):
-            return 'Pipeline exists already'
-            
-        with open(file_path, file_open_flag, encoding='utf-8') as file:
-            for field in data.keys():
-                template = template\
-                    .replace(f'%{field}%', f'"{data[field]}"')
-
-            file.write(template)
-
-        result = subprocess.run(['python', file_path],
-                                check=True,
-                                capture_output=True,
-                                text=True)
-
-        print("Return Code:", result.returncode)
-        print("Standard Output:", result.stdout)
-        print("Standard Error:", result.stderr)
-
-
-
     def create_v1(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
         try:
             check_invalid_code(data)

@@ -296,6 +296,12 @@ class PipelineHelper:
     
     def graceful_terminate():
         sys.exit(0)
+
+    
+    def make_all_nullable(table):
+        for column in table.columns.values():
+            column.nullable = True
+        return table
         
 
 def send_success_email(params: dict, tbls: dict):
