@@ -122,7 +122,7 @@ export function markOrUnmarkAPICatalogRequired() {
  * @param { CatalogForm } component 
  * @param { CatalogEndpointType } details
  */
-export function handleAddEndpointField(endpointCounter, component, details) {
+export function handleAddEndpointField(endpointCounter, component, details, disabled = false) {
 
     /** @type { EndpointGroupType } */
     const self = { fieldList: [], component, endpointCounter, paginateFields: [], details };
@@ -169,29 +169,30 @@ export function handleAddEndpointField(endpointCounter, component, details) {
     const delEntpointBtn = document.createElement('div');
     delEntpointBtn.className = 'del-endpoint-setting-icon';
     delEntpointBtn.innerText = 'Remove';
-    fieldSet.appendChild(delEntpointBtn);
+    if(disabled === false)
+        fieldSet.appendChild(delEntpointBtn);
 
     // Creates the field for entering the endpoint
     let fieldName = `apiEndpointPath${endpointCounter}`;
     const endpointField = newStilComponentField(self, 
-        { fieldName, required: true, placeholder: 'e.g. /transaction/paginate', className: ' endpoint-input' }
+        { fieldName, required: true, placeholder: 'e.g. /transaction/paginate', className: ' endpoint-input', disabled }
     );
     formGroup1.insertAdjacentHTML('beforeend', endpointField);
 
     // Creates the field for entering the endpoint data selector
     fieldName = `apiEndpointDS${endpointCounter}`;
-    const disabled = component.whatApiConfigType === 2 ? true : false;
-    const primaryDataSelector = newStilComponentField(self, { placeholder: 'e.g. result', fieldName, className: 'apiEndpointDS-field', disabled });
+    const disableFlag = disabled == false ? (component.whatApiConfigType === 2 ? true : false) : disabled;
+    const primaryDataSelector = newStilComponentField(self, { placeholder: 'e.g. result', fieldName, className: 'apiEndpointDS-field', disabled: disableFlag });
     formGroup2.insertAdjacentHTML('beforeend', `<label>Data Selector</label>${primaryDataSelector}`);
 
     // Creates the field for entering the endpoint data primary key
     fieldName = `apiEndpointPathPK${endpointCounter}`;
     const primaryKeyField = newStilComponentField(self, 
-        { placeholder: 'e.g. transactionId', fieldName, className: ' endpoint-pk-input' }
+        { placeholder: 'e.g. transactionId', fieldName, className: ' endpoint-pk-input', disabled }
     );
     formGroup3.insertAdjacentHTML('beforeend', `<label>Primary key</label>${primaryKeyField}`);
     
-    addPaginateOption(self, formGroup4, endpointCounter, component);
+    addPaginateOption(self, formGroup4, endpointCounter, component, disabled);
 
     dataSetting.appendChild(formGroup1);
     dataSetting.appendChild(formGroup2);
@@ -287,14 +288,14 @@ function updateDynamicEndpoint(id, component){
 }
 
 /** @param { EndpointGroupType } self */
-function addPaginateOption(self, formGroup, endpointCounter, component){
+function addPaginateOption(self, formGroup, endpointCounter, component, disabled){
 
     formGroup.insertAdjacentHTML('afterbegin', `<label>Use pagination</label>`);
     const paginateRadioButtonContainer = document.createElement('div');
     paginateRadioButtonContainer.classList = 'use-pagination-check-group';
-    const yesRadio = document.createElement('input');
-    const noRadio = document.createElement('input');
+    const yesRadio = document.createElement('input'), noRadio = document.createElement('input');
 
+    yesRadio.disabled = disabled, noRadio.disabled = disabled;
     yesRadio.type = 'radio', noRadio.type = 'radio', noRadio.checked = true;
     yesRadio.name = `endpointField${endpointCounter}`, noRadio.name = `endpointField${endpointCounter}`;
 
@@ -458,7 +459,7 @@ export async function testConnection(obj, secretType, isDbConnEditing){
         const btn = disableTestBtn(obj);
 		const result = obj.dataBaseSettingType == 2 
 			? await WorkspaceService.testConnectWithKVSecret(obj)
-			: await WorkspaceService.testDbConnection({ env: obj.getDynamicFields(), dbConfig: obj.getDBConfig()}, obj.isDbConnEditing);
+			: await WorkspaceService.testDbConnection({ env: obj.getDynamicFields(), dbConfig: obj.getDBConfig() }, obj.isDbConnEditing);
         enableTestBtn(btn, obj, result);
     }
     
@@ -484,7 +485,6 @@ export async function testConnection(obj, secretType, isDbConnEditing){
                 response = await WorkspaceService.testAPIConnection({ apiTknValue: obj.apiTknValue.value, ...payload }, obj.endPointEditorContent);
         }
 
-        
         document.querySelector('.APITestResponse').innerHTML = response.content;
         document.querySelector('.APITestResponse').classList.add('APITestResponse-show');
         enableTestBtn(btn, obj, (response.errors == 0 || response.errors === undefined));
@@ -555,4 +555,3 @@ export function changeType(obj, connectionType = null, groupType = 'regular'){
     if(connectionType == 2) obj.kvSecretType = 'regular';
 }
 
-export function disableAPIEndpointDS1(flag){  }

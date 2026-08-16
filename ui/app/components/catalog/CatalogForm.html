@@ -12,7 +12,7 @@
         <div (showIf)="self.secretType == 2">
           <h3>Register New API Settings</h3>
           <div style="display: flex; font-size: 10px; gap: 2px; margin-top: 12px; font-weight: bold; align-items: center;">
-            <input type="checkbox" onclick="component.setOdooJsonRPC(this.checked)">
+            <input type="checkbox" class="odoo-json-rpc-check" onclick="component.setOdooJsonRPC(this.checked)">
             &nbsp;<img src="/app/assets/imgs/odoo logo.webp" style="width: 42px;" alt=""> specific - JSON-RPC
           </div>
         </div>
@@ -96,7 +96,7 @@
                   <input class="db-connection-name" type="text" (value)="connectionName" placeholder="Name of connection">
                 </div>
     
-                <div class="form-group required-db-field">
+                <div class="form-group required-db-field db-engine-select">
                   <label>DB Engine</label>
                   <select (value)="dbEngine">
                     <option value="">SELECT DB Engine</option>
@@ -112,8 +112,8 @@
                   <input type="text" (value)="dbHost" placeholder="db.example.com">
                 </div>
                 <div class="form-group required-db-field">
-                  <table>
-                    <tr>
+                  <table style="margin-top: -5px;">
+                    <tr style="padding-top: 5px;">
                       <td><label>Port</label></td>
                       <td>
                         <label style="display: flex;">
@@ -270,7 +270,7 @@
               </div>
 
               <div>
-                <button style="margin-top: 5px;" type="button" class="add-btn-primary" (click)="addEndpointFields()">+ Endpoint</button>
+                <button style="margin-top: 5px;" type="button" class="add-btn-primary add-entpnt-btn" (click)="addEndpointFields()">+ Endpoint</button>
               </div>
 
               <div class="modal-body">
@@ -295,7 +295,7 @@
                   <div class="form-group">
                     <div class="use-authentication-check-group">
                       <label class="bold-lbl" style="display: flex; align-items: center;">
-                        <img src="/app/assets/imgs/odoo logo.webp" style="width: 52px;" alt="">&nbsp; - Settings
+                        <img src="/app/assets/imgs/odoo logo.webp" style="width: 52px;" alt=""> - Settings
                       </label>
                       <div style="display: flex; gap: 4px;">
                         <div class="form-group">
@@ -314,6 +314,7 @@
                           </span>
                         </div>
                       </div>
+                      <!-- <button style="margin-top: 7px;" onclick="component.createSecret()" class="update-credentials-btn add-btn-primary">Update credentials</button> -->
                     </div>
                   </div>
                 </span>
@@ -374,10 +375,7 @@
                 </div>
               </button>
             </div>
-            <button 
-              type="button" 
-              onclick="component.createSecret()" 
-              class="btn btn-primary save-secret-btn">Save</button>
+            <button type="button" onclick="component.createSecret()" class="btn btn-primary secret-save-btn">Save</button>
           </div>
           <div class="APITestResponse"></div>
         </div>
@@ -395,7 +393,7 @@
 
     .api-response-failed{ color: red; font-weight: bold; }
     .APITestResponse{ overflow-y: auto; margin-top: 5px; border-radius: 3px; }
-    .APITestResponse-show{ height: 200px; }
+    .APITestResponse-show{ height: 140px; }
     span[data="get-oracle-dn-btn"] { float: left; margin-top: 0;  }
     .oracle-dn-loader {
         display: flex; width: 29px; margin-top: 0; padding: 0; margin-left: 10px; float: right; margin-top: 0;
@@ -409,15 +407,11 @@
       max-height: 27vh; overflow-x: scroll;
     }
 
-    .use-pagination-check{ 
-      margin-left: 10px; 
-      label { width: 100px; margin-top: 21px; }
-    }
+    .use-pagination-check{ margin-left: 10px;  label { width: 100px; margin-top: 21px; } }
     .use-pagination-check-group{ display: flex; width: 93px; font-size: 12px; }
-
     .del-endpoint-setting-icon{ width: 78px; text-align: center; font-size: 10px; color: red; cursor: pointer; font-weight: bold; float: right; }
 
-    fieldset { margin-top: 15px; border-radius: 3px; padding-bottom: 4px; }
+    fieldset { margin-top: 14px; border-radius: 3px; padding-bottom: 4px; }
     fieldset label { margin-top: 3px; }
     fieldset input { width: 100px; }
     fieldset legend { margin-left: 8px; font-size: 14px; font-weight: bold; }
@@ -425,7 +419,7 @@
     .use-pagination-field { margin-left: 5px; }
     .endpoint-input { width: 190px; }
     .endpoint-pk-input { width: 130px; }
-   .endpoint-data-setting, .endpoint-paginate-setting{ display: flex; margin: 5px; }
+   .endpoint-data-setting, .endpoint-paginate-setting{ display: flex; margin: 3px; }
    .endpoint-paginate-setting input{ width: 130px; }
 
   .bold-lbl { font-weight: bold; }
@@ -457,9 +451,7 @@
 
     /* Main content */
     .CatalogForm .content { flex-grow: 1; padding: 20px; }
-
     .CatalogForm .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
     .CatalogForm .btn { padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
 
     /* Table */
@@ -488,14 +480,18 @@
 
     .CatalogFormModel .form-group { display: flex; flex-direction: column; }
 
-    .CatalogFormModel label { font-size: 0.9rem; margin-bottom: 4px; color: #374151; }
+    .CatalogFormModel label { font-size: 0.8rem; margin-bottom: 4px; color: #374151; }
 
     .CatalogFormModel input,
     .CatalogFormModel select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
-
-    .CatalogFormModel .modal-footer .buttons-wrapper { margin-top: 16px; text-align: right; display: flex; justify-content: space-between; }
-
+    .CatalogFormModel input[type=text], select,
+    .CatalogFormModel input[type=password], .CatalogFormModel input[type=number], .db-connection-params { height: 30px; font-size: 13px; }
+    .CatalogFormModel .modal-footer .buttons-wrapper { text-align: right; display: flex; justify-content: space-between; margin-top: 10px; }
     .CatalogFormModel .btn-close { background: #ef4444; border: none; color: #fff; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
-
     .CatalogFormModel .btn-close:hover { background: #dc2626; }
+    .test-connection-fail-bg{ background: #ff00004a; padding: 5px; border-radius: 3px; }
+    .api-test-result-content{ width: 100%; border: 1.5px solid green; border-radius: 4px; font-size: 0.9em; td { padding: 5px; } }
+    .api-test-result-header{ color: black; font-weight: bold; font-size: 0.9em; }
+    .odoo-test-col-list{ overflow-x: scroll; width: 45vh; }
+    .db-engine-select select{ font-size: 0.8em; padding: 0; }
   </style>

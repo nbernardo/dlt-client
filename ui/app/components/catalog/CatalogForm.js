@@ -161,7 +161,13 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	editSecret(type, secretData){
-		this.connectionName = secretData.secretName;
+		this.connectionName = secretData.secretName, this.handleApiSaveButtons(false), this.disableOnEdit(true);
+		document.querySelector('.APITestResponse').innerHTML = '';
+		if(secretData.apiSettings?.isOdoo === true){
+			this.whatApiConfigType = 2, document.querySelector('.odoo-json-rpc-check').checked = true;
+			const { odooDB, odooPassword, odooUser } = secretData.apiSettings;
+			this.odooDB = odooDB, this.odooPassword = odooPassword, this.odooUser = odooUser;
+		}
 		
 		if(this.secretType == 1){
 			let selectedOption = 0;
@@ -249,7 +255,7 @@ export class CatalogForm extends ViewComponent {
 						paginationRecPerPage: paginationRecPerPage[index],
 						apiEndpointDS: apiEndpointDS[index],
 					};				
-					this.addEndpointFields(details);
+					this.addEndpointFields(details, true);
 
 				}
 			}
@@ -279,13 +285,20 @@ export class CatalogForm extends ViewComponent {
 		document.querySelector('.connectio-test-status').style.background = 'rgb(182, 182, 182)';
 	}
 
-	showDialog(reset = false, type = null){		
+	handleApiSaveButtons(show = true){
+		document.querySelector('.secret-save-btn').style.display = show ? '' : 'none';
+		//document.querySelector('.update-credentials-btn').style.display = show ? 'none' : '';
+	}
+
+	showDialog(reset = false, type = null){	
+		this.handleApiSaveButtons(), document.querySelector('.APITestResponse').innerHTML = '';
 		if(type === 'api') {
-			this.markRequiredFields(true);
-			this.showTestConnection = true;
+			this.markRequiredFields(true), this.disableOnEdit(false);
+			this.showTestConnection = true, document.querySelector('.odoo-json-rpc-check').checked = false;
 		}
 		if(reset) {
 			this.isDbConnEditing = false; this.isNewSecret = true, this.resetForm();
+			this.odooDB = '', this.odooUser = '', this.odooPassword = '', this.whatApiConfigType = 1;
 		}
 		
 		document.querySelector('.db-connection-name').disabled = false;
@@ -428,11 +441,10 @@ export class CatalogForm extends ViewComponent {
 					return AppTemplate.toast.error(`Secret with name ${this.connectionName.value} already exists`);
 				
 			}else{
-				const isOdoo = this.whatApiConfigType === 2;
 				apiSettings = {
 					...this.parseAPICatalogFields(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
 					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value, apiAuthType: this.apiAuthType,
-					isOdoo, odooDB: this.odooDB.value, odooPassword: this.odooPassword.value, odooUser: this.odooUser.value
+					isOdoo: this.whatApiConfigType === 2, ...this.odooCredentials()
 				};
 			}
 			const connectionName = this.dataBaseSettingType != null ? this.connectionName.value : this.apiConnName.value;
@@ -511,9 +523,9 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	/** @param { CatalogEndpointType } details */
-	addEndpointFields = (details = null) => {
+	addEndpointFields = (details = null, disable = false) => {
 		this.endpointCounter = this.endpointCounter.value + 1;
-		handleAddEndpointField(this.endpointCounter.value, this, details);
+		handleAddEndpointField(this.endpointCounter.value, this, details, disable);
 	}
 
 	parseAPICatalogFields(){
@@ -576,4 +588,12 @@ export class CatalogForm extends ViewComponent {
 		this.markRequiredFields(flag, 'odoo-config-field');
 	}
 
+	odooCredentials() { return { odooDB: this.odooDB.value, odooPassword: this.odooPassword.value, odooUser: this.odooUser.value } }
+
+	disableOnEdit(flag){ 
+		const componentsToHide = '.endpoint-group-config input, .odoo-json-rpc-check, .unique-api-url';
+		document.querySelectorAll(componentsToHide).forEach(i => i.disabled = flag) 
+		if(flag) document.querySelector('.add-entpnt-btn').style.display = 'none';
+		else document.querySelector('.add-entpnt-btn').style.display = '';
+	}
 }

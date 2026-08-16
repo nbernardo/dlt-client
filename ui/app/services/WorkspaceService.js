@@ -19,6 +19,7 @@ import { UserService } from "./UserService.js";
 import { constructTablePath } from "./DestinationUtil.js";
 import { PipelineService } from "./PipelineService.js";
 import { PipelineStepTrigger } from "../components/node-types/trigger/PipelineStepTrigger.js";
+import { IsObject } from "../components/node-types/transform/util.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -362,30 +363,26 @@ export class WorkspaceService extends BaseService {
         const namespace = await UserService.getNamespace();
         const url = '/secret/' + namespace;
         const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), HTTPHeaders.JSON);
-        
         const result = await response.json();
         
         if (response.ok && !result.error){
             AppTemplate.toast.success('Secrete created successfully');
             return true;
         }
-        else
-            AppTemplate.toast.error(result.result);
+        AppTemplate.toast.error(result.result);
     }
 
     static async testDbConnection(secret, existing) {
 
         const url = existing ? '/workspace/connection/exists/test' : '/workspace/connection/test';
         const response = await $still.HTTPClient.post(url, JSON.stringify({ ...secret }), HTTPHeaders.JSON);
-        
         const result = await response.json();
         
         if (response.ok && !result.error){
             AppTemplate.toast.success('DB Connection was successful');
             return true;
         }
-        else
-            AppTemplate.toast.error(result.result);
+        AppTemplate.toast.error(result.result);
     }
 
     static async testAPIConnection(payload, existing) {
@@ -399,25 +396,32 @@ export class WorkspaceService extends BaseService {
         let result = await response.json(), errors = 0;
         
         if (response.ok && !result.error){
-
-            if(Object.prototype.toString.call(result) === '[object Object]'){
-                let tables = Object.keys(result.result), content = `<table border="1" style="width: 100%;" cellspacing="0" cellpadding="0">`;
-                content += tables.map(t =>  
-                {
-                    const isError = result.result[t].error;
-                    return WorkspaceService.self.component.parseEvents(`
-                        <tr style="background: ${isError ? '#ff00004a;' : '#0cdb0c33'}">
-                            <td style="padding: 5px; display: flex;">${t}</td>
-                            <td style="padding: 5px;">
-                                <span style="cursor: pointer; color: blue; text-decoration: underline;" onclick="inner.showAPIData('odoo-col-list-${t.replace('.','_')}', true)">Show Data</span>
-                                <div id="odoo-col-list-${t.replace('.','_')}" style="display:none;">${Object.entries(result.result[t]).map(r => `<b>${r[0]}</b> = ${r[1]}`).join('<br>')}</div>
-                            </td>
-                        </tr>
-                    `)
+            if(IsObject(result)){
+                let errors = 0
+                let tables = Object.keys(result.result), content = `<table class="api-test-result-content" cellspacing="3">`;
+                if(result.error === false && result.result === false){
+                    content = `<div class="test-connection-fail-bg">User name or pasword is wrong</div>`, errors = 1;
+                }else{
+                    content += '<tr class="api-test-result-header"><td style="width: 35%;">Module name</td><td>Test result</td></tr>';
+                    content += tables.map(t =>  
+                    {
+                        const isError = result.result[t].error;
+                        if(isError) errors = 1;
+                        return WorkspaceService.self.component.parseEvents(`
+                            <tr style="background: ${isError ? '#ff00004a;' : '#0cdb0c33'}">
+                                <td style="padding: 5px; display: flex;">${t.trim() === '' ? 'Empty resource' : t}</td>
+                                <td style="padding: 5px;">
+                                    <span style="cursor: pointer; color: blue; text-decoration: underline;" onclick="inner.showAPIData('odoo-col-list-${t.replace('.','_')}', true)">Show Data</span>
+                                    <div id="odoo-col-list-${t.replace('.','_')}" class="odoo-test-col-list" style="display:none;">
+                                        ${Object.entries(result.result[t]).map(r => `<b>${r[0]}</b> = ${IsObject(r[1]) ? r[1].data.message : r[1]}`).join('<br>')}
+                                    </div>
+                                </td>
+                            </tr>
+                        `)
+                    }).join('');
+                    content += `</table>`;
                 }
-                ).join('');
-                content += `</table>`;
-                return { errors: 0, content, totalEndpoints: result.length };
+                return { errors, content, totalEndpoints: result.length };
             }
 
             const totalEndpoints = result.length;
@@ -458,9 +462,9 @@ export class WorkspaceService extends BaseService {
             else AppTemplate.toast.success('API Connection was successful');
             return { errors, content, totalEndpoints };
         }
-        else
-            AppTemplate.toast.error(result.result);
-        return { errors: 1 };
+        let content = ('data' in result.result) ? result.result.data.message : result.result;
+        AppTemplate.toast.error(content);
+        return { errors: 1, content: `<div class="test-connection-fail-bg">${content}</div>` };
     }
 
     /** @param { CatalogForm } catalogForm */
