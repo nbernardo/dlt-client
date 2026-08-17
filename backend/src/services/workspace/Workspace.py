@@ -800,7 +800,7 @@ class Workspace:
     @staticmethod
     def schedule_pipeline_job(namespace = None, ppline=None, immediate=False, exec_id=None, user=None):
         result = Workspace.get_ppline_schedule(namespace, ppline)
-        
+        schedules = {}
         if type(result) == list:
             schedules = { f'{ppline}^{rec.get('time')}': rec for rec in result }
 
