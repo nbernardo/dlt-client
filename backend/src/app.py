@@ -59,9 +59,9 @@ if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
     app.register_blueprint(logs)
     call_scheduled_job(app)
     setup_logging(app)
+    DuckDBCache.connect()
     DuckdbUtil.initialize_logging_tables()
 
-DuckDBCache.connect()
 SecretManager.connect_to_vault()
 SecretManager.db_secrete_obj = database_secret
 SQLDatabase.secret_manager = SecretManager

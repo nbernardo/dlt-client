@@ -8,7 +8,6 @@ class DuckDBCache:
     
 
     def get(key):
-        DuckdbUtil.create_cache_table()
         """Get value from cache"""
         cnx = DuckdbUtil.get_workspace_db_instance()
         result = cnx.execute("SELECT value FROM cache WHERE key = ?", [key]).fetchone()
@@ -16,7 +15,6 @@ class DuckDBCache:
     
 
     def set(key, value):
-        DuckdbUtil.create_cache_table()
         """Set value in cache"""
         cnx = DuckdbUtil.get_workspace_db_instance()
         cnx.execute("""
@@ -25,14 +23,12 @@ class DuckDBCache:
     
 
     def remove(key):
-        DuckdbUtil.create_cache_table()
         """Remove a specific key from cache"""
         cnx = DuckdbUtil.get_workspace_db_instance()
         cnx.execute("DELETE FROM cache WHERE key = ?", [key])
 
 
     def clear(self):
-        DuckdbUtil.create_cache_table()
         """Clear all cache entries"""
         DuckdbUtil.get_workspace_db_instance().execute("DELETE FROM cache")
 
