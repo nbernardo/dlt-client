@@ -288,8 +288,9 @@ export class LeftTabs extends ViewComponent {
 		}
 
 		if(tab === 'content-pipeline-plan') {
-			const plans = await PipelinePlanService.getPipelinePlans();
-			this.pipelinePlanList = plans.result, this.showLoading = false;
+			await this.$parent.controller.createModelDeclarationUI();
+			//const plans = await PipelinePlanService.getPipelinePlans();
+			//this.pipelinePlanList = plans.result, this.showLoading = false;
 		}
 		this.$parent.selectedLeftTab = tab;
 	}

@@ -77,5 +77,7 @@
 	"traceErrorLbl": "Trace",
 	"startRunTime": "Start time",
 	"endRunTime": "End time",
-	"manualAttempts": "Manual attempts count"
+	"manualAttempts": "Manual attempts count",
+	"dataModelTab": "Data definitions",
+	"dataQualityTab": "Data quality rules"
 }

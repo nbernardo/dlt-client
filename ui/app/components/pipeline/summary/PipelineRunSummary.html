@@ -1,7 +1,7 @@
 <div class="componentui-main-container @cmpInternalId">
 	<h2 class="sr-only">Data Dictionary and Role-Based Access Control Manager</h2>
 
-	<nav class="tabs pipeline-run-history">
+	<nav class="tabs shared-tab-navigation">
 		<div class="tab active" onclick="component.getSuccessPipelineHistory('FAILED', this,1)">
 			<img src="/app/assets/imgs/disruption.png" alt=""> $bundle.pplineSummary.tabFailedRunsLbl
 		</div>
@@ -208,9 +208,5 @@
 		.mini-loader-dot { width: 9px !important; height: 7px !important; background: white; }
 	}
 	.table-body .mini-loader-dot { width: 7px !important; height: 7px !important; background: black; opacity: .5 !important; }
-	.pipeline-run-history .tab{ display: flex; align-items: center; gap: 5px; img { width: 24px; } }
-	.pipeline-run-history .tab.active { opacity: 1 !important; }
-	.pipeline-run-history .tab:not(.active) { opacity: .3 !important; }
-	.pipeline-run-history .tab:hover { opacity: 1 !important; }
 
 </style>

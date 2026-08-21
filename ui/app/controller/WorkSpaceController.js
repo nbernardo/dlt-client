@@ -6,6 +6,7 @@ import { StillAppSetup } from "../../config/app-setup.js";
 import { AppTemplate } from "../../config/app-template.js";
 import { AIAgent } from "../components/agent/AIAgent.js";
 import { CatalogForm } from "../components/catalog/CatalogForm.js";
+import { ModelDeclaration } from "../components/declaration/model/ModelDeclaration.js";
 import { GovernanceMainComponent } from "../components/governance/GovernanceMainComponent.js";
 import { LeftTabs } from "../components/navigation/left/LeftTabs.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
@@ -250,8 +251,7 @@ export class WorkSpaceController extends BaseController {
 
         const nodeId = this.getNodeId();
         this.isImportProgress = false;
-        const parentId = this.wSpaceComponent.cmpInternalId;
-        const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false, template }, parentId);
+        const { template: tmpl, component } = await Components.new(inType, { nodeId, isImport: false, template }, this.wspaceId());
         this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
 
     }
@@ -275,8 +275,7 @@ export class WorkSpaceController extends BaseController {
             this.addStartOrEndNode(type, source, dest, pos_x, pos_y);
             this.edgeTypeAdded[NodeTypeEnum.START] = nodeId;
         }else{
-            const parentId = this.wSpaceComponent.cmpInternalId;
-            const { template: tmpl, component } = await Components.new(type, { ...data, aiGenerated: true, nodeId }, parentId);
+            const { template: tmpl, component } = await Components.new(type, { ...data, aiGenerated: true, nodeId }, this.wspaceId());
             this.currentNodePositionX = pos_x;
             await this.handleAddNode(component, nodeId, type, pos_x, pos_y, tmpl);
         }
@@ -359,8 +358,7 @@ export class WorkSpaceController extends BaseController {
             if (!['Start', 'End'].includes(name)) {
                 //The extracted fields and nodeId are the fields inside the components itself ( from node-types folder )
                 let { /*componentId: removedId,*/ ...fields } = data;
-                const parentId = this.wSpaceComponent.cmpInternalId;
-                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true, asTemplate, fromPlan }, parentId);
+                const { template: tmpl, component } = await Components.new(name, { nodeId, ...fields, isImport: true, asTemplate, fromPlan }, this.wspaceId());
 
                 this.handleAddNode(component, nodeId, name, pos_x, pos_y, tmpl);
                 setTimeout(() => Object.keys(fields).forEach((f) => component[f] = fields[f]), 10);
@@ -883,8 +881,7 @@ export class WorkSpaceController extends BaseController {
             const totalMessages = this.wSpaceComponent.service.aiAgentNamespaceDetails.conversation_count;
             const messageCountLimit = this.wSpaceComponent.service.aiAgentNamespaceDetails.user_message_count_limit;
 
-            const parentId = this.wSpaceComponent.cmpInternalId;
-            const { template, component } = await Components.new(AIAgent, {totalMessages, messageCountLimit}, parentId);
+            const { template, component } = await Components.new(AIAgent, {totalMessages, messageCountLimit}, this.wspaceId());
             this.startedAgent = component;   
             document.querySelector('.ai-agent-placeholder').insertAdjacentHTML('beforeend', template);
             this.wSpaceComponent.showOrHideAgent();
@@ -900,20 +897,29 @@ export class WorkSpaceController extends BaseController {
     catalogForm = null;
     
     async createCatalogForm(type = 1 /** 1 = db, 2 = api */){
-        const parentId = this.wSpaceComponent.cmpInternalId;
-        const { template: catalogFormUI, component } = await Components.new(CatalogForm, { type }, parentId);
+        const { template: catalogFormUI, component } = await Components.new(CatalogForm, { type }, this.wspaceId());
         this.catalogForm = component;
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = catalogFormUI;
     }
     
+    wspaceId() { return this.wSpaceComponent.cmpInternalId }
+
     /** @type { GovernanceMainComponent } */ governanceView;
     async createDataGovernanceUI(){
-        const parentId = this.wSpaceComponent.cmpInternalId;
-        const { template: uiContent, component } = await Components.newView(GovernanceMainComponent, { }, parentId);
+        const { template: uiContent, component } = await Components.newView(GovernanceMainComponent, { }, this.wspaceId());
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
         await sleepForSec(1000);
         AppTemplate.hideLoading();
         this.governanceView = component;
+    }
+    
+    /** @type { ModelDeclaration } */ modelDeclarationView;
+    async createModelDeclarationUI(){
+        const { template: uiContent, component } = await Components.newView(ModelDeclaration, { }, this.wspaceId());
+        this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
+        await sleepForSec(1000);
+        AppTemplate.hideLoading();
+        this.modelDeclarationView = component;
     }
 
     async loadMonacoEditorDependencies(){

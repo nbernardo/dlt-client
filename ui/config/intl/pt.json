@@ -77,5 +77,7 @@
 	"traceErrorLbl": "Rastreio",
 	"startRunTime": "Hora Inicio",
 	"endRunTime": "Hora termino",
-	"manualAttempts": "Tentativas manual"
+	"manualAttempts": "Tentativas manual",
+	"dataModelTab": "Definicao de dados",
+	"dataQualityTab": "Regras de qualidade"
 }

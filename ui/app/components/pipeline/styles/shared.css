@@ -225,3 +225,8 @@
 
 	.allow-count, .notallow-count { font-weight: bold; }
 	.allow-count { color: #27ae60; } .notallow-count { color: red; }
+
+	.shared-tab-navigation .tab{ display: flex; align-items: center; gap: 5px; img { width: 24px; } }
+	.shared-tab-navigation .tab.active { opacity: 1 !important; }
+	.shared-tab-navigation .tab:not(.active) { opacity: .3 !important; }
+	.shared-tab-navigation .tab:hover { opacity: 1 !important; }

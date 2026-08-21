@@ -157,6 +157,10 @@ export const stillRoutesMap = {
             ElipsisLoader: {
                 path: "app/components/shared/loader",
                 url: "/elipsis-loader"
+            },
+            ModelDeclaration: {
+                path: "app/components/declaration/model",
+                url: "/model-declaration"
             }
         },
         lazyInitial: {}
