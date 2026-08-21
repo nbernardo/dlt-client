@@ -473,12 +473,20 @@
 
             <div class="content-panel content-pipeline-plan" style="width: 250px;">
                 <h3>List of pipeline Plans</h3>
-
+                <div>
+                    <div style="display: flex; flex-direction: column; align-items: center; padding-top: 17px;">
+                        <label style="font-weight: bold; padding-bottom: 5px;">$bundle.gov.dwListLbl</label>
+                        <select 
+                            class="list-of-pipelines gov-select" (forEach)="pipelines" onchange="component.loadGovTablesByPipeline(this.value)" placeholder="$bundle.gov.combo.selectOptLbl" style="width:160px">
+                            <option each="item" value="{item.srcPipeline}.{item.srcPipeline}.{item.dwName}">{item.pipeline}</option>
+                        </select>
+                    </div>
+                </div>
                 <span (showIf)="self.showLoading == 3">
-                    <st-element component="ElipsisLoader" label="Fetching pipelines plans..."></st-element>
+                    <!-- <st-element component="ElipsisLoader" label="Fetching pipelines plans..."></st-element> -->
                 </span>
 
-                <span (showIf)="!self.showLoading">
+                <!-- <span (showIf)="!self.showLoading">
                     @if(this.pipelinePlanList.length == 0)
                         <div class="fetching-db-loader">No pipeline plan found</div>
                     @endif
@@ -492,7 +500,7 @@
                             </div>
                         </li>
                     </ul>
-                </span>
+                </span> -->
 
             </div>
 
