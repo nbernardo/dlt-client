@@ -40,7 +40,7 @@ textarea { flex: 1; width: 100%; padding: 14px; border: none; font-family: var(-
 .sql-output { flex: 1; margin: 0; padding: 14px; font-family: var(--font-mono); font-size: 13px; line-height: 1.5; color: #1E242B; background: #F4F6F8; border-top: 0.5px solid var(--color-border-tertiary); overflow-y: auto; white-space: pre-wrap; }
 
 .error-banner { background: #FCEBEB; color: #A32D2D; padding: 10px 16px; font-size: 12px; font-weight: 500; border-bottom: 0.5px solid var(--color-border-tertiary); display: none; line-height: 1.5; }
-
+#yaml-input { width: 100%; height: 100%; }
 </style>
 
 <div class="componentui-main-container declarations-ui @cmpInternalId">
@@ -69,17 +69,17 @@ textarea { flex: 1; width: 100%; padding: 14px; border: none; font-family: var(-
 		<div class="panel-header">
 		  <span>1. Declarative Model (YAML)</span>
 		  <div>
-			<button class="btn" onclick="loadSampleYAML()">Reset Example</button>
+			<button class="btn" onclick="controller.resetDeclaration(event)">Reset Example</button>
 		  </div>
 		</div>
-		<textarea id="yaml-input" placeholder="Write your semantic model here..." spellcheck="false"></textarea>
+		<div id="yaml-input" placeholder="Write your semantic model here..." spellcheck="false"></div>
 	  </div>
 	
 	  <!-- COMPILED SQL -->
 	  <div class="panel">
 		<div class="panel-header">
 		  <span>2. Compiled SQL Output</span>
-		  <button class="btn btn-primary" onclick="copySQL()">Copy SQL</button>
+		  <button class="btn btn-primary" onclick="controller.copySQL(event)">Copy SQL</button>
 		</div>
 		<pre id="sql-output" class="sql-output">-- SQL will generate here automatically</pre>
 	  </div>

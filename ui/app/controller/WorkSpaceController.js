@@ -191,17 +191,13 @@ export class WorkSpaceController extends BaseController {
 
         if(isNoteGragabble == 'yes') return;
 
-        if(disabled === 'yes'){
-            return this.showDialog(
-                'This node type is not yet available', 
-                { type: 'ok', title: 'Unavailable feature' }
-            );
-        }
+        if(disabled === 'yes')
+            return this.showDialog('This node type is not yet available',  { type: 'ok', title: 'Unavailable feature' });
+        
         if (ev.type === "touchstart") {
             this.mobileItemSelec = ev.target.closest(".drag-drawflow").getAttribute('data-node');
         } else {
-            const icon = ev.target.getAttribute('data-icon');
-            const img = ev.target.getAttribute('data-img');
+            const icon = ev.target.getAttribute('data-icon'), img = ev.target.getAttribute('data-img');
 
             const isIconValid = !['undefined', 'null', null, ''].includes(icon);
             ev.dataTransfer.setData("node", ev.target.getAttribute('data-node'));
@@ -915,6 +911,8 @@ export class WorkSpaceController extends BaseController {
     
     /** @type { ModelDeclaration } */ modelDeclarationView;
     async createModelDeclarationUI(){
+        console.log(`THIS IS THE VALUES: `, this.wspaceId());
+        
         const { template: uiContent, component } = await Components.newView(ModelDeclaration, { }, this.wspaceId());
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
         await sleepForSec(1000);
@@ -929,16 +927,21 @@ export class WorkSpaceController extends BaseController {
         await Assets.import({ path: 'https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js' });
         await Assets.import({ path: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js' });
 
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } });
-        require(['vs/editor/editor.main'], (monaco) => {
+        require.config({ 
+            paths: { 
+                'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs', 
+                'monaco-yaml': 'https://unpkg.com' 
+            } 
+        });
 
+        require(['vs/editor/editor.main', 'monaco-yaml/index'], (monaco, monacoYaml) => {
+            monacoYaml.configureMonacoYaml(monaco, { enableSchemaRequest: true });
             monaco.languages.registerCompletionItemProvider('python', {
                 provideCompletionItems: (model, position) => {
                     return { suggestions: CodeEditorUtil.getPythonSuggestions() };
                 },
             });
-
-            window.monaco
+            window.monaco;
         });
     }
 
