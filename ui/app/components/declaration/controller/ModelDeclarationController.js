@@ -2,62 +2,23 @@ import { BaseController } from "../../../../@still/component/super/service/BaseC
 import { ModelDeclaration } from "../model/ModelDeclaration.js";
 
 const DEFAULT_YAML = `version: 1
+
 tables:
-  - table: public.orders as orders
+  - table: 
     dimensions:
-      - name: id as order_id
-      - name: "id + 3"
-      - name: "(id + 3) as id_plus_3"
-      - name: customer_id
-      - name: status as order_status
-      - name: "orders.total_revenue - orders.total_discount"
-      - name: "orders.total_revenue / NULLIF(orders.distinct_order_count, 0)"
 
     measures:
-      - name: amount as total_revenue
-        agg: SUM
-      - name: discount_amount as total_discount
-        agg: SUM
-      - name: id as distinct_order_count
-        agg: COUNT_DISTINCT
 
-  - table: public.customers as customers
-    dimensions:
-      - id as customer_id
-      - full_name as customer_name
-      - region_id
-
-  - table: public.regions as regions
-    dimensions:
-      - id as region_id
-      - name as region_name
 
 filters:
-  - or:
-      - "orders.order_status = 'completed'"
-      - "orders.order_status = 'shipped'"
-  - "regions.region_name = 'North America'"
 
 relationships:
-  - name: orders_to_customers
-    from_table: orders
-    to_table: customers
-    join_type: LEFT
-    sql_on: "orders.customer_id = customers.customer_id"
-
-  - name: customers_to_regions
-    from_table: customers
-    to_table: regions
-    join_type: LEFT
-    sql_on: "customers.region_id = regions.region_id"
-`;
-
-const DEFAULT_SCHEMA = {
-  'public.orders': ['id', 'customer_id', 'amount', 'discount_amount', 'status', 'created_at','naka_order','naka_name'],
-  'public.customers': ['id', 'full_name', 'email', 'region_id'],
-  'public.regions': ['id', 'name','region'],
-  'public.de_luta': ['eu', 'ele','novoutros'],
-};
+  - name: 
+    from_table: 
+    to_table: 
+    join_type: 
+    sql_on: 
+`
 
 // Value suggestions for known scalar fields.
 const AGG_FUNCTIONS = ['SUM', 'AVG', 'COUNT', 'COUNT_DISTINCT', 'MIN', 'MAX'];
@@ -137,16 +98,14 @@ export class ModelDeclarationController extends BaseController {
       fontSize: 14, quickSuggestions: { other: true, comments: false, strings: true }
     });
 
-    this.schema = await this.loadSchema();
-
     modelInstanceRegistry.set(this.editor.getModel().uri.toString(), this);
     ensureYamlCompletionProviderRegistered();
 
-    this.bindEvents(), this.compileYAMLToSQL();
-  }
+    this.editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.Space, () => {
+      this.editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
+    });
 
-  async loadSchema() {
-    return DEFAULT_SCHEMA;
+    this.bindEvents(), this.compileYAMLToSQL();
   }
 
   destroy() {
@@ -480,6 +439,8 @@ export class ModelDeclarationController extends BaseController {
   }
 
   parseSimpleYAML(yamlText) {
+    const ALWAYS_ARRAY_KEYS = new Set(['tables', 'dimensions', 'measures', 'relationships', 'filters', 'or', 'and']);
+
     let lines = yamlText.split('\n'), root = {};
     let stack = [{ indent: -1, obj: root }];
 
@@ -509,12 +470,14 @@ export class ModelDeclarationController extends BaseController {
             itemObj[k] = this.cleanValue(v);
             stack.push({ indent: indent, obj: itemObj });
           } else {
-            let nextIsArray = false;
-            for (let j = i + 1; j < lines.length; j++) {
-              const nextTrim = lines[j].trim();
-              if (nextTrim && !nextTrim.startsWith('#')) {
-                if (nextTrim.startsWith('-')) nextIsArray = true;
-                break;
+            let nextIsArray = ALWAYS_ARRAY_KEYS.has(k);
+            if (!nextIsArray) {
+              for (let j = i + 1; j < lines.length; j++) {
+                const nextTrim = lines[j].trim();
+                if (nextTrim && !nextTrim.startsWith('#')) {
+                  if (nextTrim.startsWith('-')) nextIsArray = true;
+                  break;
+                }
               }
             }
             itemObj[k] = nextIsArray ? [] : {};
@@ -529,12 +492,14 @@ export class ModelDeclarationController extends BaseController {
         const key = line.substring(0, firstColonIdx).trim(), val = line.substring(firstColonIdx + 1).trim();
 
         if (val === '' || val === ':') {
-          let nextIsArray = false;
-          for (let j = i + 1; j < lines.length; j++) {
-            const nextTrim = lines[j].trim();
-            if (nextTrim && !nextTrim.startsWith('#')) {
-              if (nextTrim.startsWith('-')) nextIsArray = true;
-              break;
+          let nextIsArray = ALWAYS_ARRAY_KEYS.has(key);
+          if (!nextIsArray) {
+            for (let j = i + 1; j < lines.length; j++) {
+              const nextTrim = lines[j].trim();
+              if (nextTrim && !nextTrim.startsWith('#')) {
+                if (nextTrim.startsWith('-')) nextIsArray = true;
+                break;
+              }
             }
           }
           parent[key] = nextIsArray ? [] : {};
@@ -584,16 +549,16 @@ export class ModelDeclarationController extends BaseController {
       const yamlText = this.editor.getValue();
       const model = this.parseSimpleYAML(yamlText);
 
-      if (!model.tables || model.tables.length === 0) {
+      if (!Array.isArray(model.tables) || model.tables.length === 0) {
         if (this.obj.sqlOutput) this.obj.sqlOutput.textContent = '-- Define at least one table in YAML to compile SQL.';
         return;
       }
 
-      const normalizedTables = (model.tables || []).map((t, idx) => {
+      const normalizedTables = model.tables.map((t, idx) => {
         this.validateNoTrailingColon(t.table, `table definition #${idx + 1}`);
         const parsedTable = this.parseAliasString(t.table, `table definition '${t.table}'`);
 
-        const dimensions = (t.dimensions || []).map(d => {
+        const dimensions = (Array.isArray(t.dimensions) ? t.dimensions : []).map(d => {
           let rawStr = typeof d === 'string' ? d : (d.name || d.sql || d.column || '');
           const parsed = this.parseAliasString(rawStr, `dimension in '${parsedTable.alias}'`);
           return { alias: parsed.alias, sqlColumn: parsed.sql };
@@ -601,7 +566,7 @@ export class ModelDeclarationController extends BaseController {
 
         const baseMeasures = [], calculatedMeasures = [];
 
-        (t.measures || []).forEach(m => {
+        (Array.isArray(t.measures) ? t.measures : []).forEach(m => {
           let rawStr = typeof m === 'string' ? m : (m.name || m.sql || '');
           let agg = typeof m === 'object' ? this.cleanValue(m.agg || '') : '';
           let explicitSql = typeof m === 'object' ? this.cleanValue(m.sql || '') : '';
@@ -714,7 +679,7 @@ export class ModelDeclarationController extends BaseController {
         return '';
       };
 
-      (model.relationships || []).forEach(rel => {
+      (Array.isArray(model.relationships) ? model.relationships : []).forEach(rel => {
         if (rel.sql_on) {
           this.validateNoTrailingColon(rel.sql_on, `relationship '${rel.name || 'unnamed'}' (sql_on)`);
           validateSqlExpression(rel.sql_on, `relationship '${rel.name || 'unnamed'}' (sql_on)`);
@@ -761,7 +726,7 @@ export class ModelDeclarationController extends BaseController {
           const targetTable = unjoinedTables[i];
           const tAlias = targetTable.alias;
 
-          const rel = (model.relationships || []).find(r => {
+          const rel = (Array.isArray(model.relationships) ? model.relationships : []).find(r => {
             const fromJoined = joinedAliases.has(r.from_table);
             const toJoined = joinedAliases.has(r.to_table);
             return (fromJoined && r.to_table === tAlias) || (toJoined && r.from_table === tAlias);

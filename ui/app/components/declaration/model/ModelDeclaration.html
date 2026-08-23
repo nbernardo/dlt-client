@@ -68,8 +68,9 @@ textarea { flex: 1; width: 100%; padding: 14px; border: none; font-family: var(-
 	  <div class="panel">
 		<div class="panel-header">
 		  <span>1. Declarative Model (YAML)</span>
-		  <div>
-			<button class="btn" onclick="controller.resetDeclaration(event)">Reset Example</button>
+		  <div style="display: flex; gap: 5px;">
+			<button class="btn" style="width: 118px;" onclick="controller.resetDeclaration(event)">Reset Example</button>
+			<button class="btn btn-primary" style="width: 98px;" onclick="component.saveModel()">Save model</button>
 		  </div>
 		</div>
 		<div id="yaml-input" placeholder="Write your semantic model here..." spellcheck="false"></div>

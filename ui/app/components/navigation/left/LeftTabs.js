@@ -244,8 +244,9 @@ export class LeftTabs extends ViewComponent {
 		if(secretType === 'api') this.$parent.controller.catalogForm.showTestConnection = true;
 	}
 
-	loadGovTablesByPipeline = async (pipelineName) =>
-		await this.$parent.controller.governanceView.loadTablesByPipeline(pipelineName);
+	loadGovTablesByPipeline = async (pipelineName) => await this.$parent.controller.governanceView.loadTablesByPipeline(pipelineName);
+
+	loadModelTablesByPipeline = async (pipelineName) => await this.$parent.controller.modelDeclarationView.loadTablesByPipeline(pipelineName);
 
 	async selectTab(tab){
 		this.$parent.dynamicViewPlaceholder.innerHTML = '';

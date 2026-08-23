@@ -911,8 +911,6 @@ export class WorkSpaceController extends BaseController {
     
     /** @type { ModelDeclaration } */ modelDeclarationView;
     async createModelDeclarationUI(){
-        console.log(`THIS IS THE VALUES: `, this.wspaceId());
-        
         const { template: uiContent, component } = await Components.newView(ModelDeclaration, { }, this.wspaceId());
         this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
         await sleepForSec(1000);
