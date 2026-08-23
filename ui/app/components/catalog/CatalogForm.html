@@ -48,43 +48,47 @@
                 </div>          
                 <div class="form-group"></div>
 
-                <div class="form-group">
-                  <label>Secret type</label>
-                  <select (value)="kvSecretType">
-                    <option value="regular">Regular KV</option>
-                    <option value="s3-access-and-secret-keys">S3 Access and Secret Keys</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label style="display: none;" class="secret-bucket-url-field">Bucket URL</label>
-                  <input (value)="bucketUrl" style="display: none;"
-                    class="secret-bucket-url-field" type="text" placeholder="e.g. s3://company.bucket">
-                </div>
+                <div (renderIf)="self.canSeeCredenrtials">
+
+                  <div class="form-group">
+                    <label>Secret type</label>
+                    <select (value)="kvSecretType">
+                      <option value="regular">Regular KV</option>
+                      <option value="s3-access-and-secret-keys">S3 Access and Secret Keys</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label style="display: none;" class="secret-bucket-url-field">Bucket URL</label>
+                    <input (value)="bucketUrl" style="display: none;"
+                      class="secret-bucket-url-field" type="text" placeholder="e.g. s3://company.bucket">
+                  </div>
                 
-                <div class="form-group">
-                  <label>Secret Key/Name</label>
-                  <input (value)="firstKey" class="secret-field secret-first-key-setting" type="text" placeholder="e.g. DB_PASSWORD">
+                  <div class="form-group">
+                    <label>Secret Key/Name</label>
+                    <input (value)="firstKey" class="secret-field secret-first-key-setting" type="text" placeholder="e.g. DB_PASSWORD">
+                  </div>
+                  <div class="form-group">
+                    <label>Secret value</label>
+                    <span class="hidden-secret-value initial-secret-field">
+                      <input (value)="firstValue" type="password" placeholder="Enter the secret value">
+                      <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
+                    </span>
+                  </div>
+                    
+                  <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
+                    <label>Secret Key/Name</label>
+                    <input class="secret-field bucket-input" type="text" placeholder="e.g. DB_PASSWORD">
+                  </div>
+                  <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
+                    <label>Secret value</label>
+                    <span class="hidden-secret-value second-secret-field bucket-input">
+                      <input type="password" placeholder="Enter the secret value">
+                      <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('second-secret-field')">
+                    </span>
+                  </div>
+
                 </div>
-                <div class="form-group">
-                  <label>Secret value</label>
-                  <span class="hidden-secret-value initial-secret-field">
-                    <input (value)="firstValue" type="password" placeholder="Enter the secret value">
-                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('initial')">
-                  </span>
-                </div>
-                  
-                <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
-                  <label>Secret Key/Name</label>
-                  <input class="secret-field bucket-input" type="text" placeholder="e.g. DB_PASSWORD">
-                </div>
-                <div class="form-group kv-secret-type s3-access-and-secret-keys" style="display: none">
-                  <label>Secret value</label>
-                  <span class="hidden-secret-value second-secret-field bucket-input">
-                    <input type="password" placeholder="Enter the secret value">
-                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('second-secret-field')">
-                  </span>
-                </div>
-          
+
               </div>
             </span>
     
@@ -171,7 +175,7 @@
                   <label class="oracle-wallet-element no-required" style="display: none;">Passphrase</label>
                   <input class="oracle-wallet-element no-required" style="display: none;" (value)="walletPassword" type="password">
                 </div>
-    
+                
                 <div style="margin-top: 8px; font-weight: bold;">SECRETS</div>
                 <div></div>
                 <!--
@@ -302,82 +306,88 @@
                           <label class="odoo-config">Data Source Schema</label>
                           <input type="text" (value)="odooDB" class="odoo-config-field" placeholder="e.g. mydb.public">
                         </div>
-                        <div class="form-group">
-                          <label class="odoo-config">Odoo user name</label>
-                          <input type="text" (value)="odooUser" class="odoo-config-field" placeholder="Odoo user">
+
+                        <div (renderIf)="self.canSeeCredenrtials" style="display: flex; gap: 3px;">
+                          <div class="form-group">
+                            <label class="odoo-config">Odoo user name</label>
+                            <input type="text" (value)="odooUser" class="odoo-config-field" placeholder="Odoo user">
+                          </div>
+                          <div class="form-group">
+                            <label class="odoo-config">Odoo user pasword</label>
+                            <span class="hidden-secret-value-odoo" style="display: flex; gap: 3px;">
+                              <input type="password" (value)="odooPassword" class="odoo-config-field" placeholder="Odoo password">
+                              <img src="app/assets/imgs/view-svgrepo-com.svg" style="width: 20px;" onclick="component.viewSecretValue('hidden-secret-value-odoo')">
+                            </span>
+                          </div>
                         </div>
-                        <div class="form-group">
-                          <label class="odoo-config">Odoo user pasword</label>
-                          <span class="hidden-secret-value-odoo" style="display: flex; gap: 3px;">
-                            <input type="password" (value)="odooPassword" class="odoo-config-field" placeholder="Odoo password">
-                            <img src="app/assets/imgs/view-svgrepo-com.svg" style="width: 20px;" onclick="component.viewSecretValue('hidden-secret-value-odoo')">
-                          </span>
-                        </div>
+
                       </div>
                       <!-- <button style="margin-top: 7px;" onclick="component.createSecret()" class="update-credentials-btn add-btn-primary">Update credentials</button> -->
                     </div>
                   </div>
+                
+                  <div><!-- Only to create an empy colum --></div>
+
+                  <!-- API Key fields -->
+                  <div class="form-group">
+                    <label class="api-key-lbl">KEY Header name</label>
+                    <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Key">
+                  </div>
+                  <div class="form-group">
+                    <label class="api-key-lbl">Key Hader value</label>
+                    <span class="hidden-secret-value initial-secret-field hidden-secret-value-api">
+                      <input type="password" (value)="apiKeyValue" class="api-key-value api-key-field" placeholder="Enter the secret value">
+                      <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-secret-value-api')">
+                    </span>
+                  </div>
+                  <!-- END API Key fields -->
+
+                  <!-- API Token fields -->
+                  <div class="form-group">
+                    <label class="api-tkn-lbl">API token name</label>
+                    <input type="text" value="API_TOKEN" disabled class="api-tkn-name api-tkn-field">
+                  </div>
+                  <div class="form-group">
+                    <label class="api-tkn-lbl">API token value</label>
+                    <span class="hidden-secret-value initial-secret-field hidden-tkn-secret-value-api">
+                      <input type="password" (value)="apiTknValue" class="api-tkn-value api-tkn-field" placeholder="Enter the secret value">
+                      <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-tkn-secret-value-api')">
+                    </span>
+                  </div>
+                  <!-- END API Token fields -->
                 </span>
-                <div><!-- Only to create an empy colum --></div>
-
-                <!-- API Key fields -->
-                <div class="form-group">
-                  <label class="api-key-lbl">KEY Header name</label>
-                  <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Key">
-                </div>
-                <div class="form-group">
-                  <label class="api-key-lbl">Key Hader value</label>
-                  <span class="hidden-secret-value initial-secret-field hidden-secret-value-api">
-                    <input type="password" (value)="apiKeyValue" class="api-key-value api-key-field" placeholder="Enter the secret value">
-                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-secret-value-api')">
-                  </span>
-                </div>
-                <!-- END API Key fields -->
-
-                <!-- API Token fields -->
-                <div class="form-group">
-                  <label class="api-tkn-lbl">API token name</label>
-                  <input type="text" value="API_TOKEN" disabled class="api-tkn-name api-tkn-field">
-                </div>
-                <div class="form-group">
-                  <label class="api-tkn-lbl">API token value</label>
-                  <span class="hidden-secret-value initial-secret-field hidden-tkn-secret-value-api">
-                    <input type="password" (value)="apiTknValue" class="api-tkn-value api-tkn-field" placeholder="Enter the secret value">
-                    <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-tkn-secret-value-api')">
-                  </span>
-                </div>
-                <!-- END API Token fields -->
 
               </div>
             </span>
         </span>
         
-
-        <div class="modal-footer">
-          <div class="buttons-wrapper secret-creation-buttons">
-            <div (showIf)="self.showTestConnection">
-              <button 
-                type="button" 
-                onclick="component.testConnection()" 
-                class="btn btn-light-blue save-secret-btn">
-                  @if(this.checkConnection == 'in-progress')
-                    <div class="mini-loader-container oracle-dn-loader" style="width: 32px;">
-                      <div class="mini-loader-dot"></div>
-                      <div class="mini-loader-dot"></div>
-                      <div class="mini-loader-dot"></div>
-                    </div>
-                  @endif
-                  Test connection
-                <div 
-                  class="connectio-test-status"
-                  style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
-                  &nbsp;
-                </div>
-              </button>
+        <div (renderIf)="self.canSeeCredenrtials">
+          <div class="modal-footer">
+            <div class="buttons-wrapper secret-creation-buttons">
+              <div (showIf)="self.showTestConnection">
+                <button 
+                  type="button" 
+                  onclick="component.testConnection()" 
+                  class="btn btn-light-blue save-secret-btn">
+                    @if(this.checkConnection == 'in-progress')
+                      <div class="mini-loader-container oracle-dn-loader" style="width: 32px;">
+                        <div class="mini-loader-dot"></div>
+                        <div class="mini-loader-dot"></div>
+                        <div class="mini-loader-dot"></div>
+                      </div>
+                    @endif
+                    Test connection
+                  <div 
+                    class="connectio-test-status"
+                    style="float: right; background: rgb(182, 182, 182); width: 16px; height: 16px; border-radius: 100%; border: 1.5px solid;">
+                    &nbsp;
+                  </div>
+                </button>
+              </div>
+              <button type="button" onclick="component.createSecret()" class="btn btn-primary secret-save-btn">Save</button>
             </div>
-            <button type="button" onclick="component.createSecret()" class="btn btn-primary secret-save-btn">Save</button>
+            <div class="APITestResponse"></div>
           </div>
-          <div class="APITestResponse"></div>
         </div>
       </form>
     </div>

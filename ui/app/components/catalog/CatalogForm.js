@@ -3,6 +3,7 @@ import { State, STForm } from "../../../@still/component/type/ComponentType.js";
 import { FormHelper } from "../../../@still/helper/form.js";
 import { UUIDUtil } from "../../../@still/util/UUIDUtil.js";
 import { AppTemplate } from "../../../config/app-template.js";
+import { UserService } from "../../services/UserService.js";
 import { WorkspaceService } from "../../services/WorkspaceService.js";
 import { Workspace } from "../workspace/Workspace.js";
 import { CatalogEndpointType, generateDsnDescriptor, handleAddEndpointField, onAPIAuthChange, parseEndpointPath, showHidePaginateEndpoint, handleShowHideWalletFields, viewSecretValue, testConnection, handleOnInitOnchange, changeType } from "./util/CatalogUtil.js";
@@ -35,6 +36,7 @@ export class CatalogForm extends ViewComponent {
 	/** @Prop */ kvSecretTypeFlag = 'regular';
 	/** @Prop */ connectionSecretType;
 	/** @Prop */ whatApiConfigType = 1;
+	/** @Prop */ canSeeCredenrtials = true;
 
 	// DB catalog/secrets fields
 	dbEngine;
@@ -81,20 +83,21 @@ export class CatalogForm extends ViewComponent {
 		type && (this.secretType = type);
 		if(type == 2) this.$parent.controller.loadMonacoEditorDependencies();
 	}
+
+	stBeforeInit(){ this.canSeeCredenrtials = UserService.checkLoggedPermission('global_admin'); }
 	
 	async stAfterInit(){
 		this.$parent.secretPopupForm = this;
 		this.endPointEditorContent = {};
 		this.editorPlaceholder = null;
-		this.showServiceNameLbl = false;
-		this.showTestConnection = false;
+		this.showServiceNameLbl = false, this.showTestConnection = false;
 		this.dynamicEndpointsDelButtons = [];
 		this.modal = document.getElementById('modal');
 		this.closeModal = document.getElementById('closeModal');
 		this.handleModalCall();
 		const secretList = await WorkspaceService.listSecrets(this.secretType);
 				
-		if(this.secretType == 2)	
+		if(this.secretType == 2)
 			this.$parent.controller.leftTab.apiSecretsList = secretList;
 		else{
 			this.$parent.controller.leftTab.dbSecretsList = secretList;
@@ -104,8 +107,7 @@ export class CatalogForm extends ViewComponent {
 		this.$parent.controller.leftTab.showLoading = false;
 
 		if(this.secretType == 2) {
-			this.onAPIAuthChange();
-			this.dataBaseSettingType = null;
+			this.onAPIAuthChange(), this.dataBaseSettingType = null;
 		}
 		handleOnInitOnchange(this);
 		this.onEndpointUpdate();
@@ -145,13 +147,11 @@ export class CatalogForm extends ViewComponent {
 	onEndpointUpdate(){
 		const self = this;
 		function updateFullPath(){
-
 			const path = self.apiEndpointPath1.value;
 			const offset = self.paginationStartField1.value;
 			const limit = self.paginationLimitField1.value;
 			const batchSize = self.paginationRecPerPage1.value;
 			self.fullEndpointPath = parseEndpointPath(path, offset, limit, batchSize)
-
 		}
 
 		this.apiEndpointPath1.onChange(() => updateFullPath());
@@ -313,7 +313,7 @@ export class CatalogForm extends ViewComponent {
 		const self = this;
 		//this.openModal.addEventListener('click', () => self.modal.style.display = 'flex');
 		this.closeModal.addEventListener('click', () => localResetForm());
-		window.addEventListener('click', (e) => e.target === modal ? localResetForm() : '');
+		//window.addEventListener('click', (e) => e.target === modal ? localResetForm() : '');
 
 		function localResetForm(){
 			document.querySelector('.save-secret-btn').style.display = '';
@@ -368,14 +368,15 @@ export class CatalogForm extends ViewComponent {
 		const secretKeyField = FormHelper.newField(this, this.formRef, fieldName)
 			.input({ required: true, placeholder: 'e.g. DB_PASSWORD', className: 'secret-field', disabled, value })
 			.element;
-
-		fieldName = `val${this.dynamicFieldCount}-${type}`;
-		const secretValField = FormHelper.newField(this, this.formRef, fieldName)
-			.input({ required: valueRequired, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-secret-field' : '' })
-			.element;
-
 		this.addSecreteField(secretKeyField, targetForm, null, fieldName);
-		this.addSecreteField(secretValField, targetForm, 'val', fieldName, initial);
+
+		if(this.canSeeCredenrtials){
+			fieldName = `val${this.dynamicFieldCount}-${type}`;
+			const secretValField = FormHelper.newField(this, this.formRef, fieldName)
+				.input({ required: valueRequired, placeholder: 'Enter the secret value', type: 'password', className: initial ? 'first-secret-field' : '' })
+				.element;
+			this.addSecreteField(secretValField, targetForm, 'val', fieldName, initial);
+		}
 
 	}
 
@@ -393,7 +394,6 @@ export class CatalogForm extends ViewComponent {
 					${!initial ? `<span onclick="inner.removeField('${fieldName}')">x</span>` : ''} 
 					<img src="app/assets/imgs/view-svgrepo-com.svg" onclick="inner.viewSecretValue('${fieldName}')">
 				<span>`);
-
 		div.innerHTML = field;
 		document.querySelector(`.${targetForm} ${subContainer}`).appendChild(div);
 	}

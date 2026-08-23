@@ -37,7 +37,7 @@ def require_permission(perm: str|list):
                 
                 payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
                 if type(perm) in [str, list]: 
-                    required_permission = perm if perm else [perm]
+                    required_permission = perm if type(perm) == list else [perm]
                 
                 allowed_perm = set(required_permission) & set(payload.get("permissions", []))
 
