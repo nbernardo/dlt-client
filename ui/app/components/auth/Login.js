@@ -69,12 +69,14 @@ export class Login extends ViewComponent {
 	async login(provider){
 		this.loading = true;
 		if(this.isAnonumousLogin){
-			this.userService.anonymousLogin();
-			this.loading = false;
+			this.userService.anonymousLogin(), this.loading = false;
 			return this.handleSuccessLogin();
 		}
 		
-		if(this.devAuthN){ this.username = env('devauthn.user'), this.password = env('devauthn.pwd'); }
+		if(this.devAuthN){ 
+			this.username = !['',undefined].includes(this.username.value) ? this.username.value : env('devauthn.user'), 
+			this.password = !['',undefined].includes(this.password.value) ? this.password.value : env('devauthn.pwd'); 
+		}
 
 		let { username, password } = this;
 		const { user, success, passwordRst } = await this.userService.login(provider, {username: username.value, password: password.value });
@@ -100,7 +102,6 @@ export class Login extends ViewComponent {
 		}else
 			if(user)  this.handleSuccessLogin();
 		this.loading = false;
-		
 	}
 
 	changeIdiom = (idiom) => this.activeIdiom = idiom;
@@ -119,7 +120,6 @@ export class Login extends ViewComponent {
 	switchLogin(tab, btn){ 
 		this.activeTab = tab;
 		document.querySelectorAll('.auth-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-
 		btn.classList.add('active'); 
 	}
 

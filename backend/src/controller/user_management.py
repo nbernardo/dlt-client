@@ -26,8 +26,8 @@ def generate_user_jwt(username: str, permissions: list) -> str:
 
 @user_management.route("/user", methods=["POST"])
 def register_user():
-    data = request.get_json() or {}
-    username, password, email = data.get('username'), data.get('password'), data.get('email')
+    dt = request.get_json() or {}
+    username, password, email, namespace = dt.get('username'), dt.get('password'), dt.get('email'), dt.get('namespace')
 
     if not username or not password:
         return jsonify({'error': 'Bad Request: Username and password strings are mandatory.'}), 400
@@ -38,7 +38,7 @@ def register_user():
         permissions = ''
 
         try:
-            await UserService.register_user(username, hashed_pwd, permissions, email)
+            await UserService.register_user(username, hashed_pwd, permissions, email, namespace)
             return {'message': 'User registered successfully into encrypted SQLite repository.', 'error': False}, 201
         except aiosqlite.Error:
             return {'error': True ,'message': 'Conflict: Username/Email already exists or database file write block.'}, 400

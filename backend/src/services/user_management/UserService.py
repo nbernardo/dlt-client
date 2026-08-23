@@ -36,15 +36,15 @@ def require_permission(perm: str|list):
                     return f(*args, **kwargs)
                 
                 payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-                if type(perm) == str: 
-                    required_permission = [perm]
+                if type(perm) in [str, list]: 
+                    required_permission = perm if perm else [perm]
                 
                 allowed_perm = set(required_permission) & set(payload.get("permissions", []))
 
                 if len(allowed_perm) < 1 and perm != 'regular:requester':
                     return {'message': f"Forbidden: Insufficient privileges. Missing '{' or '.join(required_permission)}'.", 'error': True}, 403
                 
-                [request.user_context, request.permissions, request.token] = [payload, payload.get("permissions", []), token]              
+                [request.user_context, request.permissions, request.token] = [payload, payload.get("permissions", []), token]
                                
                 return f(*args, **kwargs)
                 
@@ -146,7 +146,7 @@ class UserService:
         base_roles = [
             ('global_admin', 'Full administrative access'), 
             ('analyst', 'Have full access to the to the DW for deep analysis'),
-            ('manage_users', 'Runs user management operation like create, add/revoke permission, deactivate and delete'),    
+            ('manage_users', 'Runs user management operation like create, add/revoke permission, deactivate and delete'),
         ]
         base_permissions = [
             ('create:pipeline', 'Ability to create new data pipeline'),
@@ -201,10 +201,10 @@ class UserService:
         await UserService.seed_root_user()
 
     
-    async def register_user(username, hashed_pwd, permissions, email):
+    async def register_user(username, hashed_pwd, permissions, email, tenant_name):
         async with get_db_connection() as conn:
             await conn.execute(
-                'INSERT INTO users (username, hashed_password, permissions, email) VALUES (?, ?, ?, ?)', (username, hashed_pwd, permissions, email)
+                'INSERT INTO users (username, hashed_password, permissions, email, tenant_name) VALUES (?, ?, ?, ?, ?)', (username, hashed_pwd, permissions, email, tenant_name)
             )
             await conn.commit()
 

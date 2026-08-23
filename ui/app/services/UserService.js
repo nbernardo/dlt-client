@@ -82,8 +82,10 @@ export class UserService extends BaseService {
 
 	async logOut(loginType){
         localStorage.removeItem('loggedIn');
-        if(loginType !== 'managed')
-		    await UserService.auth0Client.logout({ localOnly: true });
+        if(loginType !== 'managed'){
+            if(UserService.auth0Client)
+		        await UserService.auth0Client.logout({ localOnly: true });
+        }
         Router.goto('exit');
 	}
 
@@ -131,7 +133,7 @@ export class UserService extends BaseService {
     }
 
     async createIdentity({ name, email, password }){
-        const userDetails = { username: name, email, password };
+        const userDetails = { username: name, email, password, namespace: await UserService.getNamespace() };
         let result = await $still.HTTPClient.post('/user', JSON.stringify(userDetails), HTTPHeaders.JSONAndBearerTkn(this.getTkn()));
         return await result.json();
     }
