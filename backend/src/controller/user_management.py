@@ -13,7 +13,7 @@ from services.user_management.UserService import (
 )
 import os
 
-DEV_REQUESTER = 'regular:requester' if os.environ.get('ENV','').strip().lower() == 'dev' else ''
+REG_REQUESTER = 'regular:requester' if os.environ.get('ENV','').strip().lower() == 'dev' else ''
 executor = ThreadPoolExecutor(max_workers=5)
 
 user_management = Blueprint('authentication', __name__)
@@ -131,7 +131,7 @@ def password_change():
 
 
 @user_management.route("/user", methods=["GET"])
-@require_permission(['manage_users',DEV_REQUESTER])
+@require_permission(['manage_users',REG_REQUESTER])
 def list_system_users():
     try:
 
@@ -192,7 +192,7 @@ def add_permission():
 
 
 @user_management.route("/user/permission", methods=["POST"])
-@require_permission(['manage_users',DEV_REQUESTER])
+@require_permission(['manage_users',REG_REQUESTER])
 def update_permissions():
     data = request.get_json() or {}
     permissions, email = data.get('permissions', []), data.get('email')
@@ -208,7 +208,7 @@ def update_permissions():
 
 
 @user_management.route("/user/rbac/catalog", methods=["GET"])
-@require_permission(['manage_users',DEV_REQUESTER])
+@require_permission(['manage_users',REG_REQUESTER])
 def get_rbac_catalog():
     try:
         unified_catalog = async_to_sync(UserService.get_unified_rbac_catalog_async)()
@@ -218,7 +218,7 @@ def get_rbac_catalog():
 
 
 @user_management.route("/user/rbac/table", methods=["POST"])
-@require_permission(['manage_users',DEV_REQUESTER])
+@require_permission(['manage_users',REG_REQUESTER])
 def update_rbac_tables():
     try:
         data = request.get_json() or {}
@@ -236,7 +236,7 @@ def update_rbac_tables():
     
 
 @user_management.route("/role/<role_name>/<namespace>/<dw>", methods=["GET"])
-@require_permission(['global_admin',DEV_REQUESTER])
+@require_permission(['global_admin',REG_REQUESTER])
 def ge_access_level_by_table(role_name, namespace = None, dw = None):
 
     try:

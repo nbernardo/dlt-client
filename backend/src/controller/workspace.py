@@ -24,6 +24,7 @@ import schedule
 import os
 import logging
 import concurrent.futures
+from controller.user_management import require_permission, REG_REQUESTER
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -419,7 +420,7 @@ def call_scheduled_job(app):
             if os.path.exists(workspacedb_wal):
                 os.remove(workspacedb_wal)
             DuckdbUtil.create_dw_declarations()
-            
+
         executor.submit(on_app_loading)
 
     
@@ -499,6 +500,7 @@ def send_message_to_agent_with_local_or_groq(message, namespace, user_id = None,
 
 
 @workspace.route('/secret/<namespace>', methods=['POST'])
+@require_permission('global_admin')
 def create_seret(namespace):
 
     payload = request.get_json()
@@ -538,11 +540,12 @@ def create_seret(namespace):
 
 
 @workspace.route('/secret/<namespace>', methods=['GET'])
+@require_permission(REG_REQUESTER)
 def list_serets(namespace):
     try:
-
-        secret_names = SecretManager.list_secret_names(namespace)
-        staged_data = PipelineMedatata.get_stage_data(namespace)
+        permissions = request.permissions
+        secret_names = SecretManager.list_secret_names(namespace, permissions)
+        staged_data = PipelineMedatata.get_stage_data(namespace, permisions=permissions)
         if secret_names == None:
             return { 'error': True, 'result': 'No secrete found for current namespace' }
         else:
@@ -555,11 +558,12 @@ def list_serets(namespace):
 
 
 @workspace.route('/secret/<namespace>/<type>/<secretname>', methods=['GET'])
+@require_permission(REG_REQUESTER)
 def fetch_secret(namespace, type, secretname):
-
+    permissions = request.permissions
     try:
         path = f'main/{type}/{secretname}'
-        secret_details = SecretManager.get_secret(namespace,path=path,edit=True)
+        secret_details = SecretManager.get_secret(namespace,path=path,edit=True, permissions=permissions)
         if secret_details == None:
             return { 'error': True, 'result': 'No secrete found for current namespace' }
         else:
@@ -886,12 +890,10 @@ def get_landing_zone():
         return { 'error': False, 'result': { 'path': Workspace.get_landingzone(), 'files': files } }
     except Exception as err:
         return { 'error': True, 'result': str(err) }
-
-
-from controller.user_management import require_permission
+    
 
 @workspace.route('/workspace/user/token', methods=['GET'])
-@require_permission('regular:requester')
+@require_permission(REG_REQUESTER)
 def get_user_token():
     try:
         return { 'error': False, 'result': { 'token': request.token if hasattr(request, 'token') else '' } }

@@ -169,7 +169,7 @@ class PipelineMedatata:
 
 
     @staticmethod
-    def get_stage_data(namespace: str, stage = 2):
+    def get_stage_data(namespace: str, stage = 2, permisions: list = []):
         try:
             con = PipelineMedatata._get_duckdb_conn()
             result = con.execute(f'SELECT pipeline, dataset_name, namespace FROM pipeline_metadata WHERE domain_pipeline = ? AND namespace = ?', [str(stage), namespace]).fetchall()

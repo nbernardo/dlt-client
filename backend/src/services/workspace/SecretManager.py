@@ -170,8 +170,9 @@ class SecretManager(SecretManagerType):
         SecretManager.save_secrets_metadata(namespace, { config['connectionName'] : config['host'] })
 
 
-    def get_secret(namespace, path, edit=False, secret_group=False, from_pipeline = False):
+    def get_secret(namespace, path, edit=False, secret_group=False, from_pipeline = False, permissions: list = []):
         data = {}
+        remove_password = not('global_admin' in permissions) if len(permissions) > 0 else False
         if from_pipeline:
             SecretManager.ppline_connect_to_vault()
         if secret_group: path = f'main/db/{path}'
@@ -186,7 +187,16 @@ class SecretManager(SecretManagerType):
                 mount_point=namespace,
                 raise_on_deleted_version=True
             )
+
             data = secrets['data']['data']
+            if remove_password:
+                if('apiSettings' in data):
+                    data['apiSettings']['odooPassword'] = '**********'
+                    data['apiSettings']['odooUser'] = '**********'
+                else:
+                    data['password'] = '**********'
+                    data['username'] = '**********'
+
         except Exception as err:
             logging.error('RUNTIME_WARNING:Error on getting the secrets: ', str(err))
             raise err
@@ -205,7 +215,7 @@ class SecretManager(SecretManagerType):
         return secrets['data']['keys']
         
 
-    def list_secret_names(namespace):
+    def list_secret_names(namespace, permissions: list = []):
 
         if SecretManager.vault_instance == None:
             SecretManager.connect_to_vault()
