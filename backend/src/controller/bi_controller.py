@@ -120,3 +120,14 @@ def upsert_dictionary(namespace, pipeline):
     database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
 
     return DataDictionary.upsert_dictionary(database_path, payload.get('values',[]))
+
+
+from services.modeling.dw.DeclarationModeling import DeclarationModeling
+
+@bi_controller.route('/declaration/model/<namespace>', methods=['POST'])
+def persiste_model(namespace):
+    payload = request.get_json()
+    declaration, modelQuery = payload.get('model'), payload.get('modelQuery')
+    dw = payload.get('dw','').split('.')
+    dw = '.'.join(dw[-2:3])
+    return DeclarationModeling().persist_model(namespace, dw, declaration, modelQuery)

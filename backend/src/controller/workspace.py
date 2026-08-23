@@ -23,6 +23,7 @@ from utils.duckdb_util import DuckdbUtil
 import schedule
 import os
 import logging
+import concurrent.futures
 
 workspace = Blueprint('workspace', __name__)
 schedule_was_called = None
@@ -411,6 +412,16 @@ def call_scheduled_job(app):
         scheduler_thread = threading.Thread(target=run_scheduler, daemon=False)
         scheduler_thread.start()
         logging.info("======= Job Scheduler called =======")
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        def on_app_loading():
+            workspacedb_wal = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb.wal'
+            if os.path.exists(workspacedb_wal):
+                os.remove(workspacedb_wal)
+            DuckdbUtil.create_dw_declarations()
+            
+        executor.submit(on_app_loading)
+
     
 
 def debounce_call_scheduled_job():

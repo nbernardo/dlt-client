@@ -361,14 +361,29 @@ class DuckdbUtil:
             logging.error(f"Error while running analytics: {e}")
 
 
+    @staticmethod
+    def create_dw_declarations():
+        cnx = DuckdbUtil.get_workspace_db_instance()
+        cnx.execute('CREATE SEQUENCE IF NOT EXISTS dw_declaration_sequence;')
+
+        query = "CREATE TABLE IF NOT EXISTS dw_declarations (\
+            id INTEGER PRIMARY KEY DEFAULT nextval('dw_declaration_sequence'),\
+            dw_name VARCHAR,\
+            type VARCHAR,\
+            namespace VARCHAR,\
+            declaration TEXT\
+            );"
+        
+        cnx.execute(query)
+        cnx.execute('ALTER TABLE dw_declarations ADD COLUMN IF NOT EXISTS model TEXT;')
+
 
 def is_extension_installed(extension_name):
-    con = duckdb.connect()
-
-    result = con.execute(f"""
-        SELECT installed
-        FROM duckdb_extensions()
-        WHERE extension_name = '{extension_name}'
-    """).fetchone()
+    with duckdb.connect() as con:
+        result = con.execute(f"""
+            SELECT installed
+            FROM duckdb_extensions()
+            WHERE extension_name = '{extension_name}'
+        """).fetchone()
 
     return result is not None and result[0]
