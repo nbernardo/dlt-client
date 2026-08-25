@@ -540,7 +540,7 @@ def create_seret(namespace):
 
 
 @workspace.route('/secret/<namespace>', methods=['GET'])
-@require_permission(REG_REQUESTER)
+@require_permission('regular:requester')
 def list_serets(namespace):
     try:
         permissions = request.permissions
@@ -558,7 +558,7 @@ def list_serets(namespace):
 
 
 @workspace.route('/secret/<namespace>/<type>/<secretname>', methods=['GET'])
-@require_permission(REG_REQUESTER)
+@require_permission('regular:requester')
 def fetch_secret(namespace, type, secretname):
     permissions = request.permissions
     try:
@@ -893,7 +893,7 @@ def get_landing_zone():
     
 
 @workspace.route('/workspace/user/token', methods=['GET'])
-@require_permission(REG_REQUESTER)
+@require_permission('regular:requester')
 def get_user_token():
     try:
         return { 'error': False, 'result': { 'token': request.token if hasattr(request, 'token') else '' } }
