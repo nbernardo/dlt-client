@@ -578,6 +578,7 @@ class Workspace:
                       DO UPDATE SET namespace = EXCLUDED.namespace, user = EXCLUDED.user, socket_id = EXCLUDED.socket_id;"
             
             cursor.execute(query)
+            cursor.execute('CHECKPOINT')
 
         except Exception as err:
             logging.error({ 'error': True, 'error_list': str(err) })
@@ -596,6 +597,7 @@ class Workspace:
                       ON CONFLICT (namespace_id) \
                       DO UPDATE SET namespace_id = EXCLUDED.namespace_id, namespaces_alias = EXCLUDED.namespaces_alias;"
             cursor.execute(query)
+            cursor.execute('CHECKPOINT')
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': str(err) })
@@ -677,6 +679,7 @@ class Workspace:
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """
             db.execute(insert_sql, [ppline_name, schedule_settings, namespace, type, periodicity, time_str, stage_storage])
+            db.execute('CHECKPOINT')
 
             return {
                 'error': False, 'message': 'Pipeline schedule created successfully.',
@@ -704,6 +707,7 @@ class Workspace:
                 cursor.execute(f"UPDATE {table} SET path = '{path}'")
             else:
                 cursor.execute(f"INSERT INTO {table} (path) VALUES ('{path}')")
+            cursor.execute('CHECKPOINT')
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': str(err) })
@@ -800,6 +804,7 @@ class Workspace:
             query = f"INSERT INTO namespace (namespace_id,alias) VALUES ('{namespace}', '{new_sock_id}')\
                       ON CONFLICT (namespace_id) DO UPDATE SET namespace_id = EXCLUDED.namespace_id, alias = EXCLUDED.alias;"
             cursor.execute(query)
+            cursor.execute('CHECKPOINT')
 
         except duckdb.IOException as err:
             print({ 'error': True, 'error_list': err })

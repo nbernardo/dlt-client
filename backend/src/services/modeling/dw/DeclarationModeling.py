@@ -18,6 +18,7 @@ class DeclarationModeling:
                     ON CONFLICT (id) DO UPDATE SET declaration = EXCLUDED.declaration, model = EXCLUDED.model
                 """
                 cursor.execute(query, [dw, 'model', namespace, declaration, model, model_name])
+                cursor.execute('CHECKPOINT')
             return { 'error': False, 'result': True }
         except Exception as err:
             return { 'error': True, 'result': str(err) }

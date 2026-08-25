@@ -43,6 +43,7 @@ class DataDictionary:
           """,
           [(r['table'], r['name'], r['trans'], r['desc'], r.get('status',True), r.get('lang', 'PT')) for r in values]
       )
+      con.execute('CHECKPOINT')
       
     except Exception as err:
       error = str(err)

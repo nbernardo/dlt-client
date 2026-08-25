@@ -92,12 +92,14 @@ class UserService:
         async with get_db_connection() as conn:
             await conn.execute("INSERT INTO roles (role_name, description) VALUES (?, ?)", (role_name, description))
             await conn.commit()
+            await conn.execute('CHECKPOINT')
 
 
     async def _save_permission_async(perm_name: str, description: str):
         async with get_db_connection() as conn:
             await conn.execute("INSERT INTO permissions (perm_name, description) VALUES (?, ?)", (perm_name, description))
             await conn.commit()
+            await conn.execute('CHECKPOINT')
 
 
     async def get_unified_rbac_catalog_async():
@@ -137,6 +139,7 @@ class UserService:
                     (ROOT_USERNAME, hashed_root_password, root_permissions, 'No', NAMESPACE, f'{ROOT_USERNAME}@{NAMESPACE}')
                 )
                 await conn.commit()
+                await conn.execute('CHECKPOINT')
                 logging.error("[SEED] Root user seeded successfully.")
             else:
                 logging.error("[SEED] Root user already exists. Skipping seed step.")
@@ -207,6 +210,7 @@ class UserService:
                 'INSERT INTO users (username, hashed_password, permissions, email, tenant_name) VALUES (?, ?, ?, ?, ?)', (username, hashed_pwd, permissions, email, tenant_name)
             )
             await conn.commit()
+            await conn.execute('CHECKPOINT')
 
     
     async def handle_login(useremail):
