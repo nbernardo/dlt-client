@@ -198,8 +198,8 @@ export class LeftTabs extends ViewComponent {
 		// Get metadata for current table
 		const tableKey = this.currentTableToQuery;
 		const metadata = this.tableMetadata?.[tableKey] || {};
-		
-		this.$parent.expandDataTableView(null, this.currentTableToQuery, this.currentDBFile, null, metadata);
+		const content = {tableId: null, databaseParam: tableKey, dbfile: this.currentDBFile, queryTable: null, tableMetadata: metadata};
+		this.$parent.expandDataTableView(content);
 	}
 	
 	refreshTree = async () => await this.callShowHideDatabase();
@@ -235,7 +235,6 @@ export class LeftTabs extends ViewComponent {
 	genInitialDBQuery = (table, dbfile) => this.$parent.genInitialDBQuery(table, dbfile)
 
 	openSecretForm = async (secretName, secretType, isBucket, host) => {
-		
 		if(!secretName || !secretType) this.$parent.controller.catalogForm.showDialog(true, secretType);
 		else {
 			const data = await WorkspaceService.fetchSecret(secretName, secretType);
@@ -245,7 +244,6 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	loadGovTablesByPipeline = async (pipelineName) => await this.$parent.controller.governanceView.loadTablesByPipeline(pipelineName);
-
 	loadModelTablesByPipeline = async (pipelineName) => await this.$parent.controller.modelDeclarationView.loadTablesByPipeline(pipelineName);
 
 	async selectTab(tab){
@@ -289,6 +287,7 @@ export class LeftTabs extends ViewComponent {
 		}
 
 		if(tab === 'content-pipeline-plan') {
+			AppTemplate.showLoading(StillAppSetup.config.bundle('loadingDeclarationUI'));
 			await this.$parent.controller.createModelDeclarationUI();
 			this.pipelines = await PipelineService.getPipelinesForGernanceView();
 			//const plans = await PipelinePlanService.getPipelinePlans();

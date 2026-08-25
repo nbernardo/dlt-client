@@ -151,7 +151,7 @@ export class Grid extends ViewComponent {
 
 	loadHeader(){
 		const headers = this.fields.map(field => `
-			<th draggable="true">${field}<span class="sort-indicator">⇅</span>
+			<th draggable="true">${field.includes(' as ') ? field.split(' as ')[1] : field}<span class="sort-indicator">⇅</span>
 				<div class="resizer"></div>
 			</th>
 		`).join('');

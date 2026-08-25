@@ -43,8 +43,8 @@ export class PopupWindow extends ViewComponent {
 	closePopup() {
 		this.popup.classList.add('hidden');
 		this.popup.classList.remove('minimized', 'maximized');
-		this.isMinimized = false;
-		this.showWindowPopup = false;
+		this.isMinimized = false, this.showWindowPopup = false;
+		document.querySelector(`.popup-windows-cmp-container`).style.background = 'rgba(240, 240, 240, 1)'
 	}
 
 	toggleMinimize() {

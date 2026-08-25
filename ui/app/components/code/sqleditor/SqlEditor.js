@@ -39,16 +39,19 @@ export class SqlEditor extends ViewComponent {
 	/** @Prop */ destType;
 	
 	/** @Prop */ pplineName;
+
+	/** @Prop */ rawQuery;
+
+	/** @Prop */ autoRun;
 	
 	/** @Prop */ dbEngine;  // Database engine type for SQL dialect handling
 	
 	/** 
 	 * @param {Object} param0 
 	 * @param {String} param0.database  */
-	async stOnRender({ query, database, databaseParam, queryTable, connectionName, destType, pplineName }){
+	async stOnRender({ query, database, databaseParam, queryTable, connectionName, destType, pplineName, rawQuery, autoRun }){
 
 		await this.$parent.controller.loadMonacoEditorDependencies();
-		
 		let dbPath = null, databasename = '';
 		if(database){
 			dbPath = database.split('/');
@@ -56,10 +59,9 @@ export class SqlEditor extends ViewComponent {
 		}else if(databaseParam)
 			databasename = databaseParam;
 		
-		this.query = query;
-		this.connectionName = connectionName;
+		this.query = rawQuery || query, this.connectionName = connectionName;
 		this.destType = destType || 'duckdb';
-		this.pplineName = pplineName;
+		this.pplineName = pplineName, this.rawQuery = rawQuery, this.autoRun = autoRun;
 
 		this.tablesList = await this.$parent.service.getParsedTables(this.$parent.socketData.sid);
 		this.dbpath = this.$parent.service.dbPath.slice(0,-1);
@@ -90,16 +92,14 @@ export class SqlEditor extends ViewComponent {
 				const parseDbFilename = `${databasename.split('.duckdb.')[0]}.duckdb`;
 				this.database = `${this.dbpath}/${parseDbFilename}`;
 			}
-		}
+		}		
 	}
 
 	async stAfterInit() {
 
 		this.editor = monaco.editor.create(document.getElementById(this.uniqueId), {
-			value: this.query, language: 'sql',
-			theme: 'vs-light', automaticLayout: true,
-			minimap: { enabled: false }, scrollBeyondLastLine: false,
-			fontSize: 14
+			value: this.rawQuery || this.query, language: 'sql', theme: 'vs-light', automaticLayout: true,
+			minimap: { enabled: false }, scrollBeyondLastLine: false, fontSize: 14
 		});
 		
 		this.handleHideShowFieldMenu();
@@ -144,11 +144,11 @@ export class SqlEditor extends ViewComponent {
 				selectedTable = `${dbFileName}.${schemaAndTable}`;
 			} else {
 				// Fallback: try old format "dbfile.duckdb.schema.table"
-				const splitResult = databaseName.split('.duckdb.');
-				if (splitResult.length > 1) 
+				let splitResult = databaseName.split('.duckdb.');
+				if (splitResult.length > 1)
 					selectedTable = `${splitResult[0].split('.').pop()}.${splitResult[1]}`;
-				else 
-					selectedTable = databaseName;
+				else
+					selectedTable = databaseName.split('.')[0];
 			}
 		}
 		
@@ -162,7 +162,7 @@ export class SqlEditor extends ViewComponent {
 
 		// Generate query using database-specific syntax
 		const query = generateInitialQuery(this.selectedTable, fieldsArray, sourceAndDestType, 100);
-		this.setCode(AIResponseLinterUtil.formatSQL(query));
+		this.setCode(this.rawQuery || AIResponseLinterUtil.formatSQL(query));
 
 		if (duckdbIndex > 0) {
 			// Get the database file name (part before 'duckdb')
@@ -173,6 +173,7 @@ export class SqlEditor extends ViewComponent {
 			const parseDbFilename = `${databaseName.split('.duckdb.')[0]}.duckdb`;
 			this.database = `${this.dbpath}/${parseDbFilename}`;
 		}
+		if(this.autoRun) setTimeout(() => this.runSQLQuery());
 	}
 
 	handleHideShowFieldMenu = () => handleHideShowSubmenu('.data-base-fields-submenu', '.submenu');
@@ -183,12 +184,18 @@ export class SqlEditor extends ViewComponent {
 
 		const newQuery = this.editor.getValue();
 		this.queryOutput.stAfterInit(null, true);
+		let database = this.database.split('/');
+		if(this.database.endsWith('.duckdb'))
+			database = database.slice(0,-1).join('/')+'/'+database.slice(-1)[0].split('.')[0]+'.duckdb';
+		else 
+			database = this.database;
+		
+		if(database.includes('undefined/.duckdb') && this.autoRun) return
 
 		const { result, fields, error, db_engine } = await PipelineService.runSQLQuery(
-			newQuery, 
-			this.database, 
+			newQuery, database, 
 			PipelineService.sqlEditorDestSecretName || this.connectionName, 
-			PipelineService.sqlEditorDestType || this.destType
+			PipelineService.sqlEditorDestType || this.destType,
 		);
 		
 		// Store db_engine for future queries

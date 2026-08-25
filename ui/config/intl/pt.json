@@ -79,5 +79,7 @@
 	"endRunTime": "Hora termino",
 	"manualAttempts": "Tentativas manual",
 	"dataModelTab": "Definicao de dados",
-	"dataQualityTab": "Regras de qualidade"
+	"dataQualityTab": "Regras de qualidade",
+	"loadingDeclarationUI": "Carregando a UI de Declaracao de Modelos",
+	"modelNamePholder": "Nome do modelo"
 }

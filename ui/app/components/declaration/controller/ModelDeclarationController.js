@@ -52,7 +52,7 @@ const KEY_SUGGESTIONS = {
     { key: 'from_table', insertText: 'from_table: ', detail: 'Source table alias' },
     { key: 'to_table', insertText: 'to_table: ', detail: 'Target table alias' },
     { key: 'join_type', insertText: 'join_type: ', detail: 'LEFT, RIGHT, INNER, CROSS, FULL' },
-    { key: 'sql_on', insertText: 'sql_on: "', detail: 'Join condition, e.g. a.id = b.a_id' },
+    { key: 'sql_on', insertText: 'sql_on: ', detail: 'Join condition, e.g. a.id = b.a_id' },
   ],
   filtersBlockKey: [
     { key: 'or', insertText: 'or:\n      - ', detail: 'OR-combined sub-conditions' },
@@ -68,7 +68,7 @@ function ensureYamlCompletionProviderRegistered() {
   yamlCompletionProviderRegistered = true;
 
   monaco.languages.registerCompletionItemProvider('yaml', {
-    triggerCharacters: ['.', ' ', ':'],
+    triggerCharacters: ['.', ' ', ':', '='],
     provideCompletionItems(model, position) {
       const instance = modelInstanceRegistry.get(model.uri.toString());
       if (!instance) return { suggestions: [] };
@@ -82,6 +82,7 @@ export class ModelDeclarationController extends BaseController {
   /** @type { ModelDeclaration } */ obj;
   editor;
   schema;
+  hashError = false;  
 
   async initEditor() {
     this.obj.container = document.getElementsByClassName(this.obj.cmpInternalId)[0];
@@ -93,18 +94,14 @@ export class ModelDeclarationController extends BaseController {
     }
 
     this.editor = monaco.editor.create(this.obj.yamlInput, {
-      value: DEFAULT_YAML, language: 'yaml', theme: 'vs-light', automaticLayout: true,
-      minimap: { enabled: false }, scrollBeyondLastLine: false,
-      fontSize: 14, quickSuggestions: { other: true, comments: false, strings: true }
+      value: DEFAULT_YAML, language: 'yaml', theme: 'vs-light', automaticLayout: true, minimap: { enabled: false }, 
+      scrollBeyondLastLine: false, fontSize: 14, quickSuggestions: { other: true, comments: false, strings: true }
     });
 
     modelInstanceRegistry.set(this.editor.getModel().uri.toString(), this);
     ensureYamlCompletionProviderRegistered();
 
-    this.editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.Space, () => {
-      this.editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
-    });
-
+    this.editor.addCommand(monaco.KeyMod.WinCtrl | monaco.KeyCode.Space, () => this.editor.trigger('keyboard', 'editor.action.triggerSuggest', {}));
     this.bindEvents(), this.compileYAMLToSQL();
   }
 
@@ -223,8 +220,7 @@ export class ModelDeclarationController extends BaseController {
     const cursorLineRaw = model.getLineContent(position.lineNumber);
     const cursorIndent = cursorLineRaw.substring(0, position.column - 1).search(/\S/);
     const effectiveCursorIndent = cursorIndent === -1
-      ? cursorLineRaw.substring(0, position.column - 1).length
-      : cursorIndent;
+      ? cursorLineRaw.substring(0, position.column - 1).length : cursorIndent;
 
     let stack = [{ indent: -1, key: null }];
 
@@ -232,8 +228,7 @@ export class ModelDeclarationController extends BaseController {
       const rawLine = model.getLineContent(ln);
       if (!rawLine.trim() || rawLine.trim().startsWith('#')) continue;
 
-      const indent = rawLine.search(/\S/);
-      const line = rawLine.trim();
+      const indent = rawLine.search(/\S/), line = rawLine.trim();
 
       while (stack.length > 1 && stack[stack.length - 1].indent >= indent) stack.pop();
 
@@ -282,15 +277,12 @@ export class ModelDeclarationController extends BaseController {
       return null;
     }
 
-    if (top.key === 'tables') {
+    if (top.key === 'tables') 
       return { entries: [{ key: 'table', insertText: 'table: ', detail: 'Real table name, e.g. public.orders as orders' }], listStart: true };
-    }
-    if (top.key === 'relationships') {
+    if (top.key === 'relationships') 
       return { entries: [{ key: 'name', insertText: 'name: ', detail: 'Relationship identifier' }], listStart: true };
-    }
-    if (top.key === 'filters' || top.key === 'or' || top.key === 'and') {
+    if (top.key === 'filters' || top.key === 'or' || top.key === 'and') 
       return { entries: KEY_SUGGESTIONS.filtersBlockKey, listStart: true };
-    }
 
     return null;
   }
@@ -319,9 +311,7 @@ export class ModelDeclarationController extends BaseController {
       const [, prefix, partial] = aggMatch;
       const lineNum = position.lineNumber, kind = monaco.languages.CompletionItemKind.EnumMember;
       const range = new monaco.Range(lineNum, prefix.length + 1, lineNum, prefix.length + 1 + partial.length);
-      return {
-        suggestions: AGG_FUNCTIONS.map(fn => ({ range, label: fn, insertText: fn, kind, detail: 'Aggregation function' }))
-      };
+      return { suggestions: AGG_FUNCTIONS.map(fn => ({ range, label: fn, insertText: fn, kind, detail: 'Aggregation function' })) };
     }
 
     // join_type: <value> -> suggest join types
@@ -330,9 +320,7 @@ export class ModelDeclarationController extends BaseController {
       const [, prefix, partial] = joinTypeMatch;
       const lineNum = position.lineNumber, kind = monaco.languages.CompletionItemKind.EnumMember;
       const range = new monaco.Range(lineNum, prefix.length + 1, lineNum, prefix.length + 1 + partial.length);
-      return {
-        suggestions: JOIN_TYPES.map(jt => ({ range, label: jt, insertText: jt, kind, detail: 'Join type' }))
-      };
+      return { suggestions: JOIN_TYPES.map(jt => ({ range, label: jt, insertText: jt, kind, detail: 'Join type' })) };
     }
 
     // from_table:/to_table: <value> -> suggest table aliases already declared in this document
@@ -345,9 +333,7 @@ export class ModelDeclarationController extends BaseController {
 
       const lineNum = position.lineNumber, kind = monaco.languages.CompletionItemKind.Variable;
       const range = new monaco.Range(lineNum, prefix.length + 1, lineNum, prefix.length + 1 + partial.length);
-      return {
-        suggestions: aliases.map(alias => ({ range, label: alias, insertText: alias, kind, detail: aliasMap[alias] }))
-      };
+      return { suggestions: aliases.map(alias => ({ range, label: alias, insertText: alias, kind, detail: aliasMap[alias] })) };
     }
 
     const kind = monaco.languages.CompletionItemKind.Field;
@@ -369,9 +355,20 @@ export class ModelDeclarationController extends BaseController {
     const singleQuoteCount = (textBeforeCursor.match(/'/g) || []).length;
     const insideOpenDoubleQuote = doubleQuoteCount % 2 === 1;
     const insideOpenSingleQuote = singleQuoteCount % 2 === 1;
+
+    // sql_on and filter (filters/or/and) values are written unquoted, so treat those
+    // lines as a "quoted-equivalent" SQL-expression context regardless of actual quote state.
+    const structuralPath = this.getStructuralPath(model, position);
+    const structTopKey = structuralPath[structuralPath.length - 1]?.key;
+    const isSqlOnLine = /^\s*sql_on:\s*/.test(textBeforeCursor);
+    const isFilterExprLine = ['filters', 'or', 'and'].includes(structTopKey);
+    const isSqlExprContext = isSqlOnLine || isFilterExprLine || (insideOpenDoubleQuote && !insideOpenSingleQuote);
+
     const bareAliasMatch = textBeforeCursor.match(/([a-zA-Z_][a-zA-Z0-9_]*)$/);
-    if (insideOpenDoubleQuote && !insideOpenSingleQuote && bareAliasMatch) {
-      const [, partial] = bareAliasMatch;
+    const afterOperatorMatch = /(?:=|<>|!=|<=|>=|<|>)\s*$/.test(textBeforeCursor);
+
+    if (isSqlExprContext && (bareAliasMatch || afterOperatorMatch)) {
+      const partial = bareAliasMatch ? bareAliasMatch[1] : '';
       const aliasMap = this.buildAliasMap(model.getValue());
       const aliases = Object.keys(aliasMap);
 
@@ -390,8 +387,7 @@ export class ModelDeclarationController extends BaseController {
 
     const bareListMatch = textBeforeCursor.match(/^\s*-\s*(?:name:\s*)?([a-zA-Z0-9_]*)$/);
     if (bareListMatch) {
-      const [, partial] = bareListMatch;
-      const enclosingAlias = this.findEnclosingTableAlias(model, position);
+      const partial = bareListMatch[1], enclosingAlias = this.findEnclosingTableAlias(model, position);
       const aliasMap = this.buildAliasMap(model.getValue());
       const realTable = enclosingAlias ? aliasMap[enclosingAlias] : null;
       const columns = realTable ? this.schema[realTable] : null;
@@ -403,11 +399,9 @@ export class ModelDeclarationController extends BaseController {
       }
     }
 
-    const structuralPath = this.getStructuralPath(model, position);
     const keySuggestions = this.resolveKeySuggestions(structuralPath);
     if (keySuggestions) {
-      const kindProp = monaco.languages.CompletionItemKind.Property;
-      const lineNum = position.lineNumber;
+      const kindProp = monaco.languages.CompletionItemKind.Property, lineNum = position.lineNumber;
 
       if (keySuggestions.listStart) {
         const dashMatch = textBeforeCursor.match(/^(\s*-\s*)([a-zA-Z_]*)$/);
@@ -511,39 +505,102 @@ export class ModelDeclarationController extends BaseController {
     return root;
   }
 
+  splitFilterSegments(expr) {
+    const segments = [];
+    let buffer = '', connector = null, inSingle = false, inDouble = false, i = 0;
+
+    const push = (nextConnector) => {
+      segments.push({ text: buffer, connector });
+      buffer = '', connector = nextConnector;
+    };
+
+    while (i < expr.length) {
+      const ch = expr[i];
+      if (ch === "'" && !inDouble) { inSingle = !inSingle; buffer += ch; i++; continue; }
+      if (ch === '"' && !inSingle) { inDouble = !inDouble; buffer += ch; i++; continue; }
+
+      if (!inSingle && !inDouble) {
+        const rest = expr.slice(i);
+        const opMatch = rest.match(/^(AND|OR)\b/i), prevChar = i > 0 ? expr[i - 1] : ' ';
+        if (opMatch && !/[a-zA-Z0-9_]/.test(prevChar)) {
+          push(opMatch[0].toUpperCase());
+          i += opMatch[0].length;
+          continue;
+        }
+      }
+      buffer += ch;
+      i++;
+    }
+    segments.push({ text: buffer, connector });
+    return segments;
+  }
+
+  quoteFilterSegmentValue(segment) {
+    const opMatch = segment.match(/(!=|<>|<=|>=|=|<|>|\bLIKE\b)/i);
+    if (!opMatch) return segment;
+
+    const opIndex = opMatch.index, op = opMatch[0];
+    const left = segment.slice(0, opIndex);
+    const right = segment.slice(opIndex + op.length);
+    const leadSpace = right.match(/^(\s*)/)[1];
+    const trailSpace = right.match(/(\s*)$/)[1];
+    const core = right.trim();
+    if (!core) return segment;
+
+    // Already single-quoted by the user - leave it exactly as written.
+    const sq = core.match(/^'([\s\S]*)'$/);
+    if (sq) return segment;
+
+    // Double-quoted by the user - SQL string literals use single quotes, so convert.
+    const dq = core.match(/^"([\s\S]*)"$/);
+    if (dq) return `${left}${op}${leadSpace}'${dq[1].replace(/'/g, "''")}'${trailSpace}`;
+
+    if (/^-?\d+(\.\d+)?$/.test(core)) return segment;
+    if (/^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*$/.test(core)) return segment;
+    if (['NULL', 'TRUE', 'FALSE'].includes(core.toUpperCase())) return segment;
+
+    return `${left}${op}${leadSpace}'${core.replace(/'/g, "''")}'${trailSpace}`;
+  }
+
+  quoteBareFilterLiterals(expr) {
+    if (!expr || typeof expr !== 'string') return expr;
+
+    const segments = this.splitFilterSegments(expr);
+    return segments.map((seg, idx) => {
+      const quoted = this.quoteFilterSegmentValue(seg.text).trim();
+      return idx === 0 ? quoted : `${seg.connector} ${quoted}`;
+    }).join(' ');
+  }
+
   validateFilterSyntax(filterExpr) {
     if (!filterExpr || typeof filterExpr !== 'string') return;
     const trimmed = filterExpr.trim();
 
     const singleQuotes = (trimmed.match(/'/g) || []).length;
-    if (singleQuotes % 2 !== 0) {
+    if (singleQuotes % 2 !== 0) 
       throw new Error(`Syntax Error in filter: Unclosed single quote (') in expression <code>"${trimmed}"</code>`);
-    }
 
     const doubleQuotes = (trimmed.match(/"/g) || []).length;
-    if (doubleQuotes % 2 !== 0) {
+    if (doubleQuotes % 2 !== 0) 
       throw new Error(`Syntax Error in filter: Unclosed double quote (") in expression <code>"${trimmed}"</code>`);
-    }
 
-    if (/(=|>|<|!=|LIKE|AND|OR)\s*$/i.test(trimmed) || /=\s*['"]?\s*$/.test(trimmed)) {
+    if (/(=|>|<|!=)\s*$/.test(trimmed) || /\b(LIKE|AND|OR)\s*$/i.test(trimmed) || /=\s*['"]?\s*$/.test(trimmed))
       throw new Error(`Syntax Error in filter: Incomplete expression or missing operand in <code>"${trimmed}"</code>`);
-    }
   }
 
   buildBaseMeasureSQL(tableAlias, sqlCol, aggType) {
     const aggUpper = (aggType || 'SUM').toUpperCase().replace('-', '_');
-    if (aggUpper === 'COUNT_DISTINCT') {
+    if (aggUpper === 'COUNT_DISTINCT') 
       return `COUNT(DISTINCT ${tableAlias}.${sqlCol})`;
-    }
-    if (['SUM', 'COUNT', 'AVG', 'MIN', 'MAX'].includes(aggUpper)) {
+
+    if (['SUM', 'COUNT', 'AVG', 'MIN', 'MAX'].includes(aggUpper)) 
       return `${aggUpper}(${tableAlias}.${sqlCol})`;
-    }
     return `${sqlCol}`;
   }
 
   compileYAMLToSQL() {
     if (this.obj.errorBox) this.obj.errorBox.style.display = 'none';
-
+    this.hashError = false;
     try {
       if (!this.editor) return;
       const yamlText = this.editor.getValue();
@@ -644,8 +701,9 @@ export class ModelDeclarationController extends BaseController {
 
         if (typeof node === 'string') {
           this.validateFilterSyntax(node);
-          validateSqlExpression(node, `${contextLoc} ("${node}")`);
-          return node;
+          const quotedNode = this.quoteBareFilterLiterals(node);
+          validateSqlExpression(quotedNode, `${contextLoc} ("${node}")`);
+          return quotedNode;
         }
 
         if (Array.isArray(node)) {
@@ -686,8 +744,7 @@ export class ModelDeclarationController extends BaseController {
         }
       });
 
-      let hasMeasures = false;
-      const compiledWhereClause = compileNode(model.filters);
+      let hasMeasures = false, compiledWhereClause = compileNode(model.filters);
       const selectClauses = [], groupByClauses = [];
 
       normalizedTables.forEach(tableDef => {
@@ -736,9 +793,7 @@ export class ModelDeclarationController extends BaseController {
             const aliasPart = targetTable.sqlTable !== targetTable.alias ? ` AS ${tAlias}` : '';
             joinClauses.push(`${rel.join_type || 'LEFT'} JOIN ${targetTable.sqlTable}${aliasPart}\n  ON ${rel.sql_on}`);
             
-            joinedAliases.add(tAlias);
-            unjoinedTables.splice(i, 1);
-            progressMade = true;
+            joinedAliases.add(tAlias), unjoinedTables.splice(i, 1), progressMade = true;
             break;
           }
         }
@@ -754,30 +809,28 @@ export class ModelDeclarationController extends BaseController {
 
       if (joinClauses.length > 0) 
         sql += `\n${joinClauses.join('\n')}`;
-
       if (compiledWhereClause) 
         sql += `\nWHERE\n  ${compiledWhereClause}`;
-
       if (hasMeasures && groupByClauses.length > 0) 
         sql += `\nGROUP BY\n${groupByClauses.join(',\n')}`;
 
       if (this.obj.sqlOutput) 
         this.obj.sqlOutput.textContent = sql + ';';
 
+      if(![undefined, ''].includes(this.obj.modelName.value))
+        document.querySelector(`.btn-primary.save-declaration`).disabled = false;
+
     } catch (err) {
-      if (this.obj.errorBox) {
-        this.obj.errorBox.innerHTML = `⚠️ <b>YAML Compiler Error:</b> ${err.message}`;
-        this.obj.errorBox.style.display = 'block';
-      }
+      this.obj.errorBox.innerHTML = `⚠️ <b>YAML Compiler Error:</b> ${err.message}`;
+      this.obj.errorBox.style.display = 'block';
+      this.hashError = true;
+      document.querySelector(`.btn-primary.save-declaration`).disabled = true;
     }
   }
 
   copySQL() {
-    if (this.obj.sqlOutput) {
-      const text = this.obj.sqlOutput.textContent;
-      navigator.clipboard.writeText(text);
-      alert('SQL copied to clipboard!');
-    }
+    navigator.clipboard.writeText(this.obj.sqlOutput.textContent);
+    alert('SQL copied to clipboard!');
   }
 
 }

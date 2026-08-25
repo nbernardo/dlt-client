@@ -28,6 +28,7 @@ import { expoandApiTestData } from "../catalog/util/CatalogUtil.js";
 import { LogQueryDisplay } from "../log/logquery/LogQueryDisplay.js";
 import { DataCatalogUI } from "../data-catalog/DataCatalogUI.js";
 import { BIUserInterfaceComponent } from "../dataviz/bi/main/BIUserInterfaceComponent.js";
+import { expandTableType } from "./object-type/ExpandTableView.js";
 
 export class Workspace extends ViewComponent {
 
@@ -663,7 +664,7 @@ export class Workspace extends ViewComponent {
 
 	showOrHideAgent = (flag = null) => this.openAgent = flag != null ? flag : !this.openAgent;
 
-	async expandDataTableView(tableId, databaseParam = null, dbfile = null, queryTable = null, tableMetadata = {}) {		
+	async expandDataTableView({ tableId, databaseParam, dbfile, queryTable, tableMetadata, rawQuery, autoRun } = expandTableType) {		
 		let { fields, data, query, database } = this.controller.getAIAgentGridExpand(tableId);
 		//let { fields, data, query, database } = mockData();
 		const parsedFields = (fields || '')?.replaceAll('\n', '')?.split(',')?.map(field => field.trim());
@@ -675,12 +676,12 @@ export class Workspace extends ViewComponent {
 
 		const gridInitData = { fields: parsedFields, data };
 		const editorInitData = { 
-			query, fields: parsedFields, data, database, databaseParam, dbfile, queryTable,
-			connectionName: tableMetadata.connection_name,
+			query, rawQuery, fields: parsedFields, data, database, databaseParam, dbfile, queryTable,
+			connectionName: tableMetadata.connection_name, autoRun,
 			destType: tableMetadata.dest_type,
 			pplineName: tableMetadata.ppline,
 			selectedDatabase: databaseParam  // Pre-select the database dropdown with the clicked table
-		};
+		};		
 		const { template: gridUI, component: gridComponent } = await Components.new('Grid', gridInitData, parentId);
 		const { template: editorUI, component: editorCmp } = await Components.new('SqlEditor', editorInitData, parentId);
 
@@ -696,9 +697,7 @@ export class Workspace extends ViewComponent {
 		const codeEditor = contentContainer.querySelector('.code-editor-container');
 
 		table.innerHTML = gridUI, codeEditor.innerHTML = editorUI;
-		this.popupWindowProxy.openPopup();
-		this.controller.aiAgentExpandView = {};
-		
+		this.popupWindowProxy.openPopup(), this.controller.aiAgentExpandView = {};
 	}
 
 	showAPIData = (contentId) => expoandApiTestData(contentId);

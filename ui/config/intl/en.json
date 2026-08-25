@@ -79,5 +79,7 @@
 	"endRunTime": "End time",
 	"manualAttempts": "Manual attempts count",
 	"dataModelTab": "Data definitions",
-	"dataQualityTab": "Data quality rules"
+	"dataQualityTab": "Data quality rules",
+	"loadingDeclarationUI": "Loading Model declaration UI",
+	"modelNamePholder": "Model name"
 }

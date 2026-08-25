@@ -131,7 +131,7 @@ export class PipelineService extends BaseService {
     }
 
     /** @returns { { result, error } | undefined } */
-    static async runSQLQuery(query, database, connectionName = null, destType = 'duckdb') {
+    static async runSQLQuery(query, database, connectionName = null, destType = 'duckdb', autoRun = false) {
         const payload = { 
             query, 
             database,
@@ -152,7 +152,7 @@ export class PipelineService extends BaseService {
         if (result.error){
             if(result.code === 'err')
                 AppTemplate.toast.error('Error while querying the DB: ' + result.result, 10000);
-            AppTemplate.toast.warn('Exception while querying the DB: ' + result.result);
+            if(!autoRun) AppTemplate.toast.warn('Exception while querying the DB: ' + result.result);
             return { error: result.result };
         }
         return { ...result, error: null };
