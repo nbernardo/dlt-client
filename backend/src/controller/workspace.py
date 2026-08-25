@@ -130,7 +130,7 @@ def run_sql_query():
         result = DestinationQueryUtil.execute_query(query, namespace, connection_name, destination_details)
     else:
         # Use existing DuckDB query for backward compatibility
-        result = Workspace.run_sql_query(database, query)
+        result = Workspace.run_sql_query(database, query, destinationDB)
     
     return result
 

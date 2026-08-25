@@ -33,7 +33,7 @@ class SimpleAPIMailer:
             logger.error("Email dispatch aborted: Missing initialization components (API key, domain, or sender).")
             return
 
-        payload = { "from": self.from_email, "to": to_email, "subject": subject, "html": html_content }
+        payload = { "from": self.from_email, "to": to_email.replace(' ',''), "subject": subject, "html": html_content }
 
         try:
             response = requests.post( self.api_url, auth=("api", self.api_key), data=payload, timeout=10 )

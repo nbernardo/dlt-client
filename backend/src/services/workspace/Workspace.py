@@ -11,6 +11,8 @@ import schedule
 import threading
 from flask import current_app
 import logging
+from decimal import Decimal
+
 
 pattern = r'^use.*$'
 
@@ -489,15 +491,31 @@ class Workspace:
 
 
     @staticmethod
-    def run_sql_query(database = None, query = None):
+    def normalize_decimals(rows):
+        normalized = []
+        for row in rows:
+            new_row = []
+            for value in row:
+                if isinstance(value, Decimal) and value == 0:
+                    exp = value.as_tuple().exponent
+                    if exp < -6:
+                        value = value.quantize(Decimal('1e-6'))
+                new_row.append(value)
+            normalized.append(tuple(new_row))
+        return normalized
+
+
+    @staticmethod
+    def run_sql_query(database = None, query = None, destinationDB = None):
         try:
             cnx = DuckdbUtil.get_connection_for(f'{database}')
-            cursor = cnx.cursor()
-            result = cursor.execute(query).fetchall()
-            fields = query.lower().split('from')[0].split('select',1)[1]
-            
-            if(fields.strip() == '*'):
-                fields = [field[0] for field in cursor.description]
+            cnx.execute(f"SET schema='{destinationDB}'")
+            result = cnx.execute(query).fetchall()
+            result = Workspace.normalize_decimals(result)
+
+            fields = query.lower().split('from')[0].split('select', 1)[1]
+            if fields.strip() == '*':
+                fields = [field[0].lower().split(' as ')[1].strip() if ' as ' in field[0].lower() else field[0] for field in cnx.description]
                 fields = ','.join(fields)
 
             return { 'result': result, 'fields': fields }

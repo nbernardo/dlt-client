@@ -376,6 +376,10 @@ class DuckdbUtil:
         
         cnx.execute(query)
         cnx.execute('ALTER TABLE dw_declarations ADD COLUMN IF NOT EXISTS model TEXT;')
+        cnx.execute('ALTER TABLE dw_declarations ADD COLUMN IF NOT EXISTS model_name TEXT;')
+        cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS declaration_namespace ON public_sale_order (namespace);')
+        cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS declaration_dw ON public_sale_order (dw_name);')
+        cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS declaration_model ON public_sale_order (model_name);')
 
 
 def is_extension_installed(extension_name):

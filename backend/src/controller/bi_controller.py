@@ -129,5 +129,5 @@ def persiste_model(namespace):
     payload = request.get_json()
     declaration, modelQuery = payload.get('model'), payload.get('modelQuery')
     dw = payload.get('dw','').split('.')
-    dw = '.'.join(dw[-2:3])
-    return DeclarationModeling().persist_model(namespace, dw, declaration, modelQuery)
+    dw, model_name = '.'.join(dw[-2:3]), payload.get('modelName')
+    return DeclarationModeling().persist_model(namespace, dw, declaration, modelQuery, model_name)
