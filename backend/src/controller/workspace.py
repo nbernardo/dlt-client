@@ -415,13 +415,13 @@ def call_scheduled_job(app):
         logging.info("======= Job Scheduler called =======")
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        def on_app_loading():
-            workspacedb_wal = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb.wal'
-            if os.path.exists(workspacedb_wal):
-                os.remove(workspacedb_wal)
-            DuckdbUtil.create_dw_declarations()
-
-        executor.submit(on_app_loading)
+        #def on_app_loading():
+        #    workspacedb_wal = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb.wal'
+        #    if os.path.exists(workspacedb_wal):
+        #        os.remove(workspacedb_wal)
+        #    DuckdbUtil.create_dw_declarations()
+        ...
+        #executor.submit(on_app_loading)
 
     
 

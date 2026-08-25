@@ -764,9 +764,7 @@ class Workspace:
             cnx = DuckdbUtil.get_workspace_db_instance()
             query = f"""
                 SELECT DISTINCT ON (s.id)
-                    {','.join(field_names_path)} 
-                    FROM {table} s RIGHT JOIN pipeline_metadata m 
-                    ON s.ppline_name = m.pipeline {where}
+                    {','.join(field_names_path)} FROM {table} s RIGHT JOIN pipeline_metadata m ON s.ppline_name = m.pipeline {where}
                 ORDER BY s.id ASC, s.last_run DESC
             """
             result = cnx.execute(query).fetch_df().to_dict(orient='records')
