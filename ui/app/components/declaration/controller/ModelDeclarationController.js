@@ -528,8 +528,7 @@ export class ModelDeclarationController extends BaseController {
           continue;
         }
       }
-      buffer += ch;
-      i++;
+      buffer += ch, i++;
     }
     segments.push({ text: buffer, connector });
     return segments;
@@ -540,10 +539,8 @@ export class ModelDeclarationController extends BaseController {
     if (!opMatch) return segment;
 
     const opIndex = opMatch.index, op = opMatch[0];
-    const left = segment.slice(0, opIndex);
-    const right = segment.slice(opIndex + op.length);
-    const leadSpace = right.match(/^(\s*)/)[1];
-    const trailSpace = right.match(/(\s*)$/)[1];
+    const left = segment.slice(0, opIndex), right = segment.slice(opIndex + op.length);
+    const leadSpace = right.match(/^(\s*)/)[1], trailSpace = right.match(/(\s*)$/)[1];
     const core = right.trim();
     if (!core) return segment;
 

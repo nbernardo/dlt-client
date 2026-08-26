@@ -672,7 +672,7 @@ export class DataGovernanceController extends BaseController {
 
     permissionRendered = false;
     async renderUsersAndPermissionsTab() {
-        if(this.permissionRendered === false){
+        //if(this.permissionRendered === false){
             const usersList = await this.userService().getUsersList();
             this.users = usersList.users.map(r => {
                 const roles = [], permissions = [];
@@ -683,7 +683,7 @@ export class DataGovernanceController extends BaseController {
             });
             await this.renderUsersCompositeMatrix();
             this.permissionRendered = true;
-        }
+        //}
     }
 
     async renderUsersCompositeMatrix() {

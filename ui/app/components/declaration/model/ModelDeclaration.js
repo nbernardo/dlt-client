@@ -94,11 +94,14 @@ export class ModelDeclaration extends ViewComponent {
 
   async previewModel(){
 	const content = {
-		tableId: null, databaseParam: this.selectedDW, dbfile: this.currentDBFile, rawQuery: this.sqlOutput.textContent,
-		queryTable: null, tableMetadata: { dest_type: 'duckdb', ppline: this.selectedDW.split('.')[0]}, autoRun: true
+		tableId: null, databaseParam: this.selectedDW, dbfile: this.currentDBFile, rawQuery: this.sqlOutput.textContent, queryTable: null, 
+		tableMetadata: { dest_type: 'duckdb', ppline: this.selectedDW.split('.')[0]}, autoRun: true, rOnly: true
 	};
 	this.$parent.expandDataTableView(content);
-	setTimeout(() => document.querySelector(`.popup-windows-cmp-container`).style.background = 'rgba(240, 240, 240, .6)')
+	setTimeout(() => {
+		document.querySelector(`.popup-windows-cmp-container`).style.background = 'rgba(240, 240, 240, .6)';
+		this.controller.editor.updateOptions({ readOnly: true, readOnlyMessage: { value: 'Click "Unlock" to edit this file.' } });
+	});
   }
 
 }

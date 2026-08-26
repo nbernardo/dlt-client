@@ -132,7 +132,6 @@ export class SqlEditor extends ViewComponent {
 			// For DuckDB: databaseName is in format "ppline.dbfile.duckdb.schema.table"
 			// Example: "duckdb_test.duckdb_test.duckdb.main.people"
 			// We need to extract "dbfile.schema.table" format: "duckdb_test.main.people"
-			
 			PipelineService.sqlEditorDestSecretName = null, PipelineService.sqlEditorDestType = 'duckdb';
 
 			if (duckdbIndex > 0 && parts.length > duckdbIndex + 1) {
@@ -177,7 +176,6 @@ export class SqlEditor extends ViewComponent {
 	}
 
 	handleHideShowFieldMenu = () => handleHideShowSubmenu('.data-base-fields-submenu', '.submenu');
-	
 	setCode = (code) => this.editor.setValue(code);
 
 	async runSQLQuery(){
