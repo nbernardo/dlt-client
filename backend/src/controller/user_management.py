@@ -40,7 +40,7 @@ def register_user():
         try:
             await UserService.register_user(username, hashed_pwd, permissions, email, namespace)
             return {'message': 'User registered successfully into encrypted SQLite repository.', 'error': False}, 201
-        except aiosqlite.Error:
+        except aiosqlite.Error as err:
             return {'error': True ,'message': 'Conflict: Username/Email already exists or database file write block.'}, 400
 
     return async_to_sync(async_register)()
@@ -141,10 +141,17 @@ def list_system_users():
         def run_in_isolated_loop():
             return asyncio.run(fetch_data_async())
 
+        is_dev_env = os.environ.get('ENV','').strip().lower() == 'dev'
         future = executor.submit(run_in_isolated_loop)
         all_users = future.result()
 
-        return jsonify({ 'status': 'success', 'total_users': len(all_users), 'users': all_users }), 200
+        if('analyst' == request.permissions):
+            return jsonify({ 'status': 'success', 'total_users': 0, 'users': [] }), 200
+        
+        if('manage_users' in request.permissions \
+           or (is_dev_env and (REG_REQUESTER in request.permissions) or (REG_REQUESTER == request.permissions))
+           ):
+            return jsonify({ 'status': 'success', 'total_users': len(all_users), 'users': all_users }), 200
 
     except Exception as e:
         return jsonify({

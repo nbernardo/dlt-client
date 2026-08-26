@@ -32,7 +32,9 @@ def require_permission(perm: str|list):
                 return {'message': 'Unauthorized: Missing or malformed Authorization header token.', 'error': True}, 401
             
             try:
-                if(token in ['undefined',None,''] and (perm == 'regular:requester' or 'regular:requester' in perm)):
+                if(token in ['undefined',None,''] and (perm == 'regular:requester') \
+                   or (os.environ.get("ENV", None) == 'dev' and 'regular:requester' in perm)):
+                    request.permissions = [perm] if type(perm) == str else perm
                     return f(*args, **kwargs)
                 
                 payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
@@ -210,7 +212,7 @@ class UserService:
                 'INSERT INTO users (username, hashed_password, permissions, email, tenant_name) VALUES (?, ?, ?, ?, ?)', (username, hashed_pwd, permissions, email, tenant_name)
             )
             await conn.commit()
-            await conn.execute('CHECKPOINT')
+            await conn.execute('PRAGMA wal_checkpoint(FULL);')
 
     
     async def handle_login(useremail):
