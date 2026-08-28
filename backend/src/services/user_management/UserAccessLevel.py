@@ -121,55 +121,60 @@ class UserAccessLevel:
             qualified_ast = qualify(parsed_ast, dialect=dialect)
         except Exception:
             qualified_ast = parsed_ast
+        import duckdb
+        try:
+            cte_names = {cte.alias_or_name.lower() for cte in qualified_ast.find_all(exp.CTE)}
 
-        cte_names = {cte.alias_or_name.lower() for cte in qualified_ast.find_all(exp.CTE)}
+            # A dictionary that defaults to an empty set to ensure columns are unique
+            tbl_col_map, select_items = defaultdict(set), []
+            
+            # Pre-map table aliases to true names to catch edge cases
+            alias_to_table = { tbl_exp.alias_or_name.lower(): tbl_exp.name for tbl_exp in qualified_ast.find_all(exp.Table) }
 
-        # A dictionary that defaults to an empty set to ensure columns are unique
-        tbl_col_map, select_items = defaultdict(set), []
+            for col_exp in qualified_ast.find_all(exp.Column):
+                column_name, table_prefix = col_exp.name, col_exp.text("table")           
+                resolved_table = table_prefix if table_prefix else ''
+                    
+                for table_exp in qualified_ast.find_all(exp.Table):
+                    if table_exp.alias_or_name.lower() == table_prefix.lower():
+                        resolved_table = table_exp.name
+                        break
+                    
+                if resolved_table.lower() not in cte_names:
+                    tbl_col_map[resolved_table].add(column_name)
+
+            # Reconstruct original expected dictionary format
+            field_by_tbl = { f"{dw + '_' if dw else ''}{tbl}": sorted(list(cols)) for tbl, cols in tbl_col_map.items() }
+
+            # Clean the keys to pass only physical table names (without dw_ prefix) to the metadata query
+            detected_tables = [tbl.replace(f'{dw}_','') for tbl in field_by_tbl.keys()]
+
+            # Retrieve the exact-case translation map from your metadata method
+            translation_map = UserAccessLevel.get_translation_map_by_tables(con, detected_tables)
+            
+            for expression in qualified_ast.expressions:
+                if isinstance(expression, exp.Alias):
+                    output_name, base_node = expression.alias, expression.this
+                else:
+                    output_name, base_node = expression.name, expression
+
+                # Get the true table name tied to this outer column
+                table_prefix = base_node.text("table")
+                resolved_table = alias_to_table.get(table_prefix.lower(), table_prefix)
+
+                table_map = translation_map.get(resolved_table, {})
+                translated_name = table_map.get(output_name, output_name)
+
+                select_items.append(f'"{output_name}" AS "{translated_name}"')
+
+            # Wrap your original untouched sql_query string
+            translated_wrapper_sql = f"SELECT {', '.join(select_items)} FROM ({sql_query}) AS final_output_stream"
+
+            return field_by_tbl, translated_wrapper_sql
         
-        # Pre-map table aliases to true names to catch edge cases
-        alias_to_table = { tbl_exp.alias_or_name.lower(): tbl_exp.name for tbl_exp in qualified_ast.find_all(exp.Table) }
+        except duckdb.CatalogException:
+            return {}, None
 
-        for col_exp in qualified_ast.find_all(exp.Column):
-            column_name, table_prefix = col_exp.name, col_exp.text("table")           
-            resolved_table = table_prefix if table_prefix else ''
-                
-            for table_exp in qualified_ast.find_all(exp.Table):
-                if table_exp.alias_or_name.lower() == table_prefix.lower():
-                    resolved_table = table_exp.name
-                    break
-                
-            if resolved_table.lower() not in cte_names:
-                tbl_col_map[resolved_table].add(column_name)
-
-        # Reconstruct original expected dictionary format
-        field_by_tbl = { f"{dw + '_' if dw else ''}{tbl}": sorted(list(cols)) for tbl, cols in tbl_col_map.items() }
-
-        # Clean the keys to pass only physical table names (without dw_ prefix) to the metadata query
-        detected_tables = [tbl.replace(f'{dw}_','') for tbl in field_by_tbl.keys()]
-
-        # Retrieve the exact-case translation map from your metadata method
-        translation_map = UserAccessLevel.get_translation_map_by_tables(con, detected_tables)
-        
-        for expression in qualified_ast.expressions:
-            if isinstance(expression, exp.Alias):
-                output_name, base_node = expression.alias, expression.this
-            else:
-                output_name, base_node = expression.name, expression
-
-            # Get the true table name tied to this outer column
-            table_prefix = base_node.text("table")
-            resolved_table = alias_to_table.get(table_prefix.lower(), table_prefix)
-
-            table_map = translation_map.get(resolved_table, {})
-            translated_name = table_map.get(output_name, output_name)
-
-            select_items.append(f'"{output_name}" AS "{translated_name}"')
-
-        # Wrap your original untouched sql_query string
-        translated_wrapper_sql = f"SELECT {', '.join(select_items)} FROM ({sql_query}) AS final_output_stream"
-
-        return field_by_tbl, translated_wrapper_sql
 
 
     def get_translation_map_by_tables(con, table_names):
