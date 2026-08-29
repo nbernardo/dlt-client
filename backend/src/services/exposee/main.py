@@ -24,6 +24,7 @@ _executor = ThreadPoolExecutor(max_workers=5)
 
 
 def _get_connection(namespace, dwname) -> duckdb.DuckDBPyConnection:
+    dwname = dwname.split('.')[0] if '.' in (dwname or '') else dwname
     sep = '/' if platform.system() != 'Windows' else '\\\\'
     db_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{dwname}.duckdb'
     return DuckdbUtil.get_connection_for(db_path)
@@ -47,12 +48,17 @@ def _run_in_memory(con: duckdb.DuckDBPyConnection, sql: str) -> io.BytesIO:
     return buffer
 
 
-def _run_export(con: duckdb.DuckDBPyConnection, sql: str) -> str:
+def _run_export(con: duckdb.DuckDBPyConnection, sql: str, schema: str = None) -> str:
 
     filename = f"{uuid.uuid4()}.parquet"
     filepath = os.path.join(EXPORT_DIR, filename)
     with _db_lock:
-        con.execute(f"COPY ({sql}) TO '{filepath}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        try:
+            sql = sql.replace(';','')
+            if schema: con.execute(f"SET schema='{schema}'")
+            con.execute(f"COPY ({sql}) TO '{filepath}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        except Exception as err:
+            print(f'Error while running exposed query method {str(err)}')
     # File is on disk, lock released, other queries can run while we serve the file
     return filepath
 
@@ -96,18 +102,25 @@ def query_parquet(namespace = None, dw = None):
         return jsonify({"error": str(e)}), 500
 
 
+from services.modeling.dw.DeclarationModeling import DeclarationModeling
+
 @duckdb_bridge.route("/query-parquet-export/<namespace>/<dw>", methods=["POST"])
 @require_permission('query:dw')
 def query_parquet_export(namespace = None, dw = None):
     """Disk-based parquet export — handles larger result sets with lower RAM usage."""
     
     body = request.get_json() or {}
-    sql = body.get("sql", "").strip()
-    if not sql:
+    sql = (body.get("sql", "") or "").strip()
+    model = (body.get("model", "") or "").strip()
+
+    model_query = DeclarationModeling().get_model(namespace, dw, model)
+    
+    if not sql and not model_query.get('query'):
         return jsonify({"error": "Missing 'sql' in request body"}), 400
     if str(sql).__contains__('*'):
         return jsonify({"error": "Invalid query. '*' is not allowed, please specify the column names"}), 400
 
+    sql = model_query.get('query') if model_query.get('query',None) != None else sql
     con = _get_connection(namespace, dw)
     result, not_allowed_access, translated_sql_query = _check_user_permission(con, request.permissions, sql, dw)
 
@@ -117,8 +130,9 @@ def query_parquet_export(namespace = None, dw = None):
     flpath, mmtype = None, "application/octet-stream"
     try:
         sql = _validate_select(sql)
-
-        future = _executor.submit(_run_export, con, translated_sql_query)
+        translated_sql_query = translated_sql_query or sql
+        schema = dw.split('.')[1] if '.' in (dw or '') else None
+        future = _executor.submit(_run_export, con, translated_sql_query, schema)
         flpath = future.result()
 
         @after_this_request

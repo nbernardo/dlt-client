@@ -26,9 +26,9 @@ class DeclarationModeling:
         try:
             cnx, result = DuckdbUtil.get_workspace_db_instance(), {}
             with cnx.cursor() as cursor:
-                query = 'SELECT declaration FROM dw_declarations WHERE namespace = ? AND dw_name = ? AND model_name = ?'
+                query = 'SELECT model FROM dw_declarations WHERE namespace = ? AND dw_name = ? AND model_name = ?'
                 result = cursor.execute(query, [namespace, dw, model_name]).fetchone()
-                result = { 'error': False, 'result': result[0], 'existing': len(result) > 0 }
+                result = { 'error': False, 'query': result[0] if len(result[0]) > 0 else None, 'existing': len(result) > 0 }
 
         except Exception as err:
             result = { 'error': True, 'result': str(err) }

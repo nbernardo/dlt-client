@@ -1,0 +1,15 @@
+let
+    token = "jwt-token-hash",
+    namespace = "e2e-namespace",
+    dw_path = "pipeline.dw__or_schema_name",
+    model = "model_name",
+    Source = Binary.Buffer(Web.Contents(
+        "http://server-ip:8000",
+        [
+            Headers = [ #"Authorization" = "Bearer " & token, #"Content-Type" = "application/json"],
+            RelativePath = "query-parquet-export/"& namespace &"/"&dw_path,  Content = Json.FromValue([sql=null,model=model])
+        ]
+    )),
+    Result = ParseQueryResult(Source)
+in
+    Result
