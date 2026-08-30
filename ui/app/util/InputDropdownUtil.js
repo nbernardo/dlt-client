@@ -49,7 +49,7 @@ export class InputDropdown {
         this.componentFieldName = params.componentFieldName;
         if (params.dataSource) this.dataSource = params.dataSource;
         if (params.onSelect)
-            this.onSelect = async (selectedVal) => await params.onSelect(selectedVal, this)
+            this.onSelect = async (selectedVal) => { this.#value = selectedVal; await params.onSelect(selectedVal, this) }
 
         this.filterInput = document.querySelector(params.inputSelector);
         this.filterableList = document.querySelector(params.filterableListSelector);
@@ -85,6 +85,7 @@ export class InputDropdown {
         this.populateList();
     }
 
+    #value;
     filterList(event) {
         
         const filterText = this.filterInput.value.toLowerCase().trim();
@@ -108,7 +109,10 @@ export class InputDropdown {
             this.filterableList.classList.remove('hidden');
         else
             this.filterableList.classList.add('hidden');
+        this.#value = filterText;
     }
+
+    /** @type { String } */ getValue() { return this.#value }
 
     initInputHandling() {
         const self = this;

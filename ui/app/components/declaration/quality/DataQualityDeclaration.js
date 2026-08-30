@@ -1,7 +1,9 @@
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
+import { HTTPHeaders } from "../../../../@still/helper/http.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { InputDropdown } from "../../../util/InputDropdownUtil.js";
+import { BIService } from "../../dataviz/services/BIService.js";
 import { ModelDeclarationController } from "../controller/ModelDeclarationController.js";
 import { QualityDeclarationController } from "../controller/QualityDeclarationController.js";
 import { ModelDeclaration } from "../model/ModelDeclaration.js";
@@ -64,5 +66,21 @@ export class DataQualityDeclaration extends ViewComponent {
 	const data = await WorkspaceService.getConnectionDetails(secretName, true);
 	this.databaseSchema = data.tables;
 	this.tableFilter.setDataSource(Object.keys(data.tables));
+  }
+
+  async saveModel(){
+	const url = `/declaration/model/${(await BIService.getNamespace())}`;
+	const definition = this.controller.compileJSON();
+	const qualityCheckQuery = this.controller.compileQuarantineSQL();
+	const [model, modelQuery, modelName] = [definition, qualityCheckQuery, this.tableFilter.getValue()];
+
+	const payload = { model, modelName, modelQuery, dw: this.modelDeclaration.selectedDW, quality: true };
+	let result = await $still.HTTPClient.post(url, JSON.stringify(payload), HTTPHeaders.JSON);
+	result = await result.json();
+	if(result.result) AppTemplate.toast.success(`Data quality rules created successfully`);
+	else{
+		if(result.existing) AppTemplate.toast.warn(`There is already a Data quality rules with name ${modelName} for the pipeline data source`, 10000);
+		else AppTemplate.toast.error(`Erro while creating Data quality rules "${modelName}" for the pipeline data source`, 10000);
+	}
   }
 }

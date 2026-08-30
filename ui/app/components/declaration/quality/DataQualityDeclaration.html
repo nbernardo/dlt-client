@@ -105,7 +105,10 @@
     <div class="panel">
       <div class="panel-header">
         <span>1. Quality Assertions & Rules</span>
-        <button class="btn btn-primary btn-sm" style="width: auto;" onclick="controller.addRule(event)">+ Add Assertion Rule</button>
+        <div>
+          <button class="btn btn-primary btn-sm" style="width: auto;" onclick="controller.addRule(event)">+ Add Assertion Rule</button>
+          <button class="btn btn-primary btn-sm" style="width: auto;" onclick="component.saveModel()">Save</button>
+        </div>
       </div>
 
       <div class="context-bar target-dataset-wrap">
