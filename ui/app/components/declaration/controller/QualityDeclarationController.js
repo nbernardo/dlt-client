@@ -1,4 +1,5 @@
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
+import { AppTemplate } from "../../../../config/app-template.js";
 import { DataQualityDeclaration } from "../quality/DataQualityDeclaration.js";
 
 export class QualityDeclarationController extends BaseController {
@@ -45,7 +46,7 @@ export class QualityDeclarationController extends BaseController {
     }
   }
 
-  getColumnsForDataset(dataset) { return (this.obj.modelDeclaration?.controller?.schema || {})[dataset] || []; }
+  getColumnsForDataset(dataset) { return (this.obj.databaseSchema || {})[dataset] || []; }
 
   getSeverityBg(severity) {
     switch (severity) {
@@ -135,7 +136,7 @@ export class QualityDeclarationController extends BaseController {
             <span>Rule #${idx + 1}</span>
             <span class="badge" style="background: ${this.getSeverityBg(rule.severity)}; color: ${this.getSeverityTxt(rule.severity)}">${rule.severity}</span>
           </div>
-          <button type="button" class="btn btn-danger btn-sm" onclick="controller.removeRule('${rule.id}')" title="Delete Rule">✕ Remove</button>
+          <button type="button" class="btn btn-danger btn-sm" style="width:auto;" onclick="controller.removeRule('${rule.id}')" title="Delete Rule">✕ Remove</button>
         </div>
 
         <div class="rule-card-body">
@@ -178,8 +179,8 @@ export class QualityDeclarationController extends BaseController {
   }
 
   renderColumnSelect(rule) {
-    const columns = this.getColumnsForDataset(this.targetDataset);
-
+    let columns = this.getColumnsForDataset(this.targetDataset);
+    
     if (columns.length === 0) 
       return `<input type="text" class="input-control mono" value="${rule.column}" placeholder="column_name (unknown table — type manually)" oninput="controller.updateRule('${rule.id}', 'column', this.value)">`;
 
@@ -417,8 +418,7 @@ export class QualityDeclarationController extends BaseController {
     const rowLevelRules = this.rules.filter(r => !this.DATASET_LEVEL_TYPES.includes(r.type));
 
     rowLevelRules.forEach((rule, idx) => {
-      const failuresSQL = this.getFailuresSQL(rule);
-      const target = rule.column || '(dataset-level)';
+      const failuresSQL = this.getFailuresSQL(rule), target = rule.column || '(dataset-level)';
       const msg = this.getMessageExpr(rule, `(SELECT COUNT(*) FROM t)`);
 
       lines.push(`-- Quarantine Rule #${idx + 1} (${rule.id})`);
@@ -448,8 +448,7 @@ export class QualityDeclarationController extends BaseController {
     } catch (e) {
       this.obj.quarantineList.innerHTML = `<div class="quarantine-empty">Couldn't parse that as a JSON array of row objects. Example: [{"order_id": 1, "order_status": "completed"}]</div>`;
       this.obj.quarantineCountBadge.style.display = 'none';
-      this.quarantineRecords = [];
-      return;
+      return this.quarantineRecords = [];
     }
 
     this.quarantineRecords = [];
@@ -532,7 +531,7 @@ export class QualityDeclarationController extends BaseController {
         return rank(a.severity) - rank(b.severity);
       });
 
-      this.obj.quarantineList.innerHTML = sorted.map((rec, idx) => `
+      this.obj.quarantineList.innerHTML = sorted.map((rec, idx) => this.obj.parseEvents(`
         <div class="q-card" id="qcard-${idx}">
           <div class="q-card-header" onclick="controller.toggleQCard(${idx})">
             <span class="chev">▶</span>
@@ -541,7 +540,7 @@ export class QualityDeclarationController extends BaseController {
           </div>
           <div class="q-card-body"><pre>${this.escapeHtml(JSON.stringify(rec, null, 2))}</pre></div>
         </div>
-      `).join('');
+      `)).join('');
     }
 
     const skipped = skippedTypes ? Array.from(skippedTypes) : [];
@@ -562,15 +561,13 @@ export class QualityDeclarationController extends BaseController {
 
   copyOutput = () => {
     navigator.clipboard.writeText(this.obj.codeOutput.textContent);
-    alert('DQ Specification copied to clipboard!');
+    AppTemplate.toast.success('DQ Specification copied to clipboard!')
   };
 
   copyQuarantineJSON = () => {
-    if (this.quarantineRecords.length === 0) {
-      alert('No quarantined records yet — paste sample data and click Evaluate first.');
-      return;
-    }
+    if (this.quarantineRecords.length === 0) 
+      return alert('No quarantined records yet — paste sample data and click Evaluate first.');
     navigator.clipboard.writeText(JSON.stringify(this.quarantineRecords, null, 2));
-    alert(`Copied ${this.quarantineRecords.length} quarantine record(s) as JSON.`);
+    AppTemplate.toast.success(`Copied ${this.quarantineRecords.length} quarantine record(s) as JSON.`);
   };
 }

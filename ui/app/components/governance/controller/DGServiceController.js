@@ -12,7 +12,7 @@ export class DGServiceController extends BaseController {
             return { id: `${table}.${name}`, name, table, trans: f['translation'], desc: f['description'], disabled }
         }
         const fields = (Object.values(result.allFields) || []).flatMap(itm => itm).map(f => generateField(f));
-        return { fields, tables: Object.keys(result.allFields) };
+        return { fields, tables: Object.keys(result.allFields), secretName: result.secretName };
         
     }
 

@@ -38,6 +38,10 @@ export class ModelDeclaration extends ViewComponent {
 
   /** @Prop @type { String } */ selectedDW = '';
 
+  /** @Prop @type { String } */ selectedSecred;
+
+  /** @Prop @type { Boolean } */ loadingDQ = false;
+
   /** @Prop @type { DataQualityDeclaration } */ dataQualityInstance;
 
   /** @type { State<Array> } */ tableList;
@@ -66,34 +70,39 @@ export class ModelDeclaration extends ViewComponent {
       		return document.querySelector(`.btn-primary.save-declaration`).disabled = false;
       	document.querySelector(`.btn-primary.save-declaration`).disabled = true;
 	});
-
-	this.tableList.onChange(tables => this.dataQualityInstance ? this.dataQualityInstance.tableFilter.setDataSource(tables) : '');
   }
 
   async switchTab(el, tab) { 
-    switchActiveTab(this, tab, el); 
-	if(tab === 'quality-model'){
-		const { component: dQComponent, template: dQUI } = await Components.newView(DataQualityDeclaration, {});
-		this.container.querySelector('#sec-quality-model').innerHTML = dQUI;
-		this.dataQualityInstance = dQComponent;
-		this.dataQualityInstance.modelDeclaration = this;
-	}
+    switchActiveTab(this, tab, el);
+	setTimeout(async () => {
+		if(tab === 'quality-model'){
+		  this.loadingDQ = true;
+		  const { component: dQComponent, template: dQUI } = await Components.newView(DataQualityDeclaration, { modelDeclaration: this });
+		  this.container.querySelector('#sec-quality-model-content').innerHTML = dQUI;
+		  this.dataQualityInstance = dQComponent;
+		  return document.querySelector('.model-declaration-section').classList.remove('model-declaration-stretch');
+		}
+		document.querySelector('.model-declaration-section').classList.add('model-declaration-stretch'); 
+	})
   }
 
   /** @returns { HTMLElement } */ $ = (ref) => this.container.querySelector(ref);
   /** @returns { HTMLElement } */ $$ = (ref) => this.container.querySelectorAll(ref);
 
   async loadTablesByPipeline(ppline){
+	this.loadingDQ = true;
 	const pplinePath = ppline.split('.');
-	const { fields, tables } = await this.serviceController.loadTablesByPipeline(pplinePath.slice(0,2).join('.'));
-	this.selectedDW = ppline; 
+	const { fields, tables, secretName } = await this.serviceController.loadTablesByPipeline(pplinePath.slice(0,2).join('.'));
+	this.selectedDW = ppline, this.selectedSecred = secretName; 
 	const fieldsMap = fields.reduce((acc, { table, name: fieldName }) => {
 		if(!acc[table]) acc[table] = [];
 		acc[table].push(fieldName)
 		return acc
 	}, {});
-	this.controller.schema = fieldsMap;	
-	if(this.dataQualityInstance) this.dataQualityInstance.tableFilter.setDataSource(tables);
+	this.controller.schema = fieldsMap;
+	this.tableList = tables;	
+	if(this.dataQualityInstance) this.dataQualityInstance.updateDataSource(secretName);
+	this.loadingDQ = false;
   }
 
   async saveModel(){

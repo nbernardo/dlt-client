@@ -75,7 +75,7 @@
 .quarantine-panel { flex: 1 1 40%; margin: 8px 16px 16px 16px; display: flex; flex-direction: column; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
 .sample-input-wrap { padding: 12px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); background: #fff; display: flex; flex-direction: column; gap: 6px; }
 .sample-input-wrap textarea { width: 100%; height: 90px; resize: vertical; font-family: var(--font-mono); }
-.quarantine-list { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; background: var(--color-background-secondary); }
+.quarantine-panel { flex: none; height: 280px;  margin: 8px 16px 16px 16px; display: flex; flex-direction: column; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
 .quarantine-empty { color: var(--color-text-secondary); font-size: 12px; text-align: center; padding: 28px 12px; }
 .quarantine-note { color: var(--color-text-secondary); font-size: 11px; padding: 8px 4px 2px 4px; }
 
@@ -90,11 +90,11 @@
 .q-card.expanded .q-card-body { display: block; }
 .q-card-body pre { margin: 0; font-family: var(--font-mono); font-size: 11.5px; white-space: pre-wrap; color: #1E242B; }
 .target-dataset-wrap { position: relative; }
-
 .input-filter-result-qualityTableName { position: absolute; top: 100%; left: 0; margin-top: -12px; margin-left: 117px; }
+.quarantine-list{ height: 41%; overflow: scroll; }
 </style>
 
-<div class="componentui-main-container declarations-ui @cmpInternalId">
+<div class="componentui-main-container declarations-ui @cmpInternalId" style="height: 94.5%;">
 	<div class="app-header" style="display: flex; height: 40px;">
 	  <h1 style="color: white; margin-bottom: 0;">Data Quality Declaration</h1>
 	  <span class="badge badge-teal">Visual Rule Engine v0.1</span>
@@ -130,7 +130,7 @@
             <button class="tab-btn" data-tab="gate" onclick="component.switchTab(this)">Orchestration Gate</button>
             <button class="tab-btn" data-tab="json" onclick="component.switchTab(this)">DQ Spec (JSON)</button>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="controller.copyOutput()">Copy</button>
+          <!-- <button class="btn btn-primary btn-sm" onclick="controller.copyOutput()">Copy</button> -->
         </div>
       </div>
       <div class="gate-strip">
@@ -145,20 +145,20 @@
 
   <!-- QUARANTINE PREVIEW -->
   <div class="quarantine-panel">
-    <div class="panel-header">
+    <div class="panel-header" style="flex: initial;">
       <span>3. Quarantine Preview <span class="hint">— paste sample rows, evaluate rules in the browser, click a record to see it</span></span>
       <div style="display:flex; gap:8px; align-items:center;">
         <span id="quarantine-count-badge" class="badge badge-teal" style="display:none;"></span>
-        <button class="btn btn-sm" onclick="controller.toggleSampleInput()">Paste Sample Data</button>
+        <button class="btn btn-sm" style="width: auto;" onclick="controller.toggleSampleInput()">Paste Sample Data</button>
         <button class="btn btn-primary btn-sm" onclick="controller.evaluateSampleData()">Evaluate</button>
-        <button class="btn btn-sm" onclick="controller.copyQuarantineJSON()">Copy Quarantine JSON</button>
+        <button class="btn btn-sm" style="width: auto;" onclick="controller.copyQuarantineJSON()">Copy Quarantine JSON</button>
       </div>
     </div>
     <div class="sample-input-wrap" id="sample-input-wrap" style="display:none;">
       <label style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">Sample rows — JSON array of objects matching your dataset's columns</label>
       <textarea id="sample-data-input" class="input-control mono" placeholder='[{"order_id": 1001, "order_status": "completed", "total_amount": 250.00}, {"order_id": null, "order_status": "pending", "total_amount": 90.00}]'></textarea>
     </div>
-    <div id="quarantine-list" class="quarantine-list">
+    <div id="quarantine-list" class="quarantine-list" style="flex: 2px;">
       <div class="quarantine-empty">Paste sample rows above and click Evaluate. Every rule violation on every row becomes its own card here — click a card to expand the full record. NOT_NULL, UNIQUE, ACCEPTED_VALUES, VALUE_RANGE and REGEX_MATCH rules run live in the browser; REFERENTIAL_INTEGRITY, FRESHNESS, ROW_COUNT and CUSTOM_SQL need a real warehouse — use the Quarantine SQL tab for those.</div>
     </div>
   </div>

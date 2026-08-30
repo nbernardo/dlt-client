@@ -95,6 +95,7 @@ export class BIService extends BaseService {
         const response = await $still.HTTPClient.get(url);
         if (response.ok){
             let result = await response.json();
+            const secretName = result.result['secret_name']; delete result.result['secret_name'];
             const rangeFieldsData = {}, rengeFields = (result.result.range_fields_data[0] || {})
             for(const itm of Object.entries(rengeFields)){
 
@@ -105,7 +106,7 @@ export class BIService extends BaseService {
                 rangeFieldsData[fieldName] = { ...preValues, [minOrMax]: String(itm[1]).includes('T') ? itm[1].split('T')[0] : itm[1] };
             }
             result = Object.prototype.toString.call(result.result.all_fields) === '[object Object]' ? '{}' : result.result.all_fields;
-            return { allFields: JSON.parse(result), rangeFieldsData };
+            return { allFields: JSON.parse(result), rangeFieldsData, secretName };
         }
         return [];
     }

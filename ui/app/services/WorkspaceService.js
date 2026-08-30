@@ -577,10 +577,10 @@ export class WorkspaceService extends BaseService {
     }
 
     /** @returns { {tables, secret_details} } */
-    static async getConnectionDetails(connectionName) {
+    static async getConnectionDetails(connectionName, fieldsListFlag = false) {
 
         const namespace = await UserService.getNamespace();
-        const url = `/${namespace}/db/connection/${connectionName}/tables`;
+        const url = `/${namespace}/db/connection/${connectionName}/tables${fieldsListFlag ? '/'+fieldsListFlag : ''}`;
 
         const response = await $still.HTTPClient.get(url);
         const result = await response.json();
