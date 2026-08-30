@@ -1,7 +1,7 @@
 let
     token = "jwt-token-hash",
     namespace = "e2e-namespace",
-    dw_path = "pipeline.dw__or_schema_name",
+    dw_path = "pipeline_name.dw_or_schema_name",
     model = "model_name",
     Source = Binary.Buffer(Web.Contents(
         "http://server-ip:8000",

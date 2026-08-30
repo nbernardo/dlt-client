@@ -1,14 +1,13 @@
 let
     token = "jwt-token-hash",
-    TargetTable = "dwname.table_naem",
-    sql = "SELECT col1, col2, colN FROM " & TargetTable & " LIMIT 100",
-
+    sql = "SELECT col1, col2, colN FROM dwname.table_naem LIMIT 100",
+    namespace = "e2e-namespace",
+    pipeline = "pipeline_name",
     Source = Binary.Buffer(Web.Contents(
         "http://server-ip:8000",
         [
             Headers = [ #"Authorization" = "Bearer " & token, #"Content-Type" = "application/json"],
-            RelativePath = "query-parquet-export/mycompany/0_fgc_pipeline_new
-",  Content = Json.FromValue([sql=sql])
+            RelativePath = "query-parquet-export/"& namespace &"/"&pipeline,  Content = Json.FromValue([sql=sql])
         ]
     )),
     Result = ParseQueryResult(Source)
