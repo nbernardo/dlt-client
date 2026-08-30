@@ -576,9 +576,10 @@ def fetch_secret(namespace, type, secretname):
     
 
 @workspace.route('/<namespace>/db/connection/<connection_name>/tables', methods=['GET'])
-def get_db_connection_detailes(namespace, connection_name):
+@workspace.route('/<namespace>/db/connection/<connection_name>/tables/<fields_list_flag>', methods=['GET'])
+def get_db_connection_detailes(namespace, connection_name, fields_list_flag = False):
 
-    result = SQLDatabase.get_tables_list(namespace, connection_name)
+    result = SQLDatabase.get_tables_list(namespace, connection_name, fields_list_flag)
 
     if 'error' not in result:
         return { 'error': False, 'result': { 'tables': result['tables'], 'secret_details': result['details'] } }
