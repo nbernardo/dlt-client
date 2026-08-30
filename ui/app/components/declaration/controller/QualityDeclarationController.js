@@ -9,21 +9,13 @@ export class QualityDeclarationController extends BaseController {
   activeTab = 'sql';
   quarantineRecords = [];
 
-  rules = [
-    { id: "dq_101", type: "NOT_NULL", column: "order_id", severity: "ERROR", params: {} },
-    { id: "dq_102", type: "UNIQUE", column: "order_id", severity: "CRITICAL", params: {} },
-    { id: "dq_103", type: "ACCEPTED_VALUES", column: "order_status", severity: "WARN", params: { values: "'completed', 'shipped', 'pending', 'cancelled'" } },
-    { id: "dq_104", type: "VALUE_RANGE", column: "total_amount", severity: "ERROR", params: { min: "0.00", max: "100000.00" } },
-    { id: "dq_105", type: "CUSTOM_SQL", column: "", severity: "ERROR", params: { sql: "discount_amount <= total_amount" } },
-    { id: "dq_106", type: "REFERENTIAL_INTEGRITY", column: "customer_id", severity: "ERROR", params: { ref_table: "public.customers", ref_column: "customer_id" } },
-    { id: "dq_107", type: "REGEX_MATCH", column: "customer_email", severity: "WARN", params: { pattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" } },
-    { id: "dq_108", type: "FRESHNESS", column: "updated_at", severity: "WARN", params: { max_age_hours: "24" } },
-    { id: "dq_109", type: "ROW_COUNT", column: "", severity: "CRITICAL", params: { min_rows: "1", max_rows: "" } }
-  ];
+  rules = []; //sampleRules;
 
   NO_COLUMN_TYPES = ['CUSTOM_SQL', 'ROW_COUNT'];
   DATASET_LEVEL_TYPES = ['FRESHNESS', 'ROW_COUNT'];
   LIVE_EVALUABLE_TYPES = ['NOT_NULL', 'UNIQUE', 'ACCEPTED_VALUES', 'VALUE_RANGE', 'REGEX_MATCH'];
+
+   TABLE_COLUMNS_SAMPLE = {}; //sampleTables;
 
   async initComponent() {
     this.obj.container = document.getElementsByClassName(this.obj.cmpInternalId)[0];
@@ -49,8 +41,11 @@ export class QualityDeclarationController extends BaseController {
         this.targetDataset = e.target.value.trim();
         this.compileAll();
       });
+      this.obj.targetDatasetInput.addEventListener('change', () => { this.renderRules(), this.compileAll(); });
     }
   }
+
+  getColumnsForDataset(dataset) { return (this.obj.modelDeclaration?.controller?.schema || {})[dataset] || []; }
 
   getSeverityBg(severity) {
     switch (severity) {
@@ -133,7 +128,7 @@ export class QualityDeclarationController extends BaseController {
   renderRules() {
     if (!this.obj.rulesContainer) return;
 
-    this.obj.rulesContainer.innerHTML = this.rules.map((rule, idx) => `
+    this.obj.rulesContainer.innerHTML = this.rules.map((rule, idx) => this.obj.parseEvents(`
       <div class="rule-card">
         <div class="rule-card-header">
           <div class="rule-card-title">
@@ -162,7 +157,7 @@ export class QualityDeclarationController extends BaseController {
           ${!this.NO_COLUMN_TYPES.includes(rule.type) ? `
             <div class="field-group">
               <label>${rule.type === 'FRESHNESS' ? 'Timestamp Column' : 'Target Column'}</label>
-              <input type="text" class="input-control mono" value="${rule.column}" placeholder="column_name" oninput="controller.updateRule('${rule.id}', 'column', this.value)">
+              ${this.renderColumnSelect(rule)}
             </div>
           ` : ''}
 
@@ -179,7 +174,22 @@ export class QualityDeclarationController extends BaseController {
 
         ${this.renderDynamicParams(rule)}
       </div>
-    `).join('');
+    `)).join('');
+  }
+
+  renderColumnSelect(rule) {
+    const columns = this.getColumnsForDataset(this.targetDataset);
+
+    if (columns.length === 0) 
+      return `<input type="text" class="input-control mono" value="${rule.column}" placeholder="column_name (unknown table — type manually)" oninput="controller.updateRule('${rule.id}', 'column', this.value)">`;
+
+    const hasCurrent = rule.column && columns.includes(rule.column);
+    const options = [`<option value="">— select column —</option>`].concat(columns.map(c => `<option value="${c}" ${rule.column === c ? 'selected' : ''}>${c}</option>`));
+
+    if (rule.column && !hasCurrent) 
+      options.push(`<option value="${rule.column}" selected>${rule.column} (not in ${this.targetDataset})</option>`);
+    
+    return `<select class="select-control" onchange="controller.updateRule('${rule.id}', 'column', this.value)">${options.join('')}</select>`;
   }
 
   renderDynamicParams(rule) {
@@ -422,12 +432,8 @@ export class QualityDeclarationController extends BaseController {
 
   compileJSON() {
     return JSON.stringify({
-      dataset: this.targetDataset,
-      version: "3.0",
-      generated_at: new Date().toISOString(),
-      rule_count: this.rules.length,
-      assertions: this.rules,
-      live_preview_quarantined_records: this.quarantineRecords
+      dataset: this.targetDataset, version: "3.0", generated_at: new Date().toISOString(),
+      rule_count: this.rules.length, assertions: this.rules, live_preview_quarantined_records: this.quarantineRecords
     }, null, 2);
   }
 
@@ -450,27 +456,17 @@ export class QualityDeclarationController extends BaseController {
     const skippedTypes = new Set();
 
     this.rules.forEach(rule => {
-      if (!this.LIVE_EVALUABLE_TYPES.includes(rule.type)) {
-        skippedTypes.add(rule.type);
-        return;
-      }
+      if (!this.LIVE_EVALUABLE_TYPES.includes(rule.type)) 
+        return skippedTypes.add(rule.type);
+      
       const failingRows = this.evaluateRuleAgainstRows(rule, rows);
-      if (!failingRows) {
-        skippedTypes.add(rule.type);
-        return;
-      }
+      if (!failingRows) 
+        return skippedTypes.add(rule.type);
 
       failingRows.forEach((row, i) => {
         this.quarantineRecords.push({
-          quarantine_id: `${rule.id}_${i}`,
-          rule_id: rule.id,
-          severity: rule.severity,
-          assertion_type: rule.type,
-          target: rule.column || '(dataset-level)',
-          dataset: this.targetDataset,
-          message: this.buildLiveMessage(rule, row),
-          captured_at: new Date().toISOString(),
-          record: row
+          quarantine_id: `${rule.id}_${i}`, rule_id: rule.id, severity: rule.severity, assertion_type: rule.type, target: rule.column || '(dataset-level)',
+          dataset: this.targetDataset, message: this.buildLiveMessage(rule, row), captured_at: new Date().toISOString(), record: row
         });
       });
     });
@@ -541,20 +537,16 @@ export class QualityDeclarationController extends BaseController {
           <div class="q-card-header" onclick="controller.toggleQCard(${idx})">
             <span class="chev">▶</span>
             <span class="badge" style="background: ${this.getSeverityBg(rec.severity)}; color: ${this.getSeverityTxt(rec.severity)}">${rec.severity}</span>
-            <span class="q-card-rule">${rec.rule_id}</span>
-            <span class="q-card-msg">${this.escapeHtml(rec.message)}</span>
+            <span class="q-card-rule">${rec.rule_id}</span><span class="q-card-msg">${this.escapeHtml(rec.message)}</span>
           </div>
-          <div class="q-card-body">
-            <pre>${this.escapeHtml(JSON.stringify(rec, null, 2))}</pre>
-          </div>
+          <div class="q-card-body"><pre>${this.escapeHtml(JSON.stringify(rec, null, 2))}</pre></div>
         </div>
       `).join('');
     }
 
     const skipped = skippedTypes ? Array.from(skippedTypes) : [];
-    if (skipped.length) {
+    if (skipped.length) 
       this.obj.quarantineList.innerHTML += `<div class="quarantine-note">Not evaluated in-browser (need a real warehouse): ${skipped.join(', ')}. These still generate correctly in the Quarantine SQL / Orchestration Gate tabs.</div>`;
-    }
   }
 
   toggleQCard(idx) {

@@ -76,6 +76,7 @@ export class ModelDeclaration extends ViewComponent {
 		const { component: dQComponent, template: dQUI } = await Components.newView(DataQualityDeclaration, {});
 		this.container.querySelector('#sec-quality-model').innerHTML = dQUI;
 		this.dataQualityInstance = dQComponent;
+		this.dataQualityInstance.modelDeclaration = this;
 	}
   }
 
