@@ -36,7 +36,7 @@ export class InputDropdown {
         const /** @type { HTMLInputElement } */ inputHTMLElement = document.querySelector(params.inputSelector);
         inputHTMLElement.insertAdjacentHTML('afterend',filterResultLst);
         params.filterableListSelector = `#${resultListId}`;
-        params.componentFieldName = inputHTMLElement.dataset.stFieldName;
+        params.componentFieldName = inputHTMLElement.dataset.stFieldName;        
         
         return new InputDropdown(params);
         
@@ -48,14 +48,12 @@ export class InputDropdown {
         this.#params = params;
         this.componentFieldName = params.componentFieldName;
         if (params.dataSource) this.dataSource = params.dataSource;
-        if (params.onSelect){
-            this.onSelect = async (selectedVal) => {
-                await params.onSelect(selectedVal, this);
-            }
-        }
+        if (params.onSelect)
+            this.onSelect = async (selectedVal) => await params.onSelect(selectedVal, this)
 
         this.filterInput = document.querySelector(params.inputSelector);
         this.filterableList = document.querySelector(params.filterableListSelector);
+        this.filterableList.classList.add(`input-filter-result-${params.componentFieldName}`)
         this.populateList();
         this.initInputHandling();
     }

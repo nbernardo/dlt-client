@@ -1,6 +1,8 @@
 import { $still } from "../../../../@still/component/manager/registror.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
+import { State } from "../../../../@still/component/type/ComponentType.js";
 import { HTTPHeaders } from "../../../../@still/helper/http.js";
+import { Components } from "../../../../@still/setup/components.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
 import { AppTemplate } from "../../../../config/app-template.js";
 import { switchActiveTab } from "../../../util/tabs.js";
@@ -8,6 +10,7 @@ import { BIService } from "../../dataviz/services/BIService.js";
 import { DGServiceController } from "../../governance/controller/DGServiceController.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { ModelDeclarationController } from "../controller/ModelDeclarationController.js";
+import { DataQualityDeclaration } from "../quality/DataQualityDeclaration.js";
 
 export class ModelDeclaration extends ViewComponent {
 
@@ -35,6 +38,10 @@ export class ModelDeclaration extends ViewComponent {
 
   /** @Prop @type { String } */ selectedDW = '';
 
+  /** @Prop @type { DataQualityDeclaration } */ dataQualityInstance;
+
+  /** @type { State<Array> } */ tableList;
+
   /** @type { Workspace } */ $parent;
 
   modelName;
@@ -48,6 +55,7 @@ export class ModelDeclaration extends ViewComponent {
   }
 
   async stAfterInit() {
+	this.tableList = [];
     this.controller.on('load', async () => {
       this.controller.obj = this;
       await this.controller.initEditor();
@@ -58,10 +66,17 @@ export class ModelDeclaration extends ViewComponent {
       		return document.querySelector(`.btn-primary.save-declaration`).disabled = false;
       	document.querySelector(`.btn-primary.save-declaration`).disabled = true;
 	});
+
+	this.tableList.onChange(tables => this.dataQualityInstance ? this.dataQualityInstance.tableFilter.setDataSource(tables) : '');
   }
 
-  switchTab(el) { 
-    switchActiveTab(this, null, el); 
+  async switchTab(el, tab) { 
+    switchActiveTab(this, tab, el); 
+	if(tab === 'quality-model'){
+		const { component: dQComponent, template: dQUI } = await Components.newView(DataQualityDeclaration, {});
+		this.container.querySelector('#sec-quality-model').innerHTML = dQUI;
+		this.dataQualityInstance = dQComponent;
+	}
   }
 
   /** @returns { HTMLElement } */ $ = (ref) => this.container.querySelector(ref);
@@ -69,14 +84,15 @@ export class ModelDeclaration extends ViewComponent {
 
   async loadTablesByPipeline(ppline){
 	const pplinePath = ppline.split('.');
-	const { fields } = await this.serviceController.loadTablesByPipeline(pplinePath.slice(0,2).join('.'));
+	const { fields, tables } = await this.serviceController.loadTablesByPipeline(pplinePath.slice(0,2).join('.'));
 	this.selectedDW = ppline; 
 	const fieldsMap = fields.reduce((acc, { table, name: fieldName }) => {
 		if(!acc[table]) acc[table] = [];
 		acc[table].push(fieldName)
 		return acc
 	}, {});
-	this.controller.schema = fieldsMap;
+	this.controller.schema = fieldsMap;	
+	if(this.dataQualityInstance) this.dataQualityInstance.tableFilter.setDataSource(tables);
   }
 
   async saveModel(){

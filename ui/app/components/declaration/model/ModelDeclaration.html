@@ -46,54 +46,63 @@ textarea { flex: 1; width: 100%; padding: 14px; border: none; font-family: var(-
 <div class="componentui-main-container declarations-ui @cmpInternalId">
 
 	<nav class="tabs shared-tab-navigation">
-		<div class="tab active" onclick="component.switchTab(this)">
+		<div class="tab active" onclick="component.switchTab(this, 'regular-model')">
 			<img src="/app/assets/imgs/3d.png" alt="">
 			$bundle.dataModelTab
 		</div>
-		<div class="tab" onclick="component.switchTab(this)">
+		<div class="tab" onclick="component.switchTab(this, 'quality-model')">
 			<img src="/app/assets/imgs/rule.png" alt="">
 			$bundle.dataQualityTab
 		</div>
 	</nav>
 
-	<div class="app-header" style="display: flex; height: 40px;">
-	  <h1 style="color: white; margin-bottom: 0;">YAML Model Declaration</h1>
-	  <span class="badge badge-teal">Composed Measures v0.1</span>
-	</div>
-	
-	<div id="error-box" class="error-banner"></div>
-	
-	<div class="workbench">
-	  <!-- YAML EDITOR -->
-	  <div class="panel">
-		<div class="panel-header">
-		  <span>1. Declarative Model (YAML)</span>
-		  <div style="display: flex; gap: 5px;">
-			<form>
-				<input type="text" (value)="modelName" placeholder="$bundle.modelNamePholder">
-				<button type="button" class="btn" style="width: 62px;" onclick="controller.resetDeclaration(event)">Reset</button>
-				<button 
-					type="button" disabled class="btn btn-primary save-declaration" 
-					style="width: 98px;" onclick="component.saveModel()">
-					Save model
-				</button>
-			</form>
+	<div style="height: stretch;" id="sec-regular-model" class="section active">
+
+		<div class="app-header" style="display: flex; height: 40px;">
+		  <h1 style="color: white; margin-bottom: 0;">YAML Model Declaration</h1>
+		  <span class="badge badge-teal">Composed Measures v0.1</span>
+		</div>
+		
+		<div id="error-box" class="error-banner"></div>
+		
+		<div class="workbench">
+		  <!-- YAML EDITOR -->
+		  <div class="panel">
+			<div class="panel-header">
+			  <span>1. Declarative Model (YAML)</span>
+			  <div style="display: flex; gap: 5px;">
+				<form>
+					<input type="text" (value)="modelName" placeholder="$bundle.modelNamePholder">
+					<button type="button" class="btn" style="width: 62px;" onclick="controller.resetDeclaration(event)">Reset</button>
+					<button 
+						type="button" disabled class="btn btn-primary save-declaration" 
+						style="width: 98px;" onclick="component.saveModel()">
+						Save model
+					</button>
+				</form>
+			  </div>
+			</div>
+			<div id="yaml-input" placeholder="Write your semantic model here..." spellcheck="false"></div>
+		  </div>	
+		  <!-- COMPILED SQL -->
+		  <div class="panel">
+			<div class="panel-header">
+			  <span>2. Compiled SQL Output</span>
+			  <div style="display: flex; gap: 3px;">
+				  <button class="btn btn-primary" style="white-space: nowrap;  width: auto;" onclick="component.previewModel()">
+					<img src="/app/assets/imgs/database_search.png" style="width: 18px;"> Preview model result
+				  </button>
+				  <button class="btn btn-primary" onclick="controller.copySQL(event)">Copy SQL</button>
+			  </div>
+			</div>
+			<pre id="sql-output" class="sql-output">-- SQL will generate here automatically</pre>
 		  </div>
 		</div>
-		<div id="yaml-input" placeholder="Write your semantic model here..." spellcheck="false"></div>
-	  </div>	
-	  <!-- COMPILED SQL -->
-	  <div class="panel">
-		<div class="panel-header">
-		  <span>2. Compiled SQL Output</span>
-		  <div style="display: flex; gap: 3px;">
-			  <button class="btn btn-primary" style="white-space: nowrap;  width: auto;" onclick="component.previewModel()">
-				<img src="/app/assets/imgs/database_search.png" style="width: 18px;"> Preview model result
-			  </button>
-			  <button class="btn btn-primary" onclick="controller.copySQL(event)">Copy SQL</button>
-		  </div>
-		</div>
-		<pre id="sql-output" class="sql-output">-- SQL will generate here automatically</pre>
-	  </div>
+		
 	</div>
+
+	<div style="height: stretch; display: none;" id="sec-quality-model" class="section">
+		This is the
+	</div>
+
 </div>
