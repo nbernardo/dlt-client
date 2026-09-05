@@ -7,22 +7,21 @@ export class QualityDeclarationController extends BaseController {
   /** @type { DataQualityDeclaration } */ obj;
 
   targetDataset = 'public.orders';
-  activeTab = 'sql';
+  primaryKey = 'id';
+  activeTab = 'quarantine-sql';
   quarantineRecords = [];
-
-  rules = []; //sampleRules;
+  rules = [];
 
   NO_COLUMN_TYPES = ['CUSTOM_SQL', 'ROW_COUNT'];
   DATASET_LEVEL_TYPES = ['FRESHNESS', 'ROW_COUNT'];
   LIVE_EVALUABLE_TYPES = ['NOT_NULL', 'UNIQUE', 'ACCEPTED_VALUES', 'VALUE_RANGE', 'REGEX_MATCH'];
-
-   TABLE_COLUMNS_SAMPLE = {}; //sampleTables;
 
   async initComponent() {
     this.obj.container = document.getElementsByClassName(this.obj.cmpInternalId)[0];
 
     if (this.obj.container) {
       this.obj.targetDatasetInput = this.obj.$('#target-dataset');
+      this.obj.primaryKeyInput = this.obj.$('#primary-key');
       this.obj.rulesContainer = this.obj.$('#rules-container');
       this.obj.codeOutput = this.obj.$('#code-output');
       this.obj.sampleDataInput = this.obj.$('#sample-data-input');
@@ -42,7 +41,14 @@ export class QualityDeclarationController extends BaseController {
         this.targetDataset = e.target.value.trim();
         this.compileAll();
       });
-      this.obj.targetDatasetInput.addEventListener('change', () => { this.renderRules(), this.compileAll(); });
+      this.obj.targetDatasetInput.addEventListener('change', () => { this.renderRules(); this.compileAll(); });
+    }
+
+    if (this.obj.primaryKeyInput) {
+      this.obj.primaryKeyInput.addEventListener('input', (e) => {
+        this.primaryKey = e.target.value.trim() || 'id';
+        this.compileAll();
+      });
     }
   }
 
@@ -66,18 +72,7 @@ export class QualityDeclarationController extends BaseController {
     }
   }
 
-  gateAction(severity) {
-    switch (severity) {
-      case 'CRITICAL': return 'HALT_AND_ROLLBACK';
-      case 'ERROR': return 'FAIL_JOB';
-      case 'WARN': return 'PIPELINE_ALERT';
-      default: return 'LOG_ONLY';
-    }
-  }
-
-  escSql(str) {
-    return String(str == null ? '' : str).replace(/'/g, "''");
-  }
+  escSql = (str) => String(str == null ? '' : str).replace(/'/g, "''");
 
   addRule = (e) => {
     if (e) e.preventDefault();
@@ -157,8 +152,7 @@ export class QualityDeclarationController extends BaseController {
 
           ${!this.NO_COLUMN_TYPES.includes(rule.type) ? `
             <div class="field-group">
-              <label>${rule.type === 'FRESHNESS' ? 'Timestamp Column' : 'Target Column'}</label>
-              ${this.renderColumnSelect(rule)}
+              <label>${rule.type === 'FRESHNESS' ? 'Timestamp Column' : 'Target Column'}</label> ${this.renderColumnSelect(rule)}
             </div>
           ` : ''}
 
@@ -172,7 +166,6 @@ export class QualityDeclarationController extends BaseController {
             </select>
           </div>
         </div>
-
         ${this.renderDynamicParams(rule)}
       </div>
     `)).join('');
@@ -180,9 +173,8 @@ export class QualityDeclarationController extends BaseController {
 
   renderColumnSelect(rule) {
     let columns = this.getColumnsForDataset(this.targetDataset);
-    
     if (columns.length === 0) 
-      return `<input type="text" class="input-control mono" value="${rule.column}" placeholder="column_name (unknown table — type manually)" oninput="controller.updateRule('${rule.id}', 'column', this.value)">`;
+      return `<input type="text" class="input-control mono" value="${rule.column}" placeholder="column_name" oninput="controller.updateRule('${rule.id}', 'column', this.value)">`;
 
     const hasCurrent = rule.column && columns.includes(rule.column);
     const options = [`<option value="">— select column —</option>`].concat(columns.map(c => `<option value="${c}" ${rule.column === c ? 'selected' : ''}>${c}</option>`));
@@ -198,7 +190,7 @@ export class QualityDeclarationController extends BaseController {
       return `
         <div class="rule-card-body full" style="border-top: 0.5px dashed var(--color-border-tertiary); padding-top: 8px;">
           <div class="field-group">
-            <label>Allowed Values (Comma separated strings or numbers)</label>
+            <label>Allowed Values (Comma separated)</label>
             <input type="text" class="input-control mono" value="${rule.params.values || ''}" placeholder="'active', 'inactive'" oninput="controller.updateRuleParam('${rule.id}', 'values', this.value)">
           </div>
         </div>`;
@@ -220,7 +212,7 @@ export class QualityDeclarationController extends BaseController {
       return `
         <div class="rule-card-body full" style="border-top: 0.5px dashed var(--color-border-tertiary); padding-top: 8px;">
           <div class="field-group">
-            <label>Pattern (JS-compatible regex for live preview; POSIX/PCRE for SQL)</label>
+            <label>Pattern (DuckDB Regex expression)</label>
             <input type="text" class="input-control mono" value="${rule.params.pattern || ''}" placeholder="^[A-Z0-9-]+$" oninput="controller.updateRuleParam('${rule.id}', 'pattern', this.value)">
           </div>
         </div>`;
@@ -264,7 +256,7 @@ export class QualityDeclarationController extends BaseController {
       return `
         <div class="rule-card-body full" style="border-top: 0.5px dashed var(--color-border-tertiary); padding-top: 8px;">
           <div class="field-group">
-            <label>SQL Boolean Predicate Expression (Must evaluate to TRUE for valid rows)</label>
+            <label>SQL Boolean Predicate Expression (Evaluates to TRUE for valid rows)</label>
             <input type="text" class="input-control mono" value="${rule.params.sql || ''}" placeholder="column_a > column_b" oninput="controller.updateRuleParam('${rule.id}', 'sql', this.value)">
           </div>
         </div>`;
@@ -289,7 +281,7 @@ export class QualityDeclarationController extends BaseController {
         return `SELECT *\n  FROM ${dataset}\n  WHERE ${conds.join(' OR ') || 'FALSE'}`;
       }
       case 'REGEX_MATCH':
-        return `SELECT *\n  FROM ${dataset}\n  WHERE ${col} IS NOT NULL\n    AND ${col} !~ '${this.escSql(rule.params.pattern || '.*')}'  -- Postgres regex; swap for your engine's operator`;
+        return `SELECT *\n  FROM ${dataset}\n  WHERE ${col} IS NOT NULL\n    AND NOT regexp_matches(CAST(${col} AS VARCHAR), '${this.escSql(rule.params.pattern || '.*')}')`;
       case 'REFERENTIAL_INTEGRITY': {
         const refTable = rule.params.ref_table || 'ref_table';
         const refCol = rule.params.ref_column || 'id';
@@ -311,129 +303,90 @@ export class QualityDeclarationController extends BaseController {
     }
   }
 
-  getMessageExpr(rule, countExpr) {
+  getRowMessageExpr(rule) {
     const col = rule.column || 'expression';
-    const dataset = this.targetDataset;
     switch (rule.type) {
       case 'NOT_NULL':
-        return `'${col} contains ' || ${countExpr} || ' NULL value(s) in ${dataset} (expected: NOT NULL)'`;
+        return `'${col} is NULL (expected: NOT NULL)'`;
       case 'UNIQUE':
-        return `${countExpr} || ' row(s) share a duplicated value on ${col} in ${dataset} (expected: UNIQUE)'`;
+        return `'${col} = ' || CAST(${col} AS VARCHAR) || ' is duplicated in ${this.targetDataset} (expected: UNIQUE)'`;
       case 'ACCEPTED_VALUES':
-        return `${countExpr} || ' row(s) in ${dataset} have ${col} outside allowed values (${this.escSql(rule.params.values || '')})'`;
+        return `'${col} = ' || CAST(${col} AS VARCHAR) || ' is not in allowed values (${this.escSql(rule.params.values || '')})'`;
       case 'VALUE_RANGE':
-        return `${countExpr} || ' row(s) in ${dataset} have ${col} outside range [${rule.params.min || '-inf'}, ${rule.params.max || '+inf'}]'`;
+        return `'${col} = ' || CAST(${col} AS VARCHAR) || ' is outside range [${rule.params.min || '-inf'}, ${rule.params.max || '+inf'}]'`;
       case 'REGEX_MATCH':
-        return `${countExpr} || ' row(s) in ${dataset} have ${col} not matching pattern /${this.escSql(rule.params.pattern || '')}/'`;
+        return `'${col} = ' || CAST(${col} AS VARCHAR) || ' does not match pattern /${this.escSql(rule.params.pattern || '')}/'`;
       case 'REFERENTIAL_INTEGRITY':
-        return `${countExpr} || ' row(s) in ${dataset} have ${col} with no matching ${rule.params.ref_column || 'id'} in ${rule.params.ref_table || 'ref_table'}'`;
-      case 'FRESHNESS':
-        return `'${dataset} has not been refreshed within ${rule.params.max_age_hours || '24'}h based on ${col}'`;
-      case 'ROW_COUNT':
-        return `'${dataset} row count is outside expected bounds [${rule.params.min_rows || '0'}, ${rule.params.max_rows || '\\u221e'}]'`;
+        return `'${col} = ' || CAST(${col} AS VARCHAR) || ' has no match on ${rule.params.ref_column || 'id'} in ${rule.params.ref_table || 'ref_table'}'`;
       case 'CUSTOM_SQL':
       default:
-        return `${countExpr} || ' row(s) in ${dataset} failed custom predicate: ${this.escSql(rule.params.sql || '')}'`;
+        return `'row in ${this.targetDataset} failed custom predicate: ${this.escSql(rule.params.sql || '')}'`;
     }
   }
 
   compileAll() {
     if (!this.obj.codeOutput) return;
-
-    if (this.activeTab === 'json')
-      return this.obj.codeOutput.textContent = this.compileJSON();
-    if (this.activeTab === 'gate') 
-      return this.obj.codeOutput.textContent = this.compileGate();
-    if (this.activeTab === 'quarantine-sql') 
-      return this.obj.codeOutput.textContent = this.compileQuarantineSQL();
-
-    this.obj.codeOutput.textContent = this.compileSQL();
-  }
-
-  compileSQL() {
-    const lines = [
-      `-- ============================================================`,
-      `-- Data Quality Audit Suite for: ${this.targetDataset}`,
-      `-- Rules: ${this.rules.length}  |  Generated: ${new Date().toISOString()}`,
-      `-- ============================================================\n`
-    ];
-
-    this.rules.forEach((rule, idx) => {
-      const alias = `${rule.id}_failures`;
-      const failuresSQL = this.getFailuresSQL(rule);
-      const messageExpr = this.getMessageExpr(rule, `(SELECT COUNT(*) FROM ${alias})`);
-      const target = rule.column || '(dataset-level)';
-
-      lines.push(`-- Rule #${idx + 1} [${rule.severity}] ${rule.type} on '${target}'  (${rule.id})`);
-      lines.push(`WITH ${alias} AS (`);
-      lines.push(`  ${failuresSQL.split('\n').join('\n  ')}`);
-      lines.push(`)`);
-      lines.push(`SELECT`);
-      lines.push(`  '${rule.id}' AS rule_id, '${rule.severity}' AS severity, '${rule.type}' AS assertion_type,`);
-      lines.push(`  '${target}' AS target, '${this.gateAction(rule.severity)}' AS action_if_failed,`);
-      lines.push(`  (SELECT COUNT(*) FROM ${alias}) AS invalid_records,`);
-      lines.push(`  CASE WHEN (SELECT COUNT(*) FROM ${alias}) > 0 THEN ${messageExpr} ELSE 'OK — no violations found' END AS message;\n`);
-    });
-
-    return lines.join('\n');
-  }
-
-  compileGate() {
-    const lines = [
-      `-- ============================================================`,
-      `-- Orchestration Gate for: ${this.targetDataset}`,
-      `-- ============================================================\n`,
-      `WITH rule_results AS (`
-    ];
-
-    const unionBlocks = this.rules.map((rule) => {
-      const alias = `${rule.id}_f`;
-      const failuresSQL = this.getFailuresSQL(rule);
-      const target = rule.column || '(dataset-level)';
-      const messageExpr = this.getMessageExpr(rule, `(SELECT COUNT(*) FROM ${alias})`);
-      return (
-        `  SELECT\n` +
-        `    '${rule.id}' AS rule_id, '${rule.severity}' AS severity, '${rule.type}' AS assertion_type,\n` +
-        `    '${target}' AS target, '${this.gateAction(rule.severity)}' AS action_if_failed,\n` +
-        `    (SELECT COUNT(*) FROM (${failuresSQL.split('\n').join(' ')}) ${alias}) AS invalid_records,\n` +
-        `    CASE WHEN (SELECT COUNT(*) FROM (${failuresSQL.split('\n').join(' ')}) ${alias}) > 0 THEN ${messageExpr} ELSE 'OK' END AS message`
-      );
-    });
-
-    lines.push(unionBlocks.join('\n  UNION ALL\n'));
-    lines.push(`)\nSELECT * FROM rule_results WHERE invalid_records > 0;`);
-    return lines.join('\n');
+    if (this.activeTab === 'json') return this.obj.codeOutput.textContent = this.compileJSON();
+    this.obj.codeOutput.textContent = this.compileQuarantineSQL();
   }
 
   compileQuarantineSQL() {
-    const lines = [
-      `-- Quarantine capture for: ${this.targetDataset}\n`,
-      `CREATE TABLE IF NOT EXISTS dq_quarantine (`,
-      `  quarantine_id BIGSERIAL PRIMARY KEY, rule_id TEXT NOT NULL, severity TEXT NOT NULL,`,
-      `  assertion_type TEXT NOT NULL, target TEXT, dataset TEXT NOT NULL, message TEXT NOT NULL,`,
-      `  record_json JSONB NOT NULL, captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
-      `);\n`
-    ];
+    const pk = this.primaryKey || 'id';
+    const lines = [`-- Quarantine capture for DuckDB: ${this.targetDataset}`];
 
     const rowLevelRules = this.rules.filter(r => !this.DATASET_LEVEL_TYPES.includes(r.type));
+    if (rowLevelRules.length === 0) {
+      lines.push(`-- No row-level rules defined for ${this.targetDataset} yet.`);
+      return lines.join('\n');
+    }
 
-    rowLevelRules.forEach((rule, idx) => {
-      const failuresSQL = this.getFailuresSQL(rule), target = rule.column || '(dataset-level)';
-      const msg = this.getMessageExpr(rule, `(SELECT COUNT(*) FROM t)`);
-
-      lines.push(`-- Quarantine Rule #${idx + 1} (${rule.id})`);
-      lines.push(`INSERT INTO dq_quarantine (rule_id, severity, assertion_type, target, dataset, message, record_json)`);
-      lines.push(`SELECT '${rule.id}', '${rule.severity}', '${rule.type}', '${target}', '${this.targetDataset}', ${msg}, to_jsonb(t)`);
-      lines.push(`FROM (${failuresSQL.split('\n').join('\n  ')}) t;\n`);
+    const cteBlocks = rowLevelRules.map(rule => {
+      const failuresSQL = this.getFailuresSQL(rule), msg = this.getRowMessageExpr(rule);
+      const target = rule.column || '(dataset-level)';
+      return (
+        `${rule.id}_failures AS (\n` +
+        `  SELECT CAST(t.${pk} AS VARCHAR) AS primary_key_value, to_json(t) AS record_json, '${rule.id}' AS rule_id, '${rule.type}' AS assertion_type,\n` +
+        `    '${target}' AS target, '${rule.severity}' AS severity, ${msg} AS message\n` +
+        `  FROM (\n    ${failuresSQL.split('\n').join('\n    ')}\n  ) t\n` +
+        `)`
+      );
     });
+
+    const unionAll = rowLevelRules.map(r => `  SELECT * FROM ${r.id}_failures`).join('\n  UNION ALL\n');
+
+    lines.push(`INSERT INTO _e2e_dq_quarantine (ingest_id, dataset, primary_key_value, record_json, rule_ids, assertion_types, targets, severities, worst_severity, messages)`);
+    lines.push(`WITH`);
+    lines.push(cteBlocks.join(',\n') + ',');
+    lines.push(`all_violations AS (`);
+    lines.push(unionAll);
+    lines.push(`)`);
+    lines.push(`SELECT`);
+    lines.push(`  '{0}' AS ingest_id,`);
+    lines.push(`  '${this.targetDataset}' AS dataset,`);
+    lines.push(`  primary_key_value,`);
+    lines.push(`  record_json,`);
+    lines.push(`  to_json(list(rule_id)) AS rule_ids,`);
+    lines.push(`  to_json(list(assertion_type)) AS assertion_types,`);
+    lines.push(`  to_json(list(target)) AS targets,`);
+    lines.push(`  to_json(list(severity)) AS severities,`);
+    lines.push(`  CASE MIN(CASE severity WHEN 'CRITICAL' THEN 0 WHEN 'ERROR' THEN 1 WHEN 'WARN' THEN 2 ELSE 3 END)`);
+    lines.push(`    WHEN 0 THEN 'CRITICAL' WHEN 1 THEN 'ERROR' WHEN 2 THEN 'WARN' ELSE 'INFO' END AS worst_severity,`);
+    lines.push(`  to_json(list(message)) AS messages`);
+    lines.push(`FROM all_violations`);
+    lines.push(`GROUP BY primary_key_value, record_json;`);
 
     return lines.join('\n');
   }
 
   compileJSON() {
     return JSON.stringify({
-      dataset: this.targetDataset, version: "3.0", generated_at: new Date().toISOString(),
-      rule_count: this.rules.length, assertions: this.rules, live_preview_quarantined_records: this.quarantineRecords
+      dataset: this.targetDataset,
+      primary_key: this.primaryKey,
+      version: "0.1",
+      generated_at: new Date().toISOString(),
+      rule_count: this.rules.length,
+      assertions: this.rules,
+      live_preview_quarantined_records: this.quarantineRecords
     }, null, 2);
   }
 
@@ -446,7 +399,7 @@ export class QualityDeclarationController extends BaseController {
       rows = JSON.parse(raw);
       if (!Array.isArray(rows)) throw new Error('not an array');
     } catch (e) {
-      this.obj.quarantineList.innerHTML = `<div class="quarantine-empty">Couldn't parse that as a JSON array of row objects. Example: [{"order_id": 1, "order_status": "completed"}]</div>`;
+      this.obj.quarantineList.innerHTML = `<div class="quarantine-empty">Couldn't parse that as a JSON array of row objects. Example: [{"id": 101, "order_status": "completed"}]</div>`;
       this.obj.quarantineCountBadge.style.display = 'none';
       return this.quarantineRecords = [];
     }
@@ -464,8 +417,16 @@ export class QualityDeclarationController extends BaseController {
 
       failingRows.forEach((row, i) => {
         this.quarantineRecords.push({
-          quarantine_id: `${rule.id}_${i}`, rule_id: rule.id, severity: rule.severity, assertion_type: rule.type, target: rule.column || '(dataset-level)',
-          dataset: this.targetDataset, message: this.buildLiveMessage(rule, row), captured_at: new Date().toISOString(), record: row
+          quarantine_id: `${rule.id}_${i}`, 
+          primary_key_value: row[this.primaryKey] !== undefined ? String(row[this.primaryKey]) : null,
+          rule_id: rule.id, 
+          severity: rule.severity, 
+          assertion_type: rule.type, 
+          target: rule.column || '(dataset-level)',
+          dataset: this.targetDataset, 
+          message: this.buildLiveMessage(rule, row), 
+          captured_at: new Date().toISOString(), 
+          record: row
         });
       });
     });
@@ -504,8 +465,7 @@ export class QualityDeclarationController extends BaseController {
   }
 
   buildLiveMessage(rule, row) {
-    const col = rule.column;
-    const val = row ? row[col] : undefined;
+    const col = rule.column, val = row ? row[rule.column] : undefined;
     switch (rule.type) {
       case 'NOT_NULL': return `${col} is null/empty (expected: NOT NULL)`;
       case 'UNIQUE': return `${col} = ${JSON.stringify(val)} is duplicated elsewhere in the sample`;
@@ -545,7 +505,7 @@ export class QualityDeclarationController extends BaseController {
 
     const skipped = skippedTypes ? Array.from(skippedTypes) : [];
     if (skipped.length) 
-      this.obj.quarantineList.innerHTML += `<div class="quarantine-note">Not evaluated in-browser (need a real warehouse): ${skipped.join(', ')}. These still generate correctly in the Quarantine SQL / Orchestration Gate tabs.</div>`;
+      this.obj.quarantineList.innerHTML += `<div class="quarantine-note">Not evaluated in-browser: ${skipped.join(', ')}. Use the Quarantine SQL query for engine evaluation.</div>`;
   }
 
   toggleQCard(idx) {
@@ -553,16 +513,9 @@ export class QualityDeclarationController extends BaseController {
     if (card) card.classList.toggle('expanded');
   }
 
-  escapeHtml(str) {
-    return String(str)
+  escapeHtml = (str) => String(str)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  copyOutput = () => {
-    navigator.clipboard.writeText(this.obj.codeOutput.textContent);
-    AppTemplate.toast.success('DQ Specification copied to clipboard!')
-  };
 
   copyQuarantineJSON = () => {
     if (this.quarantineRecords.length === 0) 

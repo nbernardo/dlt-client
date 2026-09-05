@@ -95,10 +95,10 @@
 </style>
 
 <div class="componentui-main-container declarations-ui @cmpInternalId" style="height: 94.5%;">
-	<div class="app-header" style="display: flex; height: 40px;">
-	  <h1 style="color: white; margin-bottom: 0;">Data Quality Declaration</h1>
-	  <span class="badge badge-teal">Visual Rule Engine v0.1</span>
-	</div>
+  <div class="app-header" style="display: flex; height: 40px;">
+    <h1 style="color: white; margin-bottom: 0;">Data Quality Declaration</h1>
+    <span class="badge badge-teal">DuckDB Engine</span>
+  </div>
 
   <div class="workbench">
     <!-- LEFT PANEL: VISUAL RULE BUILDER -->
@@ -111,14 +111,21 @@
         </div>
       </div>
 
-      <div class="context-bar target-dataset-wrap">
-        <label for="target-dataset">Target Dataset:</label>
-        <input 
-          data-st-field-name="qualityTableName"
-          type="text" id="target-dataset" class="input-control mono quality-declaration-table" 
-          (value)=targetDataset style="flex: 1; width: 70% !important;" placeholder="schema.table_name">
+      <div class="context-bar target-dataset-wrap" style="gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+          <label for="target-dataset" style="white-space: nowrap;">Target Dataset:</label>
+          <input 
+            data-st-field-name="qualityTableName"
+            type="text" id="target-dataset" class="input-control mono quality-declaration-table" 
+            (value)=targetDataset style="width: 100%;" placeholder="schema.table_name">
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; width: 200px;">
+          <label for="primary-key" style="white-space: nowrap;">Primary Key:</label>
+          <input 
+            type="text" id="primary-key" class="input-control mono" 
+            value="id" style="width: 100%;" placeholder="id">
+        </div>
       </div>
-
       <div class="rules-container" id="rules-container"></div>
     </div>
 
@@ -128,19 +135,10 @@
         <span>2. Compiled Output Specification</span>
         <div style="display: flex; gap: 8px; align-items: center;">
           <div class="tab-group">
-            <button class="tab-btn active" data-tab="sql" onclick="component.switchTab(this)">Audit SQL</button>
-            <button class="tab-btn" data-tab="quarantine-sql" onclick="component.switchTab(this)">Quarantine SQL</button>
-            <button class="tab-btn" data-tab="gate" onclick="component.switchTab(this)">Orchestration Gate</button>
+            <button class="tab-btn active" data-tab="quarantine-sql" onclick="component.switchTab(this)">Quarantine SQL</button>
             <button class="tab-btn" data-tab="json" onclick="component.switchTab(this)">DQ Spec (JSON)</button>
           </div>
-          <!-- <button class="btn btn-primary btn-sm" onclick="controller.copyOutput()">Copy</button> -->
         </div>
-      </div>
-      <div class="gate-strip">
-        <div class="gate-chip" style="background: var(--badge-info-bg); color: var(--badge-info-txt);">INFO<small>Log only</small></div>
-        <div class="gate-chip" style="background: var(--badge-warn-bg); color: var(--badge-warn-txt);">WARN<small>Pipeline alert</small></div>
-        <div class="gate-chip" style="background: #FCEBEB; color: #A32D2D;">ERROR<small>Fail job</small></div>
-        <div class="gate-chip" style="background: var(--badge-error-bg); color: var(--badge-error-txt);">CRITICAL<small>Halt &amp; rollback</small></div>
       </div>
       <pre id="code-output" class="code-output">-- Compiled output will appear here...</pre>
     </div>
@@ -149,7 +147,7 @@
   <!-- QUARANTINE PREVIEW -->
   <div class="quarantine-panel">
     <div class="panel-header" style="flex: initial;">
-      <span>3. Quarantine Preview <span class="hint">— paste sample rows, evaluate rules in the browser, click a record to see it</span></span>
+      <span>3. Quarantine Preview <span class="hint">— paste sample rows, evaluate rules in the browser</span></span>
       <div style="display:flex; gap:8px; align-items:center;">
         <span id="quarantine-count-badge" class="badge badge-teal" style="display:none;"></span>
         <button class="btn btn-sm" style="width: auto;" onclick="controller.toggleSampleInput()">Paste Sample Data</button>
@@ -159,10 +157,10 @@
     </div>
     <div class="sample-input-wrap" id="sample-input-wrap" style="display:none;">
       <label style="font-size:11px;font-weight:600;color:var(--color-text-secondary);">Sample rows — JSON array of objects matching your dataset's columns</label>
-      <textarea id="sample-data-input" class="input-control mono" placeholder='[{"order_id": 1001, "order_status": "completed", "total_amount": 250.00}, {"order_id": null, "order_status": "pending", "total_amount": 90.00}]'></textarea>
+      <textarea id="sample-data-input" class="input-control mono" placeholder='[{"id": 1001, "order_status": "completed", "total_amount": 250.00}, {"id": 1002, "order_status": "pending", "total_amount": null}]'></textarea>
     </div>
     <div id="quarantine-list" class="quarantine-list" style="flex: 2px;">
-      <div class="quarantine-empty">Paste sample rows above and click Evaluate. Every rule violation on every row becomes its own card here — click a card to expand the full record. NOT_NULL, UNIQUE, ACCEPTED_VALUES, VALUE_RANGE and REGEX_MATCH rules run live in the browser; REFERENTIAL_INTEGRITY, FRESHNESS, ROW_COUNT and CUSTOM_SQL need a real warehouse — use the Quarantine SQL tab for those.</div>
+      <div class="quarantine-empty">Paste sample rows above and click Evaluate. Every rule violation on every row becomes its own card here — click a card to expand the full record.</div>
     </div>
   </div>
 </div>
