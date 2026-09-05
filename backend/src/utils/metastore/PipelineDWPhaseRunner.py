@@ -75,9 +75,9 @@ class PipelineDWPhaseRunner:
         self.logger = None
         self.context = None
         self.pipeline = None
-        self.params = None
         self.exec_id = None
         self.incr_fields = None
+        self.ingest_id = None
         self.rec_count_per_table = {}
         
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -106,6 +106,7 @@ class PipelineDWPhaseRunner:
             skma = source_schema[0] if type(source_schema) == list else source_schema
             handle_pipeline_log(f'Connecting to stage source: {self.source_db_path}', self.logger, context=self.context)
             con = duckdb.connect(self.source_db_path, read_only=True)
+            result = None
 
             try:
                 tbls_fltr = str([f'{t}' for t in tables]).strip('[]')
@@ -118,10 +119,10 @@ class PipelineDWPhaseRunner:
 
                 def make_resource(table, pk, incr_field = None):
                     def _resource():
-                        batch_size, offset = 10_000, 0
-                        msg = f'Injesting {table} to the Data Warehouse'
+                        batch_size, offset = 15_000, 0
+                        msg = f'Ingesting {table} to the Data Warehouse'
                         handle_pipeline_log(msg, self.logger, context=self.context)
-
+                        
                         if isinstance(pk, list) and pk: order_col = pk[0]
                         elif isinstance(pk, str) and pk: order_col = pk
                         else: order_col = '1'
@@ -131,6 +132,8 @@ class PipelineDWPhaseRunner:
                                 SELECT *, 
                                     md5(_e2e_pk || '|' || concat_ws('|', COLUMNS(* EXCLUDE (_e2e_pk, _e2e_src_db, _dlt_load_id, _dlt_id)))) AS _e2e_row_hash 
                                 FROM "{skma}"."{table}"
+                                WHERE CAST({pk} AS VARCHAR) NOT IN 
+                                    (SELECT primary_key_value FROM "{skma}"."_e2e_dq_quarantine" WHERE ingest_id = '{self.params.get('start_time')}' AND dataset = '{table}')
                                 ORDER BY {order_col} LIMIT {batch_size} OFFSET {offset}
                             ''').fetchall()
 
@@ -195,7 +198,6 @@ class PipelineDWPhaseRunner:
                 @dlt.source(name="dynamic_source")
                 def build_source(): return resources
 
-                result = None
                 pipeline.sync_destination(dataset_name=dataset_name)
                 handle_pipeline_log(f'State after sync: {pipeline.state}', self.logger, context=self.context)
                 pipeline.drop_pending_packages()
@@ -206,13 +208,21 @@ class PipelineDWPhaseRunner:
                     count_per_table = pipeline.last_trace.last_normalize_info.row_counts if pipeline.last_trace.last_normalize_info else {}
                     self.rec_count_per_table = { **self.rec_count_per_table, **count_per_table }
 
+                total_result = con.execute(f'''SELECT COUNT(ingest_id) as total FROM "{skma}"."_e2e_dq_quarantine" WHERE ingest_id = '{self.params.get('start_time')}';''').fetchone()
                 con.close()
+
+                if(len(total_result) > 0):
+                    msg = f'{total_result[0]} records have been put in quarantine'
+                    handle_pipeline_log(msg, self.logger, context=self.context, warning=True)
+
                 msg = f'Completed Data Warehouse data ingestions'
                 handle_pipeline_log(msg, self.logger, context=self.context)
                 #self.context.emit_ppsuccess(exec_id=self.exec_id)
                 self.context.emit_error(error='success', exec_id=self.exec_id)
                 self.dest_conn_wrapper.commit()
-                return result
+
+                self.dest_conn_wrapper.execute(f'''UPDATE "{skma}"."_e2e_dq_quarantine" SET status = '{Checkpoint.PROCESS}' WHERE ingest_id = '{self.params.get('start_time')}';''')
+                self.dest_conn_wrapper.commit()
             
             except Exception as err:
                 con.close()
@@ -227,6 +237,8 @@ class PipelineDWPhaseRunner:
                 con.close()
                 self.dest_conn_wrapper.close()
                 del DuckdbUtil.db_connections[self.wd_db_path]
+
+                return result
 
 
 
@@ -310,7 +322,7 @@ class PipelineDWPhaseRunner:
             runner.wd_db_path = f'{db_path}{dwname}.duckdb'
 
             [params, runner.logger, runner.context, runner.exec_id] = [refs.get('params'), refs.get('logger'), refs.get('context'), refs.get('exec_id')]
-            [runner.pipeline, runner.params, runner.incr_fields] = params.get('pipeline'), params, incr_fields
+            [runner.pipeline, runner.params, runner.incr_fields, runner.ingest_id] = params.get('pipeline'), params, incr_fields, refs.get('ingest_id')
 
             cb = lambda future: on_pipeline_finished(future, runner, params, triggers_cb, runner.logger, send_email_cb)
             handle_pipeline_log(

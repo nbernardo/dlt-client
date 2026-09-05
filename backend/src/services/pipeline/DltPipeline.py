@@ -27,8 +27,8 @@ from services.email.SimpleAPIMailer import SimpleAPIMailer
 from internationalization.email import labels
 import asyncio
 from utils.metastore.PipelineDWPhaseRunner import PipelineDWPhaseRunner
-from utils.pipeline import NodeType
 from utils.pipeline.PipelinesHelper import send_success_email
+from utils.metastore.PipelineTrigger import PipelineTrigger
 
 root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
@@ -115,101 +115,10 @@ class DltPipeline:
                 context.pipeline_metadata.pipline_plan_id, params
             )
             return { 'status': True, 'message': 'Pipeline created successfully' }
-        
-        PIPE = subprocess.PIPE
-        # Run pipeline generater above by passing the python file
-        result = subprocess.Popen(['python', ppline_file], stdout=PIPE, stdin=PIPE, stderr=PIPE, text=True, bufsize=1)
-        start_time = str(datetime.now().timestamp())
-
-        # TODO: If needed, flag can be assigned with proper logic so UI logs will only came in  specific situation like will 
-        # only print if the ppline has transformation or if it's ppline update, otherwise flag = True will print the log in 
-        # any scenario flag = context.transformation is not None or context.action_type == 'UPDATE'
-        flag = True
-        logger, refs = DltPipeline.get_pipeline_logger(context), {}
-
-        result.stdin.write(start_time+'\n') # Writes the checkpoint pipeline start_time to the child/pipeline process 
-        result.stdin.flush()
-
-        [namespace, stg_storage] = [context.transaction_namespace, context.pipeline_metadata.stage_storage]
-        params = { **params, 'state': CP.INIT, 'updt_time': CP.TIME_UNSET, 'start_time': start_time }
-
-        pipeline, storage_path, _ = PipelineCheckpoint.persist(context.pipeline_name, namespace, stg_storage, params)
-
-        if(flag):
-            while True:
-                line = result.stdout.readline()
-                time.sleep(0.15)
-                
-                if line == '' or line.strip() == 'import pkg_resources' or line.strip().__contains__('import pkg_resources'): 
-                    continue
-                if DltPipeline._handle_pipeline_trace(line, refs, context, logger) == False or not line: 
-                    break
-            
-        #result.kill() # Each process will be responsible to kill/exit ifself
-        MetaStore.persist_pipeline_metadata(
-            context.transaction_namespace, context.pipeline_name, vars(context.pipeline_metadata), refs.get('dataset_name'), refs.get('short_query'), 
-            context.pipeline_metadata.pipline_plan_id
-        )
-
-        if refs.get('pipeline_exception') == True:
-            handle_pipeline_log(f'PIPELINE FAILED: Pipeline {context.pipeline_name} with execution_id {context.pipeline_execution_id} failed', logger, True)
-            return { 'status': False, 'message': 'Runtime Pipeline error, check the logs for details' }
-
-        message, status = SUCCESS_RUN_MESSAGE, True
-        
-        error_messages, warning_status = None, False
-        if (result.returncode != 0 and result.returncode != None)\
-              and not (context and context.action_type == 'UPDATE' and result.returncode == 2):
-            error_messages = result.stderr.read().split('\n')
-            if str(error_messages).__contains__('[WARNING]'):
-                if context:
-                    context.emit_ppline_trace(error_messages, warn=True)
-                    context.emit_ppsuccess()
-                warning_status = True
-            else:
-                message, status = '\n'.join(error_messages[1:]), False
-                if message.__contains__('import pkg_resources') or refs.get('pipeline_exception') == False:
-                    message, status = SUCCESS_RUN_MESSAGE, True
-                elif context and status == False:
-                    context.emit_ppline_trace(message, error=True)
-                    DltPipeline.send_fail_email(start_time, context)
-
-        if context:
-            cp_status = CP.STAGED if context.pipeline_metadata.stage_storage else CP.DONE
-            params = { **params, 'cp_status': cp_status, 'storage_path': storage_path, 'pipeline': pipeline }
-            
-            PipelineCheckpoint.update(pipeline, None, params)
-            context.emit_ppline_trace('PIPELINE COMPLETED SUCCESSFULLY')
-
-            job_tag = f'{start_time}_{params.get('dest_storage')}'
-            refs = { **refs, 'params': params, 'job_tag': job_tag, 'logger': logger, 'context': context }
-
-            if context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
-                refs = { **refs, 'tables_pks': context.pipeline_metadata.tables_pks, 'dest_tables': context.pipeline_metadata.dest_tables }
-
-            schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
-            
-            handle_pipeline_log(f'pipeline.success.conclusion', logger)
-        
-        print("Return Code:", result.returncode)
-        print("Standard Output:", result.stdout.read())
-        print("Standard Error:", message if error_messages != None else None)
-
-        if(not(message.strip() == SUCCESS_RUN_MESSAGE)):
-            if (error_messages != None or result.returncode == 1) and warning_status == False:
-                status = True if message == SUCCESS_RUN_MESSAGE else False
-            else:
-                status = status if len(result.stderr.read()) > 0 else True
-
-        if status == True: context.emit_ppsuccess()
-
-        return { 'status': status, 'message': message }
 
 
     def save_diagram(self, diagrm_path, file_name, content, pipeline_lbl, is_update: bool|str = None, write_log = True):
-        """
-        Save pipeline diagram.
-        """
+        """ Save pipeline diagram. """
         # Create the pipeline Diagram code
         pipeline_code = { 'content': content, 'pipeline_lbl': pipeline_lbl }
         if is_update == True:
@@ -571,8 +480,6 @@ class DltPipeline:
 
             DuckDBCache.set(f'{db_root_path}/{db_file}.duckdb','lock')
 
-        from utils.metastore.PipelineTrigger import PipelineTrigger
-
         [refs, job_start_time, proc] = [{ 'job_execution_id': uuid.uuid4() }, None, None]
         params = { 'exp_backoff': param_list.get('exp_backoff',1), 'exec_id': exec_id, 'manual_run': param_list.get('manual_run',False) }
 
@@ -637,22 +544,25 @@ class DltPipeline:
             await asyncio.to_thread(PipelineCheckpoint.update, pipeline, None, params)
             await asyncio.to_thread(MetaStore.update_metadata, namespace, pipeline, dataset_name, short_query)
             handle_pipeline_log(f'====== Before Data warehouse stage ====== {stg_storage}', logger, False)
-            
+
             if context.pipeline_metadata.stage_storage:
+                def run_dw_phase(refs):
 
-                handle_pipeline_log(f'====== Next -> Data warehouse stage ======', logger, False)
+                    handle_pipeline_log(f'====== Next -> Data warehouse stage ======', logger, False)
+                    
+                    job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
+                    triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
+                    send_email_cb = lambda tbls: send_success_email(json.loads(refs.get('email_params')), tbls) if refs.get('email_params') else None
+                    # Below else is Edge case for Odoo JSON-RPC API 
+                    dst_tbl = mdta[9] if mdta[9] else ['public_'+tbl.replace('.','_').replace('/','') for tbl in refs['dest_tables']]
+                    tbls_pk = mdta[10] if mdta[10] else refs['tables_pks']
+
+                    refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': dst_tbl, 'tables_pks': tbls_pk, 'src_db_name': mdta[12], 'email_cb': send_email_cb }
+                    refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context, 'exec_id': exec_id, 'incr_fields': mdta[11] }
+                    handle_pipeline_log(f'====== About so start Data warehouse stage in {DW_WAIT_SEC} ======', logger, False)
+                    schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
                 
-                job_tag, mdta = f'{job_start_time}_{stg_storage}', pipeline_metadata
-                triggers_cb = lambda: DltPipeline._handle_trigger(triggers, namespace, pipeline, job_start_time, context, exec_id)
-                send_email_cb = lambda tbls: send_success_email(json.loads(refs.get('email_params')), tbls) if refs.get('email_params') else None
-                # Below else is Edge case for Odoo JSON-RPC API 
-                dst_tbl = mdta[9] if mdta[9] else ['public_'+tbl.replace('.','_').replace('/','') for tbl in refs['dest_tables']]
-                tbls_pk = mdta[10] if mdta[10] else refs['tables_pks']
-
-                refs = { **refs, 'params': params, 'dataset_name': mdta[7], 'dest_tables': dst_tbl, 'tables_pks': tbls_pk, 'src_db_name': mdta[12], 'email_cb': send_email_cb }
-                refs = { **refs, 'triggers': triggers_cb, 'job_tag': job_tag, 'logger': logger, 'context': context, 'exec_id': exec_id, 'incr_fields': mdta[11] }
-                handle_pipeline_log(f'====== About so start Data warehouse stage in {DW_WAIT_SEC} ======', logger, False)
-                schedule.every(DW_WAIT_SEC).seconds.do(PipelineDWPhaseRunner.run, namespace, stg_storage, refs).tag(job_tag)
+                DltPipeline.run_data_quality_phase_then_dw(namespace, f'{pipeline}.{dataset_name}', stg_storage, job_start_time, refs, logger, run_dw_phase)
 
             # DB Lock release in the pplication level
             DuckDBCache.remove(f'{db_root_path}/{db_file}.duckdb')
@@ -686,6 +596,59 @@ class DltPipeline:
             param_list = { **param_list, 'context': context, 'logger': logger }
 
             DltPipeline._retry(ppline_file_path, param_list, job_start_time, namespace, pipeline, str(err))
+
+
+    @staticmethod
+    def run_data_quality_phase_then_dw(namespace, pipeline, data_source, ingest_id, refs, logger, cb_run_dw_phase = None):
+        from services.modeling.dw.DeclarationModeling import DeclarationModeling
+        from controller.pipeline import BasePipeline
+        import platform
+
+        result = DeclarationModeling().get_all_dq_models(namespace, pipeline)
+        result = result['result']
+        total_dq = len(result)
+
+        schema, dwname = pipeline.split('.')[-1], data_source.split('_for_',1)[-1]
+        data_source = data_source[-1] if str(data_source).__contains__('/') else data_source
+
+        sep = '/' if platform.system() != 'Windows' else '\\\\'
+        db_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}'
+
+        source_db = f"{db_path}{data_source}.duckdb"
+        src_con = duckdb.connect(source_db)
+        src_con.execute(f"SET SCHEMA='{schema}'")
+            
+        dw_db = f"{db_path}{dwname}.duckdb"
+        con = duckdb.connect(dw_db)
+        con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+        con.execute(f"SET SCHEMA='{schema}'")
+        con.sql(DuckdbUtil.create_quarantine_table_query())
+        src_con.sql(DuckdbUtil.create_quarantine_table_query())
+
+        if(total_dq > 0):
+            
+            count = 0
+            while count < total_dq:
+                tbl = result[count][1].replace('_dq_','')
+                handle_pipeline_log(f'Starting data quality phase for {tbl}', logger, False)
+                # replicates the quarantine in the source for temporary filtering usage while ingesting DW 
+                src_con.execute(result[count][0].format(str(ingest_id)))
+                src_arrow_data = src_con.execute('SELECT * FROM _e2e_dq_quarantine').fetch_record_batch()
+                # creating quarantine records in the DW for allowing revision by business/functional team
+                insert_quarantine_query = f'''
+                    INSERT INTO _e2e_dq_quarantine (ingest_id, dataset, primary_key_value, record_json, rule_ids, assertion_types, targets, severities, worst_severity, messages) 
+                    SELECT ingest_id, dataset, primary_key_value, record_json, rule_ids, assertion_types, targets, severities, worst_severity, messages FROM src_arrow_data;
+                '''
+                con.execute(insert_quarantine_query)
+                handle_pipeline_log(f'Ran data quality phase for {tbl}', logger, False)
+                count = count + 1
+
+            src_con.commit()
+            con.commit()
+            src_con.close()
+            con.close()
+
+        if cb_run_dw_phase: cb_run_dw_phase(refs)
 
 
     @staticmethod
@@ -800,11 +763,7 @@ class DltPipeline:
     def get_pipline_runtime(namespace, ppline):
         time = datetime.now()
         cnx = DuckdbUtil.get_workspace_db_instance()
-        query = f"UPDATE ppline_schedule\
-                    SET last_run='{time}'\
-                    WHERE\
-                        namespace='{namespace}'\
-                        and ppline_name='{ppline}'"
+        query = f"UPDATE ppline_schedule SET last_run='{time}' WHERE namespace='{namespace}' and ppline_name='{ppline}'"
         cnx.execute(query)
 
 
@@ -913,9 +872,7 @@ def check_unsafe_statements(code):
 
 
 def check_invalid_code(code):
-    """
-    Raises ValueError if code contains disallowed statements or function calls
-    """
+    """ Raises ValueError if code contains disallowed statements or function calls """
     
     code_lines = str(code).split('\n')
 

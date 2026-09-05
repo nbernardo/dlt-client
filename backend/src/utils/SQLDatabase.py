@@ -30,7 +30,7 @@ class SQLDatabase:
             SELECT table_name, column_name, CONCAT('"', COLUMN_TYPE, '"') AS quoted_type
             FROM information_schema.columns
             WHERE table_schema = :schema
-            ORDER BY table_name, ORDINAL_POSITION
+            ORDER BY table_name, column_name
         '''
 
         tables = {}
@@ -61,7 +61,7 @@ class SQLDatabase:
                 '"' || data_type || '"' AS quoted_type
             FROM information_schema.columns
             WHERE table_catalog = :database_name AND table_schema <> 'information_schema' AND table_schema <> 'pg_catalog'
-            ORDER BY table_schema, table_name, ordinal_position;
+            ORDER BY table_schema, table_name, column_name;
         """
 
         tables = {}
@@ -99,7 +99,7 @@ class SQLDatabase:
                     '"' + DATA_TYPE + '"' AS quoted_type
                 FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_CATALOG = :database_name
-                ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;
+                ORDER BY TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME;
             """
 
             tables = {}

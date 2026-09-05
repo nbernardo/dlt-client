@@ -489,7 +489,7 @@ def get_sql_connection(secret, dbengine = None):
 import dlt
 from sqlalchemy import text
 
-def make_table_resource(engine, table, schema, pk, incr_field=None, page_size=5000):
+def make_table_resource(engine, table, schema, pk, incr_field=None, page_size=15000):
     full_tbl = f'{schema}.{table}' if schema else table
     resource_name = f"{schema}_{table}" if schema else table
     order_col = incr_field if incr_field else pk

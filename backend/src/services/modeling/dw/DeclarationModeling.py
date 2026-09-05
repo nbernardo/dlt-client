@@ -37,4 +37,17 @@ class DeclarationModeling:
         except Exception as err:
             result = { 'error': True, 'result': str(err) }
         finally:
+            return result        
+
+
+    def get_all_dq_models(self, namespace: str, dw: str):
+        try:
+            cnx, result = DuckdbUtil.get_workspace_db_instance(), {}
+            with cnx.cursor() as cursor:
+                query = "SELECT model, model_name FROM dw_declarations WHERE namespace = ? AND dw_name = ? AND type = 'quality'"
+                result = { 'error': False, 'result': cursor.execute(query, [namespace, dw]).fetchall() }
+
+        except Exception as err:
+            result = { 'error': True, 'result': str(err) }
+        finally:
             return result

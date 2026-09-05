@@ -11,7 +11,7 @@ def column_type_conversion(columns, connection, table, schema):
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = :schema
         AND TABLE_NAME = :table
-        ORDER BY ORDINAL_POSITION
+        ORDER BY COLUMN_NAME
     """)
             
     result = connection.execute(column_query, {"schema": schema, "table": table})

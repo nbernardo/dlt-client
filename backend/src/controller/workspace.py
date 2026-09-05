@@ -420,6 +420,7 @@ def call_scheduled_job(app):
             if os.path.exists(workspacedb_wal):
                 os.remove(workspacedb_wal)
             DuckdbUtil.create_dw_declarations()
+            #DuckdbUtil.create_quarantine_table()
 
         executor.submit(on_app_loading)
 
