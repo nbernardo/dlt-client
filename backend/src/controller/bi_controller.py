@@ -137,9 +137,9 @@ def persiste_model(namespace):
     payload = request.get_json()
     declaration, modelQuery, quality = payload.get('model'), payload.get('modelQuery'), payload.get('quality')
     dw = payload.get('dw','').split('.')
-    dw, model_name = '.'.join(dw[-2:3]), payload.get('modelName')
+    dw, model_name, updte = '.'.join(dw[-2:3]), payload.get('modelName'), payload.get('updte')
     if(quality):
-        return DeclarationModeling().persist_quality_rules(namespace, dw, declaration, modelQuery, model_name)
+        return DeclarationModeling().persist_quality_rules(namespace, dw, declaration, modelQuery, model_name, updte)
     return DeclarationModeling().persist_model(namespace, dw, declaration, modelQuery, model_name)
 
 

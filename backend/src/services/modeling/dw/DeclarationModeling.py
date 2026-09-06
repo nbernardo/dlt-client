@@ -2,24 +2,30 @@ from utils.duckdb_util import DuckdbUtil
 
 class DeclarationModeling:
 
-    def persist_quality_rules(self, namespace: str, dw: str, declaration: str, model: str, model_name: str):
-        return self.persist_model(namespace, dw, declaration, model, f'_dq_{model_name.replace('.','_')}', type='quality')
+    def persist_quality_rules(self, namespace: str, dw: str, declaration: str, model: str, model_name: str, updte: bool = False):
+        return self.persist_model(namespace, dw, declaration, model, f'_dq_{model_name.replace('.','_')}', type='quality', updte=updte)
         
 
-    def persist_model(self, namespace: str, dw: str, declaration: str, model: str, model_name: str, type: str = 'model'):
+    def persist_model(self, namespace: str, dw: str, declaration: str, model: str, model_name: str, type: str = 'model', updte: bool = False):
         try:
             cnx = DuckdbUtil.get_workspace_db_instance()
-            with cnx.cursor() as cursor:
-                result = self.get_model(namespace, dw, model_name)
-                if(result.get('existing')): 
-                    return { 'error': False, 'result': False, 'existing': True }
+            if updte == False:
+                with cnx.cursor() as cursor:
+                    result = self.get_model(namespace, dw, model_name)
+                    if(result.get('existing')): 
+                        return { 'error': False, 'result': False, 'existing': True }
 
             with cnx.cursor() as cursor:
-                query = f"""
-                    INSERT INTO dw_declarations (dw_name, type, namespace, declaration, model, model_name) VALUES (?,?,?,?,?,?)
-                    ON CONFLICT (id) DO UPDATE SET declaration = EXCLUDED.declaration, model = EXCLUDED.model
-                """
-                cursor.execute(query, [dw, type, namespace, declaration, model, model_name])
+                query = ''
+                if updte:
+                    query = 'UPDATE dw_declarations SET declaration = ?, model = ? WHERE model_name = ? AND namespace = ? AND dw_name = ?'
+                    cursor.execute(query, [declaration, model, model_name, namespace, dw])
+                else:
+                    query = f"""
+                        INSERT INTO dw_declarations (dw_name, type, namespace, declaration, model, model_name) VALUES (?,?,?,?,?,?)
+                        ON CONFLICT (id) DO UPDATE SET declaration = EXCLUDED.declaration, model = EXCLUDED.model
+                    """
+                    cursor.execute(query, [dw, type, namespace, declaration, model, model_name])
                 cursor.execute('CHECKPOINT')
             return { 'error': False, 'result': True }
         except Exception as err:
