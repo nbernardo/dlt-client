@@ -147,9 +147,16 @@ def persiste_model(namespace):
 def gat_quarantine_by_dw_table(namespace, pipeline, table):
 
     from utils.pipeline.PipelinesHelper import get_quarantine_by_dw_table
-    
+    from services.modeling.dw.DeclarationModeling import DeclarationModeling
+
     [sep, pipeline_path] = [get_sep(), pipeline.split('.')]
     [pipeline, schema] = [pipeline_path[0], pipeline_path[-1]]
+
+    [dw_name_path, dq_model_name] = [f'{pipeline}.{schema}', f'_dq_{table}']
+    declared_model = DeclarationModeling().get_all_dq_models(namespace, dw_name_path, dq_model_name)
+
     database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
 
-    return get_quarantine_by_dw_table(database_path, table, schema)
+    quarantine_data = get_quarantine_by_dw_table(database_path, table, schema)
+
+    return { 'error': False, 'result': { 'quarantine': quarantine_data, 'model': declared_model } }
