@@ -34,6 +34,8 @@ export class InputDropdown {
     componentFieldName;
 
     #params;
+    programaticallyBlur = false;
+    currentValue;
 
     static #stylesInjected = false;
     static injectStyles() {
@@ -66,10 +68,19 @@ export class InputDropdown {
         this.#params = params;
         this.componentFieldName = params.componentFieldName;
         if (params.dataSource) this.dataSource = params.dataSource;
-        if (params.onSelect)
-            this.onSelect = async (selectedVal) => { this.#value = selectedVal; await params.onSelect(selectedVal, this) }
+        if (params.onSelect){
+            this.onSelect = async (selectedVal) => {
+                if(this.currentValue === selectedVal) return;
+                this.#value = selectedVal, await params.onSelect(selectedVal, this);
+                this.programaticallyBlur = true;
+                this.filterInput.blur(); 
+                this.filterInput.value = selectedVal; 
+                this.filterInput.classList.remove(invalidClass);
+                this.currentValue = selectedVal;
+            }
+        }
         if (params.onLoseFocus)
-            this.onLoseFocus = async (selectedVal) => { this.#value = selectedVal; await params.onLoseFocus(selectedVal, this) }
+            this.onLoseFocus = async (selectedVal) => { this.#value = selectedVal; await params.onLoseFocus(selectedVal, this); this.currentValue = selectedVal; }
 
         this.filterInput = document.querySelector(params.inputSelector);
         this.filterableList = document.querySelector(params.filterableListSelector);
@@ -148,8 +159,10 @@ export class InputDropdown {
         event.preventDefault();
 
         if (event.key === 'Enter') {
+            if(this.currentValue === this.getValue()) return;
             if (this.highlightedIndex > -1) visible[this.highlightedIndex].click();
-            return;
+            this.programaticallyBlur = true;
+            return this.filterInput.blur();
         }
 
         visible[this.highlightedIndex]?.classList.remove('highlighted');
@@ -170,11 +183,17 @@ export class InputDropdown {
         });
         this.filterInput.addEventListener('keydown', (event) => self.navigateList(event));
         this.filterInput.addEventListener('blur', (event) => {
-            setTimeout(() => self.filterableList.classList.add('hidden'), 150);
-            if(!self.dataSource.includes(event.target.value))
-                return this.filterInput.classList.add(invalidClass);
-            self.onLoseFocus(event.target.value);
-        });        
+            setTimeout(() => {
+                if(self.currentValue === event.target.value) return;
+                self.filterableList.classList.add('hidden')
+                if(!self.dataSource.includes(event.target.value)){
+                    self.programaticallyBlur = false;
+                    return this.filterInput.classList.add(invalidClass);
+                }
+                if(!self.programaticallyBlur) self.onLoseFocus(event.target.value);
+                self.programaticallyBlur = false;
+            }, 150);
+        });
 
         this.filterableList.addEventListener('click', (event) => {
             if (String(event.target.tagName).toLowerCase() === 'li' && !event.target.classList.contains('hidden')) {

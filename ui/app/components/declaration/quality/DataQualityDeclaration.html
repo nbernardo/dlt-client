@@ -92,6 +92,7 @@
 .target-dataset-wrap { position: relative; }
 .input-filter-result-qualityTableName { position: absolute; top: 100%; left: 0; margin-top: -12px; margin-left: 117px; }
 .quarantine-list{ height: 41%; overflow: scroll; }
+#primary-key:focus { width: 100% !important; }
 </style>
 
 <div class="componentui-main-container declarations-ui @cmpInternalId" style="height: 94.5%;">
@@ -126,7 +127,14 @@
             value="id" style="width: 100%;" placeholder="id">
         </div>
       </div>
-      <div class="rules-container" id="rules-container"></div>
+      <div class="rules-container" id="rules-container">
+        <span (showIf)="self.showLoading">
+            <st-element component="ElipsisLoader" label="Loading quality rules..."></st-element>
+        </span>
+        <span (showIf)="!self.showLoading">
+          <div class="content" style="padding: 0;"></div>
+        </span>
+      </div>
     </div>
 
     <!-- RIGHT PANEL: COMPILED DQ SPECIFICATION -->
@@ -152,7 +160,6 @@
         <span id="quarantine-count-badge" class="badge badge-teal" style="display:none;"></span>
         <button class="btn btn-sm" style="width: auto;" onclick="controller.toggleSampleInput()">Paste Sample Data</button>
         <button class="btn btn-primary btn-sm" onclick="controller.evaluateSampleData()">Evaluate</button>
-        <button class="btn btn-sm" style="width: auto;" onclick="controller.copyQuarantineJSON()">Copy Quarantine JSON</button>
       </div>
     </div>
     <div class="sample-input-wrap" id="sample-input-wrap" style="display:none;">
@@ -160,7 +167,13 @@
       <textarea id="sample-data-input" class="input-control mono" placeholder='[{"id": 1001, "order_status": "completed", "total_amount": 250.00}, {"id": 1002, "order_status": "pending", "total_amount": null}]'></textarea>
     </div>
     <div id="quarantine-list" class="quarantine-list" style="flex: 2px;">
-      <div class="quarantine-empty">Paste sample rows above and click Evaluate. Every rule violation on every row becomes its own card here — click a card to expand the full record.</div>
+      <span (showIf)="self.showLoading">
+        <st-element component="ElipsisLoader" label="Loading quarantine records..."></st-element>
+      </span>
+      <span (showIf)="!self.showLoading">
+        <div class="content" style="padding: 0;"></div>
+      </span>
+      <!-- <div class="quarantine-empty">Paste sample rows above and click Evaluate. Every rule violation on every row becomes its own card here — click a card to expand the full record.</div> -->
     </div>
   </div>
 </div>

@@ -28,6 +28,7 @@ export class DataQualityDeclaration extends ViewComponent {
   /** @Prop @type { InputDropdown } */ tableFilter;
   /** @Prop @type { ModelDeclaration } */ modelDeclaration;
   /** @Prop @type { Object } */ databaseSchema = {};
+  /** @Prop */ showLoading = false;
 
   async stBeforeInit() { await Assets.import({ path: '/app/components/pipeline/styles/shared.css', type: 'css' }); }
 
@@ -35,29 +36,35 @@ export class DataQualityDeclaration extends ViewComponent {
 
   async stAfterInit() {
     this.controller.on('load', async () => {
-      this.controller.obj = this;
-      this.controller.rules = [];
+      this.controller.obj = this, this.controller.rules = [];
       await this.controller.initComponent();
     });
 
 	const handleSelectedTable = async (val) => {
-		this.controller.targetDataset = val;
-        this.controller.renderRules();
-        this.controller.compileAll();
-		const url = `/pipeline/quarantine/${(await BIService.getNamespace())}/${this.modelDeclaration.selectedDW}/${val}`;
-		let result = await $still.HTTPClient.get(url);
-		result = await result.json();
+	  this.controller.targetDataset = val;
+      this.controller.renderRules();
+      this.controller.compileAll();
+	  const url = `/pipeline/quarantine/${(await BIService.getNamespace())}/${this.modelDeclaration.selectedDW}/${val}`;
+		
+	  this.showLoading = true;
+	  let result = await $still.HTTPClient.get(url);
+	  result = await result.json();
+	  
+	  if(result.result.model.result[0]){
+		  const { assertions } = JSON.parse(result.result.model.result[0][2]);
+		  this.controller.rules = assertions;
+		  this.controller.renderRules();
+	  }
 
-		this.controller.quarantineRecords = JSON.parse(result.result);
-		this.controller.renderQuarantineList();
+	  this.controller.quarantineRecords = JSON.parse(result.result.quarantine),
+	  this.controller.compileQuarantineSQL(), this.controller.renderQuarantineList();
+	  this.showLoading = false;
 	}
 
     this.tableFilter = InputDropdown.new({ 
       inputSelector: '.quality-declaration-table', dataSource: [], boundComponent: this,
       onSelect: async (val) => await handleSelectedTable(val),
-	  onLoseFocus: async (val) => {
-		await handleSelectedTable(val);
-	  }
+	  onLoseFocus: async (val) => { await handleSelectedTable(val); }
     });
     this.updateDataSource(this.modelDeclaration.selectedSecred);
     this.modelDeclaration.loadingDQ = false;

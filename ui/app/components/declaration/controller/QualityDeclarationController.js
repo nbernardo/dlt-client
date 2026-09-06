@@ -1,5 +1,4 @@
 import { BaseController } from "../../../../@still/component/super/service/BaseController.js";
-import { AppTemplate } from "../../../../config/app-template.js";
 import { DataQualityDeclaration } from "../quality/DataQualityDeclaration.js";
 
 export class QualityDeclarationController extends BaseController {
@@ -22,11 +21,11 @@ export class QualityDeclarationController extends BaseController {
     if (this.obj.container) {
       this.obj.targetDatasetInput = this.obj.$('#target-dataset');
       this.obj.primaryKeyInput = this.obj.$('#primary-key');
-      this.obj.rulesContainer = this.obj.$('#rules-container');
+      this.obj.rulesContainer = this.obj.$('#rules-container .content');
       this.obj.codeOutput = this.obj.$('#code-output');
       this.obj.sampleDataInput = this.obj.$('#sample-data-input');
       this.obj.sampleInputWrap = this.obj.$('#sample-input-wrap');
-      this.obj.quarantineList = this.obj.$('#quarantine-list');
+      this.obj.quarantineList = this.obj.$('#quarantine-list .content');
       this.obj.quarantineCountBadge = this.obj.$('#quarantine-count-badge');
     }
 
@@ -77,7 +76,7 @@ export class QualityDeclarationController extends BaseController {
   addRule = (e) => {
     if (e) e.preventDefault();
     const newId = 'dq_' + Math.floor(100 + Math.random() * 900);
-    this.rules.push({ id: newId, type: 'NOT_NULL', column: '', severity: 'ERROR', params: {} });
+    this.rules = [...this.rules, { id: newId, type: 'NOT_NULL', column: '', severity: 'ERROR', params: {} }];
     this.renderRules();
     this.compileAll();
   };
@@ -476,6 +475,30 @@ export class QualityDeclarationController extends BaseController {
     }
   }
 
+  groupQuarantineRecords() {
+    const groups = new Map();
+    this.quarantineRecords.forEach(rec => {
+      const key = rec.primary_key_value != null
+        ? `pk:${rec.primary_key_value}`
+        : `record:${JSON.stringify(rec.record)}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          primary_key_value: rec.primary_key_value,
+          dataset: rec.dataset,
+          record: rec.record,
+          captured_at: rec.captured_at,
+          violations: []
+        });
+      }
+      groups.get(key).violations.push({
+        rule_id: rec.rule_id, severity: rec.severity,
+        assertion_type: rec.assertion_type, target: rec.target, message: rec.message
+      });
+    });
+    return Array.from(groups.values());
+  }
+
   renderQuarantineList(skippedTypes) {
     if (!this.obj.quarantineList) return;
 
@@ -483,22 +506,38 @@ export class QualityDeclarationController extends BaseController {
       this.obj.quarantineList.innerHTML = `<div class="quarantine-empty">No violations found in this sample for the browser-evaluable rule types. ✅</div>`;
       this.obj.quarantineCountBadge.style.display = 'none';
     } else {
-      this.obj.quarantineCountBadge.style.display = 'inline-flex';
-      this.obj.quarantineCountBadge.textContent = `${this.quarantineRecords.length} record${this.quarantineRecords.length === 1 ? '' : 's'} quarantined`;
-
-      const sorted = [...this.quarantineRecords].sort((a, b) => {
-        const rank = s => ({ CRITICAL: 0, ERROR: 1, WARN: 2, INFO: 3 }[s] ?? 4);
-        return rank(a.severity) - rank(b.severity);
+      const rank = s => ({ CRITICAL: 0, ERROR: 1, WARN: 2, INFO: 3 }[s] ?? 4);
+      const grouped = this.groupQuarantineRecords();
+      grouped.forEach(g => {
+        g.worstSeverity = g.violations.reduce((worst, v) => rank(v.severity) < rank(worst) ? v.severity : worst, 'INFO');
       });
+      grouped.sort((a, b) => rank(a.worstSeverity) - rank(b.worstSeverity));
 
-      this.obj.quarantineList.innerHTML = sorted.map((rec, idx) => this.obj.parseEvents(`
+      this.obj.quarantineCountBadge.style.display = 'inline-flex';
+      const totalIssues = this.quarantineRecords.length;
+      this.obj.quarantineCountBadge.textContent =
+        `${grouped.length} record${grouped.length === 1 ? '' : 's'} quarantined (${totalIssues} issue${totalIssues === 1 ? '' : 's'})`;
+
+      this.obj.quarantineList.innerHTML = grouped.map((g, idx) => this.obj.parseEvents(`
         <div class="q-card" id="qcard-${idx}">
           <div class="q-card-header" onclick="controller.toggleQCard(${idx})">
             <span class="chev">▶</span>
-            <span class="badge" style="background: ${this.getSeverityBg(rec.severity)}; color: ${this.getSeverityTxt(rec.severity)}">${rec.severity}</span>
-            <span class="q-card-rule">${rec.rule_id}</span><span class="q-card-msg">${this.escapeHtml(rec.message)}</span>
+            <span class="badge" style="background: ${this.getSeverityBg(g.worstSeverity)}; color: ${this.getSeverityTxt(g.worstSeverity)}">${g.worstSeverity}</span>
+            <span class="q-card-rule">PK: ${this.escapeHtml(String(g.primary_key_value ?? 'n/a'))}</span>
+            <span class="q-card-msg">${g.violations.length} issue${g.violations.length === 1 ? '' : 's'} — ${g.violations.map(v => v.target).join(', ')}</span>
           </div>
-          <div class="q-card-body"><pre>${this.escapeHtml(JSON.stringify(rec, null, 2))}</pre></div>
+          <div class="q-card-body">
+            <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+              ${g.violations.map(v => `
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="badge" style="background: ${this.getSeverityBg(v.severity)}; color: ${this.getSeverityTxt(v.severity)}">${v.severity}</span>
+                  <span class="q-card-rule">${v.rule_id}</span>
+                  <span>${this.escapeHtml(v.message)}</span>
+                </div>
+              `).join('')}
+            </div>
+            <pre>${this.escapeHtml(JSON.stringify(g.record, null, 2))}</pre>
+          </div>
         </div>
       `)).join('');
     }
