@@ -12,11 +12,18 @@ class InputDropdownParam {
      * @param { InputDropdown } self
      */
     onSelect(value, self) {};
+    /**  
+     * @param { any } value
+     * @param { InputDropdown } self
+     */
+    onLoseFocus(value, self) {};
 }
 
+const invalidClass = 'stjs-int-fltr-invld-val';
 export class InputDropdown {
 
     dataSource = [];
+    highlightedIndex = -1;
 
     filterInput;
     filterableList;
@@ -28,8 +35,20 @@ export class InputDropdown {
 
     #params;
 
+    static #stylesInjected = false;
+    static injectStyles() {
+        if (InputDropdown.#stylesInjected) return;
+        InputDropdown.#stylesInjected = true;
+        const style = document.createElement('style');
+        style.id = 'input-dropdown-util-styles';
+        style.textContent = `.list-item-dropdown.highlighted { background: #e6f0ff; }\n .${invalidClass}{ border: 2px solid #ff00006e !important; background: #ff00001a !important; }`;
+        document.head.appendChild(style);
+    }
+
     /** @param { InputDropdownParam } params  */
     static new(params){
+
+        InputDropdown.injectStyles();
 
         const resultListId = 'dynamicFilter-'+UUIDUtil.newId();
         const filterResultLst = `<ul id="${resultListId}" class="filterable-list-dropdown hidden"></ul>`;
@@ -38,8 +57,7 @@ export class InputDropdown {
         params.filterableListSelector = `#${resultListId}`;
         params.componentFieldName = inputHTMLElement.dataset.stFieldName;        
         
-        return new InputDropdown(params);
-        
+        return new InputDropdown(params);   
     }
 
     /** @param { InputDropdownParam } params  */
@@ -50,6 +68,8 @@ export class InputDropdown {
         if (params.dataSource) this.dataSource = params.dataSource;
         if (params.onSelect)
             this.onSelect = async (selectedVal) => { this.#value = selectedVal; await params.onSelect(selectedVal, this) }
+        if (params.onLoseFocus)
+            this.onLoseFocus = async (selectedVal) => { this.#value = selectedVal; await params.onLoseFocus(selectedVal, this) }
 
         this.filterInput = document.querySelector(params.inputSelector);
         this.filterableList = document.querySelector(params.filterableListSelector);
@@ -91,10 +111,16 @@ export class InputDropdown {
         const filterText = this.filterInput.value.toLowerCase().trim();
         let matchFound = false, showAll = false;
         if(event?.key === 'Control') showAll = true;
+        
+        if(this.filterInput.classList.contains(invalidClass))
+            this.filterInput.classList.remove(invalidClass);
+
+        this.highlightedIndex = -1;
 
         for (let i = 0; i < this.listItems.length; i++) {
             const item = this.listItems[i];
             const itemText = item.textContent || item.innerText;
+            item.classList.remove('highlighted');
             if(showAll) item.classList.remove('hidden');
             else {
                 if (itemText.toLowerCase().includes(filterText)) {
@@ -105,34 +131,61 @@ export class InputDropdown {
             }
         }
 
-        if ((filterText.length > 0 && matchFound) || (showAll && this.listItems.length > 0))
-            this.filterableList.classList.remove('hidden');
-        else
-            this.filterableList.classList.add('hidden');
+        if ((filterText.length > 0 && matchFound) || (showAll && this.listItems.length > 0)) this.filterableList.classList.remove('hidden');
+        else this.filterableList.classList.add('hidden');
         this.#value = filterText;
     }
 
     /** @type { String } */ getValue() { return this.#value }
 
+    navigateList(event) {
+        if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
+        if (this.filterableList.classList.contains('hidden')) return;
+
+        const visible = Array.from(this.listItems).filter(li => !li.classList.contains('hidden'));
+        if (!visible.length) return;
+
+        event.preventDefault();
+
+        if (event.key === 'Enter') {
+            if (this.highlightedIndex > -1) visible[this.highlightedIndex].click();
+            return;
+        }
+
+        visible[this.highlightedIndex]?.classList.remove('highlighted');
+        this.highlightedIndex = event.key === 'ArrowDown'
+            ? (this.highlightedIndex + 1) % visible.length : (this.highlightedIndex - 1 + visible.length) % visible.length;
+
+        const item = visible[this.highlightedIndex];
+        item.classList.add('highlighted');
+        item.scrollIntoView({ block: 'nearest' });
+    }
+
     initInputHandling() {
         const self = this;
         this.filterInput.addEventListener('input', (event) => self.filterList(event));
-        this.filterInput.addEventListener('keyup', (event) => self.filterList(event));
+        this.filterInput.addEventListener('keyup', (event) => {
+            if (['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
+            self.filterList(event);
+        });
+        this.filterInput.addEventListener('keydown', (event) => self.navigateList(event));
+        this.filterInput.addEventListener('blur', (event) => {
+            setTimeout(() => self.filterableList.classList.add('hidden'), 150);
+            if(!self.dataSource.includes(event.target.value))
+                return this.filterInput.classList.add(invalidClass);
+            self.onLoseFocus(event.target.value);
+        });        
 
         this.filterableList.addEventListener('click', (event) => {
-            if (event.target.tagName === 'LI' && !event.target.classList.contains('hidden')) {
+            if (String(event.target.tagName).toLowerCase() === 'li' && !event.target.classList.contains('hidden')) {
                 self.filterInput.value = event.target.textContent;
                 self.filterableList.classList.add('hidden');
                 self.filterInput.focus();
             }
         });
-
-        this.filterInput.addEventListener('blur', () => {
-            setTimeout(() => self.filterableList.classList.add('hidden'), 150);
-        });
     }
 
     onSelect = async (value, self) => {};
+    onLoseFocus = async (value, self) => {};
 
 }
-

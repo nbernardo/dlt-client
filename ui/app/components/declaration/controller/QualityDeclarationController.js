@@ -517,10 +517,4 @@ export class QualityDeclarationController extends BaseController {
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
-  copyQuarantineJSON = () => {
-    if (this.quarantineRecords.length === 0) 
-      return alert('No quarantined records yet — paste sample data and click Evaluate first.');
-    navigator.clipboard.writeText(JSON.stringify(this.quarantineRecords, null, 2));
-    AppTemplate.toast.success(`Copied ${this.quarantineRecords.length} quarantine record(s) as JSON.`);
-  };
 }

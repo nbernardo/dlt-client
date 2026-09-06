@@ -1,3 +1,4 @@
+import { $still } from "../../../../@still/component/manager/registror.js";
 import { ViewComponent } from "../../../../@still/component/super/ViewComponent.js";
 import { HTTPHeaders } from "../../../../@still/helper/http.js";
 import { Assets } from "../../../../@still/util/componentUtil.js";
@@ -39,13 +40,24 @@ export class DataQualityDeclaration extends ViewComponent {
       await this.controller.initComponent();
     });
 
-    this.tableFilter = InputDropdown.new({ 
-      inputSelector: '.quality-declaration-table', dataSource: [], boundComponent: this,
-      onSelect: async (val) => {
-        this.controller.targetDataset = val;
+	const handleSelectedTable = async (val) => {
+		this.controller.targetDataset = val;
         this.controller.renderRules();
         this.controller.compileAll();
-      }
+		const url = `/pipeline/quarantine/${(await BIService.getNamespace())}/${this.modelDeclaration.selectedDW}/${val}`;
+		let result = await $still.HTTPClient.get(url);
+		result = await result.json();
+
+		this.controller.quarantineRecords = JSON.parse(result.result);
+		this.controller.renderQuarantineList();
+	}
+
+    this.tableFilter = InputDropdown.new({ 
+      inputSelector: '.quality-declaration-table', dataSource: [], boundComponent: this,
+      onSelect: async (val) => await handleSelectedTable(val),
+	  onLoseFocus: async (val) => {
+		await handleSelectedTable(val);
+	  }
     });
     this.updateDataSource(this.modelDeclaration.selectedSecred);
     this.modelDeclaration.loadingDQ = false;
