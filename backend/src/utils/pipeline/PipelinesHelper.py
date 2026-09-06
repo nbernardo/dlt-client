@@ -547,3 +547,30 @@ def make_table_resource(engine, table, schema, pk, incr_field=None, page_size=15
         print('======= Exception while generating the Resource START =======')
         print(f'ACTUAL EXCEPTION IS: {str(err)}')
         print('======= Exception while generating the Resource END =======')
+
+
+def get_quarantine_by_dw_table(db_path: str, table_name: str, schema: str):
+
+    con = duckdb.connect(db_path)
+    result = con.execute(f'''
+        SELECT COALESCE(to_json(array_agg(t)), '[]') AS payload
+        FROM (
+            SELECT
+                CONCAT(CAST(quarantine_id AS VARCHAR), '_', rule_id) AS quarantine_id,
+                primary_key_value, rule_id, severity, assertion_type, target,
+                dataset, message, captured_at, record_json AS record
+            FROM (
+                SELECT
+                    quarantine_id, dataset, primary_key_value, record_json, captured_at,
+                    unnest(rule_ids::VARCHAR[]) AS rule_id,
+                    unnest(severities::VARCHAR[]) AS severity,
+                    unnest(assertion_types::VARCHAR[]) AS assertion_type,
+                    unnest(targets::VARCHAR[]) AS target,
+                    unnest(messages::VARCHAR[]) AS message
+                FROM {schema}._e2e_dq_quarantine
+                WHERE dataset = ?
+            ) flat
+        ) t
+    ''', [table_name]).fetchone()
+
+    return { 'error': False, 'result': result[0] }

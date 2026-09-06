@@ -141,3 +141,15 @@ def persiste_model(namespace):
     if(quality):
         return DeclarationModeling().persist_quality_rules(namespace, dw, declaration, modelQuery, model_name)
     return DeclarationModeling().persist_model(namespace, dw, declaration, modelQuery, model_name)
+
+
+@bi_controller.route('/pipeline/quarantine/<namespace>/<pipeline>/<table>', methods=['GET'])
+def gat_quarantine_by_dw_table(namespace, pipeline, table):
+
+    from utils.pipeline.PipelinesHelper import get_quarantine_by_dw_table
+    
+    [sep, pipeline_path] = [get_sep(), pipeline.split('.')]
+    [pipeline, schema] = [pipeline_path[0], pipeline_path[-1]]
+    database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
+
+    return get_quarantine_by_dw_table(database_path, table, schema)
