@@ -59,7 +59,7 @@
 .rule-card:hover { border-color: var(--color-border-secondary); }
 .rule-card-header { display: flex; justify-content: space-between; align-items: center; }
 .rule-card-title { font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 8px; color: var(--color-brand-primary); }
-.rule-card-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: center; }
+.rule-card-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; align-items: center; select { height: 25px; } label { font-size: .7em; } }
 .rule-card-body.full { grid-template-columns: 1fr; }
 .rule-card-body.two { grid-template-columns: 1fr 1fr; }
 .field-group { display: flex; flex-direction: column; gap: 4px; }
@@ -72,10 +72,10 @@
 .gate-chip:last-child { border-right: none; }
 .gate-chip small { display: block; font-weight: 500; text-transform: none; letter-spacing: 0; margin-top: 2px; opacity: 0.8; font-size: 9.5px; }
 
-.quarantine-panel { flex: 1 1 40%; margin: 8px 16px 16px 16px; display: flex; flex-direction: column; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
 .sample-input-wrap { padding: 12px 16px; border-bottom: 0.5px solid var(--color-border-tertiary); background: #fff; display: flex; flex-direction: column; gap: 6px; }
 .sample-input-wrap textarea { width: 100%; height: 90px; resize: vertical; font-family: var(--font-mono); }
-.quarantine-panel { flex: none; height: 280px;  margin: 8px 16px 16px 16px; display: flex; flex-direction: column; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+.quarantine-panel { height: 30%; flex: none; margin: 8px 16px 16px 16px; display: flex; flex-direction: column; background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+.quarantine-pane-expand { height: 91.9% !important; }
 .quarantine-empty { color: var(--color-text-secondary); font-size: 12px; text-align: center; padding: 28px 12px; }
 .quarantine-note { color: var(--color-text-secondary); font-size: 11px; padding: 8px 4px 2px 4px; }
 
@@ -93,22 +93,23 @@
 .input-filter-result-qualityTableName { position: absolute; top: 100%; left: 0; margin-top: -12px; margin-left: 117px; }
 .quarantine-list{ height: 41%; overflow: scroll; }
 #primary-key:focus { width: 100% !important; }
+.max-icon, .min-icon { font-size: 26px; cursor: pointer; }
 </style>
 
 <div class="componentui-main-container declarations-ui @cmpInternalId" style="height: 94.5%;">
   <div class="app-header" style="display: flex; height: 40px;">
     <h1 style="color: white; margin-bottom: 0;">Data Quality Declaration</h1>
-    <span class="badge badge-teal">DuckDB Engine</span>
+    <span class="badge badge-teal">Data quality workbench v0.1</span>
   </div>
 
-  <div class="workbench">
+  <div class="workbench" (showIf)="self.showWorkbench">
     <!-- LEFT PANEL: VISUAL RULE BUILDER -->
     <div class="panel">
       <div class="panel-header">
         <span>1. Quality Assertions & Rules</span>
         <div>
           <button class="btn btn-primary btn-sm" style="width: auto;" onclick="controller.addRule(event)">+ Add Assertion Rule</button>
-          <button class="btn btn-primary btn-sm" style="width: auto;" onclick="component.saveModel()">Save</button>
+          <button class="btn btn-primary btn-sm" style="width: auto;" onclick="component.saveModel()">@saveLbl</button>
         </div>
       </div>
 
@@ -116,15 +117,12 @@
         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
           <label for="target-dataset" style="white-space: nowrap;">Target Dataset:</label>
           <input 
-            data-st-field-name="qualityTableName"
-            type="text" id="target-dataset" class="input-control mono quality-declaration-table" 
+            data-st-field-name="qualityTableName" type="text" id="target-dataset" class="input-control mono quality-declaration-table" 
             (value)=targetDataset style="width: 100%;" placeholder="schema.table_name">
         </div>
         <div style="display: flex; align-items: center; gap: 8px; width: 200px;">
           <label for="primary-key" style="white-space: nowrap;">Primary Key:</label>
-          <input 
-            type="text" id="primary-key" class="input-control mono" 
-            value="id" style="width: 100%;" placeholder="id">
+          <input type="text" id="primary-key" class="input-control mono" style="width: 100%;" placeholder="id">
         </div>
       </div>
       <div class="rules-container" id="rules-container">
@@ -132,7 +130,7 @@
             <st-element component="ElipsisLoader" label="Loading quality rules..."></st-element>
         </span>
         <span (showIf)="!self.showLoading">
-          <div class="content" style="padding: 0;"></div>
+          <div class="content" style="padding: 0; display: flex; flex-direction: column; gap: 4px;"></div>
         </span>
       </div>
     </div>
@@ -155,11 +153,13 @@
   <!-- QUARANTINE PREVIEW -->
   <div class="quarantine-panel">
     <div class="panel-header" style="flex: initial;">
-      <span>3. Quarantine Preview <span class="hint">— paste sample rows, evaluate rules in the browser</span></span>
+      <span>3. Quarantine Preview <!-- <span class="hint">— paste sample rows, evaluate rules in the browser</span> --></span>
       <div style="display:flex; gap:8px; align-items:center;">
         <span id="quarantine-count-badge" class="badge badge-teal" style="display:none;"></span>
-        <button class="btn btn-sm" style="width: auto;" onclick="controller.toggleSampleInput()">Paste Sample Data</button>
-        <button class="btn btn-primary btn-sm" onclick="controller.evaluateSampleData()">Evaluate</button>
+        <button class="btn btn-sm" style="width: auto;" disabled onclick="controller.toggleSampleInput()">Paste Sample Data</button>
+        <button class="btn btn-primary btn-sm" style="width: auto;" disabled onclick="controller.evaluateSampleData()">Evaluate</button>
+        <div class="max-icon" onclick="component.showHideWorkbench()">&square;</div>
+        <div class="min-icon" onclick="component.showHideWorkbench()">&dash;</div>
       </div>
     </div>
     <div class="sample-input-wrap" id="sample-input-wrap" style="display:none;">

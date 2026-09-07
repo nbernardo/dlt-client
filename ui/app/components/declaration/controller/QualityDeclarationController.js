@@ -385,7 +385,7 @@ export class QualityDeclarationController extends BaseController {
       generated_at: new Date().toISOString(),
       rule_count: this.rules.length,
       assertions: this.rules,
-      live_preview_quarantined_records: this.quarantineRecords
+      live_preview_quarantined_records: [] //this.quarantineRecords
     }, null, 2);
   }
 

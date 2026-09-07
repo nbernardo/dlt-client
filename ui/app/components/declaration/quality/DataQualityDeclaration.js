@@ -29,6 +29,9 @@ export class DataQualityDeclaration extends ViewComponent {
   /** @Prop @type { ModelDeclaration } */ modelDeclaration;
   /** @Prop @type { Object } */ databaseSchema = {};
   /** @Prop */ showLoading = false;
+  /** @Prop */ showWorkbench = true;
+
+  saveLbl = 'Save';
 
   async stBeforeInit() { await Assets.import({ path: '/app/components/pipeline/styles/shared.css', type: 'css' }); }
 
@@ -59,6 +62,8 @@ export class DataQualityDeclaration extends ViewComponent {
 	  this.controller.quarantineRecords = JSON.parse(result.result.quarantine),
 	  this.controller.compileQuarantineSQL(), this.controller.renderQuarantineList();
 	  this.showLoading = false;
+	  if((this.controller.quarantineRecords.length || 0) > 0)
+		this.saveLbl = 'Update';
 	}
 
     this.tableFilter = InputDropdown.new({ 
@@ -94,6 +99,9 @@ export class DataQualityDeclaration extends ViewComponent {
     const [model, modelQuery, modelName] = [definition, qualityCheckQuery, this.tableFilter.getValue()];
 
     const payload = { model, modelName, modelQuery, dw: this.modelDeclaration.selectedDW, quality: true };
+
+	if(this.saveLbl.value === 'Update') payload['updte'] = true;
+
     let result = await $still.HTTPClient.post(url, JSON.stringify(payload), HTTPHeaders.JSON);
     result = await result.json();
     if(result.result) AppTemplate.toast.success(`Data quality rules created successfully`);
@@ -101,5 +109,11 @@ export class DataQualityDeclaration extends ViewComponent {
       if(result.existing) AppTemplate.toast.warn(`There is already a Data quality rules with name ${modelName} for the pipeline data source`, 10000);
       else AppTemplate.toast.error(`Error while creating Data quality rules "${modelName}" for the pipeline data source`, 10000);
     }
+  }
+
+  showHideWorkbench = () => {
+	  this.showWorkbench = !this.showWorkbench;
+	  if(!this.showWorkbench) document.querySelector('.quarantine-panel').classList.add('quarantine-pane-expand');
+	  else document.querySelector('.quarantine-panel').classList.remove('quarantine-pane-expand');
   }
 }

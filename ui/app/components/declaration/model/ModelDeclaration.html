@@ -56,14 +56,14 @@ textarea { flex: 1; width: 100%; padding: 14px; border: none; font-family: var(-
 			$bundle.dataQualityTab
 		</div>
 	</nav>
-	<st-loader (showIf)="self.loadingDQ" (label)="Loading Data Quality UI"/>
+	<st-loader (showIf)="self.loadingDQ" (label)="Loading UI and definitions"/>
 
 	<div (showIf)="!self.loadingDQ" class="model-declaration-section model-declaration-stretch">
 		<div style="height: stretch;" id="sec-regular-model" class="section active">
 	
 			<div class="app-header" style="display: flex; height: 40px;">
 			  <h1 style="color: white; margin-bottom: 0;">YAML Model Declaration</h1>
-			  <span class="badge badge-teal">Composed Measures v0.1</span>
+			  <span class="badge badge-teal">Data modeler v0.1</span>
 			</div>
 			
 			<div id="error-box" class="error-banner"></div>
