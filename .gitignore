@@ -28,12 +28,19 @@ dbs
 z
 ztore
 package-lock.json
-*vanilla.html
+*vanilla*.html
+*vanilas
+*vanilla
+*data-sample*.json
 *.pyc
 *.*.pyc
 *catalog.lance/
+*dd*.json
+*launch.json
+e2e_data_users*
 
 backend/destinations/duckdb/*/*.duckdb
+backend/destinations/duckdb/*/*.wal
 backend/destinations/pipeline/*/*.py
 backend/destinations/pipeline/*/*.meta
 backend/destinations/code/*/*.json
@@ -49,3 +56,13 @@ vault/vault/*
 # Test databases and temporary files
 backend/tests/*.duckdb
 backend/tests/*.db
+.vscode/settings.json
+
+
+backend/scratch/*.py
+dev-certs/devcert.*
+nginx.conf
+.DS_Store
+access.log
+error.log
+nginx.pid

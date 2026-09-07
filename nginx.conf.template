@@ -1,0 +1,73 @@
+# ====================================================================
+# UNIFIED PROJECT INFRASTRUCTURE CONFIGURATION TEMPLATE
+# ====================================================================
+
+worker_processes 1;
+pid               ./logs/nginx.pid;
+daemon            on;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       ./dev-certs/mime.types;
+    default_type  application/octet-stream;
+
+    access_log    ./logs/access.log;
+    error_log     ./logs/error.log warn;
+
+    sendfile        on;
+    keepalive_timeout  65;
+
+    upstream backend_cluster {
+        ip_hash;
+        server 127.0.0.1:8001;
+        server 127.0.0.1:8002;
+    }
+
+    server {
+        # ⚡ DYNAMIC PORTS: Injected automatically by the Makefile execution target
+        listen {{PORT}} ssl default_server;
+        listen [::]:{{PORT}} ssl default_server;
+        server_name _;
+
+        # ⚡ DYNAMIC CERTS: Swapped on the fly based on environment state
+        ssl_certificate     {{CERT}};
+        ssl_certificate_key {{KEY}};
+
+        root ./ui;
+        index index.html;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+
+        location /api/ {
+            proxy_pass http://backend_cluster/;
+        }
+
+        location ~ ^/(pipeline|socket\.io) {
+            rewrite ^/pipeline(.*)$ /socket.io$1 break;
+            proxy_pass http://backend_cluster;
+            
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+
+            proxy_read_timeout 86400;
+            proxy_send_timeout 86400;
+        }
+
+        location = /@still/component/manager/intercept_worker.js {
+            add_header Content-Type application/javascript;
+            add_header Service-Worker-Allowed "/";
+            try_files $uri =404;
+        }
+    }
+}

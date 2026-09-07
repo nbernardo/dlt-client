@@ -335,14 +335,7 @@ def message_ai_agent_with_username(namespace, username):
         logging.error(str(error))
         return 'failed'
     
-
-@workspace.route('/workcpace/ppline/job/schedule/', methods=['POST'])
-@cross_origin(origins=[env('APP_SRV_ADDR')])
-def setup_job_schedules():
-    Workspace.schedule_pipeline_job()
-    return ''
-
-
+    
 @workspace.route('/download/<type>/<namespace>/<filename>')
 def download(type, namespace, filename):
 
@@ -383,6 +376,8 @@ pattern = r'^use.*$'
 
 def call_scheduled_job(app):
     import os
+    if str(os.environ.get('PORT')) != '8001' and str(os.environ.get('PORT')) != '8000':
+        return
     logging.info('''
                ___   __        ___         _
          ___  |_  | / _ \     |   \  __ _ | |_  __ _

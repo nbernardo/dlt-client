@@ -141,7 +141,7 @@ class UserService:
                     (ROOT_USERNAME, hashed_root_password, root_permissions, 'No', NAMESPACE, f'{ROOT_USERNAME}@{NAMESPACE}')
                 )
                 await conn.commit()
-                await conn.execute('CHECKPOINT')
+                conn.execute('PRAGMA wal_checkpoint(TRUNCATE);')
                 logging.error("[SEED] Root user seeded successfully.")
             else:
                 logging.error("[SEED] Root user already exists. Skipping seed step.")

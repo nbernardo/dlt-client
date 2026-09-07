@@ -1,9 +1,12 @@
 from datetime import datetime
 from utils.duckdb_util import DuckdbUtil
+import os
 
 class DuckDBCache:
     
     def connect():
+        if str(os.environ.get('PORT')) != '8001' and str(os.environ.get('PORT')) != '8000':
+            return
         DuckdbUtil.create_cache_table()
     
 
