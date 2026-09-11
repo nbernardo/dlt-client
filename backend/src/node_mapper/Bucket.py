@@ -113,7 +113,9 @@ class Bucket(TemplateNodeType):
             self.bucket_file_source = data['bucketFileSource']
             if(str(data['bucketFileSource']).endswith('.csv') and not str(data['bucketFileSource']).endswith('*.csv')):
                 self.bucket_file_source = data['bucketFileSource'].replace('.csv','*.csv')
-            
+
+            self.real_file_pattern = f'@{self.file_pattern}' if data['filePattern'].strip().startswith('@') else self.file_pattern
+
         except Exception as error:
             self.notify_failure_to_ui('Bucket',error)
 
