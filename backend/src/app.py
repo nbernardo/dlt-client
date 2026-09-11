@@ -70,4 +70,5 @@ SQLDatabase.secret_manager = SecretManager
 # If it's trunning on top of Docker, consult the documentation to know how to block the port properly:
 #    - https://docs.docker.com/engine/network/packet-filtering-firewalls/
 port=os.environ.get('PORT',8000)
+os.environ.setdefault('PORT', str(port))
 socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
