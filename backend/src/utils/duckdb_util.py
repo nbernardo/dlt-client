@@ -26,10 +26,10 @@ class DuckdbUtil:
 
     @staticmethod
     def get_workspace_db_instance():
-        DuckdbUtil.dltdbinstance_count += 1
         if DuckdbUtil.dltdbinstance_count == 1:
             workspacedb = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb'
             DuckdbUtil.dltdbinstance = duckdb.connect(workspacedb)
+            DuckdbUtil.dltdbinstance_count += 1
         return DuckdbUtil.dltdbinstance    
 
 
