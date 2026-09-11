@@ -108,7 +108,7 @@ class PipelineDWPhaseRunner:
             con = duckdb.connect(self.source_db_path, read_only=True)
 
             try:
-                tbls_fltr = str([f'{t}' for t in tables]).strip('[]')
+                tbls_fltr = str([f'{t}'.replace('@','') for t in tables]).strip('[]')
                 fetch_table_query = f"SELECT table_name from information_schema.tables WHERE table_name in ('1',{tbls_fltr})"
                 handle_pipeline_log(f'Fetch tables query: {fetch_table_query}', self.logger, context=self.context)
                 tbls = con.execute(fetch_table_query).fetchall()
