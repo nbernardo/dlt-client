@@ -93,14 +93,10 @@ class Bucket(TemplateNodeType):
             # file_pattern is mapped in /pipeline_templates/simple.txt
             file_path = data['filePattern'].split('.')
             file_pattern_name = ''.join(file_path[0:-1])+'*.'+file_path[-1]
-
-            if data['filePattern'].strip().startswith('@'):
-                file_pattern_name = file_pattern_name.replace('*','')
-            
             self.file_pattern = file_pattern_name
 
             context.pipeline_metadata.tables_pks = [data.get('primaryKey', None)]
-            context.pipeline_metadata.dest_tables = [str(file_path[-2]).replace('-','_').replace("'",'').replace('@','').strip('[]')]
+            context.pipeline_metadata.dest_tables = [str(file_path[0:-1]).replace('-','_').replace("'",'').strip('[]')]
 
             if context.pipeline_metadata.existing_wd != None and self.context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
                 self.ppline_dest_table = context.pipeline_metadata.dest_tables[0]
@@ -109,7 +105,7 @@ class Bucket(TemplateNodeType):
             self.bucket_file_source = data['bucketFileSource']
             if(str(data['bucketFileSource']).endswith('.csv') and not str(data['bucketFileSource']).endswith('*.csv')):
                 self.bucket_file_source = data['bucketFileSource'].replace('.csv','*.csv')
-
+            
         except Exception as error:
             self.notify_failure_to_ui('Bucket',error)
 

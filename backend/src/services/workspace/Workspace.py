@@ -758,6 +758,7 @@ class Workspace:
 
         try:
             table = 'ppline_schedule'
+            if(DuckdbUtil.get_workspace_db_instance() == None): return
             if(DuckdbUtil.workspace_table_exists(table) == False):
                 DuckdbUtil.create_ppline_schedule_table()
 
@@ -821,6 +822,7 @@ class Workspace:
     @staticmethod
     def schedule_pipeline_job(namespace = None, ppline=None, immediate=False, exec_id=None, user=None):
         result = Workspace.get_ppline_schedule(namespace, ppline)
+        if(result == None): return
         schedules = {}
         if type(result) == list:
             schedules = { f'{ppline}^{rec.get('time')}': rec for rec in result }
