@@ -141,12 +141,12 @@ class Bucket(TemplateNodeType):
 
         is_cloud_url = str(self.bucket_url).replace(' ','').__contains__('://')
         path_exists = os.path.exists(self.bucket_url)
-        file_exists = os.path.exists(self.bucket_url+'/'+str(self.file_pattern).replace('*',''))
+        file_exists = os.path.exists(self.bucket_url+'/'+str(self.real_file_pattern).replace('*',''))
         error = None
         if not path_exists and is_cloud_url == False:
             error = 'Specified bucket url does not exists'
         if not file_exists and is_cloud_url == False:
-            error = f'Files with specified patterns "{self.file_pattern}" does not exists'
+            error = f'Files with specified patterns "{self.real_file_pattern}" does not exists'
         else:
             # Notify the UI that this step completed successfully
             return self.notify_completion_to_ui()
