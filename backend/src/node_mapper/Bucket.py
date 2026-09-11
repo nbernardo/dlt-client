@@ -92,16 +92,12 @@ class Bucket(TemplateNodeType):
 
             # file_pattern is mapped in /pipeline_templates/simple.txt
             file_path = data['filePattern'].split('.')
-            file_pattern_name = ''.join(file_path[-2])+'*.'+file_path[-1]
-            self.file_pattern = file_pattern_name
+            file_pattern_name = ''.join(file_path[0:-1])+'*.'+file_path[-1]
 
             if data['filePattern'].strip().startswith('@'):
-                self.file_pattern = data['filePattern'].strip().replace('@','').replace('*','')
+                file_pattern_name = file_pattern_name.replace('*','')
             
-            if len(file_path) > 2:
-                self.file_pattern = f'{file_path[-2].replace('@','')}.{file_path[-1]}'
-            
-            self.data_source_db = file_path[0].replace('@','')
+            self.file_pattern = file_pattern_name
 
             context.pipeline_metadata.tables_pks = [data.get('primaryKey', None)]
             context.pipeline_metadata.dest_tables = [str(file_path[-2]).replace('-','_').replace("'",'').replace('@','').strip('[]')]
@@ -113,8 +109,6 @@ class Bucket(TemplateNodeType):
             self.bucket_file_source = data['bucketFileSource']
             if(str(data['bucketFileSource']).endswith('.csv') and not str(data['bucketFileSource']).endswith('*.csv')):
                 self.bucket_file_source = data['bucketFileSource'].replace('.csv','*.csv')
-
-            self.real_file_pattern = f'@{self.file_pattern}' if data['filePattern'].strip().startswith('@') else self.file_pattern
 
         except Exception as error:
             self.notify_failure_to_ui('Bucket',error)
@@ -141,12 +135,12 @@ class Bucket(TemplateNodeType):
 
         is_cloud_url = str(self.bucket_url).replace(' ','').__contains__('://')
         path_exists = os.path.exists(self.bucket_url)
-        file_exists = os.path.exists(self.bucket_url+'/'+str(self.real_file_pattern).replace('*',''))
+        file_exists = os.path.exists(self.bucket_url+'/'+str(self.file_pattern).replace('*',''))
         error = None
         if not path_exists and is_cloud_url == False:
             error = 'Specified bucket url does not exists'
         if not file_exists and is_cloud_url == False:
-            error = f'Files with specified patterns "{self.real_file_pattern}" does not exists'
+            error = f'Files with specified patterns "{self.file_pattern}" does not exists'
         else:
             # Notify the UI that this step completed successfully
             return self.notify_completion_to_ui()
