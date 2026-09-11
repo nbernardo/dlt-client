@@ -92,11 +92,19 @@ class Bucket(TemplateNodeType):
 
             # file_pattern is mapped in /pipeline_templates/simple.txt
             file_path = data['filePattern'].split('.')
-            file_pattern_name = ''.join(file_path[0:-1])+'*.'+file_path[-1]
+            file_pattern_name = ''.join(file_path[-2])+'*.'+file_path[-1]
             self.file_pattern = file_pattern_name
 
+            if data['filePattern'].strip().startswith('@'):
+                self.file_pattern = data['filePattern'].strip().replace('@','').replace('*','')
+            
+            if len(file_path) > 2:
+                self.file_pattern = f'{file_path[-2].replace('@','')}.{file_path[-1]}'
+            
+            self.data_source_db = file_path[0].replace('@','')
+
             context.pipeline_metadata.tables_pks = [data.get('primaryKey', None)]
-            context.pipeline_metadata.dest_tables = [str(file_path[0:-1]).replace('-','_').replace("'",'').strip('[]')]
+            context.pipeline_metadata.dest_tables = [str(file_path[-2]).replace('-','_').replace("'",'').replace('@','').strip('[]')]
 
             if context.pipeline_metadata.existing_wd != None and self.context.pipeline_metadata.source_type == NodeType.FS_SOURCE:
                 self.ppline_dest_table = context.pipeline_metadata.dest_tables[0]
