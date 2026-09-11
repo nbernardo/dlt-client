@@ -18,7 +18,7 @@ logger.info("Files/Bucket loaded successfully", extra={'stage': 'data_loading'})
 
 # Bellow mapping: ppline_dest_table = DuckDBOutput.ppline_dest_table or Bucket.ppline_dest_table when source is Bucket
 logger.info("Creating %read_file_type% reader", extra={'stage': 'data_transformation', 'destination_table': %ppline_dest_table%})
-reader = (files | read_%read_file_type%()).with_name(%ppline_dest_table%)
+reader = (files | read_%read_file_type%()).with_name(%ppline_dest_table%.replace('@',''))
 
 if %primary_key% != 'UNDEFINED':
     # Bellow mapping: primary_key = Bucket.primary_key
@@ -46,7 +46,8 @@ try:
         logger.info("Pipeline execution completed", extra={'stage': 'pipeline_completion'})
     
     catalog_table_path = f'{bucket_url}/{file_pattern}'
-    MetaStore.persist_catalog([%ppline_dest_table%], pipeline, info)
+    dest_tbl = %ppline_dest_table%.replace('@','')
+    MetaStore.persist_catalog([dest_tbl], pipeline, info)
     
 except Exception as e:
     logger.error("Pipeline execution failed", extra={
