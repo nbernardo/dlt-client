@@ -509,7 +509,8 @@ class Workspace:
     def run_sql_query(database = None, query = None, destinationDB = None):
         try:
             cnx = DuckdbUtil.get_connection_for(f'{database}')
-            cnx.execute(f"SET schema='{destinationDB}'")
+            if(destinationDB):
+                cnx.execute(f"SET schema='{destinationDB}'")
             result = cnx.execute(query).fetchall()
             result = Workspace.normalize_decimals(result)
 
