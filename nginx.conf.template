@@ -22,8 +22,8 @@ http {
 
     upstream backend_cluster {
         ip_hash;
-        server 127.0.0.1:8001;
-        server 127.0.0.1:8002;
+        server {{HOST_IP}}:8001;
+        server {{HOST_IP}}:8002;
     }
 
     server {

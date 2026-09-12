@@ -1,6 +1,12 @@
 UV := $(shell command -v uv 2> /dev/null)
 OS := $(shell uname -s 2>/dev/null || echo Windows)
-
+IP_ADDR := $(shell \
+    if [ "$(OS)" = "Darwin" ]; then \
+        ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "127.0.0.1"; \
+    else \
+        hostname -I 2>/dev/null | awk '{print $$1}' || ip route get 1.1.1.1 2>/dev/null | awk '{print $$7}' || echo "127.0.0.1"; \
+    fi \
+)
 # ====================================================================
 # PHASE 1: INSTALLATION TARGETS
 # ====================================================================
@@ -40,6 +46,23 @@ dev: certs
 	@sed -e 's|{{PORT}}|8443|g' \
 	     -e 's|{{CERT}}|./dev-certs/devcert.crt|g' \
 	     -e 's|{{KEY}}|./dev-certs/devcert.key|g' \
+		 -e 's|{{HOST_IP}}|127.0.0.1|g' \
+	     nginx.conf.template > nginx.conf
+	@echo "🚀 Starting Symmetrical Local Development Cluster..."
+	@nginx -c $$(pwd)/nginx.conf -p $$(pwd); \
+	trap 'echo "\n🛑 Stopping cluster..."; kill 0 2>/dev/null; nginx -c $$(pwd)/nginx.conf -p $$(pwd) -s stop >/dev/null 2>&1; exit 0' INT TERM EXIT; \
+	PYTHONUNBUFFERED=1 PORT=8001 python backend/src/app.py 2>&1 | awk '{print " [34m[DEV-NODE-8001] [0m " $$0}' & \
+	if false; then \
+		PYTHONUNBUFFERED=1 PORT=8002 python backend/src/app.py --no-reload 2>&1 | awk '{print " [32m[DEV-NODE-8002] [0m " $$0}' & \
+	fi; \
+	wait
+
+stage: certs
+	@echo "🛠️ Compiling Development Configuration (Port: 8443, Local Certs)..."
+	@sed -e 's|{{PORT}}|8443|g' \
+	     -e 's|{{CERT}}|./dev-certs/devcert.crt|g' \
+	     -e 's|{{KEY}}|./dev-certs/devcert.key|g' \
+		 -e 's|{{HOST_IP}}|$(IP_ADDR)|g' \
 	     nginx.conf.template > nginx.conf
 	@echo "🚀 Starting Symmetrical Local Development Cluster..."
 	@nginx -c $$(pwd)/nginx.conf -p $$(pwd); \
@@ -55,6 +78,7 @@ prod: certs
 	@sed -e 's|{{PORT}}|443|g' \
 	     -e 's|{{CERT}}|/etc/letsencrypt/live/://example.com|g' \
 	     -e 's|{{KEY}}|/etc/letsencrypt/live/://example.com|g' \
+		 -e 's|{{HOST_IP}}|$(IP_ADDR)|g' \
 	     nginx.conf.template > nginx.conf
 	@echo "🚀 Starting Symmetrical Production Server Ingestion Engine..."
 	@sudo nginx -c $$(pwd)/nginx.conf -p $$(pwd); \
@@ -83,4 +107,12 @@ clean:
 	-@sudo pkill -f "nginx" >/dev/null 2>&1 || true
 	-@rm -f nginx.conf || true
 
-.PHONY: install install-deps extensions dev prod clean certs
+# ====================================================================
+# DIAGNOSTIC TARGETS
+# ====================================================================
+
+check-ip:
+	@echo "OS Detected : $(OS)"
+	@echo "Resolved IP : $(IP_ADDR)"
+
+.PHONY: install install-deps extensions dev stage prod clean certs
