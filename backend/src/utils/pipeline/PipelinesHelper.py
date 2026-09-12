@@ -489,7 +489,7 @@ def get_sql_connection(secret, dbengine = None):
 import dlt
 from sqlalchemy import text
 
-def make_table_resource(engine, table, schema, pk, incr_field=None, page_size=5000):
+def make_table_resource(engine, table, schema, pk, incr_field=None, page_size=15000):
     full_tbl = f'{schema}.{table}' if schema else table
     resource_name = f"{schema}_{table}" if schema else table
     order_col = incr_field if incr_field else pk
@@ -547,3 +547,31 @@ def make_table_resource(engine, table, schema, pk, incr_field=None, page_size=50
         print('======= Exception while generating the Resource START =======')
         print(f'ACTUAL EXCEPTION IS: {str(err)}')
         print('======= Exception while generating the Resource END =======')
+
+
+def get_quarantine_by_dw_table(db_path: str, table_name: str, schema: str):
+
+    result = []
+    with duckdb.connect(db_path) as con:
+        result = con.execute(f'''
+            SELECT COALESCE(to_json(array_agg(t)), '[]') AS payload
+            FROM (
+                SELECT
+                    CONCAT(CAST(quarantine_id AS VARCHAR), '_', rule_id) AS quarantine_id,
+                    primary_key_value, rule_id, severity, assertion_type, target,
+                    dataset, message, captured_at, record_json AS record
+                FROM (
+                    SELECT
+                        quarantine_id, dataset, primary_key_value, record_json, captured_at,
+                        unnest(rule_ids::VARCHAR[]) AS rule_id,
+                        unnest(severities::VARCHAR[]) AS severity,
+                        unnest(assertion_types::VARCHAR[]) AS assertion_type,
+                        unnest(targets::VARCHAR[]) AS target,
+                        unnest(messages::VARCHAR[]) AS message
+                    FROM {schema}._e2e_dq_quarantine
+                    WHERE dataset = ?
+                ) flat
+            ) t
+        ''', [table_name]).fetchone()
+
+    return result[0] if len(result) > 0 else []

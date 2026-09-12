@@ -822,6 +822,8 @@ class Workspace:
 
     @staticmethod
     def schedule_pipeline_job(namespace = None, ppline=None, immediate=False, exec_id=None, user=None):
+        if str(os.environ.get('PORT')) != '8001' and str(os.environ.get('PORT')) != '8000':
+            return
         result = Workspace.get_ppline_schedule(namespace, ppline)
         if(result == None): return
         schedules = {}

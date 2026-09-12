@@ -26,6 +26,9 @@ class DuckdbUtil:
 
     @staticmethod
     def get_workspace_db_instance():
+        import os
+        if str(os.environ.get('PORT')) != '8001' and str(os.environ.get('PORT')) != '8000':
+            return
         DuckdbUtil.dltdbinstance_count += 1
         if DuckdbUtil.dltdbinstance_count == 1:
             workspacedb = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb'
@@ -380,6 +383,30 @@ class DuckdbUtil:
         cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS declaration_namespace ON public_sale_order (namespace);')
         cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS declaration_dw ON public_sale_order (dw_name);')
         cnx.execute('CREATE UNIQUE INDEX IF NOT EXISTS declaration_model ON public_sale_order (model_name);')
+
+
+    @staticmethod
+    def create_quarantine_table_query():
+        return """
+            CREATE SEQUENCE IF NOT EXISTS seq_dq_quarantine_id START 1;
+
+            CREATE TABLE IF NOT EXISTS _e2e_dq_quarantine (
+                quarantine_id BIGINT DEFAULT nextval('seq_dq_quarantine_id'),
+                dataset VARCHAR NOT NULL,
+                primary_key_value VARCHAR,
+                record_json JSON NOT NULL,
+                rule_ids JSON NOT NULL,
+                assertion_types JSON NOT NULL,
+                targets JSON NOT NULL,
+                severities JSON NOT NULL,
+                worst_severity VARCHAR NOT NULL,
+                messages JSON NOT NULL,
+                captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status VARCHAR,
+                ingest_id VARCHAR,
+                PRIMARY KEY (quarantine_id)
+            );
+       """
 
 
 def is_extension_installed(extension_name):

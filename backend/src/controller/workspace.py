@@ -335,14 +335,7 @@ def message_ai_agent_with_username(namespace, username):
         logging.error(str(error))
         return 'failed'
     
-
-@workspace.route('/workcpace/ppline/job/schedule/', methods=['POST'])
-@cross_origin(origins=[env('APP_SRV_ADDR')])
-def setup_job_schedules():
-    Workspace.schedule_pipeline_job()
-    return ''
-
-
+    
 @workspace.route('/download/<type>/<namespace>/<filename>')
 def download(type, namespace, filename):
 
@@ -383,6 +376,8 @@ pattern = r'^use.*$'
 
 def call_scheduled_job(app):
     import os
+    if str(os.environ.get('PORT')) != '8001' and str(os.environ.get('PORT')) != '8000':
+        return
     logging.info('''
                ___   __        ___         _
          ___  |_  | / _ \     |   \  __ _ | |_  __ _
@@ -420,6 +415,7 @@ def call_scheduled_job(app):
             if os.path.exists(workspacedb_wal):
                 os.remove(workspacedb_wal)
             DuckdbUtil.create_dw_declarations()
+            #DuckdbUtil.create_quarantine_table()
 
         executor.submit(on_app_loading)
 
@@ -576,9 +572,10 @@ def fetch_secret(namespace, type, secretname):
     
 
 @workspace.route('/<namespace>/db/connection/<connection_name>/tables', methods=['GET'])
-def get_db_connection_detailes(namespace, connection_name):
+@workspace.route('/<namespace>/db/connection/<connection_name>/tables/<fields_list_flag>', methods=['GET'])
+def get_db_connection_detailes(namespace, connection_name, fields_list_flag = False):
 
-    result = SQLDatabase.get_tables_list(namespace, connection_name)
+    result = SQLDatabase.get_tables_list(namespace, connection_name, fields_list_flag)
 
     if 'error' not in result:
         return { 'error': False, 'result': { 'tables': result['tables'], 'secret_details': result['details'] } }

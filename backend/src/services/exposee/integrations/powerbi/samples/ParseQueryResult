@@ -1,0 +1,18 @@
+// This is a function that is used inside query-parquet-export
+(apiResponse as binary) =>
+let
+    Result = if Text.FromBinary(Binary.Range(apiResponse, 0, 1)) = "{" then 
+                let 
+                    JsonError = Json.Document(apiResponse),                     
+                    ErrorType = Record.FieldOrDefault(JsonError, "type", "UnknownError"),                    
+                    RawDesc = Record.FieldOrDefault(JsonError, "error", "No description provided"),                    
+                    ErrorDesc = if Value.Is(RawDesc, type record) then 
+                                    Record.FieldValues(RawDesc){0} 
+                                else 
+                                    RawDesc
+                in 
+                    error Error.Record(ErrorType, Text.From(ErrorDesc))
+             else 
+                Parquet.Document(apiResponse)
+in
+    Result

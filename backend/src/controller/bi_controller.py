@@ -51,18 +51,26 @@ from controller.pipeline import BasePipeline
 
 @bi_controller.route('/analytics/ppline/domains/catalog/<namespace>/<pipeline>/<datawarehouse>', methods=['GET'])
 def get_domain_pipeline_fields(namespace, pipeline, datawarehouse):
-    from utils.metastore.DataCatalog import DataCatalog
     from utils.pipeline.PipelinesHelper import get_table_columns
+    from utils.metastore.PipelineMedatata import PipelineMedatata
 
     sep = get_sep()
     database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
 
     table_path = f'{pipeline}.{datawarehouse}'
     range_fields_data = DuckdbUtil.get_range_columns_data(database_path, table_path)
+    metadatas = PipelineMedatata.get_pipeline_metadata(pipeline, namespace)
     #all_fields = DataCatalog.get_fields_by_pipeline(pipeline, namespace)
     all_fields = get_table_columns(database_path, pipeline)
 
-    return { 'result': { 'range_fields_data': range_fields_data if range_fields_data != None else [], 'all_fields': all_fields }, 'error': False }
+    return { 
+        'result': { 
+            'range_fields_data': range_fields_data if range_fields_data != None else [], 
+            'all_fields': all_fields, 
+            'secret_name': list(metadatas)[2] if len(list(metadatas)) > 3 else None
+        }, 
+        'error': False 
+    }
 
 
 
@@ -127,7 +135,28 @@ from services.modeling.dw.DeclarationModeling import DeclarationModeling
 @bi_controller.route('/declaration/model/<namespace>', methods=['POST'])
 def persiste_model(namespace):
     payload = request.get_json()
-    declaration, modelQuery = payload.get('model'), payload.get('modelQuery')
+    declaration, modelQuery, quality = payload.get('model'), payload.get('modelQuery'), payload.get('quality')
     dw = payload.get('dw','').split('.')
-    dw, model_name = '.'.join(dw[-2:3]), payload.get('modelName')
+    dw, model_name, updte = '.'.join(dw[-2:3]), payload.get('modelName'), payload.get('updte')
+    if(quality):
+        return DeclarationModeling().persist_quality_rules(namespace, dw, declaration, modelQuery, model_name, updte)
     return DeclarationModeling().persist_model(namespace, dw, declaration, modelQuery, model_name)
+
+
+@bi_controller.route('/pipeline/quarantine/<namespace>/<pipeline>/<table>', methods=['GET'])
+def gat_quarantine_by_dw_table(namespace, pipeline, table):
+
+    from utils.pipeline.PipelinesHelper import get_quarantine_by_dw_table
+    from services.modeling.dw.DeclarationModeling import DeclarationModeling
+
+    [sep, pipeline_path] = [get_sep(), pipeline.split('.')]
+    [pipeline, schema] = [pipeline_path[0], pipeline_path[-1]]
+
+    [dw_name_path, dq_model_name] = [f'{pipeline}.{schema}', f'_dq_{table}']
+    declared_model = DeclarationModeling().get_all_dq_models(namespace, dw_name_path, dq_model_name)
+
+    database_path = f'{BasePipeline.folder}{sep}duckdb{sep}{namespace}{sep}{pipeline}.duckdb'
+
+    quarantine_data = get_quarantine_by_dw_table(database_path, table, schema)
+
+    return { 'error': False, 'result': { 'quarantine': quarantine_data, 'model': declared_model } }

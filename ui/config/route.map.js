@@ -161,6 +161,10 @@ export const stillRoutesMap = {
             ModelDeclaration: {
                 path: "app/components/declaration/model",
                 url: "/model-declaration"
+            },
+            DataQualityDeclaration: {
+                path: "app/components/declaration/quality",
+                url: "/data-quality-declaration"
             }
         },
         lazyInitial: {}

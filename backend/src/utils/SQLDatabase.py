@@ -21,7 +21,7 @@ class SQLDatabase:
     }
 
 
-    def get_mysql_tables(namespace, connection_name, secret):
+    def get_mysql_tables(namespace, connection_name, secret, column_as_list = False):
 
         mysql_conection, database = SQLConnection\
                                         .mysql_connect(namespace, connection_name, secret)
@@ -30,7 +30,7 @@ class SQLDatabase:
             SELECT table_name, column_name, CONCAT('"', COLUMN_TYPE, '"') AS quoted_type
             FROM information_schema.columns
             WHERE table_schema = :schema
-            ORDER BY table_name, ORDINAL_POSITION
+            ORDER BY table_name, column_name
         '''
 
         tables = {}
@@ -38,12 +38,16 @@ class SQLDatabase:
         for table_name, column_name, col_type in result.fetchall():
             if table_name not in tables:
                 tables[table_name] = []
-            tables[table_name].append({ 'column': column_name, 'type':  col_type  })
+
+            if(column_as_list):
+                tables[table_name].append(column_name)
+            else:   
+                tables[table_name].append({ 'column': column_name, 'type':  col_type  })
 
         return tables
 
 
-    def get_pgsql_tables(namespace, connection_name, secret):
+    def get_pgsql_tables(namespace, connection_name, secret, column_as_list = False):
         
         pgsql_conection, database = SQLConnection\
                                         .pgsql_connect(namespace, connection_name, secret)
@@ -56,8 +60,8 @@ class SQLDatabase:
                 column_name AS column_name,
                 '"' || data_type || '"' AS quoted_type
             FROM information_schema.columns
-            WHERE table_catalog = :database_name
-            ORDER BY table_schema, table_name, ordinal_position;
+            WHERE table_catalog = :database_name AND table_schema <> 'information_schema' AND table_schema <> 'pg_catalog'
+            ORDER BY table_schema, table_name, column_name;
         """
 
         tables = {}
@@ -69,8 +73,11 @@ class SQLDatabase:
 
             if table_name not in tables[table_schema]:
                 tables[table_schema][table_name] = []
-
-            tables[table_schema][table_name].append({ 'column': column_name, 'type':  col_type  })
+            
+            if(column_as_list):
+                tables[table_schema][table_name].append(column_name)
+            else:
+                tables[table_schema][table_name].append({ 'column': column_name, 'type':  col_type  })
 
         tables['schema_based'] = True
         return tables
@@ -92,7 +99,7 @@ class SQLDatabase:
                     '"' + DATA_TYPE + '"' AS quoted_type
                 FROM INFORMATION_SCHEMA.COLUMNS
                 WHERE TABLE_CATALOG = :database_name
-                ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;
+                ORDER BY TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME;
             """
 
             tables = {}
@@ -139,7 +146,7 @@ class SQLDatabase:
         return tables
 
 
-    def get_tables_list(namespace, connection_name):
+    def get_tables_list(namespace, connection_name, column_as_list = False):
 
         try:
             
@@ -150,10 +157,10 @@ class SQLDatabase:
             dbengine = secret['dbengine'] if 'dbengine' in secret else None
 
             if(dbengine == 'mysql'):
-                table_list = SQLDatabase.get_mysql_tables(namespace, connection_name, secret)
+                table_list = SQLDatabase.get_mysql_tables(namespace, connection_name, secret, column_as_list)
 
             if(dbengine == 'postgresql'):
-                table_list = SQLDatabase.get_pgsql_tables(namespace, connection_name, secret)
+                table_list = SQLDatabase.get_pgsql_tables(namespace, connection_name, secret, column_as_list)
 
             if(dbengine == 'mssql'):
                 table_list = SQLDatabase.get_mssql_tables(namespace, connection_name, secret)

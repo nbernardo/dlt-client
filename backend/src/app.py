@@ -66,5 +66,9 @@ SecretManager.connect_to_vault()
 SecretManager.db_secrete_obj = database_secret
 SQLDatabase.secret_manager = SecretManager
 
-port=env('APP_SRV_ADDR').split(':')[-1]
-socketio.run(app, host="0.0.0.0", port=port)
+# For production setup, the service port needs to be blocked in firewall level to prevent internet access
+# If it's trunning on top of Docker, consult the documentation to know how to block the port properly:
+#    - https://docs.docker.com/engine/network/packet-filtering-firewalls/
+port=os.environ.get('PORT',8000)
+os.environ.setdefault('PORT', str(port))
+socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
