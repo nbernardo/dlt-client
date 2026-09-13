@@ -132,7 +132,7 @@ def query_parquet_export(namespace = None, dw = None):
         sql = _validate_select(sql)
         translated_sql_query = translated_sql_query or sql
         schema = dw.split('.')[1] if '.' in (dw or '') else None
-        future = _executor.submit(_run_export, con, translated_sql_query, schema)
+        future = _executor.submit(_run_export, con, translated_sql_query or sql, schema)
         flpath = future.result()
 
         @after_this_request

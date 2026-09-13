@@ -13,10 +13,15 @@
         "controller": ""
     },
     "auth0": {
-        "domain": "",
-        "clientId": ""
+        "domain": "dev-rmnn416pju788hwl.us.auth0.com",
+        "clientId": "lwfP9CGSSXC3Fvo1vVhHv21Pmm4oLdBG"
+    },
+    "devauthn": {
+        "user": "root@mycompany",
+        "pwd": "temp@pwd",
+        "active": true
     },
     "anonymousLogin": false,
-    "fileUploadSizeLimit": "5m",
-    "maxAgentConversationTurns": 10
+    "fileUploadSizeLimit": "500m",
+    "maxAgentConversationTurns": null
 }

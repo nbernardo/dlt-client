@@ -66,3 +66,6 @@ nginx.conf
 access.log
 error.log
 nginx.pid
+
+certs/*
+nginx.d.*

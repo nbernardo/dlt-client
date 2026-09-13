@@ -26,9 +26,9 @@ class DuckdbUtil:
 
     @staticmethod
     def get_workspace_db_instance():
-        import os
-        if str(os.environ.get('PORT')) != '8001' and str(os.environ.get('PORT')) != '8000':
-            return
+        from utils.app_util import is_main_instance
+        if not(is_main_instance()): return
+
         DuckdbUtil.dltdbinstance_count += 1
         if DuckdbUtil.dltdbinstance_count == 1:
             workspacedb = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb'

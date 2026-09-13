@@ -33,7 +33,7 @@ extensions: install-deps
 certs:
 	@mkdir -p dev-certs logs
 	@if [ ! -f dev-certs/devcert.crt ]; then \
-		echo "🔐 Generating custom self-signed development keys..."; \
+		echo "{{}} Generating custom self-signed development keys..."; \
 		openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 			-keyout dev-certs/devcert.key \
 			-out dev-certs/devcert.crt \
@@ -53,7 +53,7 @@ include make/prod.mk
 # ====================================================================
 
 clean:
-	@echo "🧹 Cleaning up lingering Python processes and NGINX instances..."
+	@echo "!!!!! Cleaning up lingering Python processes and NGINX instances..."
 	-@pkill -f "backend/src/app.py" || true
 	-@nginx -c $$(pwd)/nginx.conf -p $$(pwd) -s stop >/dev/null 2>&1 || true
 	-@pkill -f "nginx" || true

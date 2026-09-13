@@ -24,6 +24,8 @@ http {
         ip_hash;
         server {{HOST_IP}}:{{PORT1}};
         server {{HOST_IP}}:{{PORT2}};
+        server {{HOST_IP}}:{{PORT3}};
+        server {{HOST_IP}}:{{PORT4}};
     }
 
     server {

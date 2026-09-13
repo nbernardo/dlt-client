@@ -18,7 +18,7 @@
   },
   "devauthn": {
     "user": "root@mycompany",
-    "pwd": "1234",
+    "pwd": "temp@pwd",
     "active": true
   },
   "anonymousLogin": false,
