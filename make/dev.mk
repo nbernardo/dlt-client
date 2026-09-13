@@ -1,6 +1,6 @@
 dev: certs
 	@echo "🛠️ Compiling Development Configuration (Port: 8443, Local Certs)..."
-	@sed -i.bak -E "s#^[^|]*\|\|#localEnv = () => this.setConfigFile('dev-https') \|\|#" ./ui/config/app-setup.js && rm -f ./ui/config/app-setup.js.bak
+	@sed -i.bak -E "s#^[^|]*\|\|#    loadEnv = () => this.setConfigFile('dev-https') \|\|#" ./ui/config/app-setup.js && rm -f ./ui/config/app-setup.js.bak
 	@sed -e 's|{{PORT}}|8443|g' \
 	     -e 's|{{CERT}}|./dev-certs/devcert.crt|g' \
 	     -e 's|{{KEY}}|./dev-certs/devcert.key|g' \

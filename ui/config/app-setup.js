@@ -11,15 +11,8 @@ export class StillAppSetup extends StillAppMixin(Components) {
     constructor() {
         super();
         this.setHomeComponent(Workspace);
-        const isCloud = window.location.href.toString().startsWith('dlt-c.cloud') 
-            || window.location.hostname.toString().startsWith('mvp2.e2e-data.com');
-
-        if(isCloud) 
-            this.cloudEnv();
-        else 
-            this.localEnv();
+        this.loadEnv();
         this.loadBundle();
-        
         this.prefetchComponent();
         this.prefetchStyleSheet();
         this.earlyImports();
@@ -45,7 +38,7 @@ export class StillAppSetup extends StillAppMixin(Components) {
         (async () => await Assets.import({ path: 'app/components/dataviz/diagram/g6.js', type: 'js' }))()
     }
 
-    localEnv = () => null || this.setConfigFile('dev');
+    loadEnv = () => null || this.setConfigFile('dev');
 
     loadBundle = () => this.setBundle('pt');
 
