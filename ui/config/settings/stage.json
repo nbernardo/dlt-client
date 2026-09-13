@@ -1,8 +1,8 @@
 {
   "httpClient": {
-    "baseUrl": "https://127.0.0.1:8000/api"
+    "baseUrl": "https://127.0.0.1:8443/api"
   },
-  "websocketAddr": "wss://127.0.0.1:8000/pipeline",
+  "websocketAddr": "wss://127.0.0.1:8443/pipeline",
   "logs": {
     "default": true,
     "error": false,

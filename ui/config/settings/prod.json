@@ -1,8 +1,8 @@
 {
     "httpClient": {
-        "baseUrl": "https://127.0.0.1:8443/api"
+        "baseUrl": "https://ipaddr:443"
     },
-    "websocketAddr": "wss://127.0.0.1:8443/pipeline",
+    "websocketAddr": "wss://ipaddr:443/pipeline",
     "logs": {
         "default": true,
         "error": false,
@@ -13,8 +13,8 @@
         "controller": ""
     },
     "auth0": {
-        "domain": "",
-        "clientId": ""
+        "domain": "dev-rmnn416pju788hwl.us.auth0.com",
+        "clientId": "ZQn76wUMrXrBobMXJY5TONXlxXYVkVVF"
     },
     "anonymousLogin": false,
     "fileUploadSizeLimit": "5m",
