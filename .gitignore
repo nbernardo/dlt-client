@@ -69,3 +69,8 @@ nginx.pid
 
 certs/*
 nginx.d.*
+
+deployment_history.json
+deployment_targets.json
+./logs
+logs/
