@@ -3,7 +3,24 @@ PROD_DOMAIN    ?= example.com
 PROD_CERT_PATH ?= /etc/letsencrypt/live/$(PROD_DOMAIN)/fullchain.pem
 PROD_KEY_PATH  ?= /etc/letsencrypt/live/$(PROD_DOMAIN)/privkey.pem
 
-prod: certs
+# .PHONY avoids a name clash with the prod-certs/ dir this target creates —
+# without it, make would treat that dir as the target's output and skip
+# the recipe on later runs.
+.PHONY: prod-certs
+prod-certs:
+	@mkdir -p prod-certs logs
+	@if [ ! -f "$(PROD_CERT_PATH)" ] && [ ! -f prod-certs/prod.crt ]; then \
+		echo "🔑 No certificate found at $(PROD_CERT_PATH) — generating self-signed cert for $(IP_ADDR)..."; \
+		openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+			-keyout prod-certs/prod.key \
+			-out prod-certs/prod.crt \
+			-subj "/CN=$(IP_ADDR)" \
+			-addext "subjectAltName=IP:$(IP_ADDR)"; \
+	fi
+	$(eval PROD_CERT_PATH := $(shell [ -f "$(PROD_CERT_PATH)" ] && echo "$(PROD_CERT_PATH)" || echo "prod-certs/prod.crt"))
+	$(eval PROD_KEY_PATH  := $(shell [ -f "$(PROD_KEY_PATH)" ] && echo "$(PROD_KEY_PATH)" || echo "prod-certs/prod.key"))
+
+prod: prod-certs
 	@$(MAKE) set-env ENV=prod
 	@echo "######### Compiling Production Configuration (Port: 443, Cert: $(PROD_CERT_PATH))..."
 	@sed -i.bak -E 's|{{prd_machine_ip}}|https://$(IP_ADDR):9443|g' ./backend/src/.env && rm -f ./backend/src/.env.bak

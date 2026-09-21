@@ -68,4 +68,4 @@ check-ip:
 	@echo "OS Detected : $(OS)"
 	@echo "Resolved IP : $(IP_ADDR)"
 
-.PHONY: install install-deps extensions dev stage prod clean certs
+.PHONY: install install-deps extensions dev stage prod clean certs prod-certs
