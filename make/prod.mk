@@ -21,6 +21,8 @@ prod-certs:
 prod: prod-certs
 	@$(MAKE) set-env ENV=prod
 	@echo "######### Compiling Production Configuration (Port: 443, Cert: $(PROD_CERT_PATH))..."
+	@sed -i.bak -E 's#("baseUrl": "https://)[^/]+(:443/api")#\1$(IP_ADDR)\2#g' ./ui/config/settings/prod.json && rm -f ./ui/config/settings/prod.json.bak
+	@sed -i.bak -E 's#("websocketAddr": "wss://)[^/]+(:443/pipeline")#\1$(IP_ADDR)\2#g' ./ui/config/settings/prod.json && rm -f ./ui/config/settings/prod.json.bak
 	@sed -i.bak 's|{{prd_machine_ip}}|https://$(IP_ADDR):9443|g' ./backend/src/.env && rm -f ./backend/src/.env.bak
 	@sed -e 's|{{PORT}}|443|g' \
 	     -e 's|{{CERT}}|$(PROD_CERT_PATH)|g' \
