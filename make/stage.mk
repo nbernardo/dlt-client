@@ -2,7 +2,7 @@ stage: certs
 	@$(MAKE) set-env ENV=stage
 	@echo "######### Compiling Stage Configuration (Port: 9443, IP: $(IP_ADDR))..."
 	@sed -i.bak -E "s#^[^|]*\|\|#    loadEnv = () => this.setConfigFile('stage') \|\|#" ./ui/config/app-setup.js && rm -f ./ui/config/app-setup.js.bak
-	@sed -i.bak -E 's|{{machine_ip}}|https://$(IP_ADDR):9443|g' ./backend/src/.env && rm -f ./backend/src/.env.bak
+	@sed -i.bak 's|{{machine_ip}}|https://$(IP_ADDR):9443|g' ./backend/src/.env && rm -f ./backend/src/.env.bak
 	@sed -e 's|{{PORT}}|9443|g' \
 	     -e 's|{{CERT}}|./dev-certs/devcert.crt|g' \
 	     -e 's|{{KEY}}|./dev-certs/devcert.key|g' \

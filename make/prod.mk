@@ -23,7 +23,7 @@ prod-certs:
 prod: prod-certs
 	@$(MAKE) set-env ENV=prod
 	@echo "######### Compiling Production Configuration (Port: 443, Cert: $(PROD_CERT_PATH))..."
-	@sed -i.bak -E 's|{{prd_machine_ip}}|https://$(IP_ADDR):9443|g' ./backend/src/.env && rm -f ./backend/src/.env.bak
+	@sed -i.bak 's|{{prd_machine_ip}}|https://$(IP_ADDR):9443|g' ./backend/src/.env && rm -f ./backend/src/.env.bak
 	@sed -e 's|{{PORT}}|443|g' \
 	     -e 's|{{CERT}}|$(PROD_CERT_PATH)|g' \
 	     -e 's|{{KEY}}|$(PROD_KEY_PATH)|g' \
