@@ -1,3 +1,5 @@
+PYTHON ?= $(shell command -v python3 2>/dev/null || command -v python 2>/dev/null)
+
 stage: certs
 	@$(MAKE) set-env ENV=stage
 	@echo "######### Compiling Stage Configuration (Port: 9443, IP: $(IP_ADDR))..."
@@ -12,9 +14,9 @@ stage: certs
 	     nginx.conf.template > nginx.conf
 	@echo ">>>>>>>>> Starting Symmetrical Local Development Cluster..."
 	@nginx -c $$(pwd)/nginx.conf -p $$(pwd); \
-	trap 'echo "\n🛑 Stopping cluster..."; kill 0 2>/dev/null; nginx -c $$(pwd)/nginx.conf -p $$(pwd) -s stop >/dev/null 2>&1; exit 0' INT TERM EXIT; \
-	PYTHONUNBUFFERED=1 PORT=8221 python backend/src/app.py 2>&1 | awk '{print " [34m[DEV-NODE-8001] [0m " $$0}' & \
+	trap 'echo "\n🛑 Stopping cluster..."; kill 0 2>/dev/null; nginx -c $$(pwd)/nginx.conf -p $$(pwd) -s stop >/dev/null 2>&1; exit 0' INT TERM EXIT HUP; \
+	PYTHONUNBUFFERED=1 PORT=8221 $(PYTHON) backend/src/app.py 2>&1 | awk '{print " [34m[DEV-NODE-8001] [0m " $$0}' & \
 	if false; then \
-		PYTHONUNBUFFERED=1 PORT=8222 python backend/src/app.py --no-reload 2>&1 | awk '{print " [32m[DEV-NODE-8002] [0m " $$0}' & \
+		PYTHONUNBUFFERED=1 PORT=8222 $(PYTHON) backend/src/app.py --no-reload 2>&1 | awk '{print " [32m[DEV-NODE-8002] [0m " $$0}' & \
 	fi; \
 	wait
