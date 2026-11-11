@@ -5,6 +5,7 @@ import { Assets } from "../../../@still/util/componentUtil.js";
 import { StillAppSetup } from "../../../config/app-setup.js";
 import { AppTemplate } from "../../../config/app-template.js";
 import { Workspace } from "../workspace/Workspace.js";
+import { CustomMappingController } from "./controller/CustomMappingController.js";
 import { DataGovernanceController } from "./controller/DataGovernanceController.js";
 import { DGServiceController } from "./controller/DGServiceController.js";
 
@@ -24,6 +25,9 @@ export class GovernanceMainComponent extends ViewComponent {
 	/** @type { State<Array> } */
 	roles;
 
+	/** @type { State<Array> } */
+	sourceConnections;
+
 	/** @type { Workspace } */
 	$parent;
 
@@ -31,6 +35,9 @@ export class GovernanceMainComponent extends ViewComponent {
 	accessLevelSummary = '';
 
 	/** @Prop */ loading = false;
+
+	// Bellow controller is set by the DataGovernanceController
+	/** @Prop @type { CustomMappingController } */ mappingController = null;
 
 	/** 
 	 * @Inject @Path components/governance/controller/ 
@@ -70,6 +77,10 @@ export class GovernanceMainComponent extends ViewComponent {
 		else
 			AppTemplate.toast.success(StillAppSetup.config.bundle('msg.dictionarySuccess'))
 		this.loading = false;
+	}
+
+	async onMappingConnectionChange(secretName){
+		this.mappingController.onConnectionChange(secretName);
 	}
 
 }

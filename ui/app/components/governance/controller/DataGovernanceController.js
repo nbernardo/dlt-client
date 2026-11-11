@@ -4,10 +4,12 @@ import { AppTemplate } from "../../../../config/app-template.js";
 import { UserService } from "../../../services/UserService.js";
 import { switchActiveTab } from "../../../util/tabs.js";
 import { GovernanceMainComponent } from "../GovernanceMainComponent.js";
+import { CustomMappingController } from "./CustomMappingController.js";
 
 export class DataGovernanceController extends BaseController {
 
     /** @type { GovernanceMainComponent } */ obj;
+    /** @type { CustomMappingController } */ customMappingController;
 
 	tables = [];
 	fields = [];
@@ -49,6 +51,13 @@ export class DataGovernanceController extends BaseController {
                 await this.renderUsersAndPermissionsTab();
                 this.renderRbac();
             })();
+        } else if (t === 'custom-data-config') {
+            if(!this.customMappingController){
+                this.customMappingController = new CustomMappingController();
+                this.customMappingController.obj = this.obj;
+                this.obj.mappingController = this.customMappingController;
+            }
+            this.customMappingController.init();
         } else 
             this.renderDict();
     }
