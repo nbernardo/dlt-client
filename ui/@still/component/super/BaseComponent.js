@@ -536,7 +536,7 @@ export class BaseComponent extends BehaviorComponent {
         //Bind (value) on the input form
         if (this.isThereAForm()) {
 
-            const extremRe = /[ \r \@ \_\< \$ \( \) \-\+\\ \s A-Za-z0-9 \/\:\;\* \{ \} \[ \] \. \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
+            const extremRe = /[ \r \@ \_\< \$ \( \) \-\+\\ \#\% \s A-Za-z0-9 \/\:\;\* \{ \} \[ \] \. \, \ç\à\á\ã\â\è\é\ê\ẽ\í\ì\î\ĩ\ó\ò\ô\õ\ú\ù\û\ũ \= \"]{0,}/.source;
             const matchValueBind = /\(value\)\=\"[\w.{}]*\"\s?/.source, matchClose = /[\s]{0,}>/.source;
             const matchForEachRE = '(forEach)=\"', mtchValue = '(value)="', matchChange = '(change)="';
             const valueBindRE = new RegExp(extremRe + matchValueBind + extremRe + matchClose , "gi");

@@ -34,18 +34,13 @@ export class CustomMappingController extends BaseController {
 
   async init() {
     this.initEditor();
-    this.initDropdowns();
     this.initCompletionProvider();
 
     const secretList = await WorkspaceService.listSecrets(1 /** 1 = DBSecrets */);
     this.obj.sourceConnections = secretList;
 
     // Force Monaco layout refresh after the tab container is rendered/visible
-    setTimeout(() => {
-      if (this.editor) {
-        this.editor.layout();
-      }
-    }, 150);
+    setTimeout(() => this.editor ? this.editor.layout() : '', 150);
   }
 
   initEditor() {
@@ -63,21 +58,13 @@ export class CustomMappingController extends BaseController {
       quickSuggestions: { other: true, comments: false, strings: true }
     });
 
-    this.editor.onDidChangeModelContent(() => {
-      this.xmlContent = this.editor.getValue();
-    });
-
-    this.editor.onDidChangeCursorPosition(() => {
-      this.updateCursorTagFromEditor();
-    });
-
+    this.editor.onDidChangeModelContent(() => this.xmlContent = this.editor.getValue());
+    this.editor.onDidChangeCursorPosition(() => this.updateCursorTagFromEditor());
     this.updateCursorTagFromEditor();
   }
 
   normalizeColumns(raw = []) {
-    return raw.map(c =>
-      typeof c === 'string' ? c : (c.column_name || c.name || c.field || String(c))
-    );
+    return raw.map(c => typeof c === 'string' ? c : (c.column_name || c.name || c.field || String(c)) );
   }
 
   initCompletionProvider() {
@@ -167,7 +154,6 @@ export class CustomMappingController extends BaseController {
               }))
             };
           }
-
           // Not inside a "{...}" expression -> no DB intellisense
           return empty;
         }
@@ -195,34 +181,6 @@ export class CustomMappingController extends BaseController {
         tagDisplay.textContent = 'None (Place cursor inside an XML tag)';
         tagDisplay.className = 'text-muted';
       }
-    }
-  }
-
-  initDropdowns() {
-    const tableInput = this.$('.custom-mapping-table-input');
-    const fieldInput = this.$('.custom-mapping-field-input');
-
-    if (tableInput && !this.tableDropdown) {
-      this.tableDropdown = InputDropdown.new({
-        inputSelector: '.custom-mapping-table-input',
-        dataSource: this.tableNames,
-        boundComponent: this,
-        onSelect: (val) => {
-          this.selectedTable = val;
-          this.updateFieldOptions(val);
-        }
-      });
-    }
-
-    if (fieldInput && !this.fieldDropdown) {
-      this.fieldDropdown = InputDropdown.new({
-        inputSelector: '.custom-mapping-field-input',
-        dataSource: [],
-        boundComponent: this,
-        onSelect: (val) => {
-          this.selectedField = val;
-        }
-      });
     }
   }
 
@@ -266,58 +224,30 @@ export class CustomMappingController extends BaseController {
       if (isClosing) {
         if (stack.length && stack[stack.length - 1].name === tagName) {
           const popped = stack.pop();
-          if (offset >= popped.start && offset <= matchEnd) {
-            return tagName;
-          }
+          if (offset >= popped.start && offset <= matchEnd) return tagName;
         }
-      } else if (!isSelfClosing) {
+      } else if (!isSelfClosing) 
         stack.push({ name: tagName, start: matchStart });
-      }
     }
 
     return stack.length ? stack[stack.length - 1].name : null;
   }
 
-  applyMapping() {
-    if (!this.activeTagName) {
-      return AppTemplate.toast.warn("Place cursor inside an XML tag in the editor first.");
-    }
-    const table = this.$('.custom-mapping-table-input')?.value.trim();
-    const field = this.$('.custom-mapping-field-input')?.value.trim();
-
-    if (!table || !field) {
-      return AppTemplate.toast.warn("Please select both a Table Name and a Field Name.");
-    }
-
-    const mappingAttr = `sourceField="${table}.${field}"`;
-    const xml = this.editor ? this.editor.getValue() : this.xmlContent;
-
-    const regex = new RegExp(`<(${this.activeTagName})([^>]*)>`, 'g');
-    const updatedXml = xml.replace(regex, (match, tagName, attrs) => {
-      let cleanedAttrs = attrs.replace(/\s*sourceField="[^"]*"/g, '');
-      return `<${tagName}${cleanedAttrs} ${mappingAttr}>`;
-    });
-
-    if (this.editor) {
-      this.editor.setValue(updatedXml);
-    }
-    this.xmlContent = updatedXml;
-    AppTemplate.toast.success(`Mapped <${this.activeTagName}> to ${table}.${field}`);
-  }
-
   async saveCustomMapping() {
     const payload = {
-      connection: this.selectedConnection,
+      type: 'xml', connectionName: this.selectedConnection, 
+      templateName: this.obj.templateMappingName.value,
       xmlConfig: this.editor ? this.editor.getValue() : this.xmlContent
     };
-    AppTemplate.toast.success("Custom data mapping saved successfully");
-    return payload;
+    let result = await this.obj.serviceController.saveMappedTemplate(payload);
+    result = await result.json()
+    if(result.success) return AppTemplate.toast.success('Custom data mapping saved successfully');
+    AppTemplate.toast.error(result.result.error)
   }
 
   /** Collects every {table.field} in the XML, grouped by table (deduplicated). */
   extractMappedFields(xml) {
-    const regex = /\{([A-Za-z0-9_-]+)\.([A-Za-z0-9_]+)\}/g;
-    const byTable = {};
+    const regex = /\{([A-Za-z0-9_-]+)\.([A-Za-z0-9_]+)\}/g, byTable = {};
     let m;
 
     while ((m = regex.exec(xml)) !== null) {
@@ -339,8 +269,7 @@ export class CustomMappingController extends BaseController {
   /** Returns { tableName: 'SELECT ...' } for the tables/fields used in the editor. */
   buildSqlQueries() {
     const xml = this.editor ? this.editor.getValue() : this.xmlContent;
-    const byTable = this.extractMappedFields(xml);
-    const queries = {};
+    const byTable = this.extractMappedFields(xml), queries = {};
 
     for (const [table, fields] of Object.entries(byTable)) {
       queries[table] = `SELECT ${[...fields].join(', ')} FROM ${table};`;

@@ -118,63 +118,50 @@
 				</div>
 			</div>
 
-			<div id="sec-custom-data-config" class="section" style="display:none;">
-				<div style="display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start;">
-					
-					<!-- LEFT PANEL: CONNECTION & FIELD SELECTION CONTROLS -->
-					<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 14px;">
-						<h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
-							<i class="ti ti-link"></i> Custom Origin Mapping
-						</h3>
-
-						<div>
-							<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Pipeline Data Connection</label>
-							<select id="custom-conn-select" (forEach)="sourceConnections" onchange="component.onMappingConnectionChange(this.value)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px; font-size:12px;">								
-								<option each="item" value="{item.name}">{item.name}</option>
-							</select>
-						</div>
-
-						<div style="border-top: 1px dashed #ddd; padding-top: 12px; display: flex; flex-direction: column; gap: 10px;">
-							<label style="font-size:11px; font-weight:bold; color:#444;">Target Element Mapping</label>
-							
-							<div>
-								<span style="font-size:11px; color:#666;">Active XML Tag:</span>
-								<div id="active-xml-tag" class="text-muted" style="font-size:12px; font-weight:bold; margin-top:2px;">None (Place cursor inside an XML tag)</div>
-							</div>
-
-							<div class="target-dataset-wrap" style="position:relative;">
-								<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Source Table</label>
-								<input type="text" class="input-control mono custom-mapping-table-input" data-st-field-name="selectedTable" style="width:100%; padding:6px;" placeholder="Select or type table...">
-							</div>
-
-							<div class="target-dataset-wrap" style="position:relative;">
-								<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Source Column / Field</label>
-								<input type="text" class="input-control mono custom-mapping-field-input" data-st-field-name="selectedField" style="width:100%; padding:6px;" placeholder="Select or type field...">
-							</div>
-
-							<button type="button" class="btn btn-primary" onclick="controller.customMappingController.applyMapping()" style="margin-top:6px; width:100%;">
-								<i class="ti ti-arrow-right"></i> Bind to Active Tag
-							</button>
-						</div>
-					</div>
-
-					<!-- RIGHT PANEL: MONACO XML EDITOR -->
-					<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-						<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1A3D5C; padding-bottom: 8px;">
-							<h3 style="margin:0; color:#1A3D5C; font-size: 15px;">
-								<i class="ti ti-code"></i> XML Structure Specification
+			<form (formRef)="formRef">
+				<div id="sec-custom-data-config" class="section" style="display:none;">
+					<div style="display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start;">
+						
+						<!-- LEFT PANEL: CONNECTION & FIELD SELECTION CONTROLS -->
+						<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+							<h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
+								<i class="ti ti-link"></i> Custom Origin Mapping
 							</h3>
-							<button class="btn btn-primary btn-sm" onclick="controller.customMappingController.saveCustomMapping()" style="width:auto;">
-								<i class="fas fa-save"></i> Save Mapping
-							</button>
+	
+							<div class="mapping-template-input">
+								<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Pipeline Data Connection</label>
+								<select id="custom-conn-select" (required)="true" (forEach)="sourceConnections" (value)="templateConnectionName">								
+									<option each="item" value="{item.name}">{item.name}</option>
+								</select>
+							</div>
+	
+							<div class="mapping-template-input" style="border-top: 1px dashed #ddd; padding-top: 12px; display: flex; flex-direction: column; gap: 10px;">
+								<label style="font-size:11px; font-weight:bold; color:#444;">Target Element Mapping</label>
+								<div class="target-dataset-wrap" style="position:relative;">
+									<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Template name</label>
+									<input type="text" (value)="templateMappingName" (required)="true" placeholder="Type the template name">
+								</div>
+							</div>
 						</div>
-						<p class="text-muted" style="font-size:12px; margin:0;">Click inside any XML tag to map it to a table column from the selected connection.</p>
-						<!-- Monaco Editor Mount Container -->
-						<div id="custom-xml-editor" style="width:100%; height:70vh; border:1px solid #ccc; border-radius:4px;"></div>
+	
+						<!-- RIGHT PANEL: MONACO XML EDITOR -->
+						<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+							<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1A3D5C; padding-bottom: 8px;">
+								<h3 style="margin:0; color:#1A3D5C; font-size: 15px;">
+									<i class="ti ti-code"></i> XML Structure Specification
+								</h3>
+								<button class="btn btn-primary btn-sm" onclick="component.saveCustomMapping()" style="width:auto;">
+									<i class="fas fa-save"></i> Save Mapping
+								</button>
+							</div>
+							<p class="text-muted" style="font-size:12px; margin:0;">Click inside any XML tag to map it to a table column from the selected connection.</p>
+							<!-- Monaco Editor Mount Container -->
+							<div id="custom-xml-editor" style="width:100%; height:70vh; border:1px solid #ccc; border-radius:4px;"></div>
+						</div>
+	
 					</div>
-
 				</div>
-			</div>
+			</form>
 		</div>
 	</span>
 
@@ -291,3 +278,8 @@
 
 	</div>
 </div>
+<style>
+	.mapping-template-input input, .mapping-template-input select {
+		width:100%; padding:6px; border:1px solid lightgray; border-radius:4px; font-size:12px;
+	}
+</style>

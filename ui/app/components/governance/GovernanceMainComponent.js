@@ -1,6 +1,6 @@
 import { sleepForSec } from "../../../@still/component/manager/timer.js";
 import { ViewComponent } from "../../../@still/component/super/ViewComponent.js";
-import { State } from "../../../@still/component/type/ComponentType.js";
+import { State, STForm } from "../../../@still/component/type/ComponentType.js";
 import { Assets } from "../../../@still/util/componentUtil.js";
 import { StillAppSetup } from "../../../config/app-setup.js";
 import { AppTemplate } from "../../../config/app-template.js";
@@ -28,6 +28,12 @@ export class GovernanceMainComponent extends ViewComponent {
 	/** @type { State<Array> } */
 	sourceConnections;
 
+	/** @type { State<string> } */
+	templateMappingName;
+
+	/** @type { State<string> } */
+	templateConnectionName;
+
 	/** @type { Workspace } */
 	$parent;
 
@@ -35,6 +41,8 @@ export class GovernanceMainComponent extends ViewComponent {
 	accessLevelSummary = '';
 
 	/** @Prop */ loading = false;
+
+	/** @Prop @type { STForm } */ formRef;
 
 	// Bellow controller is set by the DataGovernanceController
 	/** @Prop @type { CustomMappingController } */ mappingController = null;
@@ -44,6 +52,7 @@ export class GovernanceMainComponent extends ViewComponent {
 	 * @type { DGServiceController }
 	 */
 	serviceController;
+
 
 	async stBeforeInit(){
 		await Assets.import({ path: '/app/components/pipeline/styles/shared.css', type: 'css' });
@@ -56,6 +65,7 @@ export class GovernanceMainComponent extends ViewComponent {
 			await sleepForSec(100);
 			this.controller.renderAll()
 		});
+		this.templateConnectionName.onChange(async secretName => await this.mappingController.onConnectionChange(secretName));
 	}
 
 	async loadTablesByPipeline(ppline){
@@ -79,8 +89,10 @@ export class GovernanceMainComponent extends ViewComponent {
 		this.loading = false;
 	}
 
-	async onMappingConnectionChange(secretName){
-		this.mappingController.onConnectionChange(secretName);
+	saveCustomMapping = async () => {
+		await this.formRef.validate();		
+		if(this.formRef.errorCount > 0) return AppTemplate.toast.error('Fill all required field', 10000);
+		await this.mappingController.saveCustomMapping();
 	}
 
 }

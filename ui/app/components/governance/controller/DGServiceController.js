@@ -25,4 +25,12 @@ export class DGServiceController extends BaseController {
         
     }
 
+    async saveMappedTemplate(payload){
+        
+        const namespace = await BIService.getNamespace();
+        const url = `/template/${namespace}`
+        return await $still.HTTPClient.post(url, JSON.stringify({ ...payload }), HTTPHeaders.JSON)
+        
+    }
+
 }
