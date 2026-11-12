@@ -411,6 +411,8 @@ def call_scheduled_job(app):
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         def on_app_loading():
+            from services.admin.MappingTemplateService import MappingTemplateService
+            MappingTemplateService.create_template_mapping_table()
             workspacedb_wal = f'{DuckdbUtil.workspacedb_path}/dltworkspace.duckdb.wal'
             if os.path.exists(workspacedb_wal):
                 os.remove(workspacedb_wal)

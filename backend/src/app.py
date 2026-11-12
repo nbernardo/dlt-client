@@ -17,6 +17,7 @@ from controller.file_upload import upload, BaseUpload
 from controller.data_catalog import datacatalog
 from controller.bi_controller import bi_controller
 from controller.user_management import user_management
+from controller.mapping_template_controller import template
 from services.exposee.main import duckdb_bridge
 from utils.app_util import add_app_custom_handlers
 
@@ -53,6 +54,7 @@ app.register_blueprint(datacatalog)
 app.register_blueprint(bi_controller)
 app.register_blueprint(user_management)
 app.register_blueprint(duckdb_bridge)
+app.register_blueprint(template)
 add_app_custom_handlers(app)
 
 if os.environ.get("WERKZEUG_RUN_MAIN") == "true":

@@ -207,6 +207,15 @@ class SecretManager(SecretManagerType):
         return SecretManager.get_secret(namespace, path, False, False, True)
 
 
+    def get_admin_db_secret(namespace):
+        secrets = SecretManager.vault_instance.secrets.kv.v2.read_secret_version(
+            path = f'mysql_admin',
+            mount_point=namespace,
+            raise_on_deleted_version=True
+        )
+        return secrets['data']['keys']
+
+
     def list_secrets_by_path(namespace, path):
         secrets = SecretManager.vault_instance.secrets.kv.v2.list_secrets(
             path=path,
