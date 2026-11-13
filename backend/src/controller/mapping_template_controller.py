@@ -19,3 +19,10 @@ def create_template(namespace):
 
     return { 'success': True if result.get('error') == None else False, 'result': result }
 
+
+@template.route('/template/<namespace>', methods=['GET'])
+def get_template(namespace):
+    
+    result = MappingTemplateService.get_template_records(namespace)
+    return { 'success': True if result.get('error') == None else False, 'result': result }
+

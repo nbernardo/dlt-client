@@ -42,8 +42,9 @@ class MappingTemplateService:
         finally:
             cursor.close()
 
+
     @staticmethod
-    def create_template_records(templates: List[Dict[str, Any]], namespace) -> int:
+    def create_template_records(templates: List[Dict[str, Any]], namespace) -> dict:
         """
         Migrates a batch of template mapping records into the MySQL database.
         Args: templates: A list of dictionaries containing template attributes.
@@ -79,3 +80,21 @@ class MappingTemplateService:
             cursor.close()
             
         return { 'error': error, 'affected_rows': affected_rows }
+    
+    
+    @staticmethod
+    def get_template_records(namespace) -> dict:
+
+        query = "SELECT template_name, template_type, connection_name FROM template_mapping WHERE namespace = %s"
+                
+        cursor = MappingTemplateService.connection.cursor()
+        error, result = None, None
+        try:
+            cursor.execute(query, [namespace])
+            result = cursor.fetchall()
+        except Exception as err:
+            error = str(err)
+        finally:
+            cursor.close()
+            
+        return { 'error': error, 'result': result }
