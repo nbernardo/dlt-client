@@ -49,14 +49,17 @@ function getApiSecretFields() {
 
     fields = `.${apiFormContainer} .api-key-field, .${apiFormContainer} .hidden-secret-value-api, .api-key-lbl`;
     const apiKeyFields = document.querySelectorAll(fields);
-    return { bearerTokenFields, apiKeyFields };
+
+    fields = `.${apiFormContainer} .user-cred-field, .${apiFormContainer} .hidden-user-cred-secret-value-api, .user-cred-lbl`;
+    const userCredsFields = document.querySelectorAll(fields);
+    return { bearerTokenFields, apiKeyFields, userCredsFields };
 }
 
 export function onAPIAuthChange(type = null) {
 
-    const { bearerTokenFields, apiKeyFields } = getApiSecretFields();
+    const { bearerTokenFields, apiKeyFields, userCredsFields } = getApiSecretFields();
     if (type == null || type == "") {
-        [...bearerTokenFields, ...apiKeyFields].forEach(field => {
+        [...bearerTokenFields, ...apiKeyFields, ...userCredsFields].forEach(field => {
             field.style.display = 'none';
             if (field.nodeName === 'INPUT') field.removeAttribute('required');
         });
@@ -68,12 +71,12 @@ export function onAPIAuthChange(type = null) {
             field.style.display = '';
             if (field.nodeName === 'INPUT') field.setAttribute('required', true);
         });
-        apiKeyFields.forEach(field => {
+        [...apiKeyFields, ...userCredsFields].forEach(field => {
             field.style.display = 'none';
             if (field.nodeName === 'INPUT') field.removeAttribute('required');
         });
-    } else {
-        bearerTokenFields.forEach(field => {
+    } else if (type === 'api-key') {
+        [...bearerTokenFields, ...userCredsFields].forEach(field => {
             field.style.display = 'none';
             if (field.nodeName === 'INPUT') field.removeAttribute('required');
         });
@@ -81,6 +84,15 @@ export function onAPIAuthChange(type = null) {
             field.style.display = '';
             if (field.nodeName === 'INPUT') field.setAttribute('required', true);
         });
+    } else {
+        [...bearerTokenFields, ...apiKeyFields].forEach(field => {
+            field.style.display = 'none';
+            if (field.nodeName === 'INPUT') field.removeAttribute('required');
+        });
+        userCredsFields.forEach(field => {
+            field.style.display = '';
+            if (field.nodeName === 'INPUT') field.setAttribute('required', true);
+        });   
     }
     return type;
 }

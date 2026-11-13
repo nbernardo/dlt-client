@@ -115,6 +115,7 @@ export class CatalogForm extends ViewComponent {
 
 	showEditor = (placeId) => {
 		const placeholderPrefix = 'api-code-editor-placeholder';
+		
 		const container = document.querySelector(`.${placeholderPrefix}${placeId}`);
 		if(this.editorPlaceholder == placeId){
 			this.editor = null;
@@ -161,6 +162,7 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	editSecret(type, secretData){
+		onAPIAuthChange();
 		this.connectionName = secretData.secretName, this.handleApiSaveButtons(false), this.disableOnEdit(true);
 		document.querySelector('.APITestResponse').innerHTML = '';
 		if(secretData.apiSettings?.isOdoo === true){
@@ -291,6 +293,7 @@ export class CatalogForm extends ViewComponent {
 	}
 
 	showDialog(reset = false, type = null){	
+		onAPIAuthChange();
 		this.handleApiSaveButtons(), document.querySelector('.APITestResponse').innerHTML = '';
 		if(type === 'api') {
 			this.markRequiredFields(true), this.disableOnEdit(false);

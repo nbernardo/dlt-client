@@ -20,6 +20,8 @@ import { constructTablePath } from "./DestinationUtil.js";
 import { PipelineService } from "./PipelineService.js";
 import { PipelineStepTrigger } from "../components/node-types/trigger/PipelineStepTrigger.js";
 import { IsObject } from "../components/node-types/transform/util.js";
+import { SourceMapper } from "../components/node-types/source-map/SourceMapper.js";
+import { FileOutput } from "../components/node-types/file-output/FileOutput.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -62,14 +64,16 @@ export class WorkspaceService extends BaseService {
         { icon: 'fas fa-circle', label: 'End', typeName: 'End', source: 1, dest: 0 },
         //Group of nodes concerning Source types
         { 
-            isNodeGroup: 'yes', imgIcon: 'app/assets/imgs/input.png', label: 'Sources', 
+            isNodeGroup: 'yes', imgIcon: 'app/assets/imgs/input.png', label: 'Sources & Flow', 
             typeName: 'none', name: 'SourceGroup', dropDownIcon: '<i class="fas fa-chevron-circle-right"></i>' 
         },
         { groupType: 'SourceGroup', icon: 'fab fa-bitbucket', label: 'Input - Bucket', typeName: Bucket.name },
+        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/output.png', label: 'Source Mapper', typeName: SourceMapper.name },
         // { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-2.png', label: 'Input - SQL DB', typeName: SqlDBComponent.name, tmplt: 'SqlDBComponent_old.html' },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/api-source.svg', label: 'Input - API', typeName: InputAPI.name },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
+        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/routine.png', label: 'Batch timer', typeName: Bucket.name },
         //Group of nodes concerning Transformation types
         { 
             isNodeGroup: 'yes', imgIcon: 'app/assets/imgs/adaptation.png', label: 'Transformations', 
@@ -86,6 +90,7 @@ export class WorkspaceService extends BaseService {
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/writetodatabase.png', label: 'Database', typeName: DatabaseOutput.name, name: 'Out-SQL' },
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Out - DLT code', typeName: DLTCodeOutput.name, name: 'DLTOutput' },
         { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/time.png', label: 'Step Trigger', typeName: PipelineStepTrigger.name, disable: 'false' },
+        { groupType: 'OutputsGroup', imgIcon: 'app/assets/imgs/document.png', label: 'File output', typeName: FileOutput.name },
         //fas fa-chevron-circle-right
     ];
 

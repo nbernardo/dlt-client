@@ -285,10 +285,11 @@
                       <label class="bold-lbl">Use Authentication</label>
                       <input type="checkbox" class="use-auth-checkbox" onclick="component.setUseAuth(this.checked)">
   
-                      <select style="width: 100%; display: none; margin-top: 9px;" class="use-auth-secret-input" onchange="component.onAPIAuthChange(this.value)">
+                      <select style="width: 100%; display: none; margin-top: 9px;" class="use-auth-secret-input" onchange="component.onAPIAuthChange(this.value, true)">
                         <option value="">Select Auth type</option>
                         <option value="bearer-token">Bearer Token</option>
                         <option value="api-key">API Key</option>
+                        <option value="user-cred">User creds or Basic Auth</option>
                       </select>
   
                     </div>
@@ -296,7 +297,7 @@
                 </span>
                 
                 <span (showIf)="self.whatApiConfigType == 2">
-                  <div class="form-group">
+                  <div class="form-group odoo-api-group">
                     <div class="use-authentication-check-group">
                       <label class="bold-lbl" style="display: flex; align-items: center;">
                         <img src="/app/assets/imgs/odoo logo.webp" style="width: 52px;" alt=""> - Settings
@@ -326,35 +327,56 @@
                     </div>
                   </div>
                 
+                </span>
+
+                <span (showIf)="self.whatApiConfigType == 1">
+
                   <div><!-- Only to create an empy colum --></div>
+                  <div style="padding-top: 10px;">
 
-                  <!-- API Key fields -->
-                  <div class="form-group">
-                    <label class="api-key-lbl">KEY Header name</label>
-                    <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Key">
+                    <!-- API Key fields -->
+                    <div class="form-group">
+                      <label class="api-key-lbl">KEY Header name</label>
+                      <input type="text" (value)="apiKeyName" class="api-key-name api-key-field" placeholder="e.g. X-API-Key">
+                    </div>
+                    <div class="form-group">
+                      <label class="api-key-lbl">Key Hader value</label>
+                      <span class="hidden-secret-value initial-secret-field hidden-secret-value-api">
+                        <input type="password" (value)="apiKeyValue" class="api-key-value api-key-field" placeholder="Enter the secret value">
+                        <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-secret-value-api')">
+                      </span>
+                    </div>
+                    <!-- END API Key fields -->
+  
+                    <!-- API Token fields -->
+                    <div class="form-group">
+                      <label class="api-tkn-lbl">API token name</label>
+                      <input type="text" value="API_TOKEN" disabled class="api-tkn-name api-tkn-field">
+                    </div>
+                    <div class="form-group">
+                      <label class="api-tkn-lbl">API token value</label>
+                      <span class="hidden-secret-value initial-secret-field hidden-tkn-secret-value-api">
+                        <input type="password" (value)="apiTknValue" class="api-tkn-value api-tkn-field" placeholder="Enter the secret value">
+                        <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-tkn-secret-value-api')">
+                      </span>
+                    </div>
+                    <!-- END API Token fields -->
+  
+                    <!-- User Creds fields -->
+                    <div class="form-group">
+                      <label class="user-cred-lbl">User name</label>
+                      <input type="text" value="API_TOKEN" class="user-cred-name user-cred-field">
+                    </div>
+                    <div class="form-group">
+                      <label class="user-cred-lbl">Password</label>
+                      <span class="hidden-secret-value initial-secret-field hidden-user-cred-secret-value-api">
+                        <input type="password" (value)="apiTknValue" class="user-cred-value user-cred-field" placeholder="Enter the secret value">
+                        <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-user-cred-secret-value-api')">
+                      </span>
+                    </div>
+                    <!-- END User Creds fields -->
+                     
                   </div>
-                  <div class="form-group">
-                    <label class="api-key-lbl">Key Hader value</label>
-                    <span class="hidden-secret-value initial-secret-field hidden-secret-value-api">
-                      <input type="password" (value)="apiKeyValue" class="api-key-value api-key-field" placeholder="Enter the secret value">
-                      <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-secret-value-api')">
-                    </span>
-                  </div>
-                  <!-- END API Key fields -->
-
-                  <!-- API Token fields -->
-                  <div class="form-group">
-                    <label class="api-tkn-lbl">API token name</label>
-                    <input type="text" value="API_TOKEN" disabled class="api-tkn-name api-tkn-field">
-                  </div>
-                  <div class="form-group">
-                    <label class="api-tkn-lbl">API token value</label>
-                    <span class="hidden-secret-value initial-secret-field hidden-tkn-secret-value-api">
-                      <input type="password" (value)="apiTknValue" class="api-tkn-value api-tkn-field" placeholder="Enter the secret value">
-                      <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-tkn-secret-value-api')">
-                    </span>
-                  </div>
-                  <!-- END API Token fields -->
                 </span>
 
               </div>
@@ -493,7 +515,7 @@
     .CatalogFormModel label { font-size: 0.8rem; margin-bottom: 4px; color: #374151; }
 
     .CatalogFormModel input,
-    .CatalogFormModel select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+    .CatalogFormModel select { padding: 2px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
     .CatalogFormModel input[type=text], select,
     .CatalogFormModel input[type=password], .CatalogFormModel input[type=number], .db-connection-params { height: 30px; font-size: 13px; }
     .CatalogFormModel .modal-footer .buttons-wrapper { text-align: right; display: flex; justify-content: space-between; margin-top: 10px; }

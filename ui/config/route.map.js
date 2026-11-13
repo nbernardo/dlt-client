@@ -165,7 +165,15 @@ export const stillRoutesMap = {
             DataQualityDeclaration: {
                 path: "app/components/declaration/quality",
                 url: "/data-quality-declaration"
-            }
+            },
+            SourceMapper: {
+                path: "app/components/node-types/source-map",
+                url: "/source-mapper"
+            },
+            FileOutput: {
+                path: "app/components/node-types/file-output",
+                url: "/file-output"
+            },
         },
         lazyInitial: {}
     }
