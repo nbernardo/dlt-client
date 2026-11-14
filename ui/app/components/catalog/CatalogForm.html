@@ -365,12 +365,12 @@
                     <!-- User Creds fields -->
                     <div class="form-group">
                       <label class="user-cred-lbl">User name</label>
-                      <input type="text" value="API_TOKEN" class="user-cred-name user-cred-field">
+                      <input type="text" (value)="userCredName" placeholder="User name or ACCESS_KEY" class="user-cred-name user-cred-field">
                     </div>
                     <div class="form-group">
                       <label class="user-cred-lbl">Password</label>
                       <span class="hidden-secret-value initial-secret-field hidden-user-cred-secret-value-api">
-                        <input type="password" (value)="apiTknValue" class="user-cred-value user-cred-field" placeholder="Enter the secret value">
+                        <input type="password" (value)="userCredPass" class="user-cred-value user-cred-field" placeholder="Password or SECRET_KEY">
                         <img src="app/assets/imgs/view-svgrepo-com.svg" onclick="component.viewSecretValue('hidden-user-cred-secret-value-api')">
                       </span>
                     </div>

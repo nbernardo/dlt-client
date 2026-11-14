@@ -62,6 +62,8 @@ export class CatalogForm extends ViewComponent {
 	apiKeyName;
 	apiKeyValue;
 	apiTknValue;
+	userCredName;
+	userCredPass;
 	paginationStartField1;
 	paginationLimitField1;
 	paginationRecPerPage1 = 100; //Record per pages
@@ -393,8 +395,7 @@ export class CatalogForm extends ViewComponent {
 		if(type == 'val')
 			field = this.parseEvents(`
 				<span class="${fieldName} hidden-secret-value">
-					${field} 
-					${!initial ? `<span onclick="inner.removeField('${fieldName}')">x</span>` : ''} 
+					${field} ${!initial ? `<span onclick="inner.removeField('${fieldName}')">x</span>` : ''} 
 					<img src="app/assets/imgs/view-svgrepo-com.svg" onclick="inner.viewSecretValue('${fieldName}')">
 				<span>`);
 		div.innerHTML = field;
@@ -409,9 +410,7 @@ export class CatalogForm extends ViewComponent {
 		document.querySelectorAll(`.remove-dyn-field-${fieldName}`).forEach(itm => itm.remove());
 	};
 
-	async testConnection(){
-		testConnection(this, this.secretType, this.isDbConnEditing);
-	}
+	testConnection = async () => testConnection(this, this.secretType, this.isDbConnEditing);	
 
 	async createSecret(){
 		let validate = await this.formRef.validate(), dbConfig = null, apiSettings = null, updatingSecret;
@@ -432,7 +431,7 @@ export class CatalogForm extends ViewComponent {
 						secretsOnly: true,
 						connectionName: this.connectionName.value,
 						secrets: [ 
-							{  [secretLbl]: this.firstValue.value, secondKey, isKvSecret, secretType, connectionName, bucketUrl }, 
+							{ [secretLbl]: this.firstValue.value, secondKey, isKvSecret, secretType, connectionName, bucketUrl }, 
 							...allKeys.map(k => ({ [this.getDynamicFields()[k]]: this.getDynamicFields()[k.replace('key','val')] }))
 						]
 					};
@@ -447,7 +446,8 @@ export class CatalogForm extends ViewComponent {
 				apiSettings = {
 					...this.parseAPICatalogFields(), keyName: this.apiKeyName.value, keyValue: this.apiKeyValue.value, 
 					token: this.apiTknValue.value, apiBaseUrl: this.apiBaseUrl.value, apiAuthType: this.apiAuthType,
-					isOdoo: this.whatApiConfigType === 2, ...this.odooCredentials()
+					isOdoo: this.whatApiConfigType === 2, ...this.odooCredentials(), userCredName: this.userCredName.value, 
+					userCredPass: this.userCredPass.value
 				};
 			}
 			const connectionName = this.dataBaseSettingType != null ? this.connectionName.value : this.apiConnName.value;

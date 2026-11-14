@@ -17,6 +17,7 @@ export class CustomMappingController extends BaseController {
 
   /** @type { InputDropdown } */ tableDropdown;
   /** @type { InputDropdown } */ fieldDropdown;
+  /** @Prop */ dataQuery;
 
   xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <DataMapping>
@@ -237,8 +238,10 @@ export class CustomMappingController extends BaseController {
     const payload = {
       type: 'xml', connectionName: this.selectedConnection, 
       templateName: this.obj.templateMappingName.value,
-      xmlConfig: this.editor ? this.editor.getValue() : this.xmlContent
+      xmlConfig: this.editor ? this.editor.getValue() : this.xmlContent,
+      dataQuery: Object.values(this.buildSqlQueries())[0] || '',
     };
+    
     let result = await this.obj.serviceController.saveMappedTemplate(payload);
     result = await result.json()
     if(result.success) return AppTemplate.toast.success('Custom data mapping saved successfully');
@@ -278,8 +281,8 @@ export class CustomMappingController extends BaseController {
   }
 
   logSqlQueries() {
-    const queries = this.buildSqlQueries();
-    const list = Object.values(queries);
+    this.dataQuery = this.buildSqlQueries();
+    const list = Object.values(this.dataQuery);
 
     if (!list.length) {
       console.log('[CustomMapping] No {table.field} mappings yet.');
