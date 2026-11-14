@@ -14,6 +14,7 @@ def create_template(namespace):
         'template_content': payload.get('xmlConfig'), 
         'connection': payload.get('connectionName'),
         'name': payload.get('templateName'),
+        'query': payload.get('dataQuery'),
     }]
     result = MappingTemplateService.create_template_records(record, namespace)
 

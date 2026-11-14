@@ -22,6 +22,7 @@ class MappingTemplateService:
         CREATE TABLE IF NOT EXISTS template_mapping (
             id INT AUTO_INCREMENT PRIMARY KEY,
             template_name LONGTEXT NOT NULL,
+            query LONGTEXT NOT NULL,
             template_content LONGTEXT NOT NULL,
             template_type VARCHAR(100) NOT NULL,
             connection_name VARCHAR(100) NOT NULL,
@@ -53,8 +54,8 @@ class MappingTemplateService:
 
         insert_query = """
         INSERT INTO template_mapping 
-            (template_name, template_content, template_type, connection_name, version, namespace)
-        VALUES  (%s, %s, %s, %s, %s, %s) """
+            (template_name, template_content, template_type, connection_name, version, namespace, query)
+        VALUES  (%s, %s, %s, %s, %s, %s, %s) """
         
         # Map the dictionary items to a tuple list for efficient bulk insertion
         data_to_insert = [
@@ -64,6 +65,7 @@ class MappingTemplateService:
                 t.get("template_type"),
                 t.get("connection"),
                 1, namespace,
+                t.get("query"),
             )
             for t in templates
         ]
@@ -85,7 +87,7 @@ class MappingTemplateService:
     @staticmethod
     def get_template_records(namespace) -> dict:
 
-        query = "SELECT template_name, template_type, connection_name FROM template_mapping WHERE namespace = %s"
+        query = "SELECT template_name, template_type, connection_name, query FROM template_mapping WHERE namespace = %s"
                 
         cursor = MappingTemplateService.connection.cursor()
         error, result = None, None
