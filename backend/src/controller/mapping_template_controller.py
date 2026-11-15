@@ -10,11 +10,9 @@ def create_template(namespace):
     payload = request.get_json()
 
     record = [{ 
-        'template_type': payload.get('type'), 
-        'template_content': payload.get('xmlConfig'), 
-        'connection': payload.get('connectionName'),
-        'name': payload.get('templateName'),
-        'query': payload.get('dataQuery'),
+        'template_type': payload.get('type'), 'template_content': payload.get('xmlConfig'), 
+        'connection': payload.get('connectionName'),'name': payload.get('templateName'),
+        'query': payload.get('dataQuery'), 'yml_content': payload.get('yamlConfig')
     }]
     result = MappingTemplateService.create_template_records(record, namespace)
 
