@@ -135,28 +135,51 @@
 								</select>
 							</div>
 	
-							<div class="mapping-template-input" style="border-top: 1px dashed #ddd; padding-top: 12px; display: flex; flex-direction: column; gap: 10px;">
-								<label style="font-size:11px; font-weight:bold; color:#444;">Target Element Mapping</label>
+							<div class="mapping-template-input" style="padding-top: 3px; display: flex; flex-direction: column; gap: 10px;">
 								<div class="target-dataset-wrap" style="position:relative;">
 									<label style="display:block; font-size:11px; font-weight:bold; margin-bottom:4px; color:#555;">Template name</label>
 									<input type="text" (value)="templateMappingName" (required)="true" placeholder="Type the template name">
 								</div>
 							</div>
+
+							<!-- AVAILABLE TABLES (only these show up in the intellisense) -->
+							<div style="border-top: 1px dashed #ddd; padding-top: 12px; display: flex; flex-direction: column; gap: 6px;">
+								<label style="font-size:11px; font-weight:bold; color:#444;">Available tables (intellisense)</label>
+								<div id="custom-tables-picker"></div>
+							</div>
+
+							<!-- ONE-TO-MANY RELATIONSHIPS (drive the joins / hierarchy of the generated query) -->
+							<div style="border-top: 1px dashed #ddd; padding-top: 12px; display: flex; flex-direction: column; gap: 6px;">
+								<label style="font-size:11px; font-weight:bold; color:#444;">Relationships (one &rarr; many)</label>
+								<div id="custom-relationships"></div>
+							</div>
 						</div>
 	
-						<!-- RIGHT PANEL: MONACO XML EDITOR -->
-						<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+						<!-- RIGHT PANEL: YAML EDITOR (left) + GENERATED XML, READ-ONLY (right) -->
+						<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
 							<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1A3D5C; padding-bottom: 8px;">
 								<h3 style="margin:0; color:#1A3D5C; font-size: 15px;">
-									<i class="ti ti-code"></i> XML Structure Specification
+									<i class="ti ti-code"></i> YAML Structure Specification
 								</h3>
 								<button class="btn btn-primary btn-sm" onclick="component.saveCustomMapping()" style="width:auto;">
 									<i class="fas fa-save"></i> Save Mapping
 								</button>
 							</div>
-							<p class="text-muted" style="font-size:12px; margin:0;">Click inside any XML tag to map it to a table column from the selected connection.</p>
-							<!-- Monaco Editor Mount Container -->
-							<div id="custom-xml-editor" style="width:100%; height:70vh; border:1px solid #ccc; border-radius:4px;"></div>
+							<p class="text-muted" style="font-size:12px; margin:0;">Type <b>{</b> after a property to map its value to a table column from the selected connection (e.g. <code>Name: {customers.name}</code>). The XML on the right updates as you type.</p>
+
+							<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+								<!-- YAML (editable) -->
+								<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+									<label style="font-size:11px; font-weight:bold; color:#555;">YAML</label>
+									<div id="custom-yaml-editor" style="width:100%; height:70vh; border:1px solid #ccc; border-radius:4px;"></div>
+								</div>
+								<!-- XML (read-only) -->
+								<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+									<label style="font-size:11px; font-weight:bold; color:#555;">XML output (read-only)</label>
+									<div id="custom-xml-output" style="width:100%; height:70vh; border:1px solid #ccc; border-radius:4px; background:#fafafa;"></div>
+									<span id="custom-xml-status" style="font-size:11px;"></span>
+								</div>
+							</div>
 						</div>
 	
 					</div>
@@ -282,4 +305,21 @@
 	.mapping-template-input input, .mapping-template-input select {
 		width:100%; padding:6px; border:1px solid lightgray; border-radius:4px; font-size:12px;
 	}
+
+	/* Custom mapping: tables picker + relationships */
+	#custom-tables-picker input[type="text"], .cm-rel-form select {
+		width:100%; padding:6px; border:1px solid lightgray; border-radius:4px; font-size:12px; box-sizing:border-box;
+	}
+	.cm-actions { display:flex; gap:6px; margin:6px 0; }
+	.cm-list { max-height:170px; overflow:auto; border:1px solid #ddd; border-radius:4px; padding:6px; background:#fafafa; display:flex; flex-direction:column; gap:3px; }
+	.cm-item { display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer; margin:0; }
+	.cm-item input { width:auto; margin:0; }
+	.cm-hint { font-size:11px; color:#777; margin-top:4px; }
+	.cm-rel-form { display:flex; flex-direction:column; gap:6px; }
+	.cm-side-label { font-size:11px; color:#555; }
+	.cm-side { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+	.cm-rel-list { display:flex; flex-direction:column; gap:4px; margin-top:8px; }
+	.cm-rel-item { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:11px; border:1px solid #ddd; border-radius:4px; padding:4px 6px; background:#fff; word-break:break-all; }
+	.cm-rel-item button { border:none; background:none; cursor:pointer; font-size:14px; color:#a33; padding:0 4px; }
+	.cm-inactive { opacity:.5; }
 </style>
