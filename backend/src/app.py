@@ -17,7 +17,7 @@ from controller.file_upload import upload, BaseUpload
 from controller.data_catalog import datacatalog
 from controller.bi_controller import bi_controller
 from controller.user_management import user_management
-from controller.mapping_template_controller import template
+from controller.operation_controller import template
 from services.exposee.main import duckdb_bridge
 from utils.app_util import add_app_custom_handlers
 

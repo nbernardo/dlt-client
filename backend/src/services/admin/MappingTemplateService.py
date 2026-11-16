@@ -1,11 +1,9 @@
-from mysql.connector.connection import MySQLConnection
 from typing import List, Dict, Any
 from connectors.db.mysql import get_mysql_connection
 
 class MappingTemplateService:
     """
-    Service responsible for handling MySQL database migrations 
-    for template mapping and related data using mysql-connector-python.
+    Service responsible for Template mapping handling considering both migration Data access.
     """
 
     connection = get_mysql_connection('e2eadmin')
@@ -14,9 +12,6 @@ class MappingTemplateService:
     def create_template_mapping_table() -> None:
         """
         Creates the template_mapping table if it does not already exist.
-        
-        Args:
-            connection: An active MySQLConnection object.
         """
         create_table_query = """
         CREATE TABLE IF NOT EXISTS template_mapping (
@@ -47,10 +42,7 @@ class MappingTemplateService:
 
     @staticmethod
     def create_template_records(templates: List[Dict[str, Any]], namespace) -> dict:
-        """
-        Migrates a batch of template mapping records into the MySQL database.
-        Args: templates: A list of dictionaries containing template attributes.
-        """
+
         if not templates: { 'error': None, 'affected_rows': 0 }
 
         insert_query = """
@@ -58,7 +50,6 @@ class MappingTemplateService:
             (template_name, template_content, template_type, connection_name, version, namespace, query, yml_content)
         VALUES  (%s, %s, %s, %s, %s, %s, %s, %s) """
         
-        # Map the dictionary items to a tuple list for efficient bulk insertion
         data_to_insert = [
             (
                 t.get("name"),
@@ -87,14 +78,20 @@ class MappingTemplateService:
     
     
     @staticmethod
-    def get_template_records(namespace) -> dict:
+    def get_template_records(namespace, template_name = None) -> dict:
 
-        query = "SELECT template_name, template_type, connection_name, query FROM template_mapping WHERE namespace = %s"
+        query = "SELECT template_name, template_type, connection_name, query, id, template_content FROM template_mapping WHERE namespace = %s"
+        params = [namespace]
+
+        if(template_name):
+            query = f'{query} AND template_name = %s'
+            params.append(template_name)
                 
         cursor = MappingTemplateService.connection.cursor()
         error, result = None, None
+
         try:
-            cursor.execute(query, [namespace])
+            cursor.execute(query, params)
             result = cursor.fetchall()
         except Exception as err:
             error = str(err)
