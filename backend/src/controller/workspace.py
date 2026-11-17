@@ -498,7 +498,7 @@ def send_message_to_agent_with_local_or_groq(message, namespace, user_id = None,
 
 
 @workspace.route('/secret/<namespace>', methods=['POST'])
-@require_permission('global_admin')
+#@require_permission('global_admin')
 def create_seret(namespace):
 
     payload = request.get_json()

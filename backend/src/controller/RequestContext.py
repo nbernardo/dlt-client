@@ -81,6 +81,7 @@ class RequestContext:
         self.is_cloud_url = False
         self.has_cloud_bucket_auth = None
         self.pipeline_metadata: PipelineMetadata = PipelineMetadata()
+        self.operational_metadata: OperationalPipelineMetadata = OperationalPipelineMetadata()
 
 
     def get_time(self):
@@ -243,3 +244,12 @@ class PipelineMetadata:
         # the list of fields for incremental loading per table
         self.incr_field = None
         self.db_src_name = None
+
+
+class OperationalPipelineMetadata:
+
+    def __init__(self):
+        self.output_file = None
+        self.step_error = {}
+        self.dest_auth_usr = None
+        self.dest_auth_pwd = None

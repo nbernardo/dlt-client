@@ -29,6 +29,7 @@ import asyncio
 from utils.metastore.PipelineDWPhaseRunner import PipelineDWPhaseRunner
 from utils.pipeline.PipelinesHelper import send_success_email
 from utils.metastore.PipelineTrigger import PipelineTrigger
+from node_mapper.SourceMapper import SourceMapper
 
 root_dir = str(Path(__file__).parent.parent.parent)
 destinations_dir = f'{str(Path(__file__).parent.parent.parent.parent)}/destinations/pipeline'
@@ -73,6 +74,9 @@ class DltPipeline:
 
 
     def create_v1(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
+        if context.pipeline_metadata.dest_dw_name == SourceMapper.operational:
+            # In case it's operational flow it does not create the DltPipeline file
+            return
         try:
             check_invalid_code(data)
         except RuntimeError as err:
@@ -117,7 +121,15 @@ class DltPipeline:
             return { 'status': True, 'message': 'Pipeline created successfully' }
 
 
-    def save_diagram(self, diagrm_path, file_name, content, pipeline_lbl, is_update: bool|str = None, write_log = True):
+    def save_diagram(
+            self, diagrm_path, file_name, 
+            content, pipeline_lbl, 
+            is_update: bool|str = None, write_log = True,
+            is_operaitional = False):
+        
+        if is_operaitional:
+            # In case it's operational flow it does not create the DltPipeline file
+            return
         """ Save pipeline diagram. """
         # Create the pipeline Diagram code
         pipeline_code = { 'content': content, 'pipeline_lbl': pipeline_lbl }

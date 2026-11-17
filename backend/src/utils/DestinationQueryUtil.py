@@ -113,9 +113,10 @@ class DestinationQueryUtil:
             with engine.connect() as conn:
                 result = conn.execute(text(query))
                 fields = list(result.keys())
+                normalized_fields = ['.'.join(field.replace('_','.',1).rsplit('__',1)) for field in fields]
                 rows = [ [serialize_value(v) for v in row] for row in result.fetchall()]
 
-            return { 'result': rows, 'fields': fields, 'db_engine': db_engine }
+            return { 'result': rows, 'fields': fields, 'db_engine': db_engine, 'normalized_fields': normalized_fields }
             
         except Exception as err:
             logging.error(f'Error querying SQL database: {str(err)}')

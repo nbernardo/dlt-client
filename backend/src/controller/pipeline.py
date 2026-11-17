@@ -13,6 +13,7 @@ from utils.metastore.PipelineMedatata import PipelineMedatata
 from controller.file_upload import format_size
 import logging
 from services.workspace.Workspace import Workspace
+from node_mapper.SourceMapper import SourceMapper
 
 escape_component_field = ['context', 'component_id','template']
 pipeline = Blueprint('pipeline', __name__)
@@ -145,7 +146,8 @@ def create_new_ppline(fst_connection,
     try:
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
         if(result['status'] == True):
-            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl)
+            is_operational = context.pipeline_metadata.dest_dw_name == SourceMapper.operational
+            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl, is_operational)
         
         if result['status'] is False: 
             success, message = False, result['message'] 
@@ -203,7 +205,8 @@ def create_new_version_ppline(fst_connection,
         success = True
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
         if(result['status'] == True):
-            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl, True, False)
+            is_operational = context.pipeline_metadata.dest_dw_name == SourceMapper.operational
+            pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl, True, False, is_operational)
         
         if result['status'] is False: 
             logging.error('Error while creating new pipeline version: ', str(result['message']))
