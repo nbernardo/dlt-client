@@ -85,7 +85,7 @@
 				<div style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start;">
 					
 					<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px;">
-						<h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:8px; color:#1A3D5C; font-size: 15px;">
+						<h3 style="margin-top:0; border-bottom: 2px solid #1A3D5C; padding-bottom:6px; color:#1A3D5C; font-size: 15px;">
 							<i class="ti ti-user-plus"></i> $bundle.gov.newIdentityLbl
 						</h3>
 						<form onsubmit="event.preventDefault(); controller.registerNewUser();" style="display:flex; flex-direction:column; gap:12px;">
@@ -156,8 +156,8 @@
 						</div>
 	
 						<!-- RIGHT PANEL: YAML EDITOR (left) + GENERATED XML, READ-ONLY (right) -->
-						<div style="background: #ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;">
-							<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1A3D5C; padding-bottom: 8px;">
+						<div style=" padding-top: 6px; background:#ffffff; border: 1px solid #d1cec7; border-radius: 4px; padding: 10px; display: flex; flex-direction: column; gap: 9px; min-width: 0; height: 84.1vh;">
+							<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1A3D5C; padding-bottom: 3px;">
 								<h3 style="margin:0; color:#1A3D5C; font-size: 15px;">
 									<i class="ti ti-code"></i> YAML Structure Specification
 								</h3>
@@ -165,18 +165,28 @@
 									<i class="fas fa-save"></i> Save Mapping
 								</button>
 							</div>
-							<p class="text-muted" style="font-size:12px; margin:0;">Type <b>{</b> after a property to map its value to a table column from the selected connection (e.g. <code>Name: {customers.name}</code>). The XML on the right updates as you type.</p>
+							<p class="text-muted" style="font-size:12px; margin:0; margin-top: -5px;">Type <b>{</b> after a property to map its value to a table column from the selected connection (e.g. <code>Name: {customers.name}</code>), either in the YAML or in the Visual form. The XML on the right updates as you type.</p>
 
-							<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+							<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 7px;">
 								<!-- YAML (editable) -->
 								<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-									<label style="font-size:11px; font-weight:bold; color:#555;">YAML</label>
-									<div id="custom-yaml-editor" style="width:100%; height:70vh; border:1px solid #ccc; border-radius:4px;"></div>
+									<div class="cm-col-head">
+										<label style="font-size:11px; font-weight:bold; color:#555;">Editor</label>
+										<div class="cmv-mode-switch">
+											<button type="button" id="cm-mode-yaml" class="active">YAML</button>
+											<button type="button" id="cm-mode-visual">Visual form</button>
+										</div>
+									</div>
+									<div id="custom-yaml-editor" style="width:100%; height:68vh; border:1px solid #ccc; border-radius:4px;"></div>
+									<!-- Visual (form) mode: one input per tag, shown instead of the YAML editor -->
+									<div id="custom-visual-form" class="cmv-form" style="display:none;"></div>
 								</div>
 								<!-- XML (read-only) -->
 								<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-									<label style="font-size:11px; font-weight:bold; color:#555;">XML output (read-only)</label>
-									<div id="custom-xml-output" style="width:100%; height:70vh; border:1px solid #ccc; border-radius:4px; background:#fafafa;"></div>
+									<div class="cm-col-head">
+										<label style="font-size:11px; font-weight:bold; color:#555;">XML output (read-only)</label>
+									</div>
+									<div id="custom-xml-output" style="width:100%; height:68vh; border:1px solid #ccc; border-radius:4px; background:#fafafa;"></div>
 									<span id="custom-xml-status" style="font-size:11px;"></span>
 								</div>
 							</div>
@@ -322,4 +332,23 @@
 	.cm-rel-item { display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:11px; border:1px solid #ddd; border-radius:4px; padding:4px 6px; background:#fff; word-break:break-all; }
 	.cm-rel-item button { border:none; background:none; cursor:pointer; font-size:14px; color:#a33; padding:0 4px; }
 	.cm-inactive { opacity:.5; }
+
+	/* Custom mapping: YAML / Visual switch + visual form */
+	.cm-col-head { display:flex; justify-content:space-between; align-items:center; min-height:28px; }
+	.cmv-mode-switch { display:inline-flex; border:1px solid #1A3D5C; border-radius:4px; overflow:hidden; }
+	.cmv-mode-switch button { border:none; background:#fff; color:#1A3D5C; font-size:11px; padding:4px 10px; cursor:pointer; }
+	.cmv-mode-switch button.active { background:#1A3D5C; color:#fff; }
+	.cmv-form { width:100%; height:68vh; border:1px solid #ccc; border-radius:4px; overflow:auto; padding:10px; box-sizing:border-box; background:#fff; }
+	.cmv-hint { font-size:11px; color:#777; margin-bottom:8px; }
+	.cmv-error { font-size:12px; color:#b26a00; background:#fff8e6; border:1px solid #f0d9a8; border-radius:4px; padding:8px; }
+	.cmv-group { margin:4px 0; }
+	.cmv-head { display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; padding:3px 0; font-size:12px; font-weight:bold; color:#1A3D5C; }
+	.cmv-caret { width:12px; font-size:10px; }
+	.cmv-idx { font-size:10px; font-weight:normal; color:#888; background:#eee; border-radius:8px; padding:0 6px; margin-left:4px; }
+	.cmv-body { margin-left:6px; padding-left:12px; border-left:2px solid #e3e8ee; }
+	.cmv-collapsed > .cmv-body { display:none; }
+	.cmv-row { display:grid; grid-template-columns:minmax(110px, 38%) 1fr; gap:8px; align-items:center; margin:4px 0; }
+	.cmv-label { font-size:12px; color:#333; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+	.cmv-input { width:100%; padding:5px 6px; border:1px solid lightgray; border-radius:4px; font-size:12px; box-sizing:border-box; }
+	.cmv-input.cmv-mapped { color:#1d4ed8; background:#f3f8ff; border-color:#9bbcf5; }
 </style>

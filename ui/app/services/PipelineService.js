@@ -184,8 +184,9 @@ export class PipelineService extends BaseService {
 
     static async getPipelinesForGernanceView(){
         const pplineList = await BIService.getDWPipelines();
+        
         return (pplineList || []).map(([pipeline, dtset]) => {
-            const path = dtset.split('.');
+            const path = (dtset || '').split('.');
             const hasPath = path.length > 1;
             return { pipeline, srcPipeline: hasPath ? path[1] : pipeline, dwName: hasPath ? path[0] : dtset }
         });

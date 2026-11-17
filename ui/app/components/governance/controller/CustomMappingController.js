@@ -3,6 +3,7 @@ import { AppTemplate } from "../../../../config/app-template.js";
 import { InputDropdown } from "../../../util/InputDropdownUtil.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { GovernanceMainComponent } from "../GovernanceMainComponent.js";
+import { CustomMappingFormController } from "./CustomMappingFormController.js";
 import jsyaml from "https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.mjs";
 import { XMLParser, XMLValidator } from "https://cdn.jsdelivr.net/npm/fast-xml-parser@5.11.2/+esm";
 
@@ -27,6 +28,9 @@ export class CustomMappingController extends BaseController {
   tableFilter = '';
   /** Also select the parent key of every join, so each child row can be grouped under its parent */
   includeJoinKeys = true;
+
+  /** Visual (form) mode of the editor: another view over the same YAML */
+  /** @type { CustomMappingFormController } */ formView;
 
   /** @type { InputDropdown } */ tableDropdown;
   /** @type { InputDropdown } */ fieldDropdown;
@@ -135,6 +139,8 @@ export class CustomMappingController extends BaseController {
     this.initXmlEditor();
     this.initCompletionProvider();
     this.initConfigPanels();
+    this.formView ??= new CustomMappingFormController(this);
+    this.formView.init();   // wires the YAML / Visual switch
     this.showSourceXml();   // right side starts as the original XML; it is regenerated as the YAML is edited
 
     const secretList = await WorkspaceService.listSecrets(1 /** 1 = DBSecrets */);

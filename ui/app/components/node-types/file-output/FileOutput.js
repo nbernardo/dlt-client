@@ -21,7 +21,7 @@ export class FileOutput extends AbstractNode {
 	outputList = [{ name: 'MFT' }, { name: 'S3' }, { name: 'Local FS'}];
 	selectedOutputType = '';
 	secretsList;
-	selectedSecret = '';
+	selectedSecret;
 	nodeCount = '';
 
 	/** @Prop */ aiGenerated;
@@ -47,10 +47,13 @@ export class FileOutput extends AbstractNode {
 		this.secretsList = await WorkspaceService.listSecrets(2);
 		this.showLoading = false;
 
+		this.selectedSecret.onChange(val => {
+			WorkSpaceController.getNode(this.nodeId).data['selectedSecret'] = val;
+		})
+
 		this.selectedOutputType.onChange(value => {
 			if(value.trim() === '') return;
 			this.showSecretsList = ['MFT','S3'].includes(value) ? true : false;
-
 			const selectedTemplate = this.outputList.value.find(obj => obj.name === value);
 			
 			WorkSpaceController.getNode(this.nodeId).data['selectedOutputType'] = value;
