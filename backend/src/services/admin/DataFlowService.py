@@ -24,7 +24,7 @@ class DataFlowService:
             schedule VARCHAR(100),
             operation_state VARCHAR(100),
             creation_date DATETIME,
-            created_by VARCHAR(150),
+            created_by VARCHAR(150)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """
         
@@ -41,8 +41,9 @@ class DataFlowService:
     def create_flow(flows: List[Dict[str, Any]], namespace) -> dict:
 
         if not flows: { 'error': None, 'affected_rows': 0 }
+        DataFlowService.create_template_mapping_table()
 
-        insert_query = "INSERT INTO template_mapping (id_source, source_type, destination, namespace) VALUES  (%s, %s, %s, %s)"
+        insert_query = "INSERT INTO operational_pipeline (id_source, source_type, destination, namespace) VALUES  (%s, %s, %s, %s)"
         
         data_to_insert = [
             (t.get("id_source"), t.get("source_type"), t.get("destination"), namespace) for t in flows

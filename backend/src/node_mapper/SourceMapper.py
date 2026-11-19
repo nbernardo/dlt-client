@@ -6,6 +6,8 @@ from utils.DestinationQueryUtil import DestinationQueryUtil as SQLDBSource
 from utils.mappers.data_to_xml import render_xml
 import os
 from pathlib import Path
+from services.admin.DataFlowService import DataFlowService
+import json
 
 class SourceMapper(TemplateNodeType):
     """
@@ -42,6 +44,14 @@ class SourceMapper(TemplateNodeType):
             xml_content = render_xml(template, fields, rows)
             (Path(file_dir) / 'output_example.xml').write_text(xml_content, encoding='utf-8')
             self.context.operational_metadata.output_file = f'{file_dir}/output_example.xml'
+
+            record = { 
+                'id_source': result['result'][0][4], 
+                'source_type': 'XML', 
+                'destination': json.dumps(str(data['destinationSetting']).replace("'",'"')) 
+            }
+
+            DataFlowService().create_flow([record], data['namespace'])
             
         except Exception as error:
             self.context.operational_metadata.step_error['SourceMapper'] = str(error)

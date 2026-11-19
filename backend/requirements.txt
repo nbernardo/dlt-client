@@ -143,3 +143,4 @@ google-cloud-bigquery
 databricks-sql-connector==3.7.4
 polars[connectorx]
 zstandard
+minio
