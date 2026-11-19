@@ -98,7 +98,7 @@ export class CustomMappingController extends BaseController {
       <CdtrAcct><Id><IBAN></IBAN></Id></CdtrAcct>
       <CdtrAgt><FinInstnId><BICFI></BICFI></FinInstnId></CdtrAgt>
       <Dbtr>
-        <Nm>Diolene Sampaio</Nm>
+        <Nm>Creditor Name</Nm>
         <Id><OrgId><Othr><Id></Id></Othr></OrgId></Id>
         <CtctDtls>
           <MobNb></MobNb>
@@ -725,12 +725,15 @@ export class CustomMappingController extends BaseController {
     return /^[A-Za-z0-9_.-]+\.[A-Za-z0-9_]+$/.test(keys[0]) ? `{${keys[0]}}` : null;
   }
 
+  /** "loop", "loop_2", ... are the <loop> wrappers (unique keys so several loops can sit at the same level) */
+  isLoopKey = (key) => /^loop(_\d+)?$/.test(String(key));
+
   xmlName = (key) => String(key).replace(/[^A-Za-z0-9_.-]/g, '_').replace(/^([^A-Za-z_])/, '_$1');
 
   escapeXml = (v) =>  String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   nodeToXml(key, value, level) {
-    const pad = '  '.repeat(level), tag = this.xmlName(key);
+    const pad = '  '.repeat(level), tag = this.isLoopKey(key) ? 'loop' : this.xmlName(key);
 
     // Arrays repeat the element once per item
     if (Array.isArray(value)) return value.map(v => this.nodeToXml(key, v, level)).join('\n');

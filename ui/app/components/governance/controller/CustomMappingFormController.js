@@ -61,6 +61,7 @@ export class CustomMappingFormController extends BaseController {
     root.addEventListener('keyup', e => this.onKeyup(e));
     root.addEventListener('focusout', e => this.onFocusOut(e));
     root.addEventListener('click', e => this.onClick(e));
+    root.addEventListener('change', e => this.onLoopChange(e));
 
     if (!this.popup) {
       this.popup = el('div', 'cmv-popup');
@@ -130,9 +131,31 @@ export class CustomMappingFormController extends BaseController {
     if (node && typeof node === 'object') {
       const placeholder = this.host.placeholderOf(node);
       if (placeholder) return placeholder;
+      this.uniqueLoopKeys(node);
       for (const k of Object.keys(node)) node[k] = this.normalize(node[k]);
     }
     return node;
+  }
+
+  /** Several <loop> at the same level come from the XML as a list under "loop":
+   *  give each wrapper its own key (loop, loop_2, ...), keeping the position (in place). */
+  uniqueLoopKeys(obj) {
+    const isWrapperList = (k, v) => this.host.isLoopKey(k) && Array.isArray(v) && v.length > 0
+      && v.every(i => i && typeof i === 'object' && !Array.isArray(i) && Object.keys(i).length > 0);
+
+    const entries = Object.entries(obj);
+    if (!entries.some(([k, v]) => isWrapperList(k, v))) return;
+
+    const used = new Set(Object.keys(obj));
+    const fresh = () => { let n = 2; while (used.has(`loop_${n}`)) n++; used.add(`loop_${n}`); return `loop_${n}`; };
+
+    const out = [];
+    for (const [k, v] of entries) {
+      if (isWrapperList(k, v)) v.forEach((item, i) => out.push([i === 0 ? k : fresh(), item]));
+      else out.push([k, v]);
+    }
+    for (const k of Object.keys(obj)) delete obj[k];
+    for (const [k, v] of out) obj[k] = v;
   }
 
   parse() {
@@ -159,7 +182,7 @@ export class CustomMappingFormController extends BaseController {
 
     this.tree = data;
     const frag = document.createDocumentFragment();
-    frag.append(el('div', 'cmv-hint', 'Type { in a field to pick a table column. Every change is written to the YAML.'));
+    frag.append(el('div', 'cmv-hint', 'Type { in a field to pick a table column. Tick "loop" to wrap a tag in <loop> (repeated once per data row). Every change is written to the YAML.'));
     for (const [key, value] of Object.entries(this.tree)) frag.append(this.build(key, value, [key]));
 
     this.root.replaceChildren(frag);
@@ -167,25 +190,67 @@ export class CustomMappingFormController extends BaseController {
     return null;
   }
 
-  build(key, value, path, idx) {
+  /**
+   * Builds the node of one tag.
+   * `loop` = { parentPath, loopKey } when the tag is the only one inside a <loop> wrapper: it is shown
+   * as that tag with its "loop" checkbox ticked, instead of an extra "loop" level.
+   */
+  build(key, value, path, idx, loop = null) {
+    if (!loop && this.isLoopWrapper(key, value)) {
+      const [tag, inner] = Object.entries(value)[0];
+      return this.build(tag, inner, [...path, tag], idx, { parentPath: path.slice(0, -1), loopKey: key });
+    }
     if (Array.isArray(value)) {     // repeated tags: one entry per item
       const frag = document.createDocumentFragment();
-      value.forEach((item, i) => frag.append(this.build(key, item, [...path, i], i)));
+      value.forEach((item, i) => frag.append(this.build(key, item, [...path, i], i, loop)));
       return frag;
     }
     if (value && typeof value === 'object' && Object.keys(value).length)
-      return this.buildGroup(key, value, path, idx);
-    return this.buildRow(key, value, path, idx);
+      return this.buildGroup(key, value, path, idx, loop);
+    return this.buildRow(key, value, path, idx, loop);
   }
 
-  buildGroup(key, value, path, idx) {
+  /** <loop> that wraps exactly one tag */
+  isLoopWrapper(key, value) {
+    return this.host.isLoopKey(key) && !!value && typeof value === 'object'
+      && !Array.isArray(value) && Object.keys(value).length === 1;
+  }
+
+  /** A tag can be wrapped when it is a single tag (not one item of a repeated tag) and is not the XML root */
+  canWrap(path) {
+    if (typeof path[path.length - 1] !== 'string') return false;
+    return path.length > 1 || Object.keys(this.tree).length > 1;
+  }
+
+  /** The "loop" checkbox of a tag (an empty cell when the tag can't be wrapped, to keep the grid aligned) */
+  buildLoopControl(key, path, loop) {
+    const cell = el('label', 'cmv-loop');
+    let parentPath;
+    if (loop) parentPath = loop.parentPath;
+    else if (this.canWrap(path)) parentPath = path.slice(0, -1);
+    else return el('span', 'cmv-loop');
+
+    const box = el('input', 'cmv-loop-chk');
+    box.type = 'checkbox';
+    box.checked = !!loop;
+    box.dataset.parent = JSON.stringify(parentPath);
+    box.dataset.tag = key;
+    box.dataset.loopKey = loop ? loop.loopKey : '';
+
+    cell.title = loop ? 'Remove the <loop> around this tag' : 'Wrap this tag in a <loop> (repeated once per data row)';
+    cell.append(box, document.createTextNode(' loop'));
+    return cell;
+  }
+
+  buildGroup(key, value, path, idx, loop) {
     const id = JSON.stringify(path), collapsed = this.collapsed.has(id);
 
-    const group = el('div', 'cmv-group' + (collapsed ? ' cmv-collapsed' : ''));
+    const group = el('div', 'cmv-group' + (collapsed ? ' cmv-collapsed' : '') + (loop ? ' cmv-looped' : ''));
     const head = el('div', 'cmv-head');
     head.dataset.toggle = id;
     head.append(el('span', 'cmv-caret', collapsed ? '\u25B8' : '\u25BE'), el('span', 'cmv-tag', key));
     if (idx !== undefined) head.append(el('span', 'cmv-idx', `#${idx + 1}`));
+    head.append(this.buildLoopControl(key, path, loop));
 
     const body = el('div', 'cmv-body');
     for (const [k, v] of Object.entries(value)) body.append(this.build(k, v, [...path, k]));
@@ -194,9 +259,9 @@ export class CustomMappingFormController extends BaseController {
     return group;
   }
 
-  buildRow(key, value, path, idx) {
+  buildRow(key, value, path, idx, loop) {
     const id = `cmv-in-${++this._seq}`;
-    const row = el('div', 'cmv-row');
+    const row = el('div', 'cmv-row' + (loop ? ' cmv-looped' : ''));
 
     const label = el('label', 'cmv-label', key);
     label.htmlFor = id;
@@ -213,7 +278,7 @@ export class CustomMappingFormController extends BaseController {
     input.value = (value === null || value === undefined || typeof value === 'object') ? '' : String(value);
     this.markMapped(input);
 
-    row.append(label, input);
+    row.append(label, input, this.buildLoopControl(key, path, loop));
     return row;
   }
 
@@ -226,11 +291,75 @@ export class CustomMappingFormController extends BaseController {
   /* ------------------------------------------------------------------ */
 
   onClick(e) {
+    if (e.target.closest?.('.cmv-loop')) return;   // the loop checkbox lives inside the header
     const head = e.target.closest?.('.cmv-head');
     if (!head) return;
     const collapsed = head.parentElement.classList.toggle('cmv-collapsed');
     collapsed ? this.collapsed.add(head.dataset.toggle) : this.collapsed.delete(head.dataset.toggle);
     head.firstChild.textContent = collapsed ? '\u25B8' : '\u25BE';
+  }
+
+  /** Ticking "loop" wraps the tag in <loop>, unticking removes the wrapper. The YAML is updated right away. */
+  onLoopChange(e) {
+    const box = e.target.closest?.('.cmv-loop-chk');
+    if (!box || !this.tree) return;
+
+    const parentPath = JSON.parse(box.dataset.parent), tag = box.dataset.tag, loopKey = box.dataset.loopKey;
+    const done = box.checked ? this.wrapInLoop(parentPath, tag) : this.unwrapLoop(parentPath, loopKey, tag);
+    if (!done) { box.checked = !box.checked; return; }   // refused (a message was shown)
+
+    this.dirty = true;
+    this.commitNow();   // the YAML shows the <loop> immediately (and so does the XML output)
+    this.render();      // paths changed: rebuild the form
+  }
+
+  getAt(path) {
+    return path.reduce((node, p) => node[p], this.tree);
+  }
+
+  nextLoopKey(obj) {
+    let key = 'loop', n = 2;
+    while (key in obj) key = `loop_${n++}`;
+    return key;
+  }
+
+  /** Replaces one entry by other entries, in place and at the same position */
+  replaceEntry(obj, key, replacement) {
+    const entries = Object.entries(obj);
+    for (const k of Object.keys(obj)) delete obj[k];
+    for (const [k, v] of entries) {
+      if (k === key) replacement.forEach(([nk, nv]) => { obj[nk] = nv; });
+      else obj[k] = v;
+    }
+  }
+
+  /** Keeps the collapsed groups collapsed after their path changed */
+  remapCollapsed(from, to) {
+    const next = new Set();
+    for (const id of this.collapsed) {
+      const p = JSON.parse(id);
+      const inside = from.every((seg, i) => p[i] === seg);
+      next.add(inside ? JSON.stringify([...to, ...p.slice(from.length)]) : id);
+    }
+    this.collapsed = next;
+  }
+
+  wrapInLoop(parentPath, tag) {
+    const parent = this.getAt(parentPath), loopKey = this.nextLoopKey(parent);
+    this.replaceEntry(parent, tag, [[loopKey, { [tag]: parent[tag] }]]);
+    this.remapCollapsed([...parentPath, tag], [...parentPath, loopKey, tag]);
+    return true;
+  }
+
+  unwrapLoop(parentPath, loopKey, tag) {
+    const parent = this.getAt(parentPath), wrapper = parent[loopKey];
+    if (tag in parent) {
+      AppTemplate.toast.warn(`There is already a tag "${tag}" next to this <loop>. Rename one of them first.`);
+      return false;
+    }
+    this.replaceEntry(parent, loopKey, [[tag, wrapper[tag]]]);
+    this.remapCollapsed([...parentPath, loopKey, tag], [...parentPath, tag]);
+    return true;
   }
 
   onInput(e) {

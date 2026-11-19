@@ -347,8 +347,14 @@
 	.cmv-idx { font-size:10px; font-weight:normal; color:#888; background:#eee; border-radius:8px; padding:0 6px; margin-left:4px; }
 	.cmv-body { margin-left:6px; padding-left:12px; border-left:2px solid #e3e8ee; }
 	.cmv-collapsed > .cmv-body { display:none; }
-	.cmv-row { display:grid; grid-template-columns:minmax(110px, 38%) 1fr; gap:8px; align-items:center; margin:4px 0; }
+	.cmv-row { display:grid; grid-template-columns:minmax(110px, 38%) 1fr 56px; gap:8px; align-items:center; margin:4px 0; }
 	.cmv-label { font-size:12px; color:#333; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 	.cmv-input { width:100%; padding:5px 6px; border:1px solid lightgray; border-radius:4px; font-size:12px; box-sizing:border-box; }
 	.cmv-input.cmv-mapped { color:#1d4ed8; background:#f3f8ff; border-color:#9bbcf5; }
+	.cmv-loop { display:inline-flex; align-items:center; justify-content:flex-end; gap:3px; margin:0; font-size:11px; font-weight:normal; color:#555; cursor:pointer; white-space:nowrap; }
+	.cmv-head .cmv-loop { margin-left:auto; }
+	.cmv-loop input { width:auto; margin:0; cursor:pointer; }
+	.cmv-looped > .cmv-head .cmv-tag, .cmv-row.cmv-looped .cmv-label { color:#0f766e; }
+	.cmv-group.cmv-looped { border-left:3px solid #0f9d8a; padding-left:6px; }
+	.cmv-row.cmv-looped { border-left:3px solid #0f9d8a; padding-left:6px; }
 </style>

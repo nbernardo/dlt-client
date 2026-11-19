@@ -1,9 +1,9 @@
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
-import { DGServiceController } from "../../governance/controller/DGServiceController.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
+import { SourceMapper } from "../source-map/SourceMapper.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
 
 /** @implements { NodeTypeInterface } */
@@ -28,18 +28,16 @@ export class FileOutput extends AbstractNode {
 	/** @Prop */ isImport;
 	/** @Prop */ importData = null;
 	/** @Prop */ showSecretsList = false;
+	/** @Prop @type { SourceMapper } */ inputInstance;
 
 	async stOnRender(data){
 		const { nodeId, aiGenerated } = data;
-		this.nodeId = nodeId;
-		this.aiGenerated = aiGenerated;
-		this.importData = data;
+		this.nodeId = nodeId, this.aiGenerated = aiGenerated, this.importData = data;
 	}
 
 	async reloadMe(){
-		this.showLoading = true;
+		this.showLoading = true, this.selectedTemplate = '';
 		this.secretsList = await WorkspaceService.listSecrets(2);
-		this.selectedTemplate = '';
 		this.showLoading = false;
 	}
 
@@ -49,6 +47,7 @@ export class FileOutput extends AbstractNode {
 
 		this.selectedSecret.onChange(val => {
 			WorkSpaceController.getNode(this.nodeId).data['selectedSecret'] = val;
+			this.updateDestination('secret', val);
 		})
 
 		this.selectedOutputType.onChange(value => {
@@ -58,17 +57,12 @@ export class FileOutput extends AbstractNode {
 			
 			WorkSpaceController.getNode(this.nodeId).data['selectedOutputType'] = value;
 			WorkSpaceController.getNode(this.nodeId).data['templateType'] = selectedTemplate.type;
+			this.updateDestination('outputType', value);
 			this.templateType = selectedTemplate.type || '';
-			
 		});
 
-		//if(this.aiGenerated && this.importData.connectionName) this.selectedTemplate = this.importData.connectionName;
-
-		if(this.importData?.isImport){	
-			this.notifyReadiness();		
-			//this.templateType = this.importData.baseUrl;
-			//this.selectedTemplate = this.importData.connectionName;
-		}
+		if(this.importData?.isImport)
+			this.notifyReadiness();
 
 		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 	}
@@ -78,9 +72,18 @@ export class FileOutput extends AbstractNode {
 		return { nodeCount: this.nodeCount.value };
 	}
 
+	updateDestination = (field, val) =>
+		this.inputInstance ? this.inputInstance.destinationSettings[field] = val : null;
+
 	/** @param { InputConnectionType<{}> } param0 */
 	onInputConnection({ type, data }){
+		this.inputInstance = data.source;
+		
 		FileOutput.handleInputConnection(this, data, type);
+		if(type === SourceMapper.name){
+			this.updateDestination('secret', this.selectedSecret.value);
+			this.updateDestination('outputType', this.selectedOutputType.value);
+		}
 	}
 
 	async getDBSecrets(){

@@ -174,6 +174,10 @@ export const stillRoutesMap = {
                 path: "app/components/node-types/file-output",
                 url: "/file-output"
             },
+            OperationsDisplay: {
+                path: "app/components/operations",
+                url: "/display-operations"
+            },
         },
         lazyInitial: {}
     }

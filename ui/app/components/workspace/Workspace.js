@@ -289,7 +289,7 @@ export class Workspace extends ViewComponent {
 
 		let validationResults = formReferences.map(async (r) => {
 			const component = Components.ref(r);
-
+			if(component['onSubmitPreRun'] !== undefined) component['onSubmitPreRun']();
 			if (component.getName() === SqlDBComponent.name) {
 				const /** @type { SqlDBComponent } */ castedCmp = component;
 				sqlPipelineDbEngine = castedCmp.selectedDbEngine.value;

@@ -1,0 +1,77 @@
+<div class="componentui-main-container @cmpInternalId">
+	<h2 class="sr-only">Template operations</h2>
+
+	<st-loader (label)="Loading operations..." (showIf)="self.loading"/>
+
+	<div style="padding:1.25rem 0">
+
+		<div class="toolbar">
+			<input type="text" class="search" placeholder="Search operations..." id="opr-search" oninput="component.onFilterChange()">
+			<select id="opr-template" onchange="component.onTemplateChange()" style="width:180px">
+				<option value="">All templates</option>
+			</select>
+			<select id="opr-operation" onchange="component.onFilterChange()" style="width:150px">
+				<option value="">All operations</option>
+			</select>
+			<select id="opr-status" onchange="component.onFilterChange()" style="width:130px">
+				<option value="">All status</option>
+			</select>
+			<div style="margin-left:auto;display:flex;gap:8px">
+				<button type="button" class="btn btn-primary" onclick="component.reload()"><i class="ti ti-refresh" aria-hidden="true"></i> Refresh</button>
+			</div>
+		</div>
+
+		<p id="opr-notice" class="text-muted" style="display:none;font-size:12px;margin:0 0 .75rem"></p>
+
+		<div class="table-wrap">
+			<div class="grid-scroll-container">
+				<table>
+					<thead>
+						<tr>
+							<th>When</th>
+							<th>Operation</th>
+							<th>Template</th>
+							<th>User</th>
+							<th>Status</th>
+							<th>Duration</th>
+							<th>Rows</th>
+							<th>Message</th>
+							<th style="width:110px; text-align: right;">Actions</th>
+						</tr>
+					</thead>
+					<tbody id="opr-body"></tbody>
+				</table>
+			</div>
+		</div>
+
+		<div class="toolbar" style="margin-top:.75rem">
+			<span class="text-muted" style="font-size:12px;">@summary</span>
+			<div style="margin-left:auto;display:flex;gap:8px">
+				<button type="button" class="btn btn-sm" id="opr-prev" onclick="component.prevPage()"><i class="ti ti-chevron-left" aria-hidden="true"></i> Previous</button>
+				<button type="button" class="btn btn-sm" id="opr-next" onclick="component.nextPage()">Next <i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+			</div>
+		</div>
+
+	</div>
+
+	<div class="wrap" id="opr-modals">
+		<div class="modal-bg" id="opr-modal">
+			<div class="modal">
+				<div class="modal-header">
+					<h3>Operation details</h3>
+					<button type="button" class="icon-btn" onclick="component.closeDetails()" aria-label="Close"><i class="ti ti-x"></i></button>
+				</div>
+				<div class="modal-body" id="opr-modal-body"></div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" onclick="component.closeDetails()">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<style>
+	/* Status chips that shared.css may not have: success reuses badge-teal */
+	.opr-failed  { color:#9b1c1c; background:#fdecec; border-color:#f3c2c2; }
+	.opr-running { color:#8a5a00; background:#fff4d6; border-color:#f0d9a8; }
+	.opr-other   { color:#555;    background:#f0f0ee; border-color:#d9d9d4; }
+</style>

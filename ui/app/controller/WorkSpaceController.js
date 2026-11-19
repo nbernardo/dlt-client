@@ -12,6 +12,7 @@ import { LeftTabs } from "../components/navigation/left/LeftTabs.js";
 import { NodeTypeInterface } from "../components/node-types/mixin/NodeTypeInterface.js";
 import { IsString } from "../components/node-types/transform/util.js";
 import { Transformation } from "../components/node-types/Transformation.js";
+import { OperationsDisplay } from "../components/operations/OperationsDisplay.js";
 import { Header } from "../components/parts/Header.js";
 import { Workspace } from "../components/workspace/Workspace.js";
 import { CodeEditorUtil } from "../util/CodeEditorUtil.js";
@@ -916,6 +917,15 @@ export class WorkSpaceController extends BaseController {
         await sleepForSec(1000);
         AppTemplate.hideLoading();
         this.modelDeclarationView = component;
+    }
+    
+    /** @type { OperationsDisplay } */ operationsDisplayView;
+    async createOperationsDisplayUI(){
+        const { template: uiContent, component } = await Components.newView(OperationsDisplay, { }, this.wspaceId());
+        this.wSpaceComponent.dynamicViewPlaceholder.innerHTML = uiContent;
+        await sleepForSec(1000);
+        AppTemplate.hideLoading();
+        this.operationsDisplayView = component;
     }
 
     async loadMonacoEditorDependencies(){

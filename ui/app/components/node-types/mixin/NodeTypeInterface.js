@@ -51,4 +51,6 @@ export class NodeTypeInterface {
 	/** @returns { boolean } */
 	validate(){}
 
+	onSubmitPreRun(){}
+
 }

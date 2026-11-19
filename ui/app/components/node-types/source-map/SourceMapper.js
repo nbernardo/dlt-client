@@ -16,13 +16,14 @@ export class SourceMapper extends AbstractNode {
 	/** @Prop */ showLoading = true;
 	/** @Prop */ inConnectors = 1;
 	/** @Prop */ outConnectors = 1;
-
+	
+	nodeCount = '';
 	templatesList;
 	templateType = '';
 	selectedTemplate;
-	nodeCount = '';
 	privateEndpoint = '';
 
+	/** @Prop */ destinationSettings = {}
 	/** @Prop */ aiGenerated;
 	/** @Prop */ isImport;
 	/** @Prop */ importData = null;
@@ -63,12 +64,8 @@ export class SourceMapper extends AbstractNode {
 			
 		});
 
-		//if(this.aiGenerated && this.importData.connectionName) this.selectedTemplate = this.importData.connectionName;
-
 		if(this.importData?.isImport){	
 			this.notifyReadiness();		
-			//this.templateType = this.importData.baseUrl;
-			//this.selectedTemplate = this.importData.connectionName;
 		}
 
 		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
@@ -76,7 +73,7 @@ export class SourceMapper extends AbstractNode {
 
 	onOutputConnection(){
 		SourceMapper.handleOutputConnection(this);
-		return { nodeCount: this.nodeCount.value };
+		return { nodeCount: this.nodeCount.value, source: this };
 	}
 
 	/** @param { InputConnectionType<{}> } param0 */
@@ -86,13 +83,16 @@ export class SourceMapper extends AbstractNode {
 
 	onShowEndpoint = () => {
 		this.showEndpoint = this.showEndpoint ? false : true;
-		console.log(`THIS IS THE FLAG VALUE: `, this.showEndpoint);
 		
 		if(this.showEndpoint) {
 			if(this.privateEndpoint.value === '') {
 				this.privateEndpoint = '/this-is-the-endpoint';
 			}
 		}
+	}
+
+	onSubmitPreRun(){
+		WorkSpaceController.getNode(this.nodeId).data['destinationSetting'] = this.destinationSettings;
 	}
 
 }
