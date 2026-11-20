@@ -76,7 +76,7 @@ class DltPipeline:
     def create_v1(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
         if context.pipeline_metadata.dest_dw_name == SourceMapper.operational:
             # In case it's operational flow it does not create the DltPipeline file
-            return
+            return { 'status': len(context.operational_metadata.step_error.keys()) < 1, 'message': 'Pipeline created successfully' }
         try:
             check_invalid_code(data)
         except RuntimeError as err:

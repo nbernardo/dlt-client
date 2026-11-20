@@ -79,6 +79,7 @@ def create():
     else:
         return create_new_ppline(fst_connection, pipeline_name, payload, duckdb_path, context)
 
+
 def parse_first_node(connections, node_params, is_cloud_bucket_req, sql_destinations):
 
     first_connection_id = list(connections)[0][0]['node']
@@ -145,12 +146,14 @@ def create_new_ppline(fst_connection,
 
     try:
         result = pipeline_instance.create_v1(ppline_path, pipeline_name, template, context)
-        if(result['status'] == True):
+        if(result['status'] == True and not(context.pipeline_metadata.dest_dw_name == SourceMapper.operational)):
             is_operational = context.pipeline_metadata.dest_dw_name == SourceMapper.operational
             pipeline_instance.save_diagram(diagrm_path, pipeline_name, payload['drawflow'], pipeline_lbl, is_operational)
         
         if result['status'] is False: 
             success, message = False, result['message'] 
+            if(len(context.operational_metadata.step_error.keys()) > 0):
+                return { 'error': True, 'result': context.operational_metadata.step_error.values()[0] }
 
         return { 'error': not(success), 'result': 'Pipeline created successfully' }
     except Exception as err:

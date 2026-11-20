@@ -246,6 +246,7 @@ class PipelineMetadata:
         self.db_src_name = None
 
 
+import logging
 class OperationalPipelineMetadata:
 
     def __init__(self):
@@ -253,3 +254,5 @@ class OperationalPipelineMetadata:
         self.step_error = {}
         self.dest_auth_usr = None
         self.dest_auth_pwd = None
+        self.timer = {}
+        self.logger: logging.Logger = None

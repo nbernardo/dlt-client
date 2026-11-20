@@ -5,10 +5,11 @@ from minio import Minio
 from services.workspace.SecretManager import SecretManager
 import requests
 import os
+from utils.logging.pipeline_logger_config import handle_pipeline_log
 
 class FileOutput(TemplateNodeType):
     """
-    Bucket type mapping class
+    FileOutput type mapping class
     """
 
     def __init__(self, data: dict, context: RequestContext = None, component_id = None):
@@ -23,17 +24,43 @@ class FileOutput(TemplateNodeType):
             errors = self.context.operational_metadata.step_error.keys()
             if len(errors) > 0: return
             
+            self.component_id = data['componentId']
+            logger = context.operational_metadata.logger
             secrets = SecretManager.get_secret(context.transaction_namespace, data['selectedSecret'])
+            handle_pipeline_log(f'Fetched file output repo credentials', logger, False)
+            handle_pipeline_log(f'The output repository is {data['selectedOutputType']}', logger, False)
 
             source_file = context.operational_metadata.output_file
             file_name = source_file.split('/')[-1]
+            file_handled = False
 
             if data['selectedOutputType'] == 'S3':
-                self.s3_upload(secrets, context.transaction_namespace, source_file, file_name)
+                file_handled = self.s3_upload(secrets, context.transaction_namespace, source_file, file_name)
+                if(file_handled != False): handle_pipeline_log(f'S3 file uploaded succesfully', logger, False)
             if data['selectedOutputType'] == 'MFT':
-                self.mft_sftpgo(secrets, source_file, f'/{context.transaction_namespace}/')
-                
+                file_handled = self.mft_sftpgo(secrets, source_file, f'/{context.transaction_namespace}/')
+                if(file_handled != False): handle_pipeline_log(f'MFT file uploaded succesfully', logger, False)
+            
+            if file_handled == False:
+                self.notify_failure_to_ui('FileOutput',self.context.operational_metadata.step_error['FileOutput'])
+                return
+
+            timer_settings = self.context.operational_metadata.timer
+
+            if 'timeUnit' in timer_settings:
+                from services.workspace.Workspace import Workspace
+                import json
+                Workspace.create_ppline_schedule(
+                    context.pipeline_name, 
+                    json.dumps({ 'ppline_label': context.pipeline_name }), context.user, 'OPR', 
+                    timer_settings['timeUnit'], 
+                    timer_settings['timeValue']
+                )
+            self.notify_completion_to_ui()
+            context.emit_ppsuccess()
+
         except Exception as error:
+            self.context.operational_metadata.step_error['FileOutput'] = str(error)
             self.notify_failure_to_ui('FileOutput',error)
 
 
@@ -87,10 +114,15 @@ class FileOutput(TemplateNodeType):
                 client.make_bucket(bucket)
 
             client.fput_object(bucket, f'{folder}/{file}', source_file)
+            return True
         
         except Exception as err:
-            self.context.operational_metadata.step_error['FileOutput'] = str(err)
-            print(f'Error while uploading the file into S3: {str(err)}')
+            error_msg = f'Error while uploading to S3: {str(err)}'
+            self.context.operational_metadata.step_error['FileOutput'] = error_msg
+            print(error_msg)
+            handle_pipeline_log(error_msg, self.context.operational_metadata.logger, True)
+            return False
+
 
 
     def mft_sftpgo(self, secrets, local_file: str, remote_path: str):
@@ -114,12 +146,11 @@ class FileOutput(TemplateNodeType):
                 params = { "path": target_path, "mkdir_parents": "true" }
                 res = requests.post(f"{url}/user/files/upload", params=params, headers=headers, data=f)
                 res.raise_for_status()
-                return res.json()
+            return True
 
         except Exception as err:
-            print(f"Error while uploading the file into MFT - SFTPgo: {str(err)}")
-            self.context.operational_metadata.step_error['FileOutput'] = str(err)
-
-
-
-
+            error_msg = f"Error while uploading the file into MFT - SFTPgo: {str(err)}"
+            print(error_msg)
+            handle_pipeline_log(error_msg, self.context.operational_metadata.logger, True)
+            self.context.operational_metadata.step_error['FileOutput'] = error_msg
+            return False

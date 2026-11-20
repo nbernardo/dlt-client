@@ -8,10 +8,11 @@ import os
 from pathlib import Path
 from services.admin.DataFlowService import DataFlowService
 import json
+from utils.logging.pipeline_logger_config import handle_pipeline_log
 
 class SourceMapper(TemplateNodeType):
     """
-    Bucket type mapping class
+    SourceMapper type mapping class
     """
 
     operational = '%e2e_operational%'
@@ -26,21 +27,29 @@ class SourceMapper(TemplateNodeType):
         file_dir = BasePipeline.folder+'/operations/mappedxml/'+data['namespace']
         os.makedirs(file_dir, exist_ok=True)
 
-        try:
+        from services.pipeline.DltPipeline import DltPipeline
+        logger = DltPipeline.get_pipeline_logger(context)
+        context.operational_metadata.logger = logger
 
+        try:
             self.context = context
 
             errors = self.context.operational_metadata.step_error.keys()
             if len(errors) > 0: return
 
+            self.component_id = data['componentId']
+
             self.context.pipeline_metadata.dest_dw_name = SourceMapper.operational
             result = MappingTemplateService.get_template_records(data['namespace'], data['selectedTemplate'])
+            handle_pipeline_log(f'Fetching pipeline details', logger, False)
             query_result = SQLDBSource.query_sql_database(result['result'][0][3], data['namespace'], result['result'][0][2])
-            
+            handle_pipeline_log(f'Data source records fetch ran', logger, False)
+
             template = result['result'][0][5]
             fields = query_result['normalized_fields']
             rows = query_result['result']
 
+            handle_pipeline_log(f'Total of records to be written to the output: {len(rows)}', logger, False)
             xml_content = render_xml(template, fields, rows)
             (Path(file_dir) / 'output_example.xml').write_text(xml_content, encoding='utf-8')
             self.context.operational_metadata.output_file = f'{file_dir}/output_example.xml'
@@ -52,8 +61,11 @@ class SourceMapper(TemplateNodeType):
             }
 
             DataFlowService().create_flow([record], data['namespace'])
+            handle_pipeline_log(f'Created the pipeline instance record: {len(rows)}', logger, False)
+            self.notify_completion_to_ui()
             
         except Exception as error:
+            handle_pipeline_log(f'Error while generating the output data source mapper output: {str(errors)}', logger, True)
             self.context.operational_metadata.step_error['SourceMapper'] = str(error)
             print(f'Error while creating XML file: {str(error)}')
             self.notify_failure_to_ui('SourceMapper',error)
