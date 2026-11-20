@@ -22,6 +22,7 @@ import { PipelineStepTrigger } from "../components/node-types/trigger/PipelineSt
 import { IsObject } from "../components/node-types/transform/util.js";
 import { SourceMapper } from "../components/node-types/source-map/SourceMapper.js";
 import { FileOutput } from "../components/node-types/file-output/FileOutput.js";
+import { TimerNode } from "../components/node-types/timer/TimerNode.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -73,7 +74,7 @@ export class WorkspaceService extends BaseService {
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/sql-server-v2.png', label: 'Input - SQL DB - V2', typeName: SqlDBComponent.name },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/api-source.svg', label: 'Input - API', typeName: InputAPI.name },
         { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/dltlogo.png', label: 'Input - DLT code', typeName: DLTCode.name, disable: 'false', name: 'DLT-class' },
-        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/routine.png', label: 'Batch timer', typeName: Bucket.name },
+        { groupType: 'SourceGroup', imgIcon: 'app/assets/imgs/routine.png', label: 'Batch timer', typeName: TimerNode.name },
         //Group of nodes concerning Transformation types
         { 
             isNodeGroup: 'yes', imgIcon: 'app/assets/imgs/adaptation.png', label: 'Transformations', 

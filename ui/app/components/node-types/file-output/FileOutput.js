@@ -4,6 +4,7 @@ import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { SourceMapper } from "../source-map/SourceMapper.js";
+import { TimerNode } from "../timer/TimerNode.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
 
 /** @implements { NodeTypeInterface } */
@@ -52,7 +53,13 @@ export class FileOutput extends AbstractNode {
 
 		this.selectedOutputType.onChange(value => {
 			if(value.trim() === '') return;
-			this.showSecretsList = ['MFT','S3'].includes(value) ? true : false;
+			if(['MFT','S3'].includes(value)){
+				this.showSecretsList = true;
+				document.querySelector('.selected-secret-input').setAttribute('required', true);
+			}else{
+				this.showSecretsList = false;
+				document.querySelector('.selected-secret-input').removeAttribute('required');
+			}
 			const selectedTemplate = this.outputList.value.find(obj => obj.name === value);
 			
 			WorkSpaceController.getNode(this.nodeId).data['selectedOutputType'] = value;
@@ -80,7 +87,7 @@ export class FileOutput extends AbstractNode {
 		this.inputInstance = data.source;
 		
 		FileOutput.handleInputConnection(this, data, type);
-		if(type === SourceMapper.name){
+		if(type === SourceMapper.name || type == TimerNode.name){
 			this.updateDestination('secret', this.selectedSecret.value);
 			this.updateDestination('outputType', this.selectedOutputType.value);
 		}

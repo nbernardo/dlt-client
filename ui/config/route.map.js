@@ -178,6 +178,10 @@ export const stillRoutesMap = {
                 path: "app/components/operations",
                 url: "/display-operations"
             },
+            TimerNode: {
+                path: "app/components/node-types/timer",
+                url: "/timer-node"
+            },
         },
         lazyInitial: {}
     }

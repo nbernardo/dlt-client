@@ -1,0 +1,53 @@
+<div class="@cmpInternalId">
+	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
+	<div class="title-box pipeline-node-type-title-box">
+		<div class="node-header-grouper">
+			<!-- <div class="reload-icon-wrapper">
+				<img 
+					onclick="component.reloadMe()"
+					src="app/assets/imgs/refresh-svgrepo-com.svg" 
+					class="reload-loc-node-btn" 
+					alt="">
+			</div> -->
+			<img src="app/assets/imgs/routine.png" width="20">
+			@label
+		</div>
+		<div class="statusicon">@nodeCount</div>
+	</div>
+	<st-loader 
+		small center
+		(showIf)="self.showLoading" 
+		topPadding="50"
+		(label)="Fetching API catalog..."/>
+	<span>
+		
+	</span>
+	<div class="box @formWrapClass">
+		<span (showIf)="!self.showLoading">
+			<span (showIf)="!self.showSettings">Link the source node to show configurations. <br><br>Only <b>SourceMapper</b> is supported for now.</span>
+			<span (showIf)="self.showSettings">
+				<form (formRef)="formRef">
+					<div>
+						<div style="color: rgb(32, 32, 107); padding-top: 3px; word-wrap: break-word; display: flex; gap: 3px;">
+							<select (value)="selectedValue" (required)="true" (forEach)="timerValues" placeholder="Length">
+								<option each="item" value="{item.label}">{item.label}</option>
+							</select>
+							<select (value)="timeUnit" (required)="true">
+								<option value="">Time unity</option>
+								<option value="sec">Sec</option>
+								<option value="min">Min</option>
+								<option value="hour">Hours</option>
+							</select>
+						</div>
+					</div>
+				</form>
+			</span>
+		</span>
+	</div>
+</div>
+<style>
+	select{ font-size: 13px !important; }
+	select[placeholder="Length"]{ width: 66px; }
+	.parent-node .InputAPI { width: 200px; z-index: 1; }
+	.input-endpoint-data { padding-top: 5px; }
+</style>

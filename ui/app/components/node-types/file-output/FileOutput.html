@@ -27,6 +27,7 @@
 					(forEach)="outputList" 
 					(value)="selectedOutputType"
 					placeholder="Select target type"
+					(required)="true"
 					>
 					<option each="item" value="{item.name}">{item.name}</option>
 				</select>
@@ -36,6 +37,7 @@
 						(forEach)="secretsList" 
 						(value)="selectedSecret"
 						placeholder="Select Connection"
+						class="selected-secret-input"
 						style="margin-top: 5px;"
 						>
 						<option each="item" value="{item.name}">{item.name}</option>

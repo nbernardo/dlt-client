@@ -27,6 +27,7 @@
 					(forEach)="templatesList" 
 					(value)="selectedTemplate"
 					placeholder="Select the template"
+					(required)="true"
 					>
 					<option each="item" value="{item.name}">{item.name}</option>
 				</select>
