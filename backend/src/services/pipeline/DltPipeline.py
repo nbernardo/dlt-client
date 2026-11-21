@@ -437,11 +437,16 @@ class DltPipeline:
     job_refs = {}
 
     @staticmethod
-    def run_pipeline_job_sync(file_path, namespace, lead_pipeline=None, exec_id=None, sched_time=None, user=None):
+    def run_pipeline_job_sync(file_path: str, namespace, lead_pipeline=None, exec_id=None, sched_time=None, user=None):
         
+        if file_path.startswith(SourceMapper.operational):
+            from services.pipeline.OperationPipeline import OperationPipeline
+            OperationPipeline.run_pipeline_job_sync(file_path, namespace, lead_pipeline, exec_id, sched_time, user)
+            return
+
         if sched_time:
             ppline_name = file_path.split('/')[1]
-            tag_name = f'{namespace}_{ppline_name}_{sched_time.replace(':','')}'
+            tag_name = f'{namespace}_{ppline_name}_{str(sched_time).replace(':','')}'
             fl = f'{destinations_dir}/{file_path}'
             # Prevent the job from running and clear the schedule
             if os.path.exists(f'{fl}__archived__.py'):
@@ -756,7 +761,7 @@ class DltPipeline:
             schedules = Workspace.get_ppline_schedule(namespace, ppline)
             
             for sched in schedules:
-                tag_name = f'{namespace}_{ppline}_{sched['time'].replace(':','')}'
+                tag_name = f'{namespace}_{ppline}_{str(sched['time']).replace(':','')}'
                 if schedule.get_jobs(tag_name):
                     schedule.clear(tag_name)
 

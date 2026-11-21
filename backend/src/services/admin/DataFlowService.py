@@ -6,8 +6,6 @@ class DataFlowService:
     Service responsible for creating and handling data access for operational data flow.
     """
 
-    connection = get_mysql_connection('e2eadmin')
-
     @staticmethod
     def create_template_mapping_table() -> None:
         """
@@ -17,24 +15,27 @@ class DataFlowService:
         CREATE TABLE IF NOT EXISTS operational_pipeline (
             id INT AUTO_INCREMENT PRIMARY KEY,
             id_source INT,
+            pipeline VARCHAR(100) NOT NULL,
+            namespace VARCHAR(100) NOT NULL,
             source_type VARCHAR(25) NOT NULL,
             itermidiate_nodes LONGTEXT,
             destination LONGTEXT NOT NULL,
-            namespace VARCHAR(100) NOT NULL,
+            node_connections LONGTEXT NOT NULL,
+            node_list LONGTEXT NOT NULL,
             schedule VARCHAR(100),
             operation_state VARCHAR(100),
             creation_date DATETIME,
             created_by VARCHAR(150)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """
-        
-        cursor = DataFlowService.connection.cursor()
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
         try:
             cursor.execute(create_table_query)
-            DataFlowService.connection.commit()
             print('Created the template table')
         finally:
             cursor.close()
+            conn.close()
 
 
     @staticmethod
@@ -43,17 +44,20 @@ class DataFlowService:
         if not flows: { 'error': None, 'affected_rows': 0 }
         DataFlowService.create_template_mapping_table()
 
-        insert_query = "INSERT INTO operational_pipeline (id_source, source_type, destination, namespace) VALUES  (%s, %s, %s, %s)"
+        insert_query = "INSERT INTO operational_pipeline " \
+        "(pipeline, id_source, source_type, destination, namespace, node_connections, node_list) VALUES  (%s, %s, %s, %s, %s, %s, %s)"
         
         data_to_insert = [
-            (t.get("id_source"), t.get("source_type"), t.get("destination"), namespace) for t in flows
+            (t.get("pipeline"), t.get("id_source"), t.get("source_type"), t.get("destination"), namespace, t.get('node_connections'), t.get('node_list')) 
+            for t in flows
         ]
         
-        cursor = DataFlowService.connection.cursor()
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
         error, affected_rows = None, None
         try:
             cursor.executemany(insert_query, data_to_insert)
-            DataFlowService.connection.commit()
+            conn.commit()
             affected_rows = cursor.rowcount
         except Exception as err:
             error = str(err)
@@ -64,24 +68,27 @@ class DataFlowService:
     
     
     @staticmethod
-    def get_template_records(namespace, template_name = None) -> dict:
+    def get_data_flow(namespace, pipeline_name = None) -> dict:
 
-        query = "SELECT template_name, template_type, connection_name, query FROM template_mapping WHERE namespace = %s"
+        query = "SELECT pipeline, node_connections, node_list FROM operational_pipeline WHERE namespace = %s"
         params = [namespace]
-
-        if(template_name):
-            query = f'{query} AND template_name = %s'
-            params.append(template_name)
                 
-        cursor = DataFlowService.connection.cursor()
+        if(pipeline_name):
+            query = f'{query} AND pipeline = %s'
+            params.append(pipeline_name)
+
+        conn = get_mysql_connection()        
+        cursor = conn.cursor()
         error, result = None, None
 
         try:
-            cursor.execute(query, params)
+            cursor.execute(f'{query} LIMIT 1', params)
             result = cursor.fetchall()
         except Exception as err:
-            error = str(err)
+            error = str('Error while fetching operation pipeline: '+err)
+            print(error)
         finally:
             cursor.close()
+            conn.close()
             
         return { 'error': error, 'result': result }

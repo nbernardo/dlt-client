@@ -1,14 +1,24 @@
-import mysql.connector
 from os import getenv as env
-from mysql.connector import MySQLConnection
+from mysql.connector.pooling import MySQLConnectionPool, PooledMySQLConnection
 
 db_connection = None
 
-def get_mysql_connection(dbname) -> MySQLConnection:
-    #This connection in principle is only for DB and tables validatios
-    return mysql.connector.connect(
-        host=env('MYSQLDBSRV'),
-        user=env('MYSQLDBUSR'),
-        passwd=env('MYSQLDBPWD'),
-        database=dbname
-    )
+db_config = {
+    "host": env('MYSQLDBSRV'),
+    "port": 3306,
+    "user": env('MYSQLDBUSR'),
+    "password": env('MYSQLDBPWD'),
+    "database": 'e2eadmin'
+}
+
+pool = MySQLConnectionPool(
+    pool_name="AdminPool",
+    pool_size=30,
+    pool_reset_session=True,
+    **db_config
+)
+
+def get_mysql_connection() -> PooledMySQLConnection:
+    #This connection in principle is only for DB and tables validations
+    global pool    
+    return pool.get_connection()

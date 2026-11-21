@@ -45,17 +45,16 @@ class FileOutput(TemplateNodeType):
                 self.notify_failure_to_ui('FileOutput',self.context.operational_metadata.step_error['FileOutput'])
                 return
 
-            timer_settings = self.context.operational_metadata.timer
+            if context.operational_metadata.transaction != True:
+                # In case .transaction is not True then it's pipeline creation flow
+                timer_settings = self.context.operational_metadata.timer
+                settings = { 'periodicity': None, 'ppline_label': context.pipeline_name, 'operational': True }
 
-            if 'timeUnit' in timer_settings:
-                from services.workspace.Workspace import Workspace
-                import json
-                Workspace.create_ppline_schedule(
-                    context.pipeline_name, 
-                    json.dumps({ 'ppline_label': context.pipeline_name }), context.user, 'OPR', 
-                    timer_settings['timeUnit'], 
-                    timer_settings['timeValue']
-                )
+                if 'timeUnit' in timer_settings:
+                    from services.workspace.Workspace import Workspace
+                    settings = { 'settings': { **settings, 'type': timer_settings['timeUnit'], 'time': timer_settings['timeValue'] } }
+                    Workspace.handle_pipeline_schedule(settings, context.user, context.pipeline_name)
+
             self.notify_completion_to_ui()
             context.emit_ppsuccess()
 

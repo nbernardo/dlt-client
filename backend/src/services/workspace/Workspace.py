@@ -656,6 +656,56 @@ class Workspace:
         return None
 
 
+    def handle_pipeline_schedule(payload, namespace, ppline_name):
+        
+        import json
+        from services.workspace.Workspace import _run_async
+
+        settings = payload['settings']
+        _type, periodicity, time = settings['type'], settings['periodicity'], settings['time']
+        # socket_id = payload['socket_id']
+
+        if ((_type not in ['min','hour']) and periodicity != 'daily')\
+            and not(settings['operational'] == True and settings['type'] == 'sec'):
+                raise RuntimeError('Invalid schedule settings')
+        
+        try: int(time)
+        except:
+            try: int(str(time).replace(':','')) and str(time).split(':')[1]
+            except: ...
+
+        result = Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace, _type, periodicity, time)
+        file_path = f'{namespace}/{ppline_name}'
+
+        if not('operational' in settings): settings['operational'] =  False
+
+        if(settings['operational'] == True): 
+            from node_mapper.SourceMapper import SourceMapper
+            file_path = f'{SourceMapper.operational}/{file_path}'
+
+        tag_name = f'{namespace}_{ppline_name}_{str(time).replace(':','')}'
+        schedule.clear(tag_name)
+        Workspace.schedule_jobs[file_path] = True
+        
+        if result.get('error', False) == False\
+            or (settings['operational'] == True and settings['type'] == 'sec'):
+            if periodicity == 'daily':
+                schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
+            else:
+                if(_type == 'min'):
+                    schedule.every(int(time)).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
+                if(_type == 'hour'):
+                    schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
+                if(_type == 'sec'):
+                    schedule.every(int(time)).seconds.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
+
+        schedule.every(20).seconds.do(lambda: logging.info(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
+        logging.info(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
+        schedule.run_pending()
+
+        return result
+
+
     def create_ppline_schedule(ppline_name, schedule_settings, namespace, type, periodicity, time, stage_storage=None):
         try:
             table = 'ppline_schedule'
@@ -733,7 +783,7 @@ class Workspace:
             if archive == False:
                 query = f"DELETE FROM ppline_schedule WHERE id = ?"
                 DuckdbUtil.get_workspace_db_instance().execute(query, [id])
-                tag_name = f'{namespace}_{pipeline}_{time.replace(':','')}'
+                tag_name = f'{namespace}_{pipeline}_{str(time).replace(':','')}'
                 schedule.clear(tag_name)
             else:
                 query = f"DELETE FROM ppline_schedule WHERE ppline_name = ? AND namespace = ?"
@@ -851,7 +901,7 @@ class Workspace:
                 periodicity = sched['periodicity']
                 time = sched['time']
                 file_path = f'{_namespace}/{ppline_name}'
-                tag_name = f'{_namespace}_{ppline_name}_{time.replace(':','')}'
+                tag_name = f'{_namespace}_{ppline_name}_{str(time).replace(':','')}'
                 
                 if periodicity == 'daily':
                     schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)

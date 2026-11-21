@@ -256,3 +256,4 @@ class OperationalPipelineMetadata:
         self.dest_auth_pwd = None
         self.timer = {}
         self.logger: logging.Logger = None
+        self.transaction = None

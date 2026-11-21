@@ -6,8 +6,6 @@ class MappingTemplateService:
     Service responsible for Template mapping handling considering both migration Data access.
     """
 
-    connection = get_mysql_connection('e2eadmin')
-
     @staticmethod
     def create_template_mapping_table() -> None:
         """
@@ -30,14 +28,15 @@ class MappingTemplateService:
             INDEX idx_version (version)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """
-        
-        cursor = MappingTemplateService.connection.cursor()
+
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
         try:
             cursor.execute(create_table_query)
-            MappingTemplateService.connection.commit()
             print('Created the template table')
         finally:
             cursor.close()
+            conn.close()
 
 
     @staticmethod
@@ -63,16 +62,18 @@ class MappingTemplateService:
             for t in templates
         ]
         
-        cursor = MappingTemplateService.connection.cursor()
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
         error, affected_rows = None, None
         try:
             cursor.executemany(insert_query, data_to_insert)
-            MappingTemplateService.connection.commit()
+            conn.commit()
             affected_rows = cursor.rowcount
         except Exception as err:
             error = str(err)
         finally:
             cursor.close()
+            conn.close()
             
         return { 'error': error, 'affected_rows': affected_rows }
     
@@ -86,8 +87,9 @@ class MappingTemplateService:
         if(template_name):
             query = f'{query} AND template_name = %s'
             params.append(template_name)
-                
-        cursor = MappingTemplateService.connection.cursor()
+
+        conn = get_mysql_connection()    
+        cursor = conn.cursor()
         error, result = None, None
 
         try:

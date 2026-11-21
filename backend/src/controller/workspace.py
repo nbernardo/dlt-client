@@ -153,43 +153,13 @@ def update_socket_id(namespace, socket_id, user = None):
 
 @workspace.route('/workcpace/ppline/schedule/<namespace>', methods=['POST'])
 def create_ppline_schedule(namespace):
-    from services.workspace.Workspace import _run_async
+    
     ppline_name = None
     try:
         payload = request.get_json()
-        settings = payload['settings']
         ppline_name = payload['ppline_name']
-        _type, periodicity, time = settings['type'], settings['periodicity'], settings['time']
-        # socket_id = payload['socket_id']
 
-        if (_type not in ['min','hour']) and periodicity != 'daily':
-                raise RuntimeError('Invalid schedule settings')
-        
-        try: int(time)
-        except:
-            try: int(str(time).replace(':','')) and str(time).split(':')[1]
-            except: ...
-
-        result = Workspace.create_ppline_schedule(ppline_name, json.dumps(settings), namespace, _type, periodicity, time)
-        file_path = f'{namespace}/{ppline_name}'
-        tag_name = f'{namespace}_{ppline_name}_{time.replace(':','')}'
-        schedule.clear(tag_name)
-        Workspace.schedule_jobs[file_path] = True
-        
-        if result.get('error', False) == False:
-            if periodicity == 'daily':
-                schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
-            else:
-                if(_type == 'min'):
-                    schedule.every(int(time)).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
-                if(_type == 'hour'):
-                    schedule.every(int(time)).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
-
-        schedule.every(20).seconds.do(lambda: logging.info(f'Preparing to run job for {file_path} pipeline')).tag(f'{tag_name}-tracinglog')
-        logging.info(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
-        schedule.run_pending()
-
-        return result
+        return Workspace.handle_pipeline_schedule(payload, namespace, ppline_name)
 
     except Exception as error:
         logging.error(f'Error while trying to schedule {ppline_name} pipeline')

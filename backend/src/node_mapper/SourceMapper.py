@@ -54,14 +54,21 @@ class SourceMapper(TemplateNodeType):
             (Path(file_dir) / 'output_example.xml').write_text(xml_content, encoding='utf-8')
             self.context.operational_metadata.output_file = f'{file_dir}/output_example.xml'
 
-            record = { 
-                'id_source': result['result'][0][4], 
-                'source_type': 'XML', 
-                'destination': json.dumps(str(data['destinationSetting']).replace("'",'"')) 
-            }
+            if context.operational_metadata.transaction == True:
+                handle_pipeline_log(f'Data Mapping run successfull for {len(rows)} records', logger, False)
+            else:
+                # In case .transaction is not True then it's pipeline creation flow
+                record = { 
+                    'pipeline': context.pipeline_name,
+                    'id_source': result['result'][0][4], 
+                    'source_type': 'XML', 
+                    'destination': json.dumps(str(data['destinationSetting']).replace("'",'"')),
+                    'node_connections': json.dumps(str(list(context.connections)).replace("'",'"')),
+                    'node_list': json.dumps(str(context.node_params).replace("'",'"'))
+                }
+                DataFlowService().create_flow([record], data['namespace'])
+                handle_pipeline_log(f'Created the pipeline instance record: {len(rows)}', logger, False)
 
-            DataFlowService().create_flow([record], data['namespace'])
-            handle_pipeline_log(f'Created the pipeline instance record: {len(rows)}', logger, False)
             self.notify_completion_to_ui()
             
         except Exception as error:
