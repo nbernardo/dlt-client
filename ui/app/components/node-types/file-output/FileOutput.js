@@ -32,7 +32,6 @@ export class FileOutput extends AbstractNode {
 	/** @Prop @type { SourceMapper } */ inputInstance;
 
 	async stOnRender(data){
-		console.log(`IS IMPORTING: `, data);
 		const { nodeId, aiGenerated } = data;
 		this.nodeId = nodeId, this.aiGenerated = aiGenerated, this.importData = data;
 	}

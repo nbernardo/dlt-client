@@ -29,9 +29,7 @@ export class SourceMapper extends AbstractNode {
 	/** @Prop */ importData = null;
 	/** @Prop */ showEndpoint = false;
 
-	async stOnRender(data){
-		console.log(`IS IMPORTING: `, data);
-		
+	async stOnRender(data){		
 		const { nodeId, aiGenerated } = data;
 		this.nodeId = nodeId;
 		this.aiGenerated = aiGenerated;
