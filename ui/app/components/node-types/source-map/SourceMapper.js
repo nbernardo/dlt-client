@@ -30,6 +30,8 @@ export class SourceMapper extends AbstractNode {
 	/** @Prop */ showEndpoint = false;
 
 	async stOnRender(data){
+		console.log(`IS IMPORTING: `, data);
+		
 		const { nodeId, aiGenerated } = data;
 		this.nodeId = nodeId;
 		this.aiGenerated = aiGenerated;
@@ -64,8 +66,13 @@ export class SourceMapper extends AbstractNode {
 			
 		});
 
-		if(this.importData?.isImport){	
-			this.notifyReadiness();		
+		if(this.importData?.isImport){
+			this.disableInputsImpl();
+			this.notifyReadiness();
+			setTimeout(() => {
+				this.selectedTemplate = this.importData.selectedTemplate;
+				document.querySelector(`.${this.cmpInternalId}-selected-template-sourcemap`).value = this.importData.selectedTemplate;
+			}, 100)
 		}
 
 		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();

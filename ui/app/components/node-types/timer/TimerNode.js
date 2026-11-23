@@ -36,6 +36,7 @@ export class TimerNode extends AbstractNode {
 	/** @type { Workspace } */ $parent;
 
 	async stOnRender(data){
+		console.log(`IS IMPORTING: `, data);
 		const { nodeId, aiGenerated } = data;
 		this.nodeId = nodeId;
 		this.aiGenerated = aiGenerated;
@@ -53,8 +54,8 @@ export class TimerNode extends AbstractNode {
 		if(this.importData?.isImport) {			
 			this.showSettings = true;
 			this.notifyReadiness();
-			const { timeUnit } = this.importData;
-			this.timeUnit = timeUnit;
+			const { timeUnit, timeValue } = this.importData;
+			this.timeUnit = timeUnit, this.selectedValue = timeValue;
 		}
 	}
 

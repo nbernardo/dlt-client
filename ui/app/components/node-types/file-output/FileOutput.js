@@ -32,6 +32,7 @@ export class FileOutput extends AbstractNode {
 	/** @Prop @type { SourceMapper } */ inputInstance;
 
 	async stOnRender(data){
+		console.log(`IS IMPORTING: `, data);
 		const { nodeId, aiGenerated } = data;
 		this.nodeId = nodeId, this.aiGenerated = aiGenerated, this.importData = data;
 	}
@@ -68,8 +69,15 @@ export class FileOutput extends AbstractNode {
 			this.templateType = selectedTemplate.type || '';
 		});
 
-		if(this.importData?.isImport)
+		if(this.importData?.isImport){
+			this.disableInputsImpl();
 			this.notifyReadiness();
+			document.querySelector(`.${this.cmpInternalId}-selected-type`).value = this.importData.selectedOutputType;
+			this.showSecretsList = true;
+			setTimeout(() => {
+				document.querySelector(`.${this.cmpInternalId}-selected-secret`).value = this.importData.selectedSecret;
+			},100)
+		}
 
 		WorkSpaceController.getNode(this.nodeId).data['namespace'] = await UserService.getNamespace();
 	}

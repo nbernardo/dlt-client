@@ -92,4 +92,8 @@ export class AbstractNode extends BaseComponent {
     return { configDetails: configDetails && String(configDetails[0]), pipelineDestination };
   }
 
+  disableInputsImpl(){
+    document.querySelector(`.${this.cmpInternalId}`).querySelectorAll(`input, select`).forEach((el) => el.disabled = true);
+  }
+
 }

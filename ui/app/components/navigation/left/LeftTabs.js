@@ -7,7 +7,7 @@ import { WorkspaceService } from "../../../services/WorkspaceService.js";
 import { getSupportedQueryDestinations, nonDuckDBSupport } from "../../../services/DestinationUtil.js";
 import { FileList } from "../../filelist/FileList.js";
 import { FileUpload } from "../../fileupload/FileUpload.js";
-import { dbIcon, pipelineIcon, tableIcon, tableIconOpaqued } from "../../workspace/icons/database.js";
+import { dbIcon, pipelineIcon, pipelineOperIcon, tableIcon, tableIconOpaqued } from "../../workspace/icons/database.js";
 import { Workspace } from "../../workspace/Workspace.js";
 import { PipelinePlanService } from "../../dataviz/services/PipelinePlanService.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
@@ -116,13 +116,18 @@ export class LeftTabs extends ViewComponent {
 		}
 		
 		for(const [_file, tables] of Object.entries(response)){
-			const isScheduledOnly = '_e2e_schedule' in (tables || {});
+			let isScheduledOnly = '_e2e_schedule' in (tables || {}), isOperation = false;
 			const data = Object.values(isScheduledOnly ? {} : tables);
 			const dbfile = _file.replace('.duckdb',''), flag = data[0]?.flag, 
 				  isScheduled = data[0]?.is_scheduled || isScheduledOnly, 
 				  scheduleSettings = isScheduledOnly ? tables['_e2e_schedule']?.short_settings : data[0]?.short_settings,
 				  isSchedulePaused = isScheduledOnly ? tables['_e2e_schedule']?.is_scheduled_paused : data[0]?.is_scheduled_paused;
-			const ppline3Content = this.pipelineTreeViewTemplate(dbfile, flag, {isScheduled, scheduleSettings, isSchedulePaused});
+			
+			if('%operation%' in tables){
+				delete tables['%operation%']; isOperation = true
+			}
+
+			const ppline3Content = this.pipelineTreeViewTemplate(dbfile, flag, {isScheduled, scheduleSettings, isSchedulePaused, isOperation});
 			const pipeline = proxyObject.addNode({ content: ppline3Content, isTopLevel: true });
 
 			if(flag) continue;
@@ -173,11 +178,11 @@ export class LeftTabs extends ViewComponent {
 	}
 
 	pipelineTreeViewTemplate(dbfile, flag, schedule){
-		let { isScheduled, scheduleSettings, isSchedulePaused } = schedule;
+		let { isScheduled, scheduleSettings, isSchedulePaused, isOperation } = schedule;
 		isScheduled = String(scheduleSettings).includes('None None None') ? false : isScheduled;
 		return `<div class="ppline-treeview">
 					<span tooltip-x="0" tooltip-y="-15" tooltip="${dbfile}" 
-						class="ppline-treeview-label scheduled-${isScheduled}" style="${flag != undefined ? 'color: orange': ''};"> ${pipelineIcon} <div>${dbfile}</div></span>
+						class="ppline-treeview-label scheduled-${isScheduled}" style="${flag != undefined ? 'color: orange': ''};"> ${isOperation ? pipelineOperIcon : pipelineIcon} <div>${dbfile}</div></span>
 				</div>
 				<span class="pipeline-menu-holder">
 					${isScheduled ? `<span tooltip-x="-190" tooltip="Pipeline schedule for ${scheduleSettings}"><i class="fas fa-clock" style="color: ${isSchedulePaused === 'paused' ? '#ced0cecd;' : '#008000ac;'}"></i></span>` : ''}

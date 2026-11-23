@@ -40,6 +40,12 @@ export const pipelineIcon = `
         class="tbl-to-terminal">
 `;
 
+export const pipelineOperIcon = `
+    <img 
+        src="app/assets/imgs/execution_.png" 
+        class="tbl-to-terminal">
+`;
+
 export const viewpplineIcon = `
     <i class='fas fa-eye' 
         style='margin-left: -40px; 
