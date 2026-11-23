@@ -12,7 +12,7 @@ import threading
 from flask import current_app
 import logging
 from decimal import Decimal
-
+import json
 
 pattern = r'^use.*$'
 
@@ -294,12 +294,28 @@ class Workspace:
     def list_pipeline_from_files(files_path, pipeline_schedules: dict = {}, metadata_by_pipeline = {}, metadata = {}, __namespace = None, archived = None):
         
         from utils.pipeline.Enums import SQL_DB
+        result = {} 
+
+        from services.admin.DataFlowService import DataFlowService
+        operation_ppline = DataFlowService.get_data_flow(files_path.rsplit('/',2)[-2])
+
+        for oper_row in operation_ppline['result']:
+            ppline_name = oper_row[0]
+            result[f'{ppline_name}'] = { '%operation%': '' }
+            sched_settings = pipeline_schedules['data'].get(ppline_name)
+            if(sched_settings):
+                result[f'{ppline_name}']['_e2e_schedule'] = {
+                    'is_scheduled_paused': sched_settings.get('is_paused'),
+                    'short_settings': f'every {sched_settings.get('time')} {sched_settings.get('type')}'
+                }
+
 
         [namespace, fields] = [(__namespace or '').replace('-','_'), []]
-        if(not os.path.exists(files_path)): return {}
-                
+        if(not os.path.exists(files_path)): 
+            return { **result, 'db_path': files_path } if len(result.keys()) > 0 else {}
+
+        result = { **result, 'db_path': files_path }     
         file_list = os.listdir(files_path)
-        result = { 'db_path': files_path } 
         tables = None
         k = None
         prev_key = None
@@ -323,14 +339,12 @@ class Workspace:
             if _file.endswith('__withmetadata__.py'):
                 ppline_name =_file.replace('__withmetadata__.py', '')
                 is_withmetadata = True
-                if _file not in result:
-                    result[ppline_name] = {}
+                if _file not in result: result[ppline_name] = {}
 
             # Support new format (double underscore)
             if _file.endswith('__toschedule__.py') and is_withmetadata == False:
                 ppline_name =_file.replace('__toschedule__.py', '')
-                if _file not in result:
-                    result[ppline_name] = {}
+                if _file not in result: result[ppline_name] = {}
 
             if ppline_name != None:
                 
@@ -345,8 +359,7 @@ class Workspace:
                         }
                     continue
                 
-                if not(metadata):
-                    metadata = {}
+                if not(metadata): metadata = {}
 
                 pipeline_source_and_dest = metadata.get(ppline_name, {})
                 if(len(pipeline_source_and_dest) > 0): pipeline_source_and_dest = pipeline_source_and_dest[0]
@@ -892,17 +905,21 @@ class Workspace:
             
         else:
             for ppline_name, sched in schedules.items():
-                is_paused = sched['is_paused']
+                is_paused = sched.get('is_paused')
                 ppline_name = ppline_name.split('^')[0]
-                if (is_paused == 'paused' and immediate == False) or sched['time'] == None: continue
+                if (is_paused == 'paused' and immediate == False) or sched.get('time') == None: continue
 
-                _namespace = sched['namespace']
-                _type = sched['type']
-                periodicity = sched['periodicity']
-                time = sched['time']
+                _namespace = sched.get('namespace')
+                _type = sched.get('type')
+                periodicity = sched.get('periodicity')
+                time = sched.get('time')
                 file_path = f'{_namespace}/{ppline_name}'
                 tag_name = f'{_namespace}_{ppline_name}_{str(time).replace(':','')}'
                 
+                if(json.loads(sched.get('schedule_settings', {})).get('operational') == True): 
+                    from node_mapper.SourceMapper import SourceMapper
+                    file_path = f'{SourceMapper.operational}/{file_path}'
+
                 if periodicity == 'daily':
                     schedule.every().day.at(time).do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
                 else:
@@ -912,6 +929,9 @@ class Workspace:
                             schedule.every(time).minutes.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
                         if(_type == 'hour'):
                             schedule.every(time).hours.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, _namespace, sched_time=time).tag(tag_name)
+                        if(_type == 'sec'):
+                            schedule.every(int(time)).seconds.do(_run_async, DltPipeline.run_pipeline_job_sync, file_path, namespace, sched_time=time).tag(tag_name)
+
                         logging.info(f'Schedule a job for {file_path} to happen {periodicity} {time} {_type}')
                         Workspace.schedule_jobs[file_path] = True
 

@@ -76,6 +76,11 @@ class DltPipeline:
     def create_v1(self, file_path, file_name, data, context: RequestContext = None) -> Dict[str,str]:
         if context.pipeline_metadata.dest_dw_name == SourceMapper.operational:
             # In case it's operational flow it does not create the DltPipeline file
+            MetaStore.persist_pipeline_metadata(
+                context.transaction_namespace, context.pipeline_name, 
+                { **vars(context.operational_metadata), **vars(context.pipeline_metadata) }, 
+                None, '', None, {}
+            )
             return { 'status': len(context.operational_metadata.step_error.keys()) < 1, 'message': 'Pipeline created successfully' }
         try:
             check_invalid_code(data)
@@ -756,8 +761,15 @@ class DltPipeline:
         if is_paused != 'paused':
             Workspace.schedule_pipeline_job(namespace, ppline)
         else:
+            from node_mapper.SourceMapper import SourceMapper
             file_path = f'{namespace}/{ppline}'
-            if (file_path in Workspace.schedule_jobs): del Workspace.schedule_jobs[file_path]
+            
+            if (file_path in Workspace.schedule_jobs): 
+                del Workspace.schedule_jobs[file_path]
+
+            if (f'{SourceMapper.operational}/{file_path}' in Workspace.schedule_jobs): 
+                del Workspace.schedule_jobs[f'{SourceMapper.operational}/{file_path}']
+
             schedules = Workspace.get_ppline_schedule(namespace, ppline)
             
             for sched in schedules:

@@ -557,13 +557,25 @@ def add_pipeline_trigger(namespace):
     except Exception as err:
         return { 'error': True, 'result': f'Error while adding/updating pipeline trigger - {str(err)}' }
 
-   
+
 @pipeline.route('/ppline/diagram/<namespace>/<filename>', methods=['GET'])
 def read_diagram_content(namespace, filename):
 
    try:
         file_path = BasePipeline.folder+'/code/'+namespace+'/'+filename+'.json'
-        pipeline_code, datasource_details = DltPipeline.read_pipeline(file_path, namespace)
+        pipeline_code, datasource_details = {}, {}
+
+        if (os.path.exists(file_path)):
+            pipeline_code, datasource_details = DltPipeline.read_pipeline(file_path, namespace)
+        else:
+            from services.admin.DataFlowService import DataFlowService
+            from utils.pipeline.PipelinesHelper import parse_drawflow_string
+            import json
+            result = DataFlowService.get_data_flow(namespace, filename)
+            datasource_details, node_string = {}, json.loads(result['result'][0][2])
+
+            pipeline_code  = { 'content': { 'Home': { 'data': parse_drawflow_string(node_string) } } } 
+
         return { 'pipelineCode': pipeline_code , 'dbDetails': datasource_details }
    
    except FileNotFoundError as err:
@@ -710,6 +722,11 @@ def retire_pipeline(namespace, pipeline):
         if os.path.exists(f'{file_path}/{pipeline}__toschedule__.py'):
             os.rename(f'{file_path}/{pipeline}__toschedule__.py', f'{file_path}/{pipeline}__archived__.py')
             Workspace.del_ppline_schedule(namespace, pipeline, archive=True)
+        else:
+            from services.admin.DataFlowService import DataFlowService
+            DataFlowService.update_data_flow(namespace,'archived',pipeline)
+            Workspace.del_ppline_schedule(namespace, pipeline, archive=True)
+
         return { 'error': False, 'result': f'{pipeline} pipeline archived successfully' }
     except Exception as err:
         return { 'error': True, 'result': str(err) }

@@ -99,5 +99,6 @@ class MappingTemplateService:
             error = str(err)
         finally:
             cursor.close()
+            conn.close()
             
         return { 'error': error, 'result': result }

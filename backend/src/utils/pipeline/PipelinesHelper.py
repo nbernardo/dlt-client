@@ -52,6 +52,19 @@ def parse_aggregation(df: DataFrame, aggregation_list: list) -> DataFrame:
     return df
 
 
+def parse_drawflow_string(raw_str: str) -> dict:
+    import re
+    import ast
+
+    def fix_html_quotes(match):
+        return match.group(0).replace('"', "'")
+
+    cleaned_str = re.sub(r"<[^>]+>", fix_html_quotes, raw_str)
+    data_dict = ast.literal_eval(cleaned_str)
+
+    return data_dict
+
+
 from utils.metastore.meta_storage import MetaStore
 
 class PipelineHelper:

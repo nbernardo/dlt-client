@@ -51,8 +51,8 @@ class SourceMapper(TemplateNodeType):
 
             handle_pipeline_log(f'Total of records to be written to the output: {len(rows)}', logger, False)
             xml_content = render_xml(template, fields, rows)
-            (Path(file_dir) / 'output_example.xml').write_text(xml_content, encoding='utf-8')
-            self.context.operational_metadata.output_file = f'{file_dir}/output_example.xml'
+            (Path(file_dir) / 'output_example_2.xml').write_text(xml_content, encoding='utf-8')
+            self.context.operational_metadata.output_file = f'{file_dir}/output_example_2.xml'
 
             if context.operational_metadata.transaction == True:
                 handle_pipeline_log(f'Data Mapping run successfull for {len(rows)} records', logger, False)

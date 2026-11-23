@@ -43,6 +43,7 @@ class OperationPipeline:
     async def run_pipeline_job(ppline_path, namespace, param_list: dict = {'exp_backoff': 1, 'req_user': None}):
         from services.admin.DataFlowService import DataFlowService
         ppline_path = str(ppline_path).split('/')
+        namespace = namespace or ppline_path[-2]
         
         pipeline_details = DataFlowService.get_data_flow(namespace, ppline_path[-1])
         from controller.pipeline import parse_node

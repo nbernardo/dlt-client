@@ -24,6 +24,7 @@ class DataFlowService:
             node_list LONGTEXT NOT NULL,
             schedule VARCHAR(100),
             operation_state VARCHAR(100),
+            status VARCHAR(100),
             creation_date DATETIME,
             created_by VARCHAR(150)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -63,15 +64,49 @@ class DataFlowService:
             error = str(err)
         finally:
             cursor.close()
+            conn.close()
             
         return { 'error': error, 'affected_rows': affected_rows }
     
     
     @staticmethod
-    def get_data_flow(namespace, pipeline_name = None) -> dict:
+    def get_data_flow(namespace, pipeline_name = None, status = None) -> dict:
 
         query = "SELECT pipeline, node_connections, node_list FROM operational_pipeline WHERE namespace = %s"
         params = [namespace]
+                
+        if(pipeline_name):
+            query = f'{query} AND pipeline = %s'
+            params.append(pipeline_name)
+
+        if(status):
+            query = f'{query} AND status = %s'
+            params.append(status)
+        else:
+            query = f'{query} AND status <> "archived"'
+
+        conn = get_mysql_connection()        
+        cursor = conn.cursor()
+        error, result = None, None
+
+        try:
+            cursor.execute(f'{query} {'LIMIT 1' if pipeline_name else ''}', params)
+            result = cursor.fetchall()
+        except Exception as err:
+            error = str('Error while fetching operation pipeline: '+err)
+            print(error)
+        finally:
+            cursor.close()
+            conn.close()
+            
+        return { 'error': error, 'result': result }    
+    
+
+    @staticmethod
+    def update_data_flow(namespace, status, pipeline_name = None) -> dict:
+
+        query = "UPDATE operational_pipeline SET status = %s WHERE namespace = %s"
+        params = [status, namespace]
                 
         if(pipeline_name):
             query = f'{query} AND pipeline = %s'
@@ -82,10 +117,11 @@ class DataFlowService:
         error, result = None, None
 
         try:
-            cursor.execute(f'{query} LIMIT 1', params)
-            result = cursor.fetchall()
+            cursor.execute(query, params)
+            result = cursor.rowcount
+            conn.commit()
         except Exception as err:
-            error = str('Error while fetching operation pipeline: '+err)
+            error = str('Error while updating operation pipeline: '+err)
             print(error)
         finally:
             cursor.close()
