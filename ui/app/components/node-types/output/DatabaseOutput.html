@@ -34,6 +34,14 @@
 						>
 					<option each="item" value="{item.name}">{item.name}</option>
 				</select>
+				<p class="label-name"><b>Incoming data:</b> <label style="word-wrap: anywhere;">
+					<input type="checkbox" onclick="component.onCheck(this.checked)" style="width: fit-content; height: fit-content;"></label>
+				</p>
+				<span (showIf)="self.isIncomingData">
+					<p class="label-name"><b>Main target table name:</b> <label style="word-wrap: anywhere;">
+						<input type="text" class="targetMainTable" style="width: 100%; margin-top: 4px;" placeholder="Enter target table name"></label>
+					</p>
+				</span>
 				<p class="label-name"><b>Database Engine:</b> <label style="word-wrap: anywhere;">@selectedDbEngine</label></p>
 				<p class="label-name"><b>Database Name:</b></p>
 				<div style="word-wrap: anywhere;">@database</div>

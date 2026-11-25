@@ -39,6 +39,7 @@ export class DatabaseOutput extends AbstractNode {
 	/** @Prop */ secretedSecretTrace = null;
 	/** @Prop */ aiGenerated = null;
 	/** @Prop */ sourceNode = null;
+	/** @Prop */ isIncomingData = null;
 
 	//This is only used in case the source 
 	// is not a Database (e.g. Bucket, InputAPI)
@@ -182,4 +183,10 @@ export class DatabaseOutput extends AbstractNode {
 		document.querySelector(`.${this.cmpInternalId}`)
 			.querySelector('.database-icon').src = databaseIcons[db == '' ? 'output' : db];
 	
+	onCheck(flag){
+		this.isIncomingData = flag;
+		if(flag)
+			return document.querySelector(`.${this.cmpInternalId} .targetMainTable`).setAttribute('required',true);
+		document.querySelector(`.${this.cmpInternalId} .targetMainTable`).removeAttribute('required');
+	}
 }

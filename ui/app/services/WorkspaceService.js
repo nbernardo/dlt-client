@@ -737,4 +737,22 @@ export class WorkspaceService extends BaseService {
         }
     }
 
+    static async getHookEndpoint() {
+        try {
+            
+            const namespace = await UserService.getNamespace();
+            let url = '/hook/' + namespace, hook = null;
+            const response = await $still.HTTPClient.get(url);
+    
+            if (response.ok && !response.error)
+                hook = (await response.json()).result;
+
+            return hook;
+
+        } catch (error) {
+            AppTemplate.toast.error(`Error while generating Hook endpoint: ${error}`);
+        }
+    }
+
+
 }

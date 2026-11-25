@@ -23,31 +23,63 @@
 	<div class="box @formWrapClass">
 		<span (showIf)="!self.showLoading">
 			<form (formRef)="formRef" onsubmit="return false;">
-				<select
-					(forEach)="secretsList" 
-					(value)="selectedSecret"
-					placeholder="Select API connection"
-					>
-					<option each="item" value="{item.name}">{item.name}</option>
+				<select (value)="selectedApiType">
+					<option value="">Select API type</option>
+					<option value="Regular">Regular</option>
+					<option value="Hook">Hook</option>
 				</select>
-				<div class="input-endpoint-data">
-					<p>
-						<b>Host:</b> 
-						<div style="color: rgb(32, 32, 107); padding-top: 3px; word-wrap: break-word;">@host</div>
-					</p>
-				</div>
-				<div class="input-endpoint-data">
-					<p><b>Total endpoints:</b> @totalEndpoints</p>
-				</div>
 			</form>
 		</span>
 	</div>
+
+	<form (formRef)="formRef" onsubmit="return false;">
+		<span (showIf)="self.apiType == 'Hook'">
+			<div class="box @formWrapClass inputAPIHook">
+				<span class="hook-settings">
+					<label>Hook Endpoint &nbsp;<i class="fa fa-copy copy-clipboard" style="color: grey;"></i></label>
+					<input type="text" style="font-size: 10px;" placeholder="Endpoint" (value)="hookEndpoint">					
+					<div class="input-endpoint-data">
+						<div style="margin-top: 5px;">
+							<label>User name</label>
+							<input type="text" placeholder="Authentication User" (value)="hookUserName">
+						</div>
+						<div style="margin-top: 8px;">
+							<label>Password</label>
+							<input type="password" placeholder="Authentication pass" (value)="hookPassword">
+						</div>
+					</div>
+				</span>
+			</div>
+		</span>
+
+		<span (showIf)="self.apiType == 'Regular'">
+			<div class="box @formWrapClass inputAPIRegular">
+				<span>
+					<select
+						(forEach)="secretsList" 
+						(value)="selectedSecret"
+						placeholder="Select API connection"
+						>
+						<option each="item" value="{item.name}">{item.name}</option>
+					</select>
+					<div class="input-endpoint-data">
+						<p>
+							<b>Host:</b> 
+							<div style="color: rgb(32, 32, 107); padding-top: 3px; word-wrap: break-word;">@host</div>
+						</p>
+					</div>
+					<div class="input-endpoint-data">
+						<p><b>Total endpoints:</b> @totalEndpoints</p>
+					</div>
+				</span>
+			</div>
+		</span>
+	</form>
 </div>
 <style>
 
 	.parent-node .InputAPI { width: 200px; z-index: 1; }
+	.input-endpoint-data { padding-top: 5px; }
+	.copy-clipboard:hover { color: black; cursor: pointer; }
 
-	.input-endpoint-data {
-		padding-top: 5px;
-	}
 </style>
