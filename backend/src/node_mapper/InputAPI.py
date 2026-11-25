@@ -26,7 +26,13 @@ class InputAPI(TemplateNodeType):
             self.context = context
             self.template_type = None
             self.component_id = component_id
-            
+
+            # In case it's a hook kind of API then it does not go to regular flow            
+            if data['apiType'] == 'Hook':
+                
+                return
+
+
             # When instance is created only to get the template 
             # Nothing more takes place except for the template itself
             if data is None: return None

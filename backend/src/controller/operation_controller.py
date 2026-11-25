@@ -27,3 +27,9 @@ def get_template(namespace):
     result = MappingTemplateService.get_template_records(namespace)
     return { 'success': True if result.get('error') == None else False, 'result': result }
 
+
+@template.route('/hook/<namespace>', methods=['GET'])
+def get_hook_endpoint(namespace):
+    import uuid
+    return { 'success': True, 'result': uuid.uuid4() }
+

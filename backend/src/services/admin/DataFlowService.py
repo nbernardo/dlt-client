@@ -21,6 +21,7 @@ class DataFlowService:
             itermidiate_nodes LONGTEXT,
             destination LONGTEXT NOT NULL,
             node_connections LONGTEXT NOT NULL,
+            hook_endpoint VARCHAR(255),
             node_list LONGTEXT NOT NULL,
             schedule VARCHAR(100),
             operation_state VARCHAR(100),
@@ -50,6 +51,39 @@ class DataFlowService:
         
         data_to_insert = [
             (t.get("pipeline"), t.get("id_source"), t.get("source_type"), t.get("destination"), namespace, t.get('node_connections'), t.get('node_list')) 
+            for t in flows
+        ]
+        
+        conn = get_mysql_connection()
+        cursor = conn.cursor()
+        error, affected_rows = None, None
+        try:
+            cursor.executemany(insert_query, data_to_insert)
+            conn.commit()
+            affected_rows = cursor.rowcount
+        except Exception as err:
+            error = str(err)
+        finally:
+            cursor.close()
+            conn.close()
+            
+        return { 'error': error, 'affected_rows': affected_rows }
+    
+
+    @staticmethod
+    def create_hooked_flow(flows: List[Dict[str, Any]], namespace) -> dict:
+
+        if not flows: { 'error': None, 'affected_rows': 0 }
+        DataFlowService.create_template_mapping_table()
+
+        insert_query = "INSERT INTO operational_pipeline " \
+        "(pipeline, id_source, source_type, destination, namespace, node_connections, node_list, hook_endpoint) " \
+        "VALUES  (%s, %s, %s, %s, %s, %s, %s, %s)"
+        
+        data_to_insert = [
+            (
+                t.get("pipeline"), t.get("id_source"), t.get("source_type"), t.get("destination"), 
+                namespace, t.get('node_connections'), t.get('node_list'), t.get('hook')) 
             for t in flows
         ]
         
