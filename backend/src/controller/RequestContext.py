@@ -249,11 +249,17 @@ class PipelineMetadata:
 import logging
 class OperationalPipelineMetadata:
 
+    HOOK_TYPE = 'Hook'
+    OP = '%e2e_operational%'
+
     def __init__(self):
         self.output_file = None
+        self.input_file = None
         self.step_error = {}
         self.dest_auth_usr = None
         self.dest_auth_pwd = None
         self.timer = {}
         self.logger: logging.Logger = None
-        self.transaction = None
+        self.transaction = None # Used to indicate that the pipeline is running, not being created
+        self.source_type = None
+        self.data_type = None

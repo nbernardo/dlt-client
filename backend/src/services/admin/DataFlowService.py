@@ -25,6 +25,7 @@ class DataFlowService:
             node_list LONGTEXT NOT NULL,
             schedule VARCHAR(100),
             operation_state VARCHAR(100),
+            creds_json TEXT,
             status VARCHAR(100),
             creation_date DATETIME,
             created_by VARCHAR(150)
@@ -77,14 +78,11 @@ class DataFlowService:
         DataFlowService.create_template_mapping_table()
 
         insert_query = "INSERT INTO operational_pipeline " \
-        "(pipeline, id_source, source_type, destination, namespace, node_connections, node_list, hook_endpoint) " \
-        "VALUES  (%s, %s, %s, %s, %s, %s, %s, %s)"
+            "(pipeline, source_type, namespace, node_connections, node_list, hook_endpoint, destination, creds_json) " \
+            "VALUES  (%s, %s, %s, %s, %s, %s, %s, %s)"
         
         data_to_insert = [
-            (
-                t.get("pipeline"), t.get("id_source"), t.get("source_type"), t.get("destination"), 
-                namespace, t.get('node_connections'), t.get('node_list'), t.get('hook')) 
-            for t in flows
+            (t.get("pipeline"), 'API-Hook', namespace, t.get('node_connections'), t.get('node_list'), t.get('hook'), '', t.get('creds')) for t in flows
         ]
         
         conn = get_mysql_connection()
@@ -162,3 +160,27 @@ class DataFlowService:
             conn.close()
             
         return { 'error': error, 'result': result }
+    
+
+
+    @staticmethod
+    def get_data_flow_by_hook(hook = None) -> dict:
+
+        query = "SELECT pipeline, node_connections, node_list, creds_json FROM operational_pipeline WHERE hook_endpoint = %s"
+        params = [hook]
+
+        conn = get_mysql_connection()        
+        cursor = conn.cursor()
+        error, result = None, None
+
+        try:
+            cursor.execute(f'{query} {'LIMIT 1' if hook else ''}', params)
+            result = cursor.fetchall()
+        except Exception as err:
+            error = str('Error while fetching operation pipeline: '+err)
+            print(error)
+        finally:
+            cursor.close()
+            conn.close()
+            
+        return { 'error': error, 'result': result }    

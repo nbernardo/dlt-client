@@ -13,6 +13,27 @@ SUCCESS_RUN_MESSAGE = 'Pipeline run terminated successfully'
 DW_WAIT_SEC = int(env('STAGE_TO_DW_WAIT_SEC'))
 JOB_RETRY_COUNT = int(env('JOB_RETRY_COUNT')) - 1 if int(env('JOB_RETRY_COUNT')) > 0 else 1
 
+def prepare_context(pipeline_details, namespace, logger = None) -> RequestContext:
+    import ast
+    context = RequestContext()
+    context.pipeline_name = pipeline_details['result'][0][0]
+    context.connections = json.loads(json.loads(pipeline_details['result'][0][1]))
+    context.transaction_namespace = namespace
+    context.user = namespace
+    context.operational_metadata.transaction = True
+
+    all_nodes_content = json.loads(pipeline_details['result'][0][2])
+    regex1, rplce = r'(<[^>]+?)"([^>]+?)"', r"\1'\2'"
+
+    # Escape HTML tag in the content
+    node_list_content = re.sub(regex1, rplce, all_nodes_content)
+
+    context.node_params = ast.literal_eval(node_list_content)
+    if logger: 
+        context.operational_metadata.logger = logger
+
+    return context
+
 
 class OperationPipeline:
     """ This is the class to create and handle operational pipelines """
@@ -47,22 +68,8 @@ class OperationPipeline:
         
         pipeline_details = DataFlowService.get_data_flow(namespace, ppline_path[-1])
         from controller.pipeline import parse_node
-        import ast
 
-        context = RequestContext()
-        context.pipeline_name = pipeline_details['result'][0][0]
-        context.connections = json.loads(json.loads(pipeline_details['result'][0][1]))
-        context.transaction_namespace = namespace
-        context.user = namespace
-        context.operational_metadata.transaction = True
-
-        all_nodes_content = json.loads(pipeline_details['result'][0][2])
-        regex1, rplce = r'(<[^>]+?)"([^>]+?)"', r"\1'\2'"
-        # Escape HTML tag in the content
-        node_list_content = re.sub(regex1, rplce, all_nodes_content)
-
-        context.node_params = ast.literal_eval(node_list_content)
-
+        context = prepare_context(pipeline_details, namespace)
         parse_node(context.connections, context.node_params, {}, context, [])
 
         return pipeline_details

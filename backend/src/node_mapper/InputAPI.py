@@ -1,11 +1,24 @@
 from .TemplateNodeType import TemplateNodeType
-from controller.RequestContext import RequestContext
+from controller.RequestContext import RequestContext, OperationalPipelineMetadata
 from services.pipeline.DltPipeline import DltPipeline
 from services.workspace.SecretManager import SecretManager
 import requests
 from requests.exceptions import ConnectionError, Timeout, RequestException
 from utils.pipeline import NodeType
+import json
+from services.admin.DataFlowService import DataFlowService
+import os
+from services.pipeline.DltPipeline import DltPipeline
+from utils.logging.pipeline_logger_config import handle_pipeline_log
+from cryptography.fernet import Fernet
+import base64
+import hashlib
+from node_mapper.FileOutput import FileOutput
 
+ENCRYPTION_KEY = os.environ.get("SQLITE_DB_ENCRYPTION_KEY").encode('utf-8')
+ENCRYPTION_KEY = hashlib.sha256(ENCRYPTION_KEY).digest()
+
+cipher = Fernet(base64.urlsafe_b64encode(ENCRYPTION_KEY))
 
 _ODOO_COLUMN_TYPES = {
     "char", "text", "html", "integer", "float", "monetary", "boolean",
@@ -26,10 +39,25 @@ class InputAPI(TemplateNodeType):
             self.context = context
             self.template_type = None
             self.component_id = component_id
+            self.component_id = data['componentId']
 
             # In case it's a hook kind of API then it does not go to regular flow            
-            if data['apiType'] == 'Hook':
-                
+            if data['apiType'] == OperationalPipelineMetadata.HOOK_TYPE:
+                if context.operational_metadata.transaction == True:
+                    #context.operational_metadata.input_file
+                    if context.operational_metadata.input_file:
+                        source_file = context.operational_metadata.input_file
+                        folder = 'received'
+                        # TODO: 
+                        #   1 - Offload this resposibility to the UI FileOutput component node
+                        #   2 - Make sure that at this level only happens if the Hook is of type that accepts upload auto-managed
+                        FileOutput({}).s3_upload(None, context.transaction_namespace, source_file, source_file.rsplit('/')[-1], folder)
+                    pass
+                else:
+                    self.handle_hook_request(data, context)
+                    # context.operational_metadata.transaction = True
+                    context.operational_metadata.source_type = data['apiType']
+                    self.notify_completion_to_ui()
                 return
 
 
@@ -47,7 +75,6 @@ class InputAPI(TemplateNodeType):
             # are mapped in /pipeline_templates/api.txt
             self.connection_name = data['connectionName']
             self.base_url = data['baseUrl']
-            self.component_id = data['componentId']
             self.namespace = data['namespace']
 
             SecretManager.ppline_connect_to_vault()
@@ -231,3 +258,27 @@ class InputAPI(TemplateNodeType):
             result[table] = rows['result'][0] if rows['result'] else None
 
         return { 'error': False, 'result': result, 'failed_tables': failed_tables }
+
+    
+    def handle_hook_request(self, data: dict = None, context: RequestContext = None):
+            self.template = '' # Template set is important as the flow still considers some regular (no operationl) pipeline checking 
+            # In case .transaction is not True then it's pipeline creation flow
+
+            context.pipeline_metadata.dest_dw_name = OperationalPipelineMetadata.OP
+            logger = DltPipeline.get_pipeline_logger(context)
+            context.operational_metadata.logger = logger
+
+            creds_obj: dict = data.get('creds',{})
+            creds = { "user": creds_obj.get('user'), "pass": creds_obj.get('pass') }
+            creds = cipher.encrypt(str(creds).encode("utf-8"))
+
+            record = { 
+                'pipeline': context.pipeline_name,
+                'destination': json.dumps(str(data.get('destinationSetting','')).replace("'",'"')),
+                'node_connections': json.dumps(str(list(context.connections)).replace("'",'"')),
+                'node_list': json.dumps(str(context.node_params).replace("'",'"')),
+                'creds': creds,
+                'hook': data.get('hookEndpoint', ''),
+            }
+            DataFlowService().create_hooked_flow([record], context.transaction_namespace)
+            handle_pipeline_log(f'Created the pipeline instance record: ', logger, False)

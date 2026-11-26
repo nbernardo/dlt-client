@@ -6,6 +6,7 @@ from services.workspace.SecretManager import SecretManager
 import requests
 import os
 from utils.logging.pipeline_logger_config import handle_pipeline_log
+from os import getenv as env
 
 class FileOutput(TemplateNodeType):
     """
@@ -55,6 +56,9 @@ class FileOutput(TemplateNodeType):
                     settings = { 'settings': { **settings, 'type': timer_settings['timeUnit'], 'time': timer_settings['timeValue'] } }
                     Workspace.handle_pipeline_schedule(settings, context.user, context.pipeline_name)
 
+            context.success_emitted = True
+            handle_pipeline_log(f'pipeline.success.conclusion', logger)
+
             self.notify_completion_to_ui()
             context.emit_ppsuccess()
 
@@ -92,13 +96,22 @@ class FileOutput(TemplateNodeType):
         return is_secure, clean_path.split('/')
 
     
-    def s3_upload(self, secrets, namespace, source_file, file):
+    def s3_upload(self, secrets, namespace, source_file, file, folder = None):
 
-        user, pwd, url = self.get_params(secrets)
+        url = env('S3_URL')
+        user = env('ACCESS_KEY')
+        pwd = env('SECRET_KEY')
+    
+        if not(url) or not(user) or not(pwd) and not(secrets):
+            return False
+
+        if not(url) or not(user) or not(pwd) and secrets:
+            user, pwd, url = self.get_params(secrets)
+
         is_secure, upload_path = self.get_path_param(url)
 
         host = upload_path[0]
-        folder = 'operations'
+        folder = folder or 'operations'
         bucket = namespace
 
         if len(upload_path) > 1:
@@ -121,7 +134,6 @@ class FileOutput(TemplateNodeType):
             print(error_msg)
             handle_pipeline_log(error_msg, self.context.operational_metadata.logger, True)
             return False
-
 
 
     def mft_sftpgo(self, secrets, local_file: str, remote_path: str):
