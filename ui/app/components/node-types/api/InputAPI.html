@@ -36,7 +36,7 @@
 		<span (showIf)="self.apiType == 'Hook'">
 			<div class="box @formWrapClass inputAPIHook">
 				<span class="hook-settings">
-					<label>Hook Endpoint &nbsp;<i class="fa fa-copy copy-clipboard" style="color: grey;"></i></label>
+					<label>Hook Endpoint &nbsp;<i class="fa fa-copy copy-clipboard" onclick="component.copyUrl()" style="color: grey;"></i></label>
 					<input type="text" style="font-size: 10px;" placeholder="Endpoint" (value)="hookEndpoint">					
 					<div class="input-endpoint-data">
 						<div style="margin-top: 5px;">

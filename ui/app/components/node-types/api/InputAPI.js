@@ -1,6 +1,8 @@
+import { AppTemplate } from "../../../../config/app-template.js";
 import { WorkSpaceController } from "../../../controller/WorkSpaceController.js";
 import { UserService } from "../../../services/UserService.js";
 import { WorkspaceService } from "../../../services/WorkspaceService.js";
+import { Workspace } from "../../workspace/Workspace.js";
 import { AbstractNode } from "../abstract/AbstractNode.js";
 import { NodeTypeInterface } from "../mixin/NodeTypeInterface.js";
 import { InputConnectionType } from "../types/InputConnectionType.js";
@@ -32,6 +34,9 @@ export class InputAPI extends AbstractNode {
 	/** @Prop */ aiGenerated;
 	/** @Prop */ isImport;
 	/** @Prop */ importData = null;
+	/** @Prop */ currentHookValue = null;
+
+	/** @type { Workspace } */ $parent;
 
 	async stOnRender(data){
 		const { nodeId, aiGenerated } = data;
@@ -68,15 +73,11 @@ export class InputAPI extends AbstractNode {
 			const others = document.querySelector(`.${this.cmpInternalId}`).querySelectorAll(`.${otherInputs} input, .${otherInputs} select`);
 
 			if(val === 'Hook'){
-				const hasHook = ['',null,undefined].includes(this.hookEndpoint.value)
-				if(hasHook){
+				if(this.currentHookValue == null){
 					const hookValue = await WorkspaceService.getHookEndpoint();
-					this.hookEndpoint = hookValue ? ` /${hookValue}` : null;
+					this.currentHookValue = hookValue ? ` /${await UserService.getNamespace()}/${hookValue}` : null;
+					this.hookEndpoint = this.currentHookValue;
 				}
-				// Only set the hook endpoint in case the value is valid
-				if(!hasHook)
-					WorkSpaceController.getNode(this.nodeId).data['hookEndpoint'] = val;
-
 			}else if(val === 'Regular'){
 				if(['',null,undefined].includes(this.secretsList.value)) 
 					this.secretsList = await WorkspaceService.listSecrets(2);
@@ -93,7 +94,7 @@ export class InputAPI extends AbstractNode {
 		if(this.aiGenerated && this.importData.connectionName) this.selectedSecret = this.importData.connectionName;
 
 		if(this.importData?.isImport){	
-			this.notifyReadiness();		
+			this.notifyReadiness();
 			this.host = this.importData.baseUrl;
 			this.selectedSecret = this.importData.connectionName;
 			const selectedSecret = this.secretsList.value.find(obj => obj.name === this.selectedSecret.value);
@@ -112,5 +113,17 @@ export class InputAPI extends AbstractNode {
 	onInputConnection({ type, data }){
 		InputAPI.handleInputConnection(this, data, type);
 	}
+
+	onSubmitPreRun(){
+		WorkSpaceController.getNode(this.nodeId).data['creds'] = { 
+			user: this.hookUserName.value, pass: this.hookPassword.value
+		},
+		WorkSpaceController.getNode(this.nodeId).data['hookEndpoint'] = this.currentHookValue;
+	}
+	
+	copyUrl() { 
+		this.$parent.controller.copyToClipboard(this.currentHookValue);
+		AppTemplate.toast.success('Hook endpoint "'+this.currentHookValue+'" copied to clipboard');
+	 }
 
 }
