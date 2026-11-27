@@ -33,6 +33,8 @@ class FormatConvertion(TemplateNodeType):
                 source_file = context.operational_metadata.input_file
                 dest_file = f'{file_path}/{file_name.rsplit('.',1)[0]}.json'
 
+                context.operational_metadata.output_file = dest_file
+
                 logger = context.operational_metadata.logger
                 if source_type == FormatConvertion.XML and target_type == \
                     FormatConvertion.JSON:
@@ -42,7 +44,7 @@ class FormatConvertion(TemplateNodeType):
                     if result == False:
                         handle_pipeline_log(error, logger, True)
                     else:
-                        handle_pipeline_log(f"Converted XML ({source_file}) to JSON ({target_type})", logger, False)
+                        handle_pipeline_log(f"Converted XML ({source_file}) to JSON ({dest_file})", logger, False)
 
                 context.transaction_trace[data['componentId']] = True
                 ...

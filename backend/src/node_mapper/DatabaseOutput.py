@@ -30,6 +30,14 @@ class DatabaseOutput(TemplateNodeType):
                 logger = context.operational_metadata.logger
                 context.success_emitted = True
                 handle_pipeline_log(f'pipeline.success.conclusion', logger)
+
+                pipeline_name = context.pipeline_name
+                namespace = context.transaction_namespace
+                connection_name = data['outDBconnectionName']
+                source_file = context.operational_metadata.output_file
+
+                self.json_to_database(pipeline_name, namespace, connection_name, source_file, data['destTable'])
+
                 context.transaction_trace[data['componentId']] = True
                 ...
             else:
@@ -57,3 +65,39 @@ class DatabaseOutput(TemplateNodeType):
         user = env('ACCESS_KEY')
         _pass = env('SECRET_KEY')
         ...
+
+    
+    def json_to_database(self, pipeline_name, namespace, connection_name, source_file, target_table):
+        import json
+        import dlt
+        from services.workspace.SecretManager import SecretManager
+        from utils.DestinationQueryUtil import DestinationQueryUtil
+        from sqlalchemy.engine import make_url
+
+        secret = SecretManager.get_db_secret(namespace, connection_name, from_pipeline=True)
+        connection_url = secret['connection_url']
+                        
+        db_engine = DestinationQueryUtil._detect_database_engine(connection_url)
+        destination = None
+
+        if db_engine == 'postgresql':
+            destination = dlt.destinations.postgres(connection_url)
+        else:
+            destination = dlt.destinations.sqlalchemy(f'{connection_url}')
+
+        @dlt.resource(
+            table_name=target_table,
+            write_disposition="append"
+        )
+        def read_json(file_path: str):
+            with open(file_path, "r", encoding="utf-8") as f:
+                yield json.load(f)
+
+        pipeline = dlt.pipeline(
+            pipeline_name=f'operational_{namespace}_{pipeline_name}', 
+            destination=destination, 
+            dataset_name=make_url(connection_url).database
+        )
+
+        load_info = pipeline.run(read_json(source_file))
+        print(load_info)
