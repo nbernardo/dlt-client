@@ -39,7 +39,7 @@
 				</p>
 				<span (showIf)="self.isIncomingData">
 					<p class="label-name"><b>Main target table name:</b> <label style="word-wrap: anywhere;">
-						<input type="text" class="targetMainTable" style="width: 100%; margin-top: 4px;" placeholder="Enter target table name"></label>
+						<input type="text" (value)="destTable" class="targetMainTable" style="width: 100%; margin-top: 4px;" placeholder="Enter target table name"></label>
 					</p>
 				</span>
 				<p class="label-name"><b>Database Engine:</b> <label style="word-wrap: anywhere;">@selectedDbEngine</label></p>

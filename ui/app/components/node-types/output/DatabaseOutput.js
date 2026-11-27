@@ -31,15 +31,16 @@ export class DatabaseOutput extends AbstractNode {
 	secretList = [];
 	hostName = 'Not selected';
 	nodeCount = '';
+	destTable;
 
 	/** @Prop */ isImport = false;
-	/** @Prop @type { STForm } */ anotherForm;
 	/** @Prop */ showLoading = false;
 	/** @Prop */ importFields;
 	/** @Prop */ secretedSecretTrace = null;
 	/** @Prop */ aiGenerated = null;
 	/** @Prop */ sourceNode = null;
 	/** @Prop */ isIncomingData = null;
+	/** @Prop @type { STForm } */ formRef;
 
 	//This is only used in case the source 
 	// is not a Database (e.g. Bucket, InputAPI)
@@ -188,5 +189,10 @@ export class DatabaseOutput extends AbstractNode {
 		if(flag)
 			return document.querySelector(`.${this.cmpInternalId} .targetMainTable`).setAttribute('required',true);
 		document.querySelector(`.${this.cmpInternalId} .targetMainTable`).removeAttribute('required');
+	}
+
+	onSubmitPreRun(){
+		if(this.isIncomingData)
+			WorkSpaceController.getNode(this.nodeId).data['destTable'] = this.destTable.value;
 	}
 }

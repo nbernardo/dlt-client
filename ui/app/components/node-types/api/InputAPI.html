@@ -23,7 +23,7 @@
 	<div class="box @formWrapClass">
 		<span (showIf)="!self.showLoading">
 			<form (formRef)="formRef" onsubmit="return false;">
-				<select (value)="selectedApiType">
+				<select (value)="selectedApiType" (required)="true">
 					<option value="">Select API type</option>
 					<option value="Regular">Regular</option>
 					<option value="Hook">Hook</option>
