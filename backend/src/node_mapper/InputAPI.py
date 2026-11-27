@@ -41,6 +41,9 @@ class InputAPI(TemplateNodeType):
             self.component_id = component_id
             self.component_id = data['componentId']
 
+            if data['componentId'] in context.transaction_trace:
+                return
+
             # In case it's a hook kind of API then it does not go to regular flow            
             if data['apiType'] == OperationalPipelineMetadata.HOOK_TYPE:
                 if context.operational_metadata.transaction == True:
@@ -51,12 +54,17 @@ class InputAPI(TemplateNodeType):
                         # TODO: 
                         #   1 - Offload this resposibility to the UI FileOutput component node
                         #   2 - Make sure that at this level only happens if the Hook is of type that accepts upload auto-managed
-                        FileOutput({}).s3_upload(None, context.transaction_namespace, source_file, source_file.rsplit('/')[-1], folder)
+                        result, error_msg = FileOutput({}).s3_upload(None, context.transaction_namespace, source_file, source_file.rsplit('/')[-1], folder)
+
+                        if result == False:
+                            handle_pipeline_log(error_msg, context.operational_metadata.logger, True)
+                        else:
+                            handle_pipeline_log(f'Archiving the received file: {source_file}', context.operational_metadata.logger, False)
                     pass
                 else:
                     self.handle_hook_request(data, context)
                     # context.operational_metadata.transaction = True
-                    context.operational_metadata.source_type = data['apiType']
+                    context.operational_metadata.source_type = data['apiType'].lower()
                     self.notify_completion_to_ui()
                 return
 
@@ -282,3 +290,4 @@ class InputAPI(TemplateNodeType):
             }
             DataFlowService().create_hooked_flow([record], context.transaction_namespace)
             handle_pipeline_log(f'Created the pipeline instance record: ', logger, False)
+            context.transaction_trace[data['componentId']] = True

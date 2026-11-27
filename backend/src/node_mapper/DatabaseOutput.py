@@ -20,14 +20,17 @@ class DatabaseOutput(TemplateNodeType):
         self.component_id = data['componentId']
         self.context.emit_start(self, '')
 
+        if data['componentId'] in context.transaction_trace:
+            return
+
         if context.operational_metadata.source_type == \
-            OperationalPipelineMetadata.HOOK_TYPE:
+            OperationalPipelineMetadata.HOOK_TYPE.lower():
             if context.operational_metadata.transaction == True:
-                
+
                 logger = context.operational_metadata.logger
                 context.success_emitted = True
                 handle_pipeline_log(f'pipeline.success.conclusion', logger)
-
+                context.transaction_trace[data['componentId']] = True
                 ...
             else:
                 ...

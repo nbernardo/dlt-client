@@ -96,7 +96,7 @@ class FileOutput(TemplateNodeType):
         return is_secure, clean_path.split('/')
 
     
-    def s3_upload(self, secrets, namespace, source_file, file, folder = None):
+    def s3_upload(self, secrets, namespace, source_file, file, folder = None, return_error = False):
 
         url = env('S3_URL')
         user = env('ACCESS_KEY')
@@ -133,6 +133,8 @@ class FileOutput(TemplateNodeType):
             self.context.operational_metadata.step_error['FileOutput'] = error_msg
             print(error_msg)
             handle_pipeline_log(error_msg, self.context.operational_metadata.logger, True)
+            if return_error:
+                return False, error_msg
             return False
 
 

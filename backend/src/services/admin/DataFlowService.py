@@ -104,7 +104,7 @@ class DataFlowService:
     @staticmethod
     def get_data_flow(namespace, pipeline_name = None, status = None) -> dict:
 
-        query = "SELECT pipeline, node_connections, node_list FROM operational_pipeline WHERE namespace = %s"
+        query = "SELECT DISTINCT(pipeline), node_connections, node_list FROM operational_pipeline WHERE namespace = %s"
         params = [namespace]
                 
         if(pipeline_name):
@@ -115,7 +115,7 @@ class DataFlowService:
             query = f'{query} AND status = %s'
             params.append(status)
         else:
-            query = f'{query} AND status <> "archived"'
+            query = f'{query} AND (status <> "archived" OR status IS NULL)'
 
         conn = get_mysql_connection()        
         cursor = conn.cursor()
@@ -166,7 +166,7 @@ class DataFlowService:
     @staticmethod
     def get_data_flow_by_hook(hook = None) -> dict:
 
-        query = "SELECT pipeline, node_connections, node_list, creds_json FROM operational_pipeline WHERE hook_endpoint = %s"
+        query = "SELECT pipeline, node_connections, node_list, creds_json, source_type FROM operational_pipeline WHERE hook_endpoint = %s"
         params = [hook]
 
         conn = get_mysql_connection()        

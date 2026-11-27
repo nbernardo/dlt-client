@@ -82,7 +82,7 @@ class RequestContext:
         self.has_cloud_bucket_auth = None
         self.pipeline_metadata: PipelineMetadata = PipelineMetadata()
         self.operational_metadata: OperationalPipelineMetadata = OperationalPipelineMetadata()
-
+        self.transaction_trace: dict = {}
 
     def get_time(self):
         dt = datetime.now()

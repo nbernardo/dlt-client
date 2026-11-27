@@ -104,9 +104,10 @@ def receive_file(namespace = None, hook_endpoint = None):
         dest_path = os.path.join(file_dir, uploaded_file.filename)
         uploaded_file.save(dest_path)
         
-
+        source_type_slice = pipeline_details.get('result')[0][4].split('-')
         context = prepare_context(pipeline_details, namespace)
         context.operational_metadata.input_file = dest_path
+        context.operational_metadata.source_type = source_type_slice[1].lower() if len(source_type_slice) > 1 else str(source_type_slice).lower()
 
         logger = DltPipeline.get_pipeline_logger(context)
         context.operational_metadata.logger = logger
