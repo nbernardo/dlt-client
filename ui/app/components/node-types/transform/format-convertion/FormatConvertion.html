@@ -1,0 +1,59 @@
+<div class="@cmpInternalId">
+	<div class="pipeline-node-type-minimaze" onclick="controller('WorkSpaceController').handleNodeMinimize(this)">_</div>
+	<div class="title-box pipeline-node-type-title-box">
+		<div class="node-header-grouper" style="gap: 7px; font-size: 15px;">
+			<div class="reload-icon-wrapper">
+				<img 
+					onclick="component.reloadMe()"
+					src="app/assets/imgs/refresh-svgrepo-com.svg" 
+					class="reload-loc-node-btn" 
+					alt="">
+			</div>
+			<img src="app/assets/imgs/transform.png" width="20">
+			@label
+		</div>
+		<div class="statusicon">@nodeCount</div>
+	</div>
+	<st-loader 
+		small center
+		(showIf)="self.showLoading" 
+		topPadding="50"
+		(label)="Fetching API catalog..."/>
+
+	<form (formRef)="formRef" onsubmit="return false;">
+		<div style="padding: 4px; font-size: 12px;">
+			<span (showIf)="!self.showInputs">Link the source node to show configurations. <br><br>Only <b>InputAPI</b> is supported for now.</span>
+		</div>
+		<span (showIf)="self.showInputs">
+			<div class="box @formWrapClass inputAPIRegular">
+				<span style="display: flex; flex-direction: row; align-items: center; gap: 3px;">
+					<select
+						(forEach)="typesOfFormats" 
+						(value)="sourceType"
+						placeholder="Source"
+						(required)="true"
+						>
+						<option each="item" value="{item.name}">{item.name}</option>
+					</select>
+					&nbsp;To
+					<select
+						(forEach)="typesOfFormats" 
+						(value)="targetType"
+						placeholder="Target"
+						(required)="true"
+						>
+						<option each="item" value="{item.name}">{item.name}</option>
+					</select>
+				</span>
+			</div>
+		</span>
+	</form>
+</div>
+<style>
+
+	.parent-node .InputAPI { width: 200px; z-index: 1; }
+	.input-endpoint-data { padding-top: 5px; }
+	.copy-clipboard:hover { color: black; cursor: pointer; }
+	.FormatConvertion select { font-size: 12px; width: 48%; }
+
+</style>

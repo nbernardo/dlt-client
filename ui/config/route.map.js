@@ -182,6 +182,10 @@ export const stillRoutesMap = {
                 path: "app/components/node-types/timer",
                 url: "/timer-node"
             },
+            FormatConvertion: {
+                path: "app/components/node-types/transform/format-convertion",
+                url: "/format-convertion"
+            },
         },
         lazyInitial: {}
     }

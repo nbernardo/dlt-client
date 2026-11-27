@@ -23,6 +23,7 @@ import { IsObject } from "../components/node-types/transform/util.js";
 import { SourceMapper } from "../components/node-types/source-map/SourceMapper.js";
 import { FileOutput } from "../components/node-types/file-output/FileOutput.js";
 import { TimerNode } from "../components/node-types/timer/TimerNode.js";
+import { FormatConvertion } from "../components/node-types/transform/format-convertion/FormatConvertion.js";
 
 export class ObjectDataTypes {
     typeName;
@@ -82,6 +83,7 @@ export class WorkspaceService extends BaseService {
         },
         { groupType: 'TransformationGroup', icon: 'fas fa-cogs', label: 'Transformation', typeName: Transformation.name },
         { groupType: 'TransformationGroup', imgIcon: 'app/assets/imgs/py.svg',  label: 'Code Transformation',  typeName: 'none',  disable: 'yes' },
+        { groupType: 'TransformationGroup', imgIcon: 'app/assets/imgs/transform.png',  label: 'Format convertion',  typeName: FormatConvertion.name },
         //Group of nodes concerning Destination types
         { 
             isNodeGroup: 'yes' ,imgIcon: 'app/assets/imgs/output_.png', label: 'Outputs/Destinations', 
