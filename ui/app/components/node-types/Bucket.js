@@ -9,6 +9,8 @@ import { Transformation } from "./Transformation.js";
 import { InputConnectionType } from "./types/InputConnectionType.js";
 import { DataSourceFields, MoreOptionsMenu } from "./util/DataSourceUtil.js";
 
+export const FOLDER_LSTN = '<>FolderListener<>'
+
 /** @implements { NodeTypeInterface } */
 export class Bucket extends AbstractNode {
 
@@ -43,6 +45,8 @@ export class Bucket extends AbstractNode {
 
 	/** @Prop */ showLoading = false;
 	/** @Prop */ lateListCloudObjects = false;
+	/** @Prop */ folderListener = false;
+	/** @Prop */ folderPolling = false;
 
 	/**
 	 * @Inject @Path services/
@@ -54,10 +58,12 @@ export class Bucket extends AbstractNode {
 	 * @type { WorkSpaceController } */
 	wSpaceController;
 
-	filesFromList = [];
+	filesFromList = [{ name: '* Folder Listener *', file: FOLDER_LSTN }];
 	bucketObjects = [];
 	bucketObjectsFieldMaps = [];
 	selectedSecret;
+	listenFolderPath;
+	listenFolderPattern;
 	
 	/** @Prop */ bucketObjectsSchemaMap;
 
@@ -84,7 +90,7 @@ export class Bucket extends AbstractNode {
 	}
 
 	async getFilesList(){
-		this.filesFromList = await this.wspaceService.listFiles();
+		this.filesFromList = [{ name: '* Folder Listener *', file: FOLDER_LSTN }, ...(await this.wspaceService.listFiles())];
 	}
 
 	async reloadMe(){
@@ -137,7 +143,6 @@ export class Bucket extends AbstractNode {
 				this.bucketObjects = files, this.bucketObjectsSchemaMap = schemas;
 			}
 
-			this.selectedFilePattern = this.filePattern.value;
 			if(this.bucketFileSource.value === '2'){
 				this.bucketFileSource = 1;
 				this.setupOnChangeListen();
@@ -155,7 +160,6 @@ export class Bucket extends AbstractNode {
 			data['readFileType'] = this.filePattern.value.split('.').slice(-1);
 			this.bucketUrl = this.bucketFileSource.value;
 			this.selectedFilePattern = this.filePattern.value;
-
 		}
 	}
 
@@ -186,8 +190,7 @@ export class Bucket extends AbstractNode {
 			if(value.trim() == '' && this.bucketFileSource.value == 2)
 				return this.updateTransformationRows([{ name: 'No table'}]);
 			if(this.bucketFileSource.value == 2){
-				this.showMoreFileOptions = true;
-				WorkSpaceController.isS3AuthTemplate = true;
+				this.showMoreFileOptions = true, WorkSpaceController.isS3AuthTemplate = true;
 				const { files, schemas } = await WorkspaceService.getBucketObjects(value);
 				this.bucketObjects = files, this.bucketObjectsFieldMaps = schemas;
 				setTimeout(() => this.showMoreFileOptions = false, 100);
@@ -205,6 +208,14 @@ export class Bucket extends AbstractNode {
 			const selectdFile = newValue.trim();
 			if (selectdFile == '') return;
 			
+			if(selectdFile === FOLDER_LSTN){
+				this.folderListener = true;
+				document.querySelector(`.${this.cmpInternalId} .listenFolderPath`).setAttribute('required',true);
+			} else {
+				document.querySelector(`.${this.cmpInternalId} .listenFolderPath`).setAttribute('required',false);
+				this.folderListener = false;
+			}
+
 			this.showMoreFileOptions = 'searching';
 			await this.wspaceService.handleCsvSourceFields(selectdFile);
 
@@ -312,11 +323,9 @@ export class Bucket extends AbstractNode {
 		tables = isCloudSource ? this.bucketObjects.value : this.filesFromList.value
 
 		return {
-			tables,
+			tables, isCloudSource,
 			schema: isCloudSource && this.bucketObjectsFieldMaps.value,
-			sourceNode: this,
-			nodeCount: this.nodeCount.value,
-			isCloudSource
+			sourceNode: this, nodeCount: this.nodeCount.value,
 		};
 	}
 
@@ -329,6 +338,15 @@ export class Bucket extends AbstractNode {
 		if(this.transformationStep instanceof Transformation)
 			this.transformationStep.updateTransformationRows(tables, schema);
 	}
+
+	onSubmitPreRun(){
+		if(this.selectedFilePattern.value === FOLDER_LSTN) this.setNodeData('operational',true);
+		this.setNodeData('polling', this.folderPolling);
+		this.setNodeData('listenFolderPath', this.listenFolderPath.value);
+		this.setNodeData('listenFolderPattern', this.listenFolderPattern.value);
+	}
+
+	onPollCheck(flag){ this.folderPolling = flag; }
 
 }
 

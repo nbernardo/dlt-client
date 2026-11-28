@@ -145,3 +145,4 @@ polars[connectorx]
 zstandard
 minio
 xmltodict
+watchdog

@@ -41,10 +41,10 @@
 					</select>
 				</div>
 	
-				<p>File pattern:</p>
+				<p>File pattern/Trigger:</p>
 				<span (showIf)="self.showBucketUrlInput == 1">
 					<div style="display: flex;">
-						<select (forEach)="filesFromList" (required)="true" (value)="selectedFilePattern" class="selected-file-pattern-inpt-@formWrapClass input-file-bucket" placeholder="Select a file">
+						<select (forEach)="filesFromList" (required)="true" (value)="selectedFilePattern" class="selected-file-pattern-inpt-@formWrapClass input-file-bucket font-size13px" placeholder="Select a file">
 							<option each="item" value="{item.file}">{item.name}</option>
 						</select>
 	
@@ -90,10 +90,22 @@
 					</div>
 				</span>
 
-				<p>Resource Primary key:</p>
-				<input type="text" (value)="sourcePrimaryKey" class="sourceBucketPrimaryKey" placeholder="Ex: transactions_id">
+				<span (showIf)="!self.folderListener">
+					<p>Resource Primary key:</p>
+					<input type="text" (value)="sourcePrimaryKey" class="sourceBucketPrimaryKey" placeholder="e.g.: transactions_id">
+				</span>
+				<span (showIf)="self.folderListener">
+					<p>Folder Source:</p>
+					<input type="text" (value)="listenFolderPath" class="listenFolderPath" placeholder="e.g.: /my/folder/name/">
+					<p>File pattern:</p>
+					<input type="text" (value)="listenFolderPattern" placeholder="e.g.: *proc.json">
+					<p>Polling: <input type="checkbox" onclick="component.onPollCheck(this.value)" style="width: fit-content; height: fit-content;"></p>
+				</span>
 	
 			</form>
 		</span>
 	</div>
 </div>
+<style>
+	.font-size13px { font-size: 13px; }
+</style>
