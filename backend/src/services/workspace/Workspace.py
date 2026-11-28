@@ -675,8 +675,12 @@ class Workspace:
         from services.workspace.Workspace import _run_async
 
         settings = payload['settings']
-        _type, periodicity, time = settings['type'], settings['periodicity'], settings['time']
-        # socket_id = payload['socket_id']
+
+        if settings.get('type') == 'bucket-hook':
+            Workspace.handle_hook_listener_sched(settings.get('bucketUrl'))
+            return
+
+        _type, periodicity, time = settings['type'], settings['periodicity'], settings.get('time')
 
         if ((_type not in ['min','hour']) and periodicity != 'daily')\
             and not(settings['operational'] == True and settings['type'] == 'sec'):
@@ -757,6 +761,11 @@ class Workspace:
             return {'error': True, 'type': 'DATABASE_ERROR', 'message': f"Database error: {str(err)}"}
         except Exception as err:
             return {'error': True, 'type': 'UNEXPECTED_ERROR', 'message': f"Unexpected error: {str(err)}"}
+
+    
+    def handle_hook_listener_sched(folder_path):
+        from utils.pipeline.ListenFolderHandler import watch_folder
+        watch_folder(folder_path)
 
 
     @staticmethod

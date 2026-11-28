@@ -7,6 +7,9 @@ from utils.BucketConnector import BucketConnector
 from utils.pipeline import NodeType
 from services.workspace.Workspace import Workspace
 import logging
+from controller.RequestContext import RequestContext, OperationalPipelineMetadata
+from utils.logging.pipeline_logger_config import handle_pipeline_log
+import json
 
 class Bucket(TemplateNodeType):
     """
@@ -24,6 +27,16 @@ class Bucket(TemplateNodeType):
             self.bucket_path_prefix = ""
             self.template_type = 'non_database_source'
             
+            if data.get('operational'):
+                context.operational_metadata.source_type = OperationalPipelineMetadata.HOOK_TYPE.lower()
+                self.source_backet_listener(data, context)
+                context.operational_metadata.timer['type'] = 'bucket-hook'
+                context.operational_metadata.timer['bucketUrl'] = data.get('listenFolderPath', '').strip()
+                context.operational_metadata.timer['polling'] = True if data.get('polling',None).strip() == 'on' else None
+                context.operational_metadata.timer['filePattern'] = data.get('listenFolderPattern')
+
+                return
+
             # Check if S3 authentication is needed
             # TODO: implement other cloud providers
             self.context.use_s3_auth = False
@@ -122,7 +135,8 @@ class Bucket(TemplateNodeType):
             logging.info(f'Worked with value: {self.bucket_url} and {self.file_pattern}')
         except:
             ...
-        return self.check_bucket_url()
+        if self.context.operational_metadata.source_type != OperationalPipelineMetadata.HOOK_TYPE.lower():
+            return self.check_bucket_url()
 
 
     def check_bucket_url(self):
@@ -148,3 +162,26 @@ class Bucket(TemplateNodeType):
                 self.bucket_path_prefix = backet_path_pieces[3]
 
         return self.notify_failure_to_ui('Bucket',error)
+
+
+    def source_backet_listener(self, data: dict = None, context: RequestContext = None):
+            from services.admin.DataFlowService import DataFlowService
+            self.template = '' # Template set is important as the flow still considers some regular (no operationl) pipeline checking 
+            # In case .transaction is not True then it's pipeline creation flow
+
+            context.pipeline_metadata.dest_dw_name = OperationalPipelineMetadata.OP
+            logger = DltPipeline.get_pipeline_logger(context)
+            context.operational_metadata.logger = logger
+
+
+            record = { 
+                'pipeline': context.pipeline_name,
+                'destination': json.dumps(str(data.get('destinationSetting','')).replace("'",'"')),
+                'node_connections': json.dumps(str(list(context.connections)).replace("'",'"')),
+                'node_list': json.dumps(str(context.node_params).replace("'",'"')),
+                'creds': json.dumps({}),
+                'hook': data.get('hookEndpoint', ''),
+            }
+            DataFlowService().create_hooked_flow([record], context.transaction_namespace)
+            handle_pipeline_log(f'Created the pipeline instance record: ', logger, False)
+            context.transaction_trace[data['componentId']] = True

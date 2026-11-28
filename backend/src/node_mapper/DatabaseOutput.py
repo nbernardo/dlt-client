@@ -41,10 +41,17 @@ class DatabaseOutput(TemplateNodeType):
                 context.transaction_trace[data['componentId']] = True
                 ...
             else:
+                if len(context.operational_metadata.timer.keys()) > 0:
+                    timer_settings = self.context.operational_metadata.timer
+                    settings = { 'periodicity': None, 'ppline_label': context.pipeline_name, 'operational': True }
+
+                    from services.workspace.Workspace import Workspace
+                    settings = { 'settings': { **settings, **timer_settings } }
+                    Workspace.handle_pipeline_schedule(settings, context.user, context.pipeline_name)
                 ...
             context.emit_ppsuccess()
             return
-            ...
+            
         
         self.output_dest_name = data['databaseName'].replace('-','_')
         # outdb_secret_name is mapped to any pipeline template (in the /pipeline_templates folder) 
